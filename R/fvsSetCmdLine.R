@@ -1,0 +1,8 @@
+fvsSetCmdLine <-
+function(cl = NULL)
+{
+  if (is.null(cl)) cl=paste(commandArgs(trailingOnly = TRUE),collapse=" ")
+  nch = as.integer(nchar(cl))
+  if (nch > 0) .Fortran("cmdline",cl,nch) else NULL
+}
+
