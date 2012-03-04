@@ -1,3 +1,6 @@
+# modifies the "summary" statistics so that it is ready to plot. This is done by adding a row
+# for post thin so that variables like "TPA" show the trace over time with the removals being 
+# as sharp dip.
 fvsSetupSummary <- function(asum)
 {
   std=c("Tpa","TCuFt","MCuFt","BdFt")
