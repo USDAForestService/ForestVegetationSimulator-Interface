@@ -1,8 +1,9 @@
 fvsGetSummary <-
 function()
 {
-  nc = unlist(.Fortran("fvsDimSizes",as.integer(0),as.integer(0),
-            as.integer(0),as.integer(0),as.integer(0),as.integer(0)))[[2]]
+  nc = fvsGetDims()["ncycles"]
+  if (nc == 0) return(NULL)
+  
   asum = vector("list",nc+1)
   summary = vector("integer",20)
   for (i in 1:(nc+1)) {

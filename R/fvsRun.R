@@ -9,7 +9,7 @@ function(stopPointCode=NA,stopPointYear=NA)
     rtn = .Fortran("fvs",as.integer(0)) [[1]]
     if (rtn != 0) break
   }
-  rtn
+  invisible(rtn)
 }
 
 
