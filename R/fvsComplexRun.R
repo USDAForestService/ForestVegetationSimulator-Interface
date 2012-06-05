@@ -1,24 +1,27 @@
 fvsComplexRun <-
-function(functionsToCall=list(NULL,NULL,NULL,NULL,NULL,NULL,fvsGetSummary))
+function(...)
 {
-  allCases <- list()
+  args <- list(...)
+  argnames <-  names(args)
+  needed <- c("BeforeEM1","AfterEM1","BeforeEM2","AfterEM2",
+              "BeforeAdd","BeforeEstab","SimEnd")
+  toCall <- vector("list",length(needed))
+  names(toCall) <- needed
+  toCall[needed] <- args[needed]
+  ignored <- setdiff(names(args),needed)
+  if (length(ignored) > 0) warning("argument(s) ignored: ",
+      paste(ignored,collapse=", "))
+ 
+  ntoc <- length(needed)
+  allCases <- list()        
   oneCase <- NULL
-  if (is.null(names(functionsToCall))) names(functionsToCall) <-
-      c(paste("StopPnt",1:6,sep=""),"SimEnd")
-  else 
-  {
-    for (i in 1:6) if (names(functionsToCall)[i] == "") 
-                       names(functionsToCall)[i] <- paste("StopPnt",i,sep="")
-    if (names(functionsToCall)[7] == "") names(functionsToCall)[7] <- "SimEnd"                 
-  }
-
-  setNextStopPoint <- function (functionsToCall,currStopPoint)
+  setNextStopPoint <- function (toCall,currStopPoint)
     {
-       pts <- (currStopPoint+1):6  #set up a circlular sequence 
-       if (length(pts) < 6) pts <- c(pts,1:(6-length(pts)))
+       pts <- (currStopPoint+1):(ntoc-1)  #set up a circlular sequence 
+       if (length(pts) < ntoc) pts <- c(pts,1:(ntoc-length(pts)-1))
        for (i in pts) 
        {
-         if (!is.null(functionsToCall[[i]]))
+         if (!is.null(toCall[[i]]))
          {                               # args are: spptcd,spptyr
            .Fortran("setstoppointcodes",as.integer(i),as.integer(-1))
            break
@@ -26,7 +29,7 @@ function(functionsToCall=list(NULL,NULL,NULL,NULL,NULL,NULL,fvsGetSummary))
        }
      }
               
-  setNextStopPoint(functionsToCall,0)
+  setNextStopPoint(toCall,0)
 
   repeat
   {
@@ -38,34 +41,36 @@ function(functionsToCall=list(NULL,NULL,NULL,NULL,NULL,NULL,fvsGetSummary))
 
     if (stopPoint == 0) 
     {
-      if (! is.null(functionsToCall[[7]])) 
+      if (! is.null(toCall[["SimEnd"]])) 
       {
-        ans <- functionsToCall[[7]]()
+        ans <- if (is.function(toCall[["SimEnd"]])) toCall[["SimEnd"]]() else
+               eval(parse(text=toCall[["SimEnd"]]))
         if (! is.null(ans))
         { 
           onePtr <- length(allCases)+1
           allCases[[onePtr]] <- ans
           ids <- fvsGetStandIDs()
-          caseID <- paste(ids[1], ids[3], names(functionsToCall)[7],sep=":")
+          caseID <- paste(ids[1], ids[3], "SimEnd",sep=":")
           names(allCases)[onePtr] <- caseID
         }
       } 
-      setNextStopPoint(functionsToCall,0)
+      setNextStopPoint(toCall,0)
     }
     else
     {
-      if (! is.null(functionsToCall[[stopPoint]])) 
+      if (! is.null(toCall[[stopPoint]])) 
       {
-        ans <- functionsToCall[[stopPoint]]()
+        ans <- if (is.function(toCall[[stopPoint]])) toCall[[stopPoint]]() else
+               eval(parse(text=toCall[[stopPoint]]))
         if (! is.null(ans))
         { 
           if (is.null(oneCase)) oneCase <- list()
           onePtr <- length(oneCase)+1
           oneCase[[onePtr]] <- ans
-          names(oneCase)[onePtr] <- names(functionsToCall)[stopPoint]
+          names(oneCase)[onePtr] <- names(toCall)[stopPoint]
         }
       }
-      setNextStopPoint(functionsToCall,if (stopPoint == 6) 0 else stopPoint)
+      setNextStopPoint(toCall,if (stopPoint == ntoc-1) 0 else stopPoint)
     }
     if (! is.null(oneCase))
     {
