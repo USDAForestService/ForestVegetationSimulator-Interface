@@ -1,4 +1,4 @@
-fvsComplexRun <-
+fvsInteractRun <-
 function(...)
 {
   args <- list(...)
