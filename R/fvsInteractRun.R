@@ -21,6 +21,7 @@ function(...)
        if (length(pts) < ntoc) pts <- c(pts,1:(ntoc-length(pts)-1))
        for (i in pts) 
        {
+         if (i == 0) next 
          if (!is.null(toCall[[i]]))
          {                               # args are: spptcd,spptyr
            .Fortran("setstoppointcodes",as.integer(i),as.integer(-1))
@@ -28,7 +29,6 @@ function(...)
          }
        }
      }
-              
   setNextStopPoint(toCall,0)
 
   repeat
@@ -36,9 +36,17 @@ function(...)
     # run fvs, capture the return code
     rtn <- .Fortran("fvs",as.integer(0))[[1]]
     if (rtn != 0) break  # this will signal completion. 
-  
+    
+    # if the current stop poinst is -1, then all the last call
+    # accomplished is a reload from a stoppoint file.
     stopPoint <- .Fortran("getrestartcode",as.integer(0))[[1]]
-
+    if (stopPoint == -1)
+    {
+      rtn <- .Fortran("fvs",as.integer(0))[[1]]
+      stopPoint <- .Fortran("getrestartcode",as.integer(0))[[1]]
+    }  
+    if (rtn != 0) break  # this will signal completion. 
+      
     if (stopPoint == 0) 
     {
       if (! is.null(toCall[["SimEnd"]])) 
