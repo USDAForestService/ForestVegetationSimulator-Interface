@@ -17,7 +17,7 @@ fvsSetupSummary <- function(asum)
       {
         asum[nrow,std] = asum[nrow,std] - asum[nrow,rstd]
         asum[row,rstd] = 0
-        asum[row,11:20] = NA
+        asum[row,11:ncol(asum)] = NA
         dups[nrow]=0
       }
     }
