@@ -2,6 +2,16 @@ fvsInteractRun <-
 function(...)
 {
   args <- list(...)
+    
+  # set up trace
+  tm=match("trace",names(args))
+  trace = as.logical( if (is.na(tm)) FALSE else
+  {
+     tr=args[tm]
+     args = args[-tm]
+     tr     
+  } )
+
   argnames <-  names(args)
   needed <- c("BeforeEM1","AfterEM1","BeforeEM2","AfterEM2",
               "BeforeAdd","BeforeEstab","SimEnd")
@@ -11,7 +21,16 @@ function(...)
   ignored <- setdiff(names(args),needed)
   if (length(ignored) > 0) warning("argument(s) ignored: ",
       paste(ignored,collapse=", "))
- 
+  if (trace) 
+  {
+    for (name in needed) 
+    {
+      cat ("arg=", name, "value=", 
+          if (is.null(toCall[[name]])) "NULL" else if (
+              class(toCall[[name]]) == "function") "function" else 
+              toCall[[name]],"\n")
+    }
+  }
   ntoc <- length(needed)
   allCases <- list()        
   oneCase <- NULL
@@ -34,18 +53,25 @@ function(...)
   repeat
   {
     # run fvs, capture the return code
+    if (trace) cat ("calling fvs\n")
     rtn <- .Fortran("fvs",as.integer(0))[[1]]
+    if (trace) cat ("rtn=",rtn,"\n")
     if (rtn != 0) break  # this will signal completion. 
     
-    # if the current stop poinst is -1, then all the last call
-    # accomplished is a reload from a stoppoint file.
+    # if the current stop point is < zero, then the last call
+    # is a reload from a stoppoint file.
     stopPoint <- .Fortran("getrestartcode",as.integer(0))[[1]]
-    if (stopPoint == -1)
+    if (stopPoint < 0) 
     {
-      rtn <- .Fortran("fvs",as.integer(0))[[1]]
-      stopPoint <- .Fortran("getrestartcode",as.integer(0))[[1]]
-    }  
-    if (rtn != 0) break  # this will signal completion. 
+      stopPoint = -stopPoint
+      setNextStopPoint(toCall,stopPoint)
+    }
+    if (trace) 
+    {
+      yr <- fvsGetEventMonitorVariables("year")
+      ids <- fvsGetStandIDs()
+      cat ("called fvs, stopPoint=",stopPoint," yr=",yr," ids=",ids,"\n") 
+    }
       
     if (stopPoint == 0) 
     {
@@ -61,7 +87,7 @@ function(...)
           caseID <- paste(ids[1], ids[3], "SimEnd",sep=":")
           names(allCases)[onePtr] <- caseID
         }
-      } 
+      }
       setNextStopPoint(toCall,0)
     }
     else

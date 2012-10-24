@@ -31,7 +31,7 @@ function(vars)
                 as.double(vars[name]),as.integer(0))
     all = c(all,if (ans[[5]] == 0) ans[[4]] else NA)
   }
-  names(all) = vars
+  names(all) = names(vars)
   all
 }
 

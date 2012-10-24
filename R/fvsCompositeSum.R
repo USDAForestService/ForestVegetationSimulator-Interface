@@ -1,9 +1,16 @@
-fvsCompositeSum <- function(allsum)
+fvsCompositeSum <- 
+function(allsum,yrs=NULL)
 { 
   if (class(allsum) != "list") stop("allsum must be a list.")
   if (length(allsum) == 0) return (NULL)
   if (length(allsum) == 1) return (allsum[[1]])
-  yrs=unique(unlist(lapply(allsum,function (x) x[,"Year"])))
+  if (is.null(yrs)) yrs=allsum[[1]][,"Year"]
+  for (x in allsum) yrs = intersect(x[,"Year"],yrs)
+   
+  if (is.null(yrs) | length(yrs) < 1) stop("no common years.")
+
+#TODO: This code will not compute total production correctly if there are
+# removals in cycles other than those within the "common years" vector. 
   
   comp = NULL; sumwt = 0
   for (i in 1:length(allsum))
