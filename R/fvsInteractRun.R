@@ -43,7 +43,7 @@ function(...)
          if (i == 0) next 
          if (!is.null(toCall[[i]]))
          {                               # args are: spptcd,spptyr
-           .Fortran("setstoppointcodes",as.integer(i),as.integer(-1))
+           .Fortran("fvsSetStoppointCodes",as.integer(i),as.integer(-1))
            break
          }
        }
@@ -60,7 +60,7 @@ function(...)
     
     # if the current stop point is < zero, then the last call
     # is a reload from a stoppoint file.
-    stopPoint <- .Fortran("getrestartcode",as.integer(0))[[1]]
+    stopPoint <- .Fortran("fvsGetRestartCode",as.integer(0))[[1]]
     if (stopPoint < 0) 
     {
       stopPoint = -stopPoint
