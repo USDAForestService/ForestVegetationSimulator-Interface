@@ -3,7 +3,8 @@ function(vars)
 {
   ntrees = fvsGetDims()["ntrees"]
   action = "set"
-  vars = as.list(vars)
+  if (!is.list(vars)) stop("vars must be a list")
+  if (is.null(names(vars))) stop ("vars must have names")
   rtn = 0
   for (name in names(vars))
   {
@@ -15,7 +16,7 @@ function(vars)
     }
     if (any(is.na(atr)))
     {
-      warning ("NA found for variable '",name,"'")
+      warning ("NA(s) found for variable '",name,"'")
       next
     }
     nch =nchar(name)
@@ -27,6 +28,6 @@ function(vars)
       next
     }
   }
-  rtn
+  invisible(rtn)
 }
 

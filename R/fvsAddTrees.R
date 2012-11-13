@@ -27,5 +27,5 @@ function(newtrees)
   in_tpa     <- as.numeric(newtrees[,locrec[6]])
   rtn <- .Fortran("fvsAddTrees",in_dbh,in_species,in_ht,in_cratio,
                   in_plot,in_tpa,ntrees,as.integer(0))
-  rtn[[8]]
+  invisible(rtn[[8]])
 }
