@@ -4,7 +4,8 @@
 fvsSetupSummary <- 
 function(asum)
 {
-  if (names(asum)[1] == "sumTable") asum=asum[[1]]
+  if (!is.null(names(asum)) && 
+      names(asum)[1] == "sumTable") asum=asum[[1]]
   std=c("Tpa","TCuFt","MCuFt","BdFt")
   rstd=paste("R",std,sep="")
   new=asum[,"RTpa"] > 0
