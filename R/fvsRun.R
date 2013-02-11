@@ -7,8 +7,8 @@ function(stopPointCode=NA,stopPointYear=NA)
   repeat     
   {
     rtn = .Fortran("fvs",as.integer(0)) [[1]]
-    stopPoint <- .Fortran("fvsGetRestartCode",as.integer(0))[[1]]
     if (rtn != 0) break
+    stopPoint <- .Fortran("fvsGetRestartCode",as.integer(0))[[1]]
     if (stopPoint != 0) break
   }
   invisible(rtn)

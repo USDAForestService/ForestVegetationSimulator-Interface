@@ -72,8 +72,8 @@ function(...)
       ids <- fvsGetStandIDs()
       cat ("called fvs, stopPoint=",stopPoint," yr=",yr," ids=",ids,"\n") 
     }
-      
-    if (stopPoint == 0) 
+
+    if (stopPoint == 100) 
     {
       if (! is.null(toCall[["SimEnd"]])) 
       {
