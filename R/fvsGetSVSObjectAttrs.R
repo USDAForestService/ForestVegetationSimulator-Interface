@@ -1,6 +1,9 @@
 fvsGetSVSObjectAttrs <-
 function()
 {
+
+### object types and locations
+
   svsdims = fvsGetSVSDims()
   svsObjNames = c("objtype","objindex","xloc","yloc")
   nsvsobjs = svsdims["nsvsobjs"] 
@@ -17,18 +20,29 @@ function()
     }
   }
   svs = as.data.frame(svs)
+  
+# fetch the species codes for use below.
+
+  sppCds = fvsGetSpeciesCodes()
  
+### live trees
+
   lives = NULL
   liveptrs = svs$objindex[svs$objtype == 1]
   liveptrs = liveptrs[liveptrs != 0]
   if (length(liveptrs) > 0) 
   {
     lives = fvsGetTreeAttrs(c("species","dbh","ht","crwdth","cratio",
-                              "crownwt0","crownwt1"))[liveptrs,] 
+                              "crownwt0","crownwt1","crownwt2","crownwt3"))[liveptrs,] 
     lives = cbind (subset(svs,objtype == 1)[,3:4],lives)
   }
+  if (length(lives$species) > 0) lives$species = sppCds[lives$species,3]
 
-  snagNames = c("snagdia","snaglen","snagfdir","snagstat","snagwt0","snagwt1") 
+
+### snags
+
+  snagNames = c("snagspp","snagdbh","snaglen","snagfdir","snagstat","snagyear",
+                "snagwt0","snagwt1","snagwt2","snagwt3") 
   snags = NULL
   snagptrs = svs$objindex[svs$objtype == 2]
   snagptrs = snagptrs[snagptrs != 0]
@@ -46,10 +60,35 @@ function()
         names(snags)[length(snags)] = name
       }
     }
+
+    # age the snag weights
+
+    maxsp  = nrow(sppCds)
+    ageWts = c( "snagwt0", "snagwt1", "snagwt2", "snagwt3")
+    falyrs = c("fallyrs0","fallyrs1","fallyrs2","fallyrs3")
+    year = fvsGetEventMonitorVariables(vars="Year")
+    sage= year-snags$snagyear-1
+    for (i in 1:length(falyrs))
+    { 
+      name=falyrs[i] 
+      nch =nchar(name)
+      atr = vector("numeric",maxsp)
+      ans = .Fortran("fvsFFEAttrs",name,nch,"get",maxsp,atr,as.integer(0))
+      if (ans[[6]] == 0) 
+      {              
+        fal = ans[[5]]
+        fal = sage/fal[snags$snagspp]
+        snags[[ageWts[i]]] = snags[[ageWts[i]]] * ifelse(fal < 1, 1-fal, 0)
+      }
+    }
+
+    if (length(snags$snagspp) > 0) snags$snagspp = sppCds[snags$snagspp,3]
     snags = cbind (subset(svs,objtype == 2)[,3:4],as.data.frame(snags)[snagptrs,])
   }
 
-  cwdNames = c("cwddia","cwdpil","cwddir","cwdwt") 
+###  cwd:
+
+  cwdNames = c("cwddia","cwdlen","cwdpil","cwddir","cwdwt") 
   cwd = NULL
   cwdptrs = svs$objindex[svs$objtype == 4]
   cwdptrs = cwdptrs[cwdptrs != 0]
