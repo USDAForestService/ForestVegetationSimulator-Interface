@@ -2,7 +2,8 @@ fvsRun <-
 function(stopPointCode=NA,stopPointYear=NA)
 {
   if (! is.na(stopPointCode) & ! is.na(stopPointCode)) 
-    .Fortran("fvsSetStoppointCodes",as.integer(stopPointCode),as.integer(stopPointYear))
+    .Fortran("fvsSetStoppointCodes",as.integer(stopPointCode),
+                                    as.integer(stopPointYear))
 
   repeat     
   {
