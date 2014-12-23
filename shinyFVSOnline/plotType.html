@@ -1,0 +1,40 @@
+<div class="row-fluid">
+  <div class="span5"> 
+     <div id="plotType" class="control-group shiny-input-radiogroup">
+       <label style="vertical-align: bottom;" class="control-label" for="plotType">Type:&nbsp&nbsp
+       <label class="radio inline">
+         <input type="radio" name="plotType" id="plotType1" value="line" checked="checked"/>
+         <span>line</span>
+       </label>
+       <label class="radio inline">
+         <input type="radio" name="plotType" id="plotType2" value="scatter"/>
+         <span>scatter</span>
+       </label>
+       <label class="radio inline">
+         <input type="radio" name="plotType" id="plotType3" value="bar"/>
+         <span>bar</span>
+       </label>
+       <label class="radio inline">
+         <input type="radio" name="plotType" id="plotType4" value="box"/>
+         <span>box</span>
+       </label></label>
+     </div>
+   </div>
+   <div class="span4">
+     <div id="colBW" class="control-group shiny-input-radiogroup">
+       <label style="vertical-align: bottom;" class="control-label" for="colBW">Scheme:&nbsp&nbsp
+       <label class="radio inline">
+         <input type="radio" name="colBW" id="colBW1" value="color" checked="checked"/>
+         <span>color</span>
+       </label>
+       <label class="radio inline">
+         <input type="radio" name="colBW" id="colBW2" value="B&W"/>
+         <span>B&W</span>
+       </label></label>
+     </div>
+  </div>
+  <div class="span3">
+    <button id="rpPlotAdd" type="button" class="btn action-button">Add graph to report</button>
+  </div> 
+</div>
+

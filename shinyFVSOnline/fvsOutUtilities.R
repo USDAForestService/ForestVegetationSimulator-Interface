@@ -1,0 +1,229 @@
+if (exists("mkfvsOutData")) rm (mkfvsOutData)
+mkfvsOutData <- 
+  setRefClass("fvsOutData", 
+    fields = list(dbLoadData = "list", dbData = "data.frame", 
+      dbVars = "character", browseVars = "character", 
+      dbSelVars = "character", browseSelVars = "character",
+      runs = "character", plotSpecs = "list", dbCases = "data.frame",
+      render = "data.frame"))
+
+pivot <- function(dat,pvar,dvar)
+{
+  facts = colnames(dat)[unlist(lapply(dat,is.factor))]
+  if (! pvar %in% facts) return(data.frame())
+  if (! dvar %in% colnames(dat)) return(data.frame())
+  for (v in facts) dat[[v]] = droplevels(dat[[v]])
+  facts = setdiff(facts,c(dvar,pvar))
+  grps = by(dat,as.list(dat[,facts]),
+    function(x,allc,facts,pvar,dvar) 
+    {
+      y = rep(0,length(allc)) 
+      y[match(x[,pvar],allc)] = x[,dvar]
+      c(as.numeric(x[1,facts]),y)   
+    },levels(dat[[pvar]]),facts,pvar,dvar)    
+  grps = matrix(unlist(grps),
+         ncol=length(levels(dat[[pvar]]))+length(facts),byrow=TRUE)
+  colnames(grps)=c(facts,paste0(dvar," ",pvar,":",levels(dat[[pvar]])))
+  if (is.factor(dat[[dvar]]))
+  {
+    colstofactor = (length(facts)+1):ncol(grps)
+    grps[,colstofactor] = ifelse(grps[,colstofactor]==0,"",
+        levels(dat[[dvar]])[grps[,colstofactor]])
+  }
+  grps = as.data.frame(grps)  
+  for (i in facts)
+  {
+    grps[[i]] = as.integer(grps[[i]])
+    attributes(grps[[i]]) = attributes(dat[[i]])
+  }
+  cmd = paste0("order(",paste(paste0("grps$",facts),collapse=","),")")
+  sby = eval(parse(text=cmd))
+  grps[sby,]
+}
+
+ggplotColours <- function(n=6, h=c(0, 360) +15, alpha=.7)
+{
+  if ((diff(h)%%360) < 1) h[2] <- h[2] - 360/n
+  hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65, alpha)
+}
+
+
+filterRows <- function (dat, title, stdid, mgtid, year, species, dbhclass)
+  {
+    rows = rep (TRUE,nrow(dat))
+    rows = if (!is.null(title)    & !is.null(dat$RunTitle)) rows &  
+           dat$RunTitle %in% title   else rows
+    rows = if (!is.null(stdid)    & !is.null(dat$StandID))  rows &  
+           dat$StandID %in% stdid    else rows
+    rows = if (!is.null(mgtid)    & !is.null(dat$MgmtID))   rows &   
+           dat$MgmtID  %in% mgtid    else rows
+    rows = if (!is.null(year)     & !is.null(dat$Year))     rows &     
+           dat$Year %in% year     else rows
+    rows = if (!is.null(species)  & !is.null(dat$Species))  rows & 
+           dat$Species %in% species  else rows
+    rows = if (!is.null(dbhclass) & !is.null(dat$DBHClass)) rows & 
+           dat$DBHClass %in% dbhclass else rows
+    rows
+  }
+
+
+setupSummary <- function(asum,composite=FALSE)
+{
+  std=c("Tpa","TCuFt","MCuFt","BdFt")
+  rstd=paste("R",std,sep="")
+  stdden = c("BA","SDI","CCF","TopHt","QMD")
+  stddenAT = paste0("AT",stdden)
+  newrtpa = "RTpa"
+  if (composite)
+  {
+    std=paste0("Cmp",std)
+    rstd=paste0("Cmp",rstd)
+    stddenAT = paste0("CmpAT",stdden)
+    stdden = paste0("Cmp",stdden)
+    newrtpa = "CmpRTpa"
+  }    
+  new=asum[,newrtpa] > 0
+  rtpaLoc  = match(newrtpa,colnames(asum))
+  if (sum(new) > 0) 
+  {
+    dups=unlist(lapply(1:length(new),function(x,new) 
+                if (new[x]) rep(x,2) else x, new))
+    asum=asum[dups,]
+    for (row in 1:(nrow(asum)-1))
+    {
+      nrow=row+1
+      if (dups[row] == dups[nrow])
+      {
+        asum[nrow,std]  = asum[nrow,std] - asum[nrow,rstd]
+        asum[nrow,stdden]=asum[nrow,stddenAT]
+        asum[row,rstd] = 0
+        asum[row,rtpaLoc:(rtpaLoc+3)] = 0
+        dups[nrow]=0
+      }
+    }
+  }
+  tprd=apply(asum[,rstd],2,cumsum)+asum[,std]
+  colnames(tprd)=if (composite) gsub("Cmp","CmpTPrd",std) else 
+                                paste("TPrd",std,sep="")
+  asum=cbind(asum,tprd,srtOrd=1:nrow(asum))
+  asum
+}
+
+
+getRptFile <- function (new=FALSE)
+{
+  if (file.exists("FVSReport")) 
+  {
+    if (new) lapply(dir("FVSReport"), function(x) 
+      file.remove(paste0("FVSReport/",x)))
+  } else dir.create("FVSReport")
+  "FVSReport/report.md"
+}
+
+
+mkNextPlotFileName <- function()
+{
+  if (!file.exists("FVSReport")) dir.create("FVSReport")
+  files=dir("FVSReport",pattern="[.]png$")
+  sprintf("plot%3.3d.png",length(files)+1)
+}
+ 
+
+appendToReport <- function(obj,rptFile=getRptFile())
+{
+  if (missing(obj)) return()
+  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
+  if (class(obj) == "data.frame" || class(obj) == "matrix")
+  {
+    cat (file=con,"Table added",format(Sys.time(),"%a %b %d %X %Z %Y"))
+    cat (file=con,"  \n")
+    if (!is.null(colnames(obj)))
+    {
+      cat (file=con,"\n|") 
+      lapply(colnames(obj),function (x) cat(file=con,x,"|",sep=""))
+      cat (file=con,"\n")
+      cat (file=con,"|")
+      lapply(colnames(obj),function (x) 
+        cat(file=con,paste0(rep("-",max(2,nchar(x)-1)),collapse=""),":|",sep=""))
+      cat (file=con,"\n")
+    }
+    apply(obj,1,function(y)
+    {
+      cat (file=con,"|")
+      lapply(y,function (x) cat(file=con,x,"|",sep="")) 
+      cat (file=con,"\n")
+    })
+    cat (file=con,"\n")
+  } else if (class(obj) == "character") 
+  {
+    lapply(obj,cat,file=con,"  \n")
+    cat (file=con,"  \n")
+  } 
+  if (con != stdout()) close(con)
+}
+
+
+appendPlotToReport <- 
+function (plotFile=mkNextPlotFileName(),rptFile=getRptFile())
+{
+  if (!file.exists("plot.png")) return()
+  ct = format(file.info("plot.png")[,"ctime"], "%a %b %d %X %Z %Y")
+  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
+  cat(file=con,"\n![Figure created ",ct,"](",plotFile,")\n\n",sep="")
+  if (con != stdout()) close(con)
+  file.copy(from="plot.png",to=paste0("FVSReport/",plotFile))
+}
+
+
+generateReport <- function(tf)
+{
+  if (file.exists("FVSReport/report.md"))
+  {
+    setwd("FVSReport")
+    system(paste0("pandoc -o ",tf," -t docx report.md"))
+    setwd("..")
+  }
+}
+
+  
+errorScan <- function (outfile)
+{
+  if (missing(outfile)) return("outfile not specified")
+  if (!file.exists(outfile)) return("outfile does not exist") 
+  fout<-file(outfile,"rt")
+  errs<-list()
+  sid<-line<-l0<-l1<-""  
+  ln = 0
+  repeat
+  {
+    l0<-l1
+    l1<-line
+    line=scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
+         blank.lines.skip = FALSE)
+    if (length(line) == 0) break
+    ln = ln+1
+    hit=grep("STAND ID= ",line,fixed=TRUE)
+    if (length(hit))
+    {
+      sid = scan(text=line,what="character",quiet=TRUE)[3]
+      next
+    }
+    hit=grep("ERROR",toupper(line),fixed=TRUE)
+    if (length(hit)) 
+    {
+      if (length(grep("STANDARD ERRORS",toupper(line),fixed=TRUE))) next
+      if (length(grep("SAMPLING",toupper(line),fixed=TRUE))) next
+      err <- c(l0,l1,line)
+      names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-2,ln-1,ln)))
+      errs<-append(errs,err)
+    }
+  }
+  close(fout)
+  errs <- if (length(errs)) 
+  {
+    errs[unlist(lapply(errs,nchar)) == 0] <- NULL
+    paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
+  } else "No errors"
+  errs
+}
+
