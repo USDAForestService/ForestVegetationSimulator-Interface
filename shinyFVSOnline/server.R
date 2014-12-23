@@ -1880,7 +1880,7 @@ cat ("FVSRefresh\n")
         i = 0
         for (pgm in input$FVSprograms)
         {
-          rtn=file.copy(from=paste0(fvsBinDir,pgm,shlibsufx),to="FVSBin")
+          rtn=file.copy(from=paste0(fvsBinDir,pgm,shlibsufx),to="FVSbin")
           if (rtn) i = i+1
         }
         session$sendCustomMessage(type="infomessage",
