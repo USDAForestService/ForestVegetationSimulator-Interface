@@ -264,8 +264,9 @@ cat("findCmp, cmp=",cmp,"\n")
 writeKeyFile <- function (fvsRun,fvsInit,prms)
 {
 cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
-
+  extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
+  if (!is.na(match("mist",extns))) defaultOutMist=NULL
   fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
   cat ("!!uuid: ",fvsRun$uuid,"\n",file=fc)
@@ -302,6 +303,7 @@ cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
     cat ("DelOTab            2\n",file=fc)
     cat ("DelOTab            4\n",file=fc)
     cat (defaultOut,file=fc)
+    if (!is.na(match("mist",extns))) cat (defaultOutMist,file=fc)
     for (out in fvsRun$autoOut)
     {
       switch (out,

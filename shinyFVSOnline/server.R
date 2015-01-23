@@ -115,16 +115,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     {
 cat ("Load Output\n")    
       tbs <- dbListTables(dbcon)
-#      if (length(tbs) == 0) 
-#      {
-        #try reconnecting
-#        dbcon <- dbConnect(dbDrv,"FVSOut.db")    
-#        dbSendQuery(dbcon,'attach ":memory:" as m')
-#        tbs <- dbListTables(dbcon)
-        if (length(tbs) == 0) return()
-#      }
+      if (length(tbs) == 0) return()
       if (is.na(match("FVS_Cases",tbs))) return()
-#browser() 
       fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
       fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
       times = NULL
@@ -199,7 +191,7 @@ cat ("Run selection (load)\n")
           exqury(dbcon,Create_Composite)
           tbs = c(tbs,"Composite")
         }
-
+#### add code for when FVS_Summary_East is present
         if ("FVS_TreeList" %in% tbs)  
         {
           setProgress(message = "Output query", 
@@ -226,13 +218,18 @@ cat ("Run selection (load)\n")
         dbCommit(dbcon)
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbcon)
         names(dbd) = tbs
-        if (!is.null(dbd$FVS_Summary)) dbd$FVS_Summary = c(dbd$FVS_Summary,
+        if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
-        if (!is.null(dbd$Composite)) dbd$Composite = c(dbd$Composite,
+#when the processing of the eastern summary is fixed up, need this code will be needed.
+#        if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
+#            c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMTCuFt","TPrdSCuFt","TPrdSBdFt"))
+#this code will need to be modified for eastern composites
+        if (!is.null(dbd[["Composite"]])) dbd$Composite = c(dbd$Composite,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
-        if (length(dbd)) fvsOutData$dbLoadData <- dbd
-          updateSelectInput(session, "selectdbtables", choices=tbs,
-                      selected=c("FVS_Cases","FVS_Summary"))
+        if (length(dbd)) fvsOutData$dbLoadData <- dbd      
+        updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
+                    selected= intersect(tbs, 
+                    c("FVS_Cases","FVS_Summary","FVS_Summary_East")))
         setProgress(value = NULL)          
       }, min=1, max=6)
     }
@@ -401,7 +398,7 @@ cat ("nrow mdat3=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")
         updateSelectInput(session, "dbhclass", 
           choices=as.list(levels(mdat$DBHClass)), selected=levels(mdat$DBHClass))
       selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","Species",
-        "^Ht$","TCuFt","Total"),function (x,vs) 
+        "^Ht$","TCuFt","Total","SCuFt"),function (x,vs) 
         {
           hits = unlist(grep(x,vs,ignore.case = TRUE))
           hits = hits[hits>0]
@@ -1515,7 +1512,7 @@ cat("input$schedbox=",input$schedbox,"\n")
           detail = "Deleting obsolete output data", value = 1)         
         deleteRelatedDBRows(fvsRun$uuid,dbcon)
         progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and load program", value = 2)
+          detail = "Write .key file and load program", value = 2)          
         writeKeyFile(fvsRun,globals$inData$FVS_StandInit,prms)
         dir.create(fvsRun$uuid)
         fvschild = makePSOCKcluster(1)
@@ -1532,6 +1529,8 @@ cat("input$schedbox=",input$schedbox,"\n")
         allSum = list()
         for (i in 1:length(fvsRun$stands))
         {
+          detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])
+          progress$set(message = "FVS running", detail = detail, value = i+2) 
           rtn = clusterEvalQ(fvschild,fvsRun())
           if (class(rtn) == "try-error") break
           if (rtn != 0) break
@@ -1539,9 +1538,6 @@ cat("input$schedbox=",input$schedbox,"\n")
           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
           allSum[[rn]] = clusterEvalQ(fvschild,
                          fvsSetupSummary(fvsGetSummary()))[[1]]
-          detail = paste0("StandId=", ids["standid"],
-                          " MgmtId=",ids["mgmtid"])
-          progress$set(message = "FVS running", detail = detail, value = i+2) 
         }
         if (rtn == 0) clusterEvalQ(fvschild,fvsRun())        
         stopCluster(fvschild)
