@@ -179,9 +179,7 @@ shinyUI(fixedPage(
             c("Treelists"="autoTreelists","Carbon"="autoCarbon",
               "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE))), 
         actionButton("run","Save and Run"),
-        plotOutput("runPlot",width="100%",height="475px"),
-        h5("FVS output error scan"),
-        uiOutput("errorScan")
+        plotOutput("runplot",width="100%",height="600px")
       ),
       tabPanel("Build Components",
         tags$style(type="text/css", "#kcpSel { width: 65%; }"),
@@ -269,6 +267,8 @@ shinyUI(fixedPage(
       ),
       tabPanel("Tools",       
         fileInput("upload","Upload FVS-Ready data (.accdb, .mdb, or .db)"),
+        actionButton("launchDataEditor","Launch data editor (closes FVSOnline)"),
+        h4(" "),
         actionButton("recoverdb","Recover from input database backup or default"),
         h4(" "),
         downloadButton("dlFVSDatadb","Download input data base"),

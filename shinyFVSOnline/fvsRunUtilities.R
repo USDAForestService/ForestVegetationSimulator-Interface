@@ -70,6 +70,8 @@ loadInvData <- function(globals,prms)
     globals$inData$FVS_StandInit <- dbReadTable (con,tbs[itab])
     names(globals$inData$FVS_StandInit) <- 
           toupper(names(globals$inData$FVS_StandInit))
+    if (is.null(globals$inData$FVS_StandInit$GROUPS))
+       globals$inData$FVS_StandInit$GROUPS = "All All_Stands"   
   } 
   itab <- grep (tolower("FVS_PlotInit"),tolower(tbs))
   if (length(itab)) 
@@ -77,6 +79,8 @@ loadInvData <- function(globals,prms)
     globals$inData$FVS_PlotInit <- dbReadTable (con,tbs[itab])
     names(globals$inData$FVS_PlotInit) <- 
           toupper(names(globals$inData$FVS_PlotInit))
+    if (is.null(globals$inData$FVS_PlotInit$GROUPS))
+       globals$inData$FVS_PlotInit$GROUPS = "All All_Plots"   
   } 
   itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
   if (length(itab)) 
@@ -91,7 +95,7 @@ loadInvData <- function(globals,prms)
     globals$selStdList <- globals$inData$FVS_StandInit$STAND_ID
     names(globals$selStdList) <- globals$inData$FVS_StandInit$STAND_ID
     selVars <- as.list(sort(unique(unlist(lapply 
-                  (globals$inData$FVS_StandInit$VARIANT,
+                  (tolower(globals$inData$FVS_StandInit$VARIANT),
                     function (x) scan(text=x,what=" ",quiet=TRUE))))))
     globals$selVarList <- lapply(selVars,function (x,pk) 
         paste(x,":",getPstring(pk,x)),prms$variants)
@@ -260,6 +264,7 @@ cat("findCmp, cmp=",cmp,"\n")
 writeKeyFile <- function (fvsRun,fvsInit,prms)
 {
 cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
+
   source("autoOutKeys.R")
   fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
@@ -874,37 +879,30 @@ cat("pasteComponent finding cmp in stands, sel=",sel,"\n")
 }
 
 
-deleteRelatedDBRows <- function(runuuid,db="FVSOut.db")
+deleteRelatedDBRows <- function(runuuid,dbcon)
 {
-  if (!file.exists(db)) return()
-  library(RSQLite)
-  dbDrv <- dbDriver("SQLite")
-  con <- dbConnect(dbDrv,db)
-  tbs <- dbListTables(con)
+  tbs <- dbListTables(dbcon)
   icas <- grep ("FVS_Cases",tbs) 
   if (length(icas) == 0) return()
   cases = tbs[icas]
   tbs = tbs[-icas]
   tbs = c(tbs,cases) 
-  casestodel = dbGetQuery(con,paste0(
+  casestodel = dbGetQuery(dbcon,paste0(
      "select CaseID from FVS_Cases where KeywordFile = '",runuuid,"'"))[,1]
   if (length(casestodel) == 0) return()
   for (tab in tbs)
   {
-    dbBegin(con)
-    if (is.na(match("CaseID",dbListFields(con,name=tab))))
-      dbSendQuery(con,paste0("drop table ",tab)) else
+    dbBegin(dbcon)
+    if (is.na(match("CaseID",dbListFields(dbcon,name=tab))))
+      dbSendQuery(dbcon,paste0("drop table ",tab)) else
     { 
-      for (casetodel in casestodel)  dbSendQuery(con,
+      for (casetodel in casestodel)  dbSendQuery(dbcon,
         paste0("delete from ",tab," where CaseID = '",casetodel,"'"))
-      nr = dbGetQuery(con,paste0("select count(*) from ",tab))[,1]
-      if (nr == 0) dbSendQuery(con,paste0("drop table ",tab))
+      nr = dbGetQuery(dbcon,paste0("select count(*) from ",tab))[,1]
+      if (nr == 0) dbSendQuery(dbcon,paste0("drop table ",tab))
     }
-    dbCommit(con)
+    dbCommit(dbcon)
   }
-  tbs <- dbListTables(con)
-  dbDisconnect(con)
-  if (length(tbs) == 0) file.remove(db)
 }
 
 

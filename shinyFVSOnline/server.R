@@ -70,11 +70,11 @@ shinyServer(function(input, output, session) {
   updateTextInput(session=session, inputId="cyclelen", value=fvsRun$cyclelen)
   updateTextInput(session=session, inputId="cycleat",  value=fvsRun$cycleat)
 
+  if (exists("mkfvsOutData")) rm (mkfvsOutData)
   fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
   dbDrv <- dbDriver("SQLite")
   dbcon <- dbConnect(dbDrv,"FVSOut.db")    
   dbSendQuery(dbcon,'attach ":memory:" as m')
-  tbs <- dbListTables(dbcon)
 
   session$onSessionEnded(function ()
   {
@@ -113,10 +113,18 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
   observe({
     if (input$leftPan == "Load Output")
     {
-cat ("Load Output\n")
+cat ("Load Output\n")    
       tbs <- dbListTables(dbcon)
-      if (length(tbs) == 0) return()
+#      if (length(tbs) == 0) 
+#      {
+        #try reconnecting
+#        dbcon <- dbConnect(dbDrv,"FVSOut.db")    
+#        dbSendQuery(dbcon,'attach ":memory:" as m')
+#        tbs <- dbListTables(dbcon)
+        if (length(tbs) == 0) return()
+#      }
       if (is.na(match("FVS_Cases",tbs))) return()
+#browser() 
       fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
       fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
       times = NULL
@@ -128,7 +136,7 @@ cat ("Load Output\n")
         titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
       }
       srt = order(times,decreasing = TRUE)
-      fvsOutData$runs = fvsOutData$runs[srt]      
+      fvsOutData$runs = fvsOutData$runs[srt]
       names(fvsOutData$runs) = titles[srt]
       updateSelectInput(session, "runs", choices = fvsOutData$runs, 
         selected=NULL)
@@ -602,7 +610,9 @@ cat ("renderPlot\n")
     {
       if (length(fvsRun$FVSpgm) == 0) 
       {
-        selVarListUse <- globals$selVarList[globals$activeVariants]
+        selVarListUse <- intersect(names(globals$selVarList),
+                                   globals$activeVariants)
+        selVarListUse <- globals$selVarList[selVarListUse]                                   
         vlst <- as.list (names(selVarListUse))
         names(vlst) = selVarListUse
       } else 
@@ -612,7 +622,6 @@ cat ("renderPlot\n")
       }
       updateSelectInput(session=session, inputId="inVars", choices=vlst,
             selected=vlst[[1]])
-#      updateTabsetPanel(session=session, inputId="leftPan", selected="Runs")
     } 
   })
   
@@ -626,11 +635,11 @@ cat ("renderPlot\n")
     hits <- vector("logical",nrow(globals$inData$FVS_StandInit))
     for (i in 1:length(hits))
     {
-      v <- scan(text=globals$inData$FVS_StandInit$VARIANT[i],
-                            what=" ",quiet=TRUE)
+      v <- tolower(scan(text=globals$inData$FVS_StandInit$VARIANT[i],
+                            what=" ",quiet=TRUE))
       hits[i] <- !all (is.na(match(v,vars))) 
     }   
-    selGrpList <<- as.list(sort(unique(unlist(lapply (
+    selGrpList <- as.list(sort(unique(unlist(lapply (
         globals$inData$FVS_StandInit[hits,"GROUPS"], 
             function (x) scan(text=x,what=" ",quiet=TRUE))))))
     updateSelectInput(session=session, inputId="inGrps", choices=selGrpList,
@@ -649,10 +658,11 @@ cat ("renderPlot\n")
     hits <- vector("logical",nrow(globals$inData$FVS_StandInit))
     for (i in 1:length(hits))
     {
-      v <- scan(text=globals$inData$FVS_StandInit$VARIANT[i],
+      v <- scan(text=tolower(globals$inData$FVS_StandInit$VARIANT[i]),
                       what=" ",quiet=TRUE)
-      g <- scan(text=globals$inData$FVS_StandInit$GROUPS[i],
-                      what=" ",quiet=TRUE)
+      g <- if (!is.null(globals$inData$FVS_StandInit$GROUPS))
+              scan(text=globals$inData$FVS_StandInit$GROUPS[i],
+                   what=" ",quiet=TRUE) else c("All","All_Stands")
       hits[i] <- !all (is.na(match(v,var))) && !all (is.na(match(g,grps))) 
     }   
     updateSelectInput(session=session, inputId="inStds", 
@@ -825,13 +835,14 @@ cat ("saveRun\n")
           newstd <- mkfvsStd(sid=toadd,uuid=uuidgen())
           row <- match(toadd,globals$inData$FVS_StandInit$STAND_ID)
           if (length(row) > 1) row = row[1]
-          addkeys <-  globals$inData$FVS_StandInit[row,"FVSKEYWORDS"]
-          if (!is.na(addkeys) && nchar(addkeys)) newstd$cmps[[1]] <- 
-            mkfvsCmp(kwds=addkeys,uuid=uuidgen(),exten="base", atag="k",
-                     kwdName="From: FVS_StandInit",
-                       title="From: FVS_StandInit")      
-          grps <- scan(text=globals$inData$FVS_StandInit[row,"GROUPS"],
-                       what=" ",quiet=TRUE)
+          addkeys <- globals$inData$FVS_StandInit[row,"FVSKEYWORDS"]
+          if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
+            newstd$cmps[[1]] <- mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+                     exten="base", atag="k",kwdName="From: FVS_StandInit",
+                     title="From: FVS_StandInit")
+          grps <- if (!is.null(globals$inData$FVS_StandInit$GROUPS))
+             scan(text=globals$inData$FVS_StandInit[row,"GROUPS"],
+                  what=" ",quiet=TRUE) else c("All All_Stands")
           requ <- unlist(grps[grep("^All",grps)])
           grps <- sort(union(intersect(input$inGrps,grps),requ))
           have <- unlist(lapply(fvsRun$grps,function(x) 
@@ -840,8 +851,9 @@ cat ("saveRun\n")
           for (grp in need) 
           {
             newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
-            grprow <- grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords
-                                  [,"GROUPS"],fixed=TRUE)
+            grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
+              grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
+                   fixed=TRUE) else c()   
             if (length(grprow) > 0) 
             {
               addkeys <- globals$inData$
@@ -1501,7 +1513,7 @@ cat("input$schedbox=",input$schedbox,"\n")
         removeFVSRunFiles(fvsRun$uuid)
         progress$set(message = "Run preparation: ", 
           detail = "Deleting obsolete output data", value = 1)         
-        deleteRelatedDBRows(fvsRun$uuid)
+        deleteRelatedDBRows(fvsRun$uuid,dbcon)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and load program", value = 2)
         writeKeyFile(fvsRun,globals$inData$FVS_StandInit,prms)
@@ -1545,6 +1557,7 @@ cat("input$schedbox=",input$schedbox,"\n")
                     "FVS run failed", detail = "", 
                     value = length(fvsRun$stands)+4)
         Sys.sleep(.4)
+cat ("length(allSum)=",length(allSum),"\n")
         if (length(allSum) == 0) return()
 
         X = vector("numeric",0)
@@ -1914,7 +1927,7 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
             is.null(globals$FVS_Runs[[input$runSel]])) return() 
         globals$FVS_Runs[[input$runSel]] = NULL
         removeFVSRunFiles(input$runSel)
-        deleteRelatedDBRows(input$runSel)
+        deleteRelatedDBRows(input$runSel,dbcon)
         resetfvsRun(fvsRun,globals$FVS_Runs)
         if (length(globals$FVS_Runs) == 0)
         {
@@ -1966,26 +1979,13 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
 cat ("delete all runs\n")
       file.remove("FVSOut.db")
       file.remove("FVS_Runs.RData")
-      keyfiles=dir(pattern="[.]key$")      
-      keyfiles=gsub ("[.]key$","*",keyfiles)
-      if (length(keyfiles)) unlink(keyfiles,recursive=TRUE)
+      rmfiles=dir(pattern="[.]key$")      
+      rmfiles=gsub ("[.]key$","*",rmfiles)
+      if (length(keyfiles)) unlink(rmfiles,recursive=TRUE)
+      rmfiles=dir(pattern="[.]out$")      
+      rmfiles=gsub ("[.]out$","*",rmfiles)
+      if (length(keyfiles)) unlink(rmfiles,recursive=TRUE)
       output$reload<-renderUI(tags$script("location.reload();"))
-#      resetfvsRun(fvsRun,NULL)
-#      globals$FVS_Runs = list()
-#      mkSimCnts(fvsRun,fvsRun$selsim)
-#      resetGlobals(globals,fvsRun,prms)
-#      updateSelectInput(session=session, inputId="runSel", choices=list(""))
-#      updateSelectInput(session=session, inputId="simCont", choices=list(""))
-#      updateTextInput(session,"title", value=fvsRun$title)
-#      updateTextInput(session=session, inputId="startyr",  
-#                      value=fvsRun$startyr)
-#      updateTextInput(session=session, inputId="endyr",    
-#                      value=fvsRun$endyr)
-#      updateTextInput(session=session, inputId="cyclelen", 
-#                      value=fvsRun$cyclelen)
-#      updateTextInput(session=session, inputId="cycleat",  
-#                      value=fvsRun$cycleat)
-#      updateTabsetPanel(session=session, inputId="rightPan", selected="Stands")
     })  
   })
   
@@ -2078,6 +2078,18 @@ cat ("backup=",backup,"\n")
       output$uiHelpText <- renderUI(NULL)
       output$uiHelpClose <- renderUI(NULL)
     }
+  })
+  
+  #dataEditor
+  observe(if (input$launchDataEditor > 0) 
+  {
+cat ("dataEditor\n")
+    file.copy("server.R","fvsOnlineServer.R", overwrite=TRUE)
+    file.copy("ui.R",    "fvsOnlineUI.R",     overwrite=TRUE)
+    file.copy("editDataServer.R","server.R",  overwrite=TRUE)
+    file.copy("editDataUI.R",    "ui.R",      overwrite=TRUE)   
+    output$reload<-renderUI(tags$script("location.reload();"))
+    output$reload<-renderUI(tags$script("location.reload();"))
   })
       
  
