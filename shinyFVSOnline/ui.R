@@ -179,7 +179,9 @@ shinyUI(fixedPage(
             c("Treelists"="autoTreelists","Carbon"="autoCarbon",
               "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE))), 
         actionButton("run","Save and Run"),
-        plotOutput("runplot",width="100%",height="600px")
+        plotOutput("runPlot",width="100%",height="475px"),
+        h5("FVS output error scan"),
+        uiOutput("errorScan")
       ),
       tabPanel("Build Components",
         tags$style(type="text/css", "#kcpSel { width: 65%; }"),
