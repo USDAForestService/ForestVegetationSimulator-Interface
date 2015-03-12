@@ -13,7 +13,7 @@ shinyServer(function(input, output, session) {
   
   load("prms.RData") 
 
-  globals <- mkglobals(saveOnExit=TRUE)
+  globals <- mkglobals(saveOnExit=TRUE,autoPanNav=TRUE)
   loadInvData(globals,prms)
   resetGlobals(globals,NULL,prms)
 
@@ -53,7 +53,7 @@ shinyServer(function(input, output, session) {
       choices=selChoices,selected=selChoices[[1]])
   updateTextInput(session=session, inputId="title",
       value=if (fvsRun$title == "") fvsRun$uuid else fvsRun$title)
-  updateTextInput(session=session, inputId="dfltMgmt",value=fvsRun$defMgmtID)
+  updateTextInput(session=session, inputId="defMgmtID",value=fvsRun$defMgmtID)
   updateSelectInput(session=session, inputId="simCont", choices=fvsRun$simcnts, 
       selected=fvsRun$selsim)      
   updateTabsetPanel(session=session, inputId="rightPan", 
@@ -92,50 +92,126 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     }
 #    stopApp()
   })
-  
-  ## Runs
+
+  ## leftPan automatic panel navigation 
+  #when autoPanNav==FALSE, this logic is active. When TRUE, this logic
+  #should be skipped.
   observe({
-    if (input$leftPan == "Runs") updateTabsetPanel(session=session, 
-      inputId="rightPan", selected=if (length(fvsRun$simcnts)) 
-      "Components" else "Stands")
+    input$leftPan
+isolate({
+  cat ("autoPanNav=",globals$autoPanNav,
+    " HIT input$leftPan=",input$leftPan," input$rightPan=",input$rightPan,"\n")
+})
+    if (globals$autoPanNav)
+    {
+      globals$autoPanNav = FALSE
+      return()
+    }
+    isolate({
+      switch(input$leftPan,
+        "Runs" = 
+        {
+          if (!(input$rightPan %in% c("Components","Stands","Time","Run")))
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+              selected=if (length(fvsRun$simcnts)) "Components" else "Stands")
+          }
+        },
+        "Load Output" = 
+        {
+          if (! input$rightPan %in% c("Tables","Graphs","Reports"))
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+              selected="Tables")
+          }
+        },
+        "Explore Output" = 
+        {
+          if (! input$rightPan %in% c("Tables","Graphs","Reports"))
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+              selected="Tables")
+          }
+          if (length(fvsOutData$dbLoadData) == 0)
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="leftPan", 
+              selected="Load Output")
+          }
+        }
+      )
+    })
   })
-  
+  ## rightPan automatic panel navigation 
   observe({
-    if (input$rightPan %in% c("Stands","Components","Time","Build Components",
-                              "Run")) 
-      updateTabsetPanel(session=session,inputId="leftPan",selected="Runs") 
-    else if (input$rightPan %in% c("Tables","Graphs","Reports"))
-      updateTabsetPanel(session=session,inputId="leftPan",
-        selected=if (length(fvsOutData$dbLoadData)) "Explore Output" else 
-                                                    "Load Output")
+    input$rightPan
+    isolate({
+      cat ("autoPanNav=",globals$autoPanNav,
+        " input$leftPan=",input$leftPan," HIT input$rightPan=",input$rightPan,"\n")
+    })
+    if (globals$autoPanNav)
+    {
+      globals$autoPanNav = FALSE
+      return()
+    }
+    isolate({
+      if (input$rightPan %in% c("Components","Stands","Time"))
+      {
+        if (input$leftPan != "Runs")
+        {
+          globals$autoPanNav = TRUE
+          updateTabsetPanel(session=session, inputId="leftPan", 
+              selected="Runs")
+        }
+      }
+      if (input$rightPan %in% c("Tables","Graphs","Reports"))
+      {
+        if (input$leftPan == "Runs")
+        {
+          globals$autoPanNav = TRUE
+          updateTabsetPanel(session=session, inputId="leftPan", 
+              selected=if (length(fvsOutData$dbLoadData))
+                       "Explore Output" else "Load Output")
+        }
+      }
+      if (input$rightPan == "Run") 
+        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+    })
   })
 
+  ## Load Output
   observe({
     if (input$leftPan == "Load Output")
     {
-cat ("Load Output\n")    
+cat ("Load Output\n")
+      fvsOutData$runs = character(0)
+      fvsOutData$dbVars = character(0)
+      fvsOutData$browseVars = character(0)
+      fvsOutData$dbSelVars = character(0)
+      fvsOutData$browseSelVars = character(0)
+
       tbs <- dbListTables(dbcon)
-      if (length(tbs) == 0) return()
-      if (is.na(match("FVS_Cases",tbs))) return()
-      fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
-      fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
-      times = NULL
-      titles = NULL
-      for (run in fvsOutData$runs) 
+      if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
-        indx = grep(run,fvsOutData$dbCases$KeywordFile)[1]
-        times = c(times,fvsOutData$dbCases$RunDateTime[indx])
-        titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
+        fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
+        fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
+        times = NULL
+        titles = NULL
+        for (run in fvsOutData$runs) 
+        {
+          indx = grep(run,fvsOutData$dbCases$KeywordFile)[1]
+          times = c(times,fvsOutData$dbCases$RunDateTime[indx])
+          titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
+        }
+        srt = order(times,decreasing = TRUE)
+        fvsOutData$runs = fvsOutData$runs[srt]
+        names(fvsOutData$runs) = titles[srt]
       }
-      srt = order(times,decreasing = TRUE)
-      fvsOutData$runs = fvsOutData$runs[srt]
-      names(fvsOutData$runs) = titles[srt]
       updateSelectInput(session, "runs", choices = fvsOutData$runs, 
-        selected=NULL)
-      isolate(
-        if (! input$rightPan %in% c("Tables","Graphs"))
-          updateTabsetPanel (session, "rightPan", selected = "Tables")
-      )
+        selected=0)
     }
   })
 
@@ -152,10 +228,11 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
 
   ## output run selection
   observe({ 
+cat ("runs, run selection (load)\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
-cat ("Run selection (load)\n")
       tbs <- dbListTables(dbcon)
+cat ("runs, tbs=",tbs,"\n")
       withProgress(session, {  
         i = 1
         setProgress(message = "Output query", 
@@ -232,43 +309,51 @@ cat ("Run selection (load)\n")
                     c("FVS_Cases","FVS_Summary","FVS_Summary_East")))
         setProgress(value = NULL)          
       }, min=1, max=6)
-    }
+    } else
+    {
+      updateSelectInput(session, "selectdbtables", choices=list(" "))
+     }
   })
     
   # selectdbtables
   observe({
-    if (is.null(fvsOutData$dbLoadData)) return()
-    tables = input$selectdbtables
-    if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
-      union("FVS_Cases",tables)
-    updateSelectInput(session, "selectdbtables", 
-                      choices=as.list(names(fvsOutData$dbLoadData)),
-                      selected=tables)
-    vars = lapply(tables,function (tb,dbd) paste0(tb,":",dbd[[tb]]), 
-      fvsOutData$dbLoadData)
-    vars = unlist(vars)
-    if (length(vars) == 0) return()
-    fvsOutData$dbVars    <- vars
-    fvsOutData$dbSelVars <- vars
-    updateSelectInput(session=session, "selectdbvars",choices=as.list(vars), 
-                      selected=vars)
+cat("selectdbtables\n")    
+    if (is.null(input$selectdbtables))
+    {
+      updateSelectInput(session, "selectdbvars", choices=list(" "))               
+    } else         
+    {
+      tables = input$selectdbtables    
+      if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
+        union("FVS_Cases",tables)
+      updateSelectInput(session, "selectdbtables", 
+                        choices=as.list(names(fvsOutData$dbLoadData)),
+                        selected=tables)
+      vars = lapply(tables,function (tb,dbd) paste0(tb,":",dbd[[tb]]), 
+        fvsOutData$dbLoadData)
+      vars = unlist(vars)
+      if (length(vars) == 0) return()
+      fvsOutData$dbVars    <- vars
+      fvsOutData$dbSelVars <- vars
+      updateSelectInput(session=session, "selectdbvars",choices=as.list(vars), 
+                        selected=vars)
+    }
   })
 
   # selectdbvars
   observe({
-    if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
+    if (!is.null(input$selectdbvars)) 
+    {
+cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")      
+      fvsOutData$dbSelVars <- input$selectdbvars
+    }
   })
 
   ## Explore Output
   observe({ 
     if (input$leftPan == "Explore Output")
     { 
-      if (length(fvsOutData$dbLoadData) == 0) 
-      {
-        updateTabsetPanel(session=session,inputId="leftPan", 
-          selected="Load Output")
-        return()
-      }
+cat ("Explore Output\n")      
       if (length(fvsOutData$dbSelVars) == 0) return()
       tbs = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,":"),
             function (x) x[1])))
@@ -331,7 +416,6 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           selected = NULL)
         updateSelectInput(session, "dbhclass",choices = list("None loaded"),
           selected = NULL)
-        updateTabsetPanel(session=session,inputId="leftPan", "Load Output")
         return()
       }
       # this merges the data on all columns      
@@ -344,9 +428,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           {
             setProgress(message = "Merging selected tables", 
                         detail  = tb, value = i); i = i+1
-cat ("nrow mdat1=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")            
             mdat = merge(mdat,dat[[tb]],all=TRUE)
-cat ("nrow mdat2=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")            
           }
           fvsOutData$dbData = mdat
           setProgress(value = NULL)          
@@ -367,7 +449,6 @@ cat ("nrow mdat2=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")
                        "Groups","RunDateTime","KeywordFile","CaseID"),vars)
       vars = union(setdiff(vars,endvars),endvars)
       mdat = mdat[sby,vars,drop=FALSE]
-cat ("nrow mdat3=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")            
       mdat$srtOrd = NULL
       vars = colnames(mdat)
       if (length(vars) == 0) return()
@@ -415,8 +496,10 @@ cat ("nrow mdat3=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")
   ## renderTable
   output$table <- renderTable(
   {
+cat("renderTable\n")
     if (input$leftPan == "Load Output") return(NULL) 
     if (length(input$selectdbvars) == 0) return(NULL) 
+cat("renderTable continued\n")
     if (length(input$browsevars) == 0)
     {
       fvsOutData$browseSelVars <- character(0)
@@ -430,9 +513,10 @@ cat ("nrow mdat3=",nrow(mdat)," tb=",tb," nrow dat=",nrow(dat[[tb]]),"\n")
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
           ,,drop=FALSE]
 cat ("nrow fvsOutData$dbData=",nrow(fvsOutData$dbData),
-     " nrow dat=",nrow(dat),"\n")            
-          
-        dat = dat[,input$browsevars,drop=FALSE]
+     " nrow dat=",nrow(dat),"\n")
+        sel=match(input$browsevars,colnames(dat))
+cat ("match=",sel,"\n")
+        dat = dat[,sel,drop=FALSE]
         if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
             !is.null(input$dispVar) && input$dispVar != "None") dat = 
               pivot(dat,input$pivVar,input$dispVar)
@@ -619,6 +703,7 @@ cat ("renderPlot\n")
       }
       updateSelectInput(session=session, inputId="inVars", choices=vlst,
             selected=vlst[[1]])
+      ### add code here to set up custom run scripts.
     } 
   })
   
@@ -676,7 +761,7 @@ cat ("renderPlot\n")
       loadInvData(globals,prms)
       updateTextInput(session=session, inputId="title", label="", 
                       value=fvsRun$title) 
-      updateTextInput(session=session, inputId="dfltMgmt",
+      updateTextInput(session=session, inputId="defMgmtID",
                      value=fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont", 
           choices=list(" "), selected=NULL)
@@ -695,6 +780,8 @@ cat ("renderPlot\n")
       output$runProgress <- renderUI(NULL)
       updateSelectInput(session=session, inputId="cmdSet", 
                         selected="Management")
+      updateSelectInput(session=session, inputId="runScript", 
+                        selected="fvsRun")
       isolate ({
         if (!is.null(input$inVars)) 
         {
@@ -726,10 +813,8 @@ cat ("renderPlot\n")
       resetGlobals(globals,NULL,prms)
       updateTextInput(session=session, inputId="title", label="", 
                       value=fvsRun$title) 
-      updateTextInput(session=session, inputId="dfltMgmt",
+      updateTextInput(session=session, inputId="defMgmtID",
                       value=fvsRun$defMgmtID)
-      isolate(updateTabsetPanel(session=session, inputId="rightPan", 
-        selected=if (length(fvsRun$simcnts)) "Components" else "Stands"))
       updateSelectInput(session=session, inputId="cmdSet", 
                         selected="Management")
     }
@@ -747,19 +832,33 @@ cat ("reload or run selection, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,
       loadFromList(fvsRun,globals$FVS_Runs[[input$runSel]])
       resetGlobals(globals,fvsRun,prms)
       mkSimCnts(fvsRun,fvsRun$selsim)
+      output$uiRun = renderUI(NULL)
+
       isolate({
-        updateTabsetPanel(session=session, inputId="rightPan", 
-          selected=if (length(fvsRun$simcnts)) "Components" else "Stands")
-        updateCheckboxGroupInput(session=session, inputId="autoOut",
-          selected=fvsRun$autoOut)
+        if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
+        {
+          globals$autoPanNav = TRUE
+          updateTabsetPanel(session=session, inputId="rightPan", 
+             selected="Components")
+        }
+        if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
+        {
+          globals$autoPanNav = TRUE
+          updateTabsetPanel(session=session, inputId="rightPan", 
+             selected="Stands")
+        }
       })
+      updateCheckboxGroupInput(session=session, inputId="autoOut",
+        selected=fvsRun$autoOut)
       updateTextInput(session=session, inputId="title", value=fvsRun$title)
-      updateTextInput(session=session, inputId="dfltMgmt",
+      updateTextInput(session=session, inputId="defMgmtID",
                       value=fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont", 
         choices=fvsRun$simcnts, selected=fvsRun$selsim)
-      updateSelectInput(session=session, inputId="addCategories", 
-          choices=list(" "), selected=NULL)
+      updateSelectInput(session=session, inputId="simCont", 
+        choices=fvsRun$simcnts, selected=fvsRun$selsim)
+      updateSelectInput(session=session, inputId="runScript", 
+          selected=fvsRun$runScript)
       updateSelectInput(session=session, inputId="addComponents", 
           choices=list(" "), selected=NULL)
       updateTextInput(session=session, inputId="startyr",  
@@ -787,7 +886,7 @@ cat ("saveRun\n")
           fvsRun$title = fvsRun$uuid
           updateTextInput(session=session, inputId="title", value=fvsRun$title)
         } else fvsRun$title = input$title
-        fvsRun$defMgmtID = input$dfltMgmt
+        fvsRun$defMgmtID = input$defMgmtID
       })      
       globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
@@ -911,12 +1010,8 @@ cat ("saveRun\n")
 
   ## run element selection
   observe({
-    if (length(input$simCont) == 0)
-    {
+    if (length(input$simCont) == 0) return()
 cat ("run element selection\n")
-      updateTabsetPanel(session=session,inputId="rightPan",selected = "Stands")
-      return()
-    }
     if (all(input$simCont == fvsRun$selsim)) return()
     mkSimCnts(fvsRun,input$simCont[[1]])
     updateSelectInput(session=session, inputId="simCont", 
@@ -928,8 +1023,6 @@ cat ("run element selection\n")
     if (input$editSel == 0) return()
     isolate ({
       globals$currentEditCmp <- globals$NULLfvsCmp
-      updateTabsetPanel(session=session, inputId="rightPan", 
-                        selected = "Components")
       updateSelectInput(session=session, inputId="addComponents", selected = 0)
       if (length(input$simCont) == 0) return()
       toed = input$simCont[1]
@@ -1471,57 +1564,59 @@ cat("input$schedbox=",input$schedbox,"\n")
     })
   })
 
-  ## timeSave
-  observe({  
-    if (input$timeSave == 0) return()
-    isolate ({
-      fvsRun$startyr <- input$startyr
-      fvsRun$endyr   <- input$endyr
-      fvsRun$cyclelen<- input$cyclelen
-      fvsRun$cycleat <- input$cycleat
-    })
-  })
+  ## time
+  observe(fvsRun$startyr  <- input$startyr)
+  observe(fvsRun$endyr    <- input$endyr)
+  observe(fvsRun$cyclelen <- input$cyclelen)
+  observe(fvsRun$cycleat  <- input$cycleat)
 
-
-  ## Run
+  ## saveandrun
   observe({  
-    if (input$run == 0) return()
+    if (input$saveandrun == 0) return()
 
     isolate ({
       if (exists("fvsRun")) if (length(fvsRun$stands) > 0) 
       {
-        loadFVSfuncs <<- function ()
-        {
-          fl = dir("rFVS/R")
-          lapply(fl,function (x) source(paste0("rFVS/R","/",x)))
-        }
+        output$uiRun = renderUI(NULL)
         fvsRun$title = input$title
-        fvsRun$defMgmtID = input$dfltMgmt
-         globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
+        fvsRun$defMgmtID = input$defMgmtID
+        fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
+        globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
         globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
         selChoices = names(globals$FVS_Runs) 
         names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
         updateSelectInput(session=session, inputId="runSel", 
             choices=selChoices,selected=selChoices[[1]])
         FVS_Runs = globals$FVS_Runs
-        save (FVS_Runs,file="FVS_Runs.RData")
         progress <- shiny::Progress$new(session,min=1,
                            max=length(fvsRun$stands)+5)
-        removeFVSRunFiles(fvsRun$uuid)
         progress$set(message = "Run preparation: ", 
           detail = "Deleting obsolete output data", value = 1)         
+        save (FVS_Runs,file="FVS_Runs.RData")
+        removeFVSRunFiles(fvsRun$uuid)
         deleteRelatedDBRows(fvsRun$uuid,dbcon)
         progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and load program", value = 2)          
+          detail = "Write .key file and load program", value = 2)         
         writeKeyFile(fvsRun,globals$inData$FVS_StandInit,prms)
         dir.create(fvsRun$uuid)
         fvschild = makePSOCKcluster(1)
-        clusterExport(fvschild,c("loadFVSfuncs"))
-        rtn = try(clusterEvalQ(fvschild,loadFVSfuncs()))
+        rtn = try(clusterEvalQ(fvschild,
+              for (rf in dir("rFVS/R")) source(paste0("rFVS/R/",rf))))
         if (class(rtn) == "try-error") return()
         rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,fvsLoad('",
              fvsRun$FVSpgm,"',bin='./FVSbin'))"))) )
         if (class(rtn) == "try-error") return()
+          
+        # if not using the default run script, load the one requested.
+        if (fvsRun$runScript != "fvsRun")
+        {
+          rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
+               "source('customRun_",fvsRun$runScript,".R'))"))))
+          if (class(rtn) == "try-error") return()
+          runOps <<- fvsRun$uiCustomRunOps
+          rtn = try(clusterExport(fvschild,list("runOps"))) 
+          if (class(rtn) == "try-error") return()
+        }
         rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
               'fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key"))')))) 
         if (class(rtn) == "try-error") return()
@@ -1531,11 +1626,15 @@ cat("input$schedbox=",input$schedbox,"\n")
         {
           detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])
           progress$set(message = "FVS running", detail = detail, value = i+2) 
-          rtn = clusterEvalQ(fvschild,fvsRun())
+          rtn = if (fvsRun$runScript != "fvsRun")
+             try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
+                            fvsRun$runScript,"(runOps))")))) else
+             try(clusterEvalQ(fvschild,fvsRun()))
           if (class(rtn) == "try-error") break
-          if (rtn != 0) break
+          if (rtn != 0) break          
           ids = clusterEvalQ(fvschild,fvsGetStandIDs())[[1]]
           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
+cat ("rn=",rn,"\n")          
           allSum[[rn]] = clusterEvalQ(fvschild,
                          fvsSetupSummary(fvsGetSummary()))[[1]]
         }
@@ -1543,7 +1642,8 @@ cat("input$schedbox=",input$schedbox,"\n")
         stopCluster(fvschild)
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(fvsRun$stands)+3)
-        output$errorScan <- renderUI(list(
+        output$uiErrorScan <- renderUI(list(
+          h5("FVS output error scan"),
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(errorScan(paste0(fvsRun$uuid,".out")))))
@@ -1594,8 +1694,10 @@ cat ("length(allSum)=",length(allSum),"\n")
         png("quick.png", width=width, height=height, units="in", res=144)
         print(plt)
         dev.off()
+        output$uiRunPlot <- renderUI(
+                plotOutput("runPlot",width="100%",height="475px"))
         output$runPlot <- renderImage(list(src="quick.png", width=(width+1)*144, 
-                       height=(height+1)*144), deleteFile=TRUE)
+                height=(height+1)*144), deleteFile=TRUE)
       }
     })
   })
@@ -1808,7 +1910,8 @@ cat ("kcpSave called, kcpTitle=",input$kcpTitle," isnull=",
         updateTextInput(session=session, inputId="kcpTitle", value="")
         updateTextInput(session=session, inputId="kcpEdit", value="")
       })
-cat ("kcpDelete called, input$kcpDelete=",input$kcpDelete," isnull=",is.null(input$kcpDelete),"\n")
+cat ("kcpDelete called, input$kcpDelete=",input$kcpDelete," isnull=",
+      is.null(input$kcpDelete),"\n")
     }
   })
 
@@ -1939,11 +2042,23 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
         }
         resetGlobals(globals,NULL,prms)
         loadFromList(fvsRun,globals$FVS_Runs[[1]])
-        mkSimCnts(fvsRun,fvsRun$selsim)
-        isolate(updateTabsetPanel(session=session, inputId="rightPan", 
-          selected=if (length(fvsRun$simcnts)) "Components" else "Stands"))
+        mkSimCnts(fvsRun,fvsRun$selsim)        
+        isolate({
+          if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+               selected="Components")
+          }
+          if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+               selected="Stands")
+          }
+        })
         updateTextInput(session=session, inputId="title", value=fvsRun$title)
-        updateTextInput(session=session, inputId="dfltMgmt",
+        updateTextInput(session=session, inputId="defMgmtID",
                       value=fvsRun$defMgmtID)
         updateSelectInput(session=session, inputId="simCont", 
           choices=fvsRun$simcnts, selected=fvsRun$selsim)
@@ -2085,9 +2200,29 @@ cat ("dataEditor\n")
     file.copy("editDataServer.R","server.R",  overwrite=TRUE)
     file.copy("editDataUI.R",    "ui.R",      overwrite=TRUE)   
     output$reload<-renderUI(tags$script("location.reload();"))
-    output$reload<-renderUI(tags$script("location.reload();"))
   })
-      
+
+  #runScript selection (and gui building)
+  observe({
+    if (length(input$runScript) > 0) 
+    {
+cat ("runScript: ",input$runScript,"\n")
+      fvsRun$runScript = input$runScript
+      output$uiCustomRunOps = renderUI(NULL)    
+      if (input$runScript != "fvsRun")
+      {
+        rtn = try(source(paste0("customRun_",fvsRun$runScript,".R")))
+        if (class(rtn) == "try-error") return()
+        uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",input$runScript)))))
+        if (class(uiF) != "function") return()
+        output$uiCustomRunOps = renderUI(uiF(fvsRun))
+        serverCode = paste0(sub("fvsRun","server",input$runScript))
+        serverCode = eval(parse(text=paste0("scan(text=",as.name(serverCode),",
+                                what=' ',sep='\n',quiet=TRUE)")))
+        eval(parse(text=serverCode))
+      }
+    }
+  })
  
 })
 

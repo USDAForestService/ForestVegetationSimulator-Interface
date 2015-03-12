@@ -23,7 +23,8 @@ mkfvsRun <<- setRefClass("fvsRun",
     selsim = "list", FVSpgm = "character", title = "character", 
     startyr = "character", endyr = "character", cyclelen = "character",
     cycleat = "character", refreshDB = "character", uuid="character",
-    defMgmtID = "character", autoOut = "list"))
+    defMgmtID = "character", autoOut = "list", runScript = "character" ,
+    uiCustomRunOps = "list"))
 
 if (exists("mkglobals")) rm(mkglobals)
 mkglobals <<- setRefClass("globals", 
@@ -34,8 +35,9 @@ mkglobals <<- setRefClass("globals",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
     selStdList = "character", selVarList = "list", customCmps = "list",
     schedBoxPkey = "character", currentCmdPkey = "numeric",
-    currentCndPkey = "numeric", existingCmps = "list",
-    currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical"))
+    currentCndPkey = "numeric", existingCmps = "list", 
+    currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
+    autoPanNav = "logical"))
 
 # load (and/or build) the prms.RData object
 mtrd <-  if (file.exists("prms.RData")) 
@@ -219,6 +221,7 @@ cat("resetfvsRun\n")
    fvsRun$cyclelen = character(0)
    fvsRun$cycleat = character(0)
    fvsRun$defMgmtID = sprintf("A%3.3d",np1)
+   fvsRun$runScript = "fvsRun"
    fvsRun$uuid = uuidgen()
 }
 

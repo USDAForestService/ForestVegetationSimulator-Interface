@@ -26,6 +26,24 @@ if (file.exists("projectId.txt"))
   tit="" #tit variable is used to generate default report headings
 }
 
+if (file.exists("runScripts.R"))
+{
+  source("runScripts.R")
+  keep = file.exists(paste0("customRun_",runScripts,".R"))
+  runScripts = runScripts[keep]
+  if (length(runScripts)) 
+  {
+    defaultRun = list("Default useful for all FVS variants"="fvsRun")
+    runScripts = append(x=runScripts,after=0,defaultRun)
+    customRunElements = list(
+      selectInput("runScript",
+                  "Select run script (normally, use the default)",
+                  choices=runScripts,
+                  selected="fvsRun",multiple=FALSE,selectize=FALSE),
+      uiOutput("uiCustomRunOps"))
+  } else customRunElements = NULL
+}
+
 source("modalDialog.R")
 
 shinyUI(fixedPage(
@@ -167,21 +185,25 @@ shinyUI(fixedPage(
         textInput("endyr",    "Common ending year",   ""), 
         textInput("cyclelen", "Common cycle length",  ""), 
         tags$style(type="text/css", "#cycleat { width: 90%; }"),
-        textInput("cycleat", "Include cycles at these years", ""), 
-        actionButton("timeSave","Save")
+        textInput("cycleat", "Include cycles at these years", "") 
       ),
       tabPanel("Run",
         div(class="row-fluid",
-          tags$style(type="text/css", "#dfltMgmt { width: 50px; }"),
-          div(class="span3",textInput("dfltMgmt","MgmtID (4 chars)","")),
-          div(class="span8",checkboxGroupInput("autoOut",
-            "Database output (summaries are always produced)",
-            c("Treelists"="autoTreelists","Carbon"="autoCarbon",
-              "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE))), 
-        actionButton("run","Save and Run"),
-        plotOutput("runPlot",width="100%",height="475px"),
-        h5("FVS output error scan"),
-        uiOutput("errorScan")
+          tags$style(type="text/css", "#defMgmtID { width: 50px; }"),
+          div(class="span3",
+            textInput("defMgmtID","MgmtID (4 chars)",""),
+            actionButton("saveandrun","Save and Run")
+          ),
+          div(class="span8",
+            checkboxGroupInput("autoOut",
+              "Database output (summaries are always produced)",
+              c("Treelists"="autoTreelists","Carbon"="autoCarbon",
+                "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE),
+            customRunElements
+        )), 
+        uiOutput("uiRunPlot"),
+        uiOutput("uiErrorScan")
+
       ),
       tabPanel("Build Components",
         tags$style(type="text/css", "#kcpSel { width: 65%; }"),
