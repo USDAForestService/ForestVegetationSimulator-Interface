@@ -41,6 +41,7 @@ FVSOnlineNeeded = c(
 "modalDialog.R",
 "plotType.html",  
 "prms.RData",
+"runScripts.R",
 "server.R", 
 "sqlQueries.R",
 "suppose.prm",
