@@ -26,6 +26,7 @@ if (file.exists("projectId.txt"))
   tit="" #tit variable is used to generate default report headings
 }
 
+customRunElements = NULL
 if (file.exists("runScripts.R"))
 {
   source("runScripts.R")
@@ -41,7 +42,7 @@ if (file.exists("runScripts.R"))
                   choices=runScripts,
                   selected="fvsRun",multiple=FALSE,selectize=FALSE),
       uiOutput("uiCustomRunOps"))
-  } else customRunElements = NULL
+  } 
 }
 
 source("modalDialog.R")
