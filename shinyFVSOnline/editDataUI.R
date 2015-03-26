@@ -1,4 +1,5 @@
 library(shiny)
+library(shinysky)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
@@ -23,10 +24,9 @@ if (file.exists("projectId.txt"))
       file.info("FVS_Runs.RData")[1,"mtime"] else
       file.info(getwd())         [1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
   headstr = "Onlocal"
-  tit="" #tit variable is used to generate default report headings
 }
 
-source("modalDialog.R")
+#source("modalDialog.R")
 
 shinyUI(fixedPage(
   
@@ -34,7 +34,7 @@ shinyUI(fixedPage(
     column(width=6,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
              '<h3><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator ',headstr,'</h3>'))),
+             '&nbsp;FVS Input Data Editor (',headstr,')</h3>'))),
     column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
     # created a column just to add these invisible elements
     column(width=1,
@@ -53,7 +53,36 @@ shinyUI(fixedPage(
     column(width=1,offset=.5,uiOutput("uiHelpClose"))),
 
   fixedRow(
-    h4("Future input data base editor will be added"),
-    actionButton("FVSOnline","Return to FVSOnline")
+    column(width=3,offset=0,
+      radioButtons("mode", "Select mode", c("Edit","New rows"),
+                    inline=TRUE),
+  	  selectInput("selectdbtabs", label="Table to process",
+	          choices  = list(), 
+	          selected = NULL, multiple = FALSE, selectize=FALSE),
+  	  sub ("multiple=","size=10 multiple=",
+    	  selectInput("selectdbvars", "Variables to consider", 
+          choices  = list(), 
+          selected = NULL, multiple = TRUE, selectize=FALSE)),
+      uiOutput("stdSel"),
+      tags$style(type="text/css", 
+        "#FVSOnline { color: darkred; background-color: #eef8ff;}"),
+      shiny::actionButton("FVSOnline","Return to FVSOnline")
+    ),
+    column(width=9,offset=0,
+      hotable("tbl"),
+      h3(),
+      uiOutput("navRows"),h5(),
+      tags$style(type="text/css", 
+        "#commitChanges { color: darkred; background-color: #eef8ff;}"),
+      shiny::actionButton("commitChanges","Commit changes")
+    )
   )
 ))
+
+
+
+
+
+
+
+
