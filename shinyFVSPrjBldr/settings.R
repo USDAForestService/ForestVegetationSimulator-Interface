@@ -31,8 +31,13 @@ pgmList= list(
   FVSsn  = "Southern")
 
 FVSOnlineNeeded = c(
+"AcadianFunctionsV1.R",
+"AcadianV2.R",
 "access2csv.jar",
 "autoOutKeys.R",
+"customRun_fvsRunAcadian.R",
+"editDataServer.R",
+"editDataUI.R",
 "FVS_Data.db.default",
 "fvsOutUtilities.R",
 "fvsRunUtilities.R",
