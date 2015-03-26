@@ -5,6 +5,7 @@ fvsBinDir    = "/shiny/FVS/open-fvs-read-only/trunk/bin/"
 fvsWork      = "/shiny/shiny-server/FVSwork/"
 fvsWorkBackup= "/shinyBackup/shiny-server/FVSwork/"
 fvsOnlineDir = "/shiny/FVS/open-fvs-read-only/rFVS/shinyFVSOnline/"
+fvsPrjBldr   = "/shiny/FVS/open-fvs-read-only/rFVS/shinyFVSPrjBldr/"
 rFVSDir      = "/shiny/FVS/open-fvs-read-only/rFVS/R/"
 
 pgmList= list(
