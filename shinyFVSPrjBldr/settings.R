@@ -45,7 +45,6 @@ FVSOnlineNeeded = c(
 "mkInputElements.R",
 "mkpkeys.R",
 "modalDialog.R",
-"plotType.html",  
 "prms.RData",
 "runScripts.R",
 "server.R", 

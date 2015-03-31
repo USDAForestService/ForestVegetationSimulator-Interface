@@ -70,7 +70,7 @@ shinyServer(function(input, output, session) {
   updateTextInput(session=session, inputId="cyclelen", value=fvsRun$cyclelen)
   updateTextInput(session=session, inputId="cycleat",  value=fvsRun$cycleat)
 
-  if (exists("mkfvsOutData")) rm (mkfvsOutData)
+  if (exists("fvsOutData")) rm (fvsOutData)
   fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
   dbDrv <- dbDriver("SQLite")
   dbcon <- dbConnect(dbDrv,"FVSOut.db")    
@@ -95,7 +95,9 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
 
   ## leftPan automatic panel navigation 
   #when autoPanNav==FALSE, this logic is active. When TRUE, this logic
-  #should be skipped.
+  #should be skipped. This switch is used as a semaphore, it is set true
+  #when another part of the code causes a navigation process to start and 
+  #thereby keeps an unending loop of changed navigation from occuring.
   observe({
     input$leftPan
 isolate({
@@ -696,8 +698,7 @@ cat ("renderPlot\n")
         selVarListUse <- globals$selVarList[selVarListUse]                                   
         vlst <- as.list (names(selVarListUse))
         names(vlst) = selVarListUse
-      } else 
-      {  
+      } else {  
         vlst <- as.list(globals$activeFVS[fvsRun$FVSpgm][[1]][[1]][1])
         names(vlst) <- globals$selVarList[[vlst[[1]]]]
       }

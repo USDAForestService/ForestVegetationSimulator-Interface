@@ -144,14 +144,7 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
             HCB=tree$HCB,CCF=tree$CCF,shade=tree$shade)
             
   #Mortality
-  if (mortModel == "SUNY")
-  {    
-    ps = mapply(SUNY.mort,SPP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
-           HT=tree$HT,CR=tree$CR,BAL=tree$BAL,CSI=CSI,BA=tree$BAPH)
-    # convert to a periodic probability of mortality.
-    pm = 1-(ps^cyclen)
-    tree$dEXPF = tree$EXPF * pm
-  } else if(mortModel == "Acadian") 
+  if (mortModel == "Acadian") 
   {
     tree$tsurv=mapply(tree.mort.prob,tree$SP,tree$DBH)^cyclen
     tree = ddply (tree,.(PLOT),

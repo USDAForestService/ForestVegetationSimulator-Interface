@@ -163,7 +163,7 @@ uiAcadian <- function(fvsRun)
         if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
                      fvsRun$uiCustomRunOps$uiAcadianMinDBH   else "3.0"),
     radioButtons("uiAcadianMort", "Mortality model:", 
-     c("Acadian","SUNY","Base Model"),inline=TRUE,selected=
+     c("Acadian","Base Model"),inline=TRUE,selected=
         if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
                      fvsRun$uiCustomRunOps$uiAcadianMort     else "Acadian")
   )
