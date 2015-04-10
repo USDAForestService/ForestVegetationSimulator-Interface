@@ -30,8 +30,7 @@ sort.data.frame <- function(form,dat)
       if(varsign=="-")
         calllist[[i]] <- -dat[,vars[i]]
       else
-        calllist[[i]] <- dat[,vars[i]]
-    
+        calllist[[i]] <- dat[,vars[i]]    
     }
   }
   dat[do.call("order",calllist),]
@@ -723,6 +722,8 @@ dDBH.FUN=function(SPP,DBH,CR,BAL.SW,BAL.HW,BA,CSI)
              (b4+b4.spp)*log(CR+0.01)+b5*log(CSI)+b6*log(BA+1)+(b7+b7.spp)*log(BAL.SW+1)+b8*log(CR*BA+.1)+b9*CR) 
   return(dDBH=dDBH)
 }
+
+
 
 ## Diameter modifier function 
 dDBH.mod.FUN = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR)

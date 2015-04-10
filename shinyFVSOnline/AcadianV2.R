@@ -3,15 +3,13 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
 {
   cat ("nrow(tree)=",nrow(tree)," CSI=",CSI,"cyclen=",cyclen,"\nINGROWTH=",
      INGROWTH," MinDBH=",MinDBH," CutPoint=",CutPoint," mortModel=",
-     mortModel,file="fromAcadianGY.txt") 
+     mortModel,"\n",file="fromAcadianGY.txt") 
   
   aa=sapply(tree$SP,SPP.func)
   tree$SPtype=t(aa)[,1]
   tree$shade=as.numeric(t(aa)[,2])
   tree$SG=as.numeric(t(aa)[,3])
   
-  tree$EXPF = tree$EXPF
-  tree$DBH = tree$DBH
   tree$ba<-(tree$DBH^2*0.00007854)*tree$EXPF
   tree$ba.SW<-ifelse(tree$SPtype=='SW',tree$ba,0)
   tree$ba.WP=ifelse(tree$SP=='WP',tree$ba,0)
@@ -61,7 +59,6 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   temp$pPB.ba=ifelse(temp$pBRH==0,0,temp$ba.PB/temp$ba.BRH)
   temp$pYB.ba=ifelse(temp$pBRH==0,0,temp$ba.YB/temp$ba.BRH)
   temp$pGB.ba=ifelse(temp$pBRH==0,0,1-(temp$pPB.ba+temp$pYB.ba))
-#  temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)
   
   temp=subset(temp,select=c('PLOT','BAPH','maxTREE','tph','qmd','pHW.ba',
     'pWP.ba','pBF.ba','pRM.ba','pSPR.ba','pBRH.ba','pOH.ba','pOS.ba',
@@ -72,8 +69,7 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   temp$maxTREE = NULL
   tree=merge(tree,temp,by="PLOT")
 
-  #Estimate basal area in larger trees
-
+  #Compute basal area in larger trees
   tree<-sort.data.frame(tree,~+PLOT-DBH)
   temp = unlist(by(tree$ba,INDICES=tree$PLOT,FUN=cumsum))
   tree$BAL = temp-tree$ba
@@ -96,7 +92,6 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   temp = ddply(tree[,c('PLOT','MCA')],.(PLOT),function (x) sum(x$MCA))
   colnames(temp)[2] = "CCF"
   tree=merge(tree,temp,by=c('PLOT'))
-
   #save the plot CCF's in Sum.temp for use with ingrowth
   Sum.temp = merge(Sum.temp,temp,by="PLOT")
     
@@ -196,8 +191,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     tree$dEXPF = NULL
   }
           
-	##INGROWTH
-	ingrow = NULL
+  ##INGROWTH
+  ingrow = NULL
   if (toupper(substr(INGROWTH,1,1)) == "Y")
   {
 		Sum.temp$IPH=as.numeric(mapply(Ingrowth.FUN,PARMS='NLME',CutPoint=CutPoint,

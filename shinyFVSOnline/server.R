@@ -1625,13 +1625,17 @@ cat("input$schedbox=",input$schedbox,"\n")
         allSum = list()
         for (i in 1:length(fvsRun$stands))
         {
-          detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])
+          detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])          
           progress$set(message = "FVS running", detail = detail, value = i+2) 
           rtn = if (fvsRun$runScript != "fvsRun")
              try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
                             fvsRun$runScript,"(runOps))")))) else
              try(clusterEvalQ(fvschild,fvsRun()))
-          if (class(rtn) == "try-error") break
+          if (class(rtn) == "try-error")
+          { 
+            cat ("run try error\n")
+            break
+          }
           if (rtn != 0) break          
           ids = clusterEvalQ(fvschild,fvsGetStandIDs())[[1]]
           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
@@ -1647,7 +1651,7 @@ cat ("rn=",rn,"\n")
           h5("FVS output error scan"),
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
-          HTML(errorScan(paste0(fvsRun$uuid,".out")))))
+          HTML(paste(errorScan(paste0(fvsRun$uuid,".out")),"<br>"))))
         if (length(dir(fvsRun$uuid)) == 0) file.remove(fvsRun$uuid)
         progress$set(message = if (length(allSum) == length(fvsRun$stands))
                     "FVS finished" else
@@ -1674,7 +1678,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
                   Attribute=as.factor(Attribute))
         width = max(4,nlevels(toplot$hfacet)*2)
-        height = 3
+        height = 2.5
         plt = if (nlevels(toplot$hfacet) < 5)
           ggplot(data = toplot) + facet_grid(.~hfacet) + 
             geom_line (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) +
@@ -1683,7 +1687,7 @@ cat ("length(allSum)=",length(allSum),"\n")
                   panel.background = element_rect(fill="gray95"),
                   axis.text = element_text(color="black"))  else
         {
-          width = 4
+          width = 3
           toplot$Attribute = as.factor(paste0(toplot$Attribute,toplot$hfacet))
           ggplot(data = toplot) +  
             geom_line (aes(x=X,y=Y,color=Attribute)) + 
@@ -1696,7 +1700,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         print(plt)
         dev.off()
         output$uiRunPlot <- renderUI(
-                plotOutput("runPlot",width="100%",height="475px"))
+                plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
         output$runPlot <- renderImage(list(src="quick.png", width=(width+1)*144, 
                 height=(height+1)*144), deleteFile=TRUE)
       }

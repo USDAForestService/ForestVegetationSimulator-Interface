@@ -179,8 +179,7 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
               {
                 qry = paste0("delete from ",globals$tblName," where _ROWID_ = ",
                              id,";")
-cat ("edit, qry=",qry,"\n") 
-next                     
+cat ("edit, qry=",qry,"\n")                     
                 dbSendQuery(con,qry)
                 if (!is.null(globals$sids)) globals$sids = NULL
               } else {globals$rows
@@ -207,8 +206,6 @@ next
                   paste(paste0(names(update)," = ",update),collapse=", "),
                     " where _ROWID_ = ",id,";")
 cat ("edit, qry=",qry,"\n")
-next
-                      
                 dbSendQuery(con,qry)              
               }
             }   

@@ -192,17 +192,20 @@ errorScan <- function (outfile)
   if (!file.exists(outfile)) return("outfile does not exist") 
   fout<-file(outfile,"rt")
   errs<-list()
-  sid<-line<-l0<-l1<-""  
+  sid<-line<-l0<-l1<-""
+  foundSum = FALSE  
   ln = 0
   repeat
   {
     l0<-l1
     l1<-line
-    line=scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
-         blank.lines.skip = FALSE)
+    line=suppressWarnings(scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
+         blank.lines.skip = FALSE))
     if (length(line) == 0) break
     ln = ln+1
     hit=grep("STAND ID= ",line,fixed=TRUE)
+    if (!foundSum) foundSum = length(grep("START OF SIMULATION PERIOD",
+                                     line,fixed=TRUE))>0
     if (length(hit))
     {
       sid = scan(text=line,what="character",quiet=TRUE)[3]
@@ -219,11 +222,12 @@ errorScan <- function (outfile)
     }
   }
   close(fout)
-  errs <- if (length(errs)) 
-  {
-    errs[unlist(lapply(errs,nchar)) == 0] <- NULL
-    paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
-  } else "No errors"
+  errs <- append(errs,if (length(errs)) 
+    {
+      errs[unlist(lapply(errs,nchar)) == 0] <- NULL
+      paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
+    } else "No errors found")
+  if (!foundSum) errs <- append(errs,"No summary found, likely run failure")
   errs
 }
 
