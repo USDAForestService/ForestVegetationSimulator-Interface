@@ -301,6 +301,7 @@ shinyUI(fixedPage(
         fileInput("upload","Upload FVS-Ready data (.accdb, .mdb, or .db)"),
         actionButton("launchDataEditor","Launch data editor (closes FVSOnline)"),
         h4(" "),
+        tags$style(type="text/css", "#recoverdb { color: red; }"),
         actionButton("recoverdb","Recover from input database backup or default"),
         h4(" "),
         downloadButton("dlFVSDatadb","Download input data base"),

@@ -123,12 +123,22 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   cat ("at growth\n",file="fromAdirondackGY.txt",append=TRUE) 
 
   #Diameter increment model
-  tree$dDBH=mapply(SUNY.dDBH,SP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
-    CR=tree$CR,BAL=tree$BAL,BA=tree$BAPH,CSI=CSI,PBAHW=tree$pHW.ba)
+  #tree$dDBH=mapply(SUNY.dDBH,SP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
+  #  CR=tree$CR,BAL=tree$BAL,BA=tree$BAPH,CSI=CSI,PBAHW=tree$pHW.ba)
 
   #Height increment (revised 8/28/2012)
-  tree$dHT=mapply(SUNY.dHT,SPP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
-    HT=tree$HT,CR=tree$CR,BAL=tree$BAL,BA=tree$BAPH,CSI=CSI)
+  #tree$dHT=mapply(SUNY.dHT,SPP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
+  #  HT=tree$HT,CR=tree$CR,BAL=tree$BAL,BA=tree$BAPH,CSI=CSI)
+
+  #Try using Crookston's simple, naive, models with noise.
+
+  tree$dDBH=mapply(dDGhat,SPP=tree$SP,BAL=tree$BAL,CCF=tree$CCF,DBH=tree$DBH)
+  tree$dHT =mapply(dHThat,SPP=tree$SP,HT=tree$HT,BAL=tree$BAL,CSI=CSI)
+  noise = rnorm(mean=0,n=nrow(tree),sd=.5)
+  tree$dDBH = tree$dDBH + (noise*(0.38*tree$dDBH))
+  tree$dDBH = ifelse(tree$dDBH<.01,.01,tree$dDBH)
+  tree$dHT  = tree$dHT  + (noise*(0.46*tree$dHT))
+  tree$dHT  = ifelse(tree$dHT<.01,.01,tree$dHT)
 
   #Crown base height...need this to be annual change: dHCB...computed here
   #in a difference equation format. 

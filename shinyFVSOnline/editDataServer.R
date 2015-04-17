@@ -3,7 +3,8 @@ library(RSQLite)
 library(shinysky)
 
 
-options(shiny.trace = F)  # change to T for reactive tracing (lots of output)
+# set shiny.trace=T for reactive tracing (lots of output)
+options(shiny.maxRequestSize=30*1024^2,shiny.trace = F)
 
 shinyServer(function(input, output, session) {
 
@@ -179,7 +180,7 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
               {
                 qry = paste0("delete from ",globals$tblName," where _ROWID_ = ",
                              id,";")
-cat ("edit, qry=",qry,"\n")                     
+cat ("edit del, qry=",qry,"\n")                     
                 dbSendQuery(con,qry)
                 if (!is.null(globals$sids)) globals$sids = NULL
               } else {globals$rows
@@ -205,12 +206,16 @@ cat ("edit, qry=",qry,"\n")
                 qry = paste0("update ",globals$tblName," set ",
                   paste(paste0(names(update)," = ",update),collapse=", "),
                     " where _ROWID_ = ",id,";")
-cat ("edit, qry=",qry,"\n")
+cat ("edit upd, qry=",qry,"\n")
                 dbSendQuery(con,qry)              
               }
             }   
             dbCommit(con)
-            if (is.null(globals$sids))
+cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
+     " globals$tblName=",globals$tblName,
+     " Stand_ID yes=",length(intersect("Stand_ID",globals$tblCols)),"\n")
+            if (is.null(globals$sids) && 
+                length(intersect("Stand_ID",globals$tblCols)))
             {
               res = dbSendQuery(con,paste0("select distinct Stand_ID from ",
                                 globals$tblName))

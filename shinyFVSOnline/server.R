@@ -3,7 +3,8 @@ library(ggplot2)
 library(parallel)
 library(RSQLite)
 
-options(shiny.trace = F)  # change to T for reactive tracing (lots of output)
+# set shiny.trace=T for reactive tracing (lots of output)
+options(shiny.maxRequestSize=30*1024^2,shiny.trace = F) 
 
 shinyServer(function(input, output, session) {
 
@@ -1053,7 +1054,13 @@ cat ("run element selection\n")
         eltList <- append(eltList,list(
           h4(paste0('Edit: "',globals$currentEditCmp$title),'"'),
           textInput("cmdTitle","", value=globals$currentEditCmp$title)),after=0)          
-      })
+      })      
+      if (input$rightPan != "Components")
+      {
+        globals$autoPanNav = TRUE
+        updateTabsetPanel(session=session, inputId="rightPan", 
+          selected="Components")
+      }
     })
   })
 
