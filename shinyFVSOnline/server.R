@@ -1718,8 +1718,11 @@ cat ("length(allSum)=",length(allSum),"\n")
   ## Upload
   observe({  
     if (is.null(input$upload)) return()
-    if (file.exists("FVS_Data.db")) 
-        file.rename("FVS_Data.db","FVS_Data.db.backup")
+    if (file.exists("FVS_Data.db"))
+    {
+      if (file.exists("FVS_Data.db.backup")) file.remove("FVS_Data.db.backup")
+      file.rename("FVS_Data.db","FVS_Data.db.backup")
+    }
     if (regexpr("\\.db$",input$upload$name) > 1) 
     {
       file.copy(input$upload$datapath,"FVS_Data.db",overwrite = TRUE)
