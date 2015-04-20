@@ -13,7 +13,12 @@ fvsRunAcadian <- function(runOps)
   MinDBH   = as.numeric(if (is.null(runOps$uiAcadianMinDBH)) "3.0" else 
              runOps$uiAcadianMinDBH)
   mortModel= if (is.null(runOps$uiAcadianMort)) "Acadian" else 
-             runOps$uiAcadianMort 
+             runOps$uiAcadianMort
+  volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
+             runOps$uiAcadianVolume
+
+cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
+  " volLogic=",volLogic,"\n")            
   
   mkGraphs=FALSE
   CutPoint=0
@@ -23,6 +28,7 @@ fvsRunAcadian <- function(runOps)
   INtoCM  = fvsUnitConversion("INtoCM")
   FTtoM   = fvsUnitConversion("FTtoM")
   MtoFT   = fvsUnitConversion("MtoFT")
+  M3toFT3 = fvsUnitConversion("M3toFT3")
   ACRtoHA = fvsUnitConversion("ACRtoHA")
   HAtoACR = fvsUnitConversion("HAtoACR")
   spcodes = fvsGetSpeciesCodes()
@@ -126,6 +132,10 @@ fvsRunAcadian <- function(runOps)
                               (incr$tree$HT +incr$tree$dHT)))*100,0)))
     if (!is.null(incr$tree$dEXPF)) tofvs$mort=incr$tree$dEXPF*HAtoACR          
     fvsSetTreeAttrs(tofvs)
+
+    atstop6 = FALSE
+    
+    # adding regeneration?
     if (!is.null(incr$ingrow) && nrow(incr$ingrow)>0)
     {
       toadd = data.frame(dbh    =incr$ingrow$DBH*CMtoIN,
@@ -139,10 +149,35 @@ fvsRunAcadian <- function(runOps)
       if (nrow(toadd) < room) 
       {
         fvsRun(stopPointCode=6,stopPointYear=-1)
+        atstop6 = TRUE
         fvsAddTrees(toadd)
       } else cat ("Not enough room for new trees. Stand=",
                   fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n")
-    }  
+    }
+    
+    # modifying volume?
+
+    if (volLogic == "Kozak")
+    {
+      vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
+      vols$mcuft = mapply(KozakTreeVol,Bark="ob",Planted=0,
+                          DBH=vols$dbh  * INtoCM,
+                          HT =vols$ht   * FTtoM,
+                          SPP=spcodes[vols$species,1])
+      if (any(vols$defect != 0)) vols$mcuft = vols$mcuft * 
+                                 1-(((vols$defect %% 10000) %/% 100) * .01)
+      vols$mcuft  = vols$mcuft * M3toFT3                               
+      vols$species=NULL
+      vols$ht     =NULL
+      vols$dbh    =NULL
+      vols$defect =NULL
+      if (!atstop6)
+      {
+        fvsRun(stopPointCode=6,stopPointYear=-1)
+        atstop6 = TRUE
+      }
+      fvsSetTreeAttrs(vols)
+    }
   }
   rtn
 }
@@ -165,12 +200,14 @@ uiAcadian <- function(fvsRun)
     radioButtons("uiAcadianMort", "Mortality model:", 
      c("Acadian","Base Model"),inline=TRUE,selected=
         if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
-                     fvsRun$uiCustomRunOps$uiAcadianMort     else "Acadian")
+                     fvsRun$uiCustomRunOps$uiAcadianMort     else "Acadian"),
+    radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
+     c("Kozack","Base Model"),inline=TRUE,selected=
+        if (!is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
+                     fvsRun$uiCustomRunOps$uiAcadianVolume   else "Base Model")
   )
 }
  
-                      
-
 #This is the "server" code for the Acadian model. It is specified as a 
 #character variable and then a eval(parse()) sequence is run when this
 #code is actually used. 
@@ -187,6 +224,10 @@ observe({
 observe({
   if (length(input$uiAcadianMort)) 
     fvsRun$uiCustomRunOps$uiAcadianMort     = input$uiAcadianMort
+})
+observe({
+  if (length(input$uiAcadianVolume)) 
+    fvsRun$uiCustomRunOps$uiAcadianVolume   = input$uiAcadianVolume
 })
 '
    

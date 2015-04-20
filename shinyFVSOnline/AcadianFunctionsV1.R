@@ -2366,6 +2366,7 @@ Honer.Vol=function(SPP,HT,DBHO,topD=NA,topHT=NA)
     p2.d=-0.2323
     p3.d=-0.7736
   }
+  if (!exists("a")) return (NA)
   DBHin=DBHO/2.54
   HTft=HT/.3048
   Vtcf=DBHin^2/(a+(b/HTft))
