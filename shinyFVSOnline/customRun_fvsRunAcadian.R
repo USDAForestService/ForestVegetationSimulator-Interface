@@ -18,7 +18,7 @@ fvsRunAcadian <- function(runOps)
              runOps$uiAcadianVolume
 
 cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
-  " volLogic=",volLogic,"\n")            
+  " volLogic=",volLogic,"\n",file="from_fvsRunAcadian.txt")            
   
   mkGraphs=FALSE
   CutPoint=0
@@ -88,37 +88,37 @@ cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
       main=paste0("SId=",fvsGetStandIDs()["standid"],"; Year=",
                   stdInfo["year"],"; Cyclen=",cyclen)
       png (filename=file,height=6,width=6,units="in",pointsize=10,res=300)
-        par(mfcol=c(3,2),mar=c(4,4,3,1))
-        barplot(by(incr$tree$EXPF,FUN=base::sum,
-             INDICES=list(incr$tree$PLOT,incr$tree$SP)),
-             main=main,ylab="Stocking (t/ha)",xlab="Species",cex.names=.7)
-        box("figure")
-        barplot(by(incr$tree$dEXPF,FUN=base::sum,
-             INDICES=list(incr$tree$PLOT,incr$tree$SP)),
-             main=main,ylab="Mortality (t/ha)",xlab="Species",cex.names=.7)
-        box("figure")
-        plot(y=incr$tree$HT,x=incr$tree$DBH,xlab="DBH (cm)",ylab="Ht (m)",
-             col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        plot(y=incr$tree$dHT,x=incr$tree$HT,xlab="Ht (m)",ylab="dHt (m)",
-             col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        plot(y=incr$tree$dDBH,ylab="dDBH (cm)",xlab="DBH (cm)",
-             x=incr$tree$DBH,col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        if (is.null(incr$ingrow))
-        {
-          plot.new()
-          text(.5,.5,"No ingrowth")
-        } else 
-        {
-          barplot(by(incr$ingrow$EXPF,FUN=base::sum,
-               INDICES=list(incr$ingrow$PLOT,incr$ingrow$SP)),
-               main=paste0(main,"\nMinDBH=",MinDBH," NumPlots=",
-                           max(incr$ingrow$PLOT)),
-               ylab="Ingrowth (t/ha)",xlab="Species",cex.names=.7)
-        }
-        box("figure")
+      par(mfcol=c(3,2),mar=c(4,4,3,1))
+      barplot(by(incr$tree$EXPF,FUN=base::sum,
+           INDICES=list(incr$tree$PLOT,incr$tree$SP)),
+           main=main,ylab="Stocking (t/ha)",xlab="Species",cex.names=.7)
+      box("figure")
+      barplot(by(incr$tree$dEXPF,FUN=base::sum,
+           INDICES=list(incr$tree$PLOT,incr$tree$SP)),
+           main=main,ylab="Mortality (t/ha)",xlab="Species",cex.names=.7)
+      box("figure")
+      plot(y=incr$tree$HT,x=incr$tree$DBH,xlab="DBH (cm)",ylab="Ht (m)",
+           col=as.numeric(as.factor(incr$tree$SP)),main=main)
+      box("figure")
+      plot(y=incr$tree$dHT,x=incr$tree$HT,xlab="Ht (m)",ylab="dHt (m)",
+           col=as.numeric(as.factor(incr$tree$SP)),main=main)
+      box("figure")
+      plot(y=incr$tree$dDBH,ylab="dDBH (cm)",xlab="DBH (cm)",
+           x=incr$tree$DBH,col=as.numeric(as.factor(incr$tree$SP)),main=main)
+      box("figure")
+      if (is.null(incr$ingrow))
+      {
+        plot.new()
+        text(.5,.5,"No ingrowth")
+      } else 
+      {
+        barplot(by(incr$ingrow$EXPF,FUN=base::sum,
+             INDICES=list(incr$ingrow$PLOT,incr$ingrow$SP)),
+             main=paste0(main,"\nMinDBH=",MinDBH," NumPlots=",
+                         max(incr$ingrow$PLOT)),
+             ylab="Ingrowth (t/ha)",xlab="Species",cex.names=.7)
+      }
+      box("figure")
       dev.off()
     }
                 
@@ -152,21 +152,23 @@ cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
         atstop6 = TRUE
         fvsAddTrees(toadd)
       } else cat ("Not enough room for new trees. Stand=",
-                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n")
+                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
+                  file="from_fvsRunAcadian.txt",append=TRUE)            
     }
     
     # modifying volume?
-
     if (volLogic == "Kozak")
     {
+      cat ("Applying Kozak volume logic\n",
+            file="from_fvsRunAcadian.txt",append=TRUE)            
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
       vols$mcuft = mapply(KozakTreeVol,Bark="ob",Planted=0,
                           DBH=vols$dbh  * INtoCM,
                           HT =vols$ht   * FTtoM,
                           SPP=spcodes[vols$species,1])
       if (any(vols$defect != 0)) vols$mcuft = vols$mcuft * 
-                                 1-(((vols$defect %% 10000) %/% 100) * .01)
-      vols$mcuft  = vols$mcuft * M3toFT3                               
+                                 (1-(((vols$defect %% 10000) %/% 100) * .01))                                 
+      vols$mcuft  = vols$mcuft * M3toFT3                              
       vols$species=NULL
       vols$ht     =NULL
       vols$dbh    =NULL
@@ -202,7 +204,7 @@ uiAcadian <- function(fvsRun)
         if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
                      fvsRun$uiCustomRunOps$uiAcadianMort     else "Acadian"),
     radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
-     c("Kozack","Base Model"),inline=TRUE,selected=
+     c("Kozak","Base Model"),inline=TRUE,selected=
         if (!is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
                      fvsRun$uiCustomRunOps$uiAcadianVolume   else "Base Model")
   )

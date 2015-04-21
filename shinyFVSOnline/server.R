@@ -161,7 +161,7 @@ isolate({
       return()
     }
     isolate({
-      if (input$rightPan %in% c("Components","Stands","Time"))
+      if (input$rightPan %in% c("Components","Stands","Time","Run"))
       {
         if (input$leftPan != "Runs")
         {
@@ -705,7 +705,6 @@ cat ("renderPlot\n")
       }
       updateSelectInput(session=session, inputId="inVars", choices=vlst,
             selected=vlst[[1]])
-      ### add code here to set up custom run scripts.
     } 
   })
   
@@ -2107,10 +2106,11 @@ cat ("delete all runs\n")
       file.remove("FVS_Runs.RData")
       rmfiles=dir(pattern="[.]key$")      
       rmfiles=gsub ("[.]key$","*",rmfiles)
-      if (length(keyfiles)) unlink(rmfiles,recursive=TRUE)
+      if (length(rmfiles)) unlink(rmfiles,recursive=TRUE)
       rmfiles=dir(pattern="[.]out$")      
       rmfiles=gsub ("[.]out$","*",rmfiles)
-      if (length(keyfiles)) unlink(rmfiles,recursive=TRUE)
+      if (length(rmfiles)) unlink(rmfiles,recursive=TRUE)
+      globals$saveOnExit = FALSE
       output$reload<-renderUI(tags$script("location.reload();"))
     })  
   })

@@ -1841,7 +1841,7 @@ smalians<-function(r1,r2,len){
 
 KozakTreeVol=function(Bark,SPP,DBH,HT,Planted,stump=NA,topHT=NA,topD=NA)
 {
-  sgmts = 100
+  sgmts =  100  #max(5,HT*2) # faster by there seems to be a bias
   stump=ifelse(is.na(stump),as.numeric(0.0),stump)
   topHT=ifelse(is.na(topHT),as.numeric(HT),topHT)
   topHT=ifelse(topHT>HT,as.numeric(HT),topHT)
