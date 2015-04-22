@@ -17,8 +17,8 @@ fvsRunAcadian <- function(runOps)
   volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
              runOps$uiAcadianVolume
 
-cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
-  " volLogic=",volLogic,"\n",file="from_fvsRunAcadian.txt")            
+  cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
+    mortModel," volLogic=",volLogic,"\n",file="fromAcadian.txt")            
   
   mkGraphs=FALSE
   CutPoint=0
@@ -47,7 +47,12 @@ cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
     stopPoint <- fvsGetRestartcode()
     # end of current stand?
     if (stopPoint == 100) break
-  
+
+    # if there are no trees, this code does not work.
+    # NB: room is used below, so if this rule changes, move this code
+    room=fvsGetDims()
+    if (room["ntrees"] == 0) next
+
     #fetch some stand level information
     stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
@@ -71,6 +76,9 @@ cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
     incr$tree$DG   = incr$tree$DG   * INtoCM
     incr$tree$HTG  = incr$tree$HTG  * FTtoM
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
+                       
+    cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],"\n",
+         file="fromAcadian.txt",append=TRUE) 
                        
     #compute the growth
     incr = AcadianGY(incr$tree,CSI,cyclen=cyclen,
@@ -138,34 +146,40 @@ cat ("INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",mortModel,
     # adding regeneration?
     if (!is.null(incr$ingrow) && nrow(incr$ingrow)>0)
     {
+      cat ("fvsRunAcadian: Computing regeneration\n",
+            file="fromAcadian.txt",append=TRUE)            
       toadd = data.frame(dbh    =incr$ingrow$DBH*CMtoIN,
                          species=match(incr$ingrow$SP,spcodes[,"fvs"]),
                          ht     =incr$ingrow$HT*MtoFT,
                          cratio =incr$ingrow$CR,
                          plot   =as.numeric(incr$ingrow$PLOT),
                          tpa    =incr$ingrow$EXPF*ACRtoHA)
-      room=fvsGetDims()
-      room=room["maxtrees"] - room["ntrees"]
-      if (nrow(toadd) < room) 
+      if (nrow(toadd) < room["maxtrees"] - room["ntrees"]) 
       {
         fvsRun(stopPointCode=6,stopPointYear=-1)
         atstop6 = TRUE
         fvsAddTrees(toadd)
-      } else cat ("Not enough room for new trees. Stand=",
+      } else cat ("fvsRunAcadian: Not enough room for new trees. Stand=",
                   fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
-                  file="from_fvsRunAcadian.txt",append=TRUE)            
+                  file="fromAcadian.txt",append=TRUE)            
     }
     
     # modifying volume?
     if (volLogic == "Kozak")
     {
-      cat ("Applying Kozak volume logic\n",
-            file="from_fvsRunAcadian.txt",append=TRUE)            
+      cat ("fvsRunAcadian: Applying Kozak volume logic\n",
+            file="fromAcadian.txt",append=TRUE)            
+
+      mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
-      vols$mcuft = mapply(KozakTreeVol,Bark="ob",Planted=0,
-                          DBH=vols$dbh  * INtoCM,
-                          HT =vols$ht   * FTtoM,
-                          SPP=spcodes[vols$species,1])
+      vols$mcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
+        mapply(KozakTreeVol,Bark="ob",Planted=0,
+               DBH=vols$dbh  * INtoCM,
+               HT =vols$ht   * FTtoM,
+               SPP=spcodes[vols$species,1],
+               stump=mcstds$mcstmp[vols$species] * FTtoM,
+               topD =mcstds$mctopd[vols$species] * INtoCM), 0)
+                          
       if (any(vols$defect != 0)) vols$mcuft = vols$mcuft * 
                                  (1-(((vols$defect %% 10000) %/% 100) * .01))                                 
       vols$mcuft  = vols$mcuft * M3toFT3                              
@@ -216,7 +230,7 @@ uiAcadian <- function(fvsRun)
 
 serverAcadian='
 observe({
-  if (length(input$uiAcadianIngrowth)) 
+  if (length(input$uiAcadianIngrowth))
     fvsRun$uiCustomRunOps$uiAcadianIngrowth = input$uiAcadianIngrowth
 })
 observe({

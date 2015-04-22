@@ -1,9 +1,9 @@
 AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
                       mortModel="Acadian")
 {
-  cat ("nrow(tree)=",nrow(tree)," CSI=",CSI,"cyclen=",cyclen,"\nINGROWTH=",
-     INGROWTH," MinDBH=",MinDBH," CutPoint=",CutPoint," mortModel=",
-     mortModel,"\n",file="fromAcadianGY.txt") 
+  cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,"cyclen=",cyclen,
+     " INGROWTH=",INGROWTH," MinDBH=",MinDBH," CutPoint=",CutPoint,
+     " mortModel=",mortModel,"\n",file="fromAcadian.txt",append=TRUE) 
   
   aa=sapply(tree$SP,SPP.func)
   tree$SPtype=t(aa)[,1]

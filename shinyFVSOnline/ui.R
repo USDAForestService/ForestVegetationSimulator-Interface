@@ -86,7 +86,7 @@ shinyUI(fixedPage(
         actionButton("dupRun","Duplicate"),
         h6(" "),
         tags$style(type="text/css", "#title { width: 90%; }"),
-        textInput("title", "", "nothing loaded yet"), 
+        textInput("title", "Run title", "nothing loaded yet"), 
         # all the select objects
         tags$style(type="text/css", "select { width: 100%; }"),
         h6(" "),

@@ -14,13 +14,14 @@ fvsRunAdirondack <- function(runOps)
              runOps$uiAdirondackMinDBH)
   mortModel= if (is.null(runOps$uiAdirondackMort)) "Adirondack" else 
              runOps$uiAdirondackMort 
+  volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
+             runOps$uiAdirondackVolume
   mkGraphs=FALSE
   CutPoint=0
 
-  cat ("date=",date()," customRun_fvsRunAdirondack INGROWTH=",
-     INGROWTH," MinDBH=",MinDBH," CutPoint=",CutPoint," mortModel=",
-     mortModel,"\n",file="fromAdirondackGY.txt") 
-
+  cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
+    mortModel," volLogic=",volLogic,"\n",file="fromAdirondack.txt")            
+  
   
   #load some handy conversion factors
   CMtoIN  = fvsUnitConversion("CMtoIN")
@@ -46,6 +47,11 @@ fvsRunAdirondack <- function(runOps)
     # end of current stand?
     if (stopPoint == 100) break
   
+    # if there are no trees, this code does not work.
+    # NB: room is used below, so if this rule changes, move this code
+    room=fvsGetDims()
+    if (room["ntrees"] == 0) next
+
     #fetch some stand level information
     stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
@@ -70,8 +76,8 @@ fvsRunAdirondack <- function(runOps)
     incr$tree$HTG  = incr$tree$HTG  * FTtoM
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
 
-    cat ("calling AdirondackGY, year=",stdInfo["year"],"\n",
-         file="fromAdirondackGY.txt",append=TRUE) 
+    cat ("fvsRunAdirondack: calling AdirondackGY, year=",stdInfo["year"],"\n",
+         file="fromAdirondack.txt",append=TRUE) 
                        
     #compute the growth
     incr = AdirondackGY(incr$tree,CSI,cyclen=cyclen,
@@ -81,7 +87,7 @@ fvsRunAdirondack <- function(runOps)
                      mortModel=mortModel) 
 
     cat ("return from AdirondackGY, mkGraphs=",mkGraphs,"\n",
-          file="fromAdirondackGY.txt",append=TRUE) 
+          file="fromAdirondack.txt",append=TRUE) 
                      
     #plot growth and ingrowth
 
@@ -139,9 +145,11 @@ fvsRunAdirondack <- function(runOps)
                               (incr$tree$HT +incr$tree$dHT)))*100,0)))
     if (!is.null(incr$tree$dEXPF)) tofvs$mort=incr$tree$dEXPF*HAtoACR 
 
-    cat ("calling fvsSetTreeAttrs\n",file="fromAdirondackGY.txt",append=TRUE) 
-      
     fvsSetTreeAttrs(tofvs)
+
+    atstop6 = FALSE
+    
+    # adding regeneration?
     if (!is.null(incr$ingrow) && nrow(incr$ingrow)>0)
     {
       toadd = data.frame(dbh    =incr$ingrow$DBH*CMtoIN,
@@ -150,15 +158,47 @@ fvsRunAdirondack <- function(runOps)
                          cratio =incr$ingrow$CR,
                          plot   =as.numeric(incr$ingrow$PLOT),
                          tpa    =incr$ingrow$EXPF*ACRtoHA)
-      room=fvsGetDims()
-      room=room["maxtrees"] - room["ntrees"]
-      if (nrow(toadd) < room) 
+
+      if (nrow(toadd) < room["maxtrees"] - room["ntrees"]) 
       {
         fvsRun(stopPointCode=6,stopPointYear=-1)
+        atstop6 = TRUE
         fvsAddTrees(toadd)
-      } else cat ("Not enough room for new trees. Stand=",
-                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n")
+      } else cat ("fvsRunAdirondack: Not enough room for new trees. Stand=",
+                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
+                  file="fromAdirondack.txt",append=TRUE)
     }  
+
+    # modifying volume?
+    if (volLogic == "Kozak")
+    {
+      cat ("fvsRunAdirondack: Applying Kozak volume logic\n",
+            file="fromAdirondack.txt",append=TRUE)            
+
+      mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
+      vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
+      vols$mcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
+        mapply(KozakTreeVol,Bark="ob",Planted=0,
+               DBH  = vols$dbh  * INtoCM,
+               HT   = vols$ht   * FTtoM,
+               SPP  = spcodes[vols$species,1],
+               stump= mcstds$mcstmp[vols$species] * FTtoM,
+               topD = mcstds$mctopd[vols$species] * INtoCM), 0)
+                          
+      if (any(vols$defect != 0)) vols$mcuft = vols$mcuft * 
+                                 (1-(((vols$defect %% 10000) %/% 100) * .01))                                 
+      vols$mcuft  = vols$mcuft * M3toFT3                              
+      vols$species=NULL
+      vols$ht     =NULL
+      vols$dbh    =NULL
+      vols$defect =NULL
+      if (!atstop6)
+      {
+        fvsRun(stopPointCode=6,stopPointYear=-1)
+        atstop6 = TRUE
+      }
+      fvsSetTreeAttrs(vols)
+    }
   }
   rtn
 }
@@ -181,7 +221,11 @@ uiAdirondack <- function(fvsRun)
     radioButtons("uiAdirondackMort", "Mortality model:", 
      c("Adirondack","Base Model"),inline=TRUE,selected=
         if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackMort))
-                     fvsRun$uiCustomRunOps$uiAdirondackMort     else "Adirondack")
+                     fvsRun$uiCustomRunOps$uiAdirondackMort  else "Adirondack"),
+    radioButtons("uiAdirondackVolume", "Merchantable volume logic:", 
+     c("Kozak","Base Model"),inline=TRUE,selected=
+        if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume))
+                     fvsRun$uiCustomRunOps$uiAdirondackVolume else "Base Model")
   )
 }
  
@@ -203,6 +247,10 @@ observe({
 observe({
   if (length(input$uiAdirondackMort)) 
     fvsRun$uiCustomRunOps$uiAdirondackMort     = input$uiAdirondackMort
+})
+observe({
+  if (length(input$uiAcadianVolume)) 
+    fvsRun$uiCustomRunOps$uiAdirondackVolume   = input$uiAdirondackVolume
 })
 '
    
