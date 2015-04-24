@@ -208,21 +208,22 @@ loadFromList <- function(refc,alist)
 resetfvsRun <- function(fvsRun,FVS_Runs)
 {
 cat("resetfvsRun\n")
-   fvsRun$stands = list()
-   fvsRun$grps = list()
-   fvsRun$simcnts = list()
-   fvsRun$selsim = list()
-   fvsRun$FVSpgm = character(0)
-   fvsRun$autoOut = list()
-   np1 = length(FVS_Runs)+1
-   fvsRun$title = paste0("Run ",np1)
-   fvsRun$startyr = character(0)
-   fvsRun$endyr = character(0)
-   fvsRun$cyclelen = character(0)
-   fvsRun$cycleat = character(0)
-   fvsRun$defMgmtID = sprintf("A%3.3d",np1)
-   fvsRun$runScript = "fvsRun"
-   fvsRun$uuid = uuidgen()
+  fvsRun$stands = list()
+  fvsRun$grps = list()
+  fvsRun$simcnts = list()
+  fvsRun$selsim = list()
+  fvsRun$FVSpgm = character(0)
+  fvsRun$autoOut = list()
+  np1 = length(FVS_Runs)+1
+  fvsRun$title = paste0("Run ",np1)
+  fvsRun$startyr = character(0)
+  fvsRun$endyr = character(0)
+  fvsRun$cyclelen = character(0)
+  fvsRun$cycleat = character(0)
+  fvsRun$defMgmtID = sprintf("A%3.3d",np1)
+  fvsRun$runScript = "fvsRun"
+  uiCustomRunOps = list()
+  fvsRun$uuid = uuidgen()
 }
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)

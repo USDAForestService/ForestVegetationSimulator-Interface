@@ -26,24 +26,20 @@ if (file.exists("projectId.txt"))
   tit="" #tit variable is used to generate default report headings
 }
 
-customRunElements = NULL
+defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
-{
+{  
   source("runScripts.R")
   keep = file.exists(paste0("customRun_",runScripts,".R"))
   runScripts = runScripts[keep]
-  if (length(runScripts)) 
-  {
-    defaultRun = list("Default useful for all FVS variants"="fvsRun")
-    runScripts = append(x=runScripts,after=0,defaultRun)
-    customRunElements = list(                  
-      selectInput("runScript",
-                  "Select run script (normally, use the default)",
-                  choices=runScripts,
-                  selected="fvsRun",multiple=FALSE,selectize=FALSE),
-      uiOutput("uiCustomRunOps"))
-  } 
-}
+  if (length(runScripts)) runScripts = append(x=runScripts,after=0,defaultRun)
+} 
+customRunElements = list(                  
+  selectInput("runScript",
+              "Select run script (normally, use the default)",
+              choices=runScripts,
+              selected="fvsRun",multiple=FALSE,selectize=FALSE),
+  uiOutput("uiCustomRunOps"))
 
 source("modalDialog.R")
 

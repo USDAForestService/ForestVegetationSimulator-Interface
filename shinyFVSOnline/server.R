@@ -82,8 +82,7 @@ shinyServer(function(input, output, session) {
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     if (exists("dbcon")) try(dbDisconnect(dbcon))
     if (!globals$saveOnExit) return()
-    globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
-    globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+    saveRun()
     FVS_Runs = globals$FVS_Runs
     save (FVS_Runs,file="FVS_Runs.RData")
     if (file.exists("projectId.txt"))
@@ -827,26 +826,35 @@ cat ("renderPlot\n")
     if (input$reload > 0 || !is.null(input$runSel))
     {
       if (is.null(input$runSel)) return
-cat ("reload or run selection, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,
-     " runSel=",input$runSel," lensim=",length(fvsRun$simcnts),"\n")      
+cat ("reload or run selection, runSel=",input$runSel," lensim=",
+  length(fvsRun$simcnts),"\n")      
       resetGlobals(globals,NULL,prms)
       loadFromList(fvsRun,globals$FVS_Runs[[input$runSel]])
       resetGlobals(globals,fvsRun,prms)
       mkSimCnts(fvsRun,fvsRun$selsim)
-      output$uiRun = renderUI(NULL)
+      output$uiRunPlot = renderUI(NULL)
+      output$uiCustomRunOps = renderUI(NULL)    
+cat ("reloaded: fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")      
+cat ("reloaded fvsRun$runScript=",fvsRun$runScript,"\n")
+if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
+cat ("fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),fvsRun$uiCustomRunOps) else
+cat ("fvsRun$uiCustomRunOps is empty\n")
 
       isolate({
-        if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
+        if (input$rightPan != "Run" && length(fvsRun$simcnts)>0)
         {
-          globals$autoPanNav = TRUE
-          updateTabsetPanel(session=session, inputId="rightPan", 
-             selected="Components")
-        }
-        if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
-        {
-          globals$autoPanNav = TRUE
-          updateTabsetPanel(session=session, inputId="rightPan", 
-             selected="Stands")
+          if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+               selected="Components")
+          }
+          if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+               selected="Stands")
+          }
         }
       })
       updateCheckboxGroupInput(session=session, inputId="autoOut",
@@ -858,8 +866,6 @@ cat ("reload or run selection, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,
         choices=fvsRun$simcnts, selected=fvsRun$selsim)
       updateSelectInput(session=session, inputId="simCont", 
         choices=fvsRun$simcnts, selected=fvsRun$selsim)
-      updateSelectInput(session=session, inputId="runScript", 
-          selected=fvsRun$runScript)
       updateSelectInput(session=session, inputId="addComponents", 
           choices=list(" "), selected=NULL)
       updateTextInput(session=session, inputId="startyr",  
@@ -870,6 +876,13 @@ cat ("reload or run selection, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,
                       value=fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat",  
                       value=fvsRun$cycleat)
+      # if the update causes a change in the runscript selection, then
+      # customRunOps will get called automatically. If it is the same
+      # script then it needs to be called here to update/set the settings.
+      isolate ({callCustom = fvsRun$runScript == input$runScript})
+      updateSelectInput(session=session, inputId="runScript", 
+          selected=fvsRun$runScript)
+      if (callCustom) customRunOps()
     }
   })
 
@@ -881,16 +894,7 @@ cat ("reload or run selection, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,
     if (input$saveRun > 0)
     {
 cat ("saveRun\n")
-      isolate ({ 
-        if (input$title == "")
-        {
-          fvsRun$title = fvsRun$uuid
-          updateTextInput(session=session, inputId="title", value=fvsRun$title)
-        } else fvsRun$title = input$title
-        fvsRun$defMgmtID = input$defMgmtID
-      })      
-      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
-      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+      saveRun()
       selChoices = names(globals$FVS_Runs) 
       names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
       updateSelectInput(session=session, inputId="runSel", 
@@ -1584,12 +1588,8 @@ cat("input$schedbox=",input$schedbox,"\n")
     isolate ({
       if (exists("fvsRun")) if (length(fvsRun$stands) > 0) 
       {
-        output$uiRun = renderUI(NULL)
-        fvsRun$title = input$title
-        fvsRun$defMgmtID = input$defMgmtID
-        fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
-        globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
-        globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+        output$uiRunPlot = renderUI(NULL)
+        saveRun()
         selChoices = names(globals$FVS_Runs) 
         names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
         updateSelectInput(session=session, inputId="runSel", 
@@ -1605,22 +1605,22 @@ cat("input$schedbox=",input$schedbox,"\n")
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and load program", value = 2)         
         writeKeyFile(fvsRun,globals$inData$FVS_StandInit,prms)
-        dir.create(fvsRun$uuid)
+         dir.create(fvsRun$uuid)
         fvschild = makePSOCKcluster(1)
         rtn = try(clusterEvalQ(fvschild,
               for (rf in dir("rFVS/R")) source(paste0("rFVS/R/",rf))))
         if (class(rtn) == "try-error") return()
         rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,fvsLoad('",
              fvsRun$FVSpgm,"',bin='./FVSbin'))"))) )
-        if (class(rtn) == "try-error") return()
-          
+        if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
         if (fvsRun$runScript != "fvsRun")
         {
           rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
                "source('customRun_",fvsRun$runScript,".R'))"))))
           if (class(rtn) == "try-error") return()
-          runOps <<- fvsRun$uiCustomRunOps
+          runOps <<- if (is.null(fvsRun$uiCustomRunOps)) list() else 
+            fvsRun$uiCustomRunOps
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
@@ -1628,6 +1628,7 @@ cat("input$schedbox=",input$schedbox,"\n")
               'fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key"))')))) 
         if (class(rtn) == "try-error") return()
         on.exit(progress$close()) #on exit of the reactive context
+cat ("at for start\n")          
         allSum = list()
         for (i in 1:length(fvsRun$stands))
         {
@@ -2217,27 +2218,65 @@ cat ("dataEditor\n")
     output$reload<-renderUI(tags$script("location.reload();"))
   })
 
-  #runScript selection (and gui building)
+
+  #runScript selection
   observe({
-    if (length(input$runScript) > 0) 
-    {
-cat ("runScript: ",input$runScript,"\n")
+    if (length(input$runScript)) customRunOps()
+  })
+
+  customRunOps <- function ()
+  {
+    isolate({
+cat ("in customRunOps\n")    
+      if (length(input$runScript) == 0)
+      {
+cat ("in customRunOps runScript is empty\n")
+        return()
+      }
+cat ("in customRunOps runScript: ",input$runScript,"\n")
       fvsRun$runScript = input$runScript
       output$uiCustomRunOps = renderUI(NULL)    
       if (input$runScript != "fvsRun")
       {
         rtn = try(source(paste0("customRun_",fvsRun$runScript,".R")))
         if (class(rtn) == "try-error") return()
-        uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",input$runScript)))))
+        uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",fvsRun$runScript)))))
         if (class(uiF) != "function") return()
         output$uiCustomRunOps = renderUI(uiF(fvsRun))
-        serverCode = paste0(sub("fvsRun","server",input$runScript))
-        serverCode = eval(parse(text=paste0("scan(text=",as.name(serverCode),",
-                                what=' ',sep='\n',quiet=TRUE)")))
-        eval(parse(text=serverCode))
+      } else {
+        fvsRun$uiCustomRunOps = list()
       }
-    }
-  })
+if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
+cat ("fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),fvsRun$uiCustomRunOps) else
+cat ("fvsRun$uiCustomRunOps is empty\n")
+    })
+  }
+
+  
+  saveRun <- function() 
+  {
+    isolate({
+cat ("in saveRun\n")    
+      if (input$title == "")
+      {
+        fvsRun$title = fvsRun$uuid
+        updateTextInput(session=session, inputId="title", value=fvsRun$title)
+      } else fvsRun$title = input$title
+      fvsRun$title = input$title
+      fvsRun$defMgmtID = input$defMgmtID
+      fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
+      if (fvsRun$runScript == "fvsRun") fvsRun$uiCustomRunOps = list() else
+      {
+        for (item in names(fvsRun$uiCustomRunOps))
+        {
+          fvsRun$uiCustomRunOps[[item]] = input[[item]]
+cat("during saveRun, item=",item," val=",fvsRun$uiCustomRunOps[[item]],"\n")    
+        }
+      }
+      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
+      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)    
+    }) 
+  }
  
 })
 

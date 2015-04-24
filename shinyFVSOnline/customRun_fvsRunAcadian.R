@@ -205,47 +205,33 @@ fvsRunAcadian <- function(runOps)
 
 uiAcadian <- function(fvsRun)
 {
+cat ("in uiAcadian uiAcadianVolume=",
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume)) "NULL" else 
+              fvsRun$uiCustomRunOps$uiAcadianVolume,"\n")
+  
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianIngrowth))
+              fvsRun$uiCustomRunOps$uiAcadianIngrowth = "No"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
+              fvsRun$uiCustomRunOps$uiAcadianMinDBH   = "3.0"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
+              fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
+              fvsRun$uiCustomRunOps$uiAcadianVolume   = "Base Model"
   list(
     radioButtons("uiAcadianIngrowth", "Simulate ingrowth:", 
-      c("Yes","No"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAcadianIngrowth))
-                     fvsRun$uiCustomRunOps$uiAcadianIngrowth else "No"),
+      c("Yes","No"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
     textInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
-        if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
-                     fvsRun$uiCustomRunOps$uiAcadianMinDBH   else "3.0"),
+               fvsRun$uiCustomRunOps$uiAcadianMinDBH),
     radioButtons("uiAcadianMort", "Mortality model:", 
-     c("Acadian","Base Model"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
-                     fvsRun$uiCustomRunOps$uiAcadianMort     else "Acadian"),
+      c("Acadian","Base Model"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAcadianMort),
     radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
-     c("Kozak","Base Model"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
-                     fvsRun$uiCustomRunOps$uiAcadianVolume   else "Base Model")
+      c("Kozak","Base Model"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAcadianVolume)
   )
 }
  
-#This is the "server" code for the Acadian model. It is specified as a 
-#character variable and then a eval(parse()) sequence is run when this
-#code is actually used. 
-
-serverAcadian='
-observe({
-  if (length(input$uiAcadianIngrowth))
-    fvsRun$uiCustomRunOps$uiAcadianIngrowth = input$uiAcadianIngrowth
-})
-observe({
-  if (length(input$uiAcadianMinDBH)) 
-    fvsRun$uiCustomRunOps$uiAcadianMinDBH   = input$uiAcadianMinDBH
-})
-observe({
-  if (length(input$uiAcadianMort)) 
-    fvsRun$uiCustomRunOps$uiAcadianMort     = input$uiAcadianMort
-})
-observe({
-  if (length(input$uiAcadianVolume)) 
-    fvsRun$uiCustomRunOps$uiAcadianVolume   = input$uiAcadianVolume
-})
-'
    
 
 

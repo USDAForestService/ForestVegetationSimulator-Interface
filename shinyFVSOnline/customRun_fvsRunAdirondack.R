@@ -14,7 +14,7 @@ fvsRunAdirondack <- function(runOps)
              runOps$uiAdirondackMinDBH)
   mortModel= if (is.null(runOps$uiAdirondackMort)) "Adirondack" else 
              runOps$uiAdirondackMort 
-  volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
+  volLogic = if (is.null(runOps$uiAdirondackVolume)) "Base Model" else 
              runOps$uiAdirondackVolume
   mkGraphs=FALSE
   CutPoint=0
@@ -210,50 +210,34 @@ fvsRunAdirondack <- function(runOps)
 
 uiAdirondack <- function(fvsRun)
 {
+cat ("in uiAdirondack uiAdirondackVolume=",
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume)) "NULL" else 
+              fvsRun$uiCustomRunOps$uiAdirondackVolume,"\n")
+
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackIngrowth))
+              fvsRun$uiCustomRunOps$uiAdirondackIngrowth = "No"
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackMinDBH))
+              fvsRun$uiCustomRunOps$uiAdirondackMinDBH   = "3.0"
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackMort))
+              fvsRun$uiCustomRunOps$uiAdirondackMort     = "Adirondack"
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume))
+              fvsRun$uiCustomRunOps$uiAdirondackVolume   = "Base Model"
   list(
     radioButtons("uiAdirondackIngrowth", "Simulate ingrowth:", 
-      c("Yes","No"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackIngrowth))
-                     fvsRun$uiCustomRunOps$uiAdirondackIngrowth else "No"),
+      c("Yes","No"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAdirondackIngrowth),
     textInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
-        if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackMinDBH))
-                     fvsRun$uiCustomRunOps$uiAdirondackMinDBH   else "3.0"),
+               fvsRun$uiCustomRunOps$uiAdirondackMinDBH),
     radioButtons("uiAdirondackMort", "Mortality model:", 
-     c("Adirondack","Base Model"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackMort))
-                     fvsRun$uiCustomRunOps$uiAdirondackMort  else "Adirondack"),
+      c("Adirondack","Base Model"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAdirondackMort),
     radioButtons("uiAdirondackVolume", "Merchantable volume logic:", 
-     c("Kozak","Base Model"),inline=TRUE,selected=
-        if (!is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume))
-                     fvsRun$uiCustomRunOps$uiAdirondackVolume else "Base Model")
+      c("Kozak","Base Model"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAdirondackVolume)
   )
 }
  
                       
-
-#This is the "server" code for the Adirondack model. It is specified as a 
-#character variable and then a eval(parse()) sequence is run when this
-#code is actually used. 
-
-serverAdirondack='
-observe({
-  if (length(input$uiAdirondackIngrowth)) 
-    fvsRun$uiCustomRunOps$uiAdirondackIngrowth = input$uiAdirondackIngrowth
-})
-observe({
-  if (length(input$uiAdirondackMinDBH)) 
-    fvsRun$uiCustomRunOps$uiAdirondackMinDBH   = input$uiAdirondackMinDBH
-})
-observe({
-  if (length(input$uiAdirondackMort)) 
-    fvsRun$uiCustomRunOps$uiAdirondackMort     = input$uiAdirondackMort
-})
-observe({
-  if (length(input$uiAcadianVolume)) 
-    fvsRun$uiCustomRunOps$uiAdirondackVolume   = input$uiAdirondackVolume
-})
-'
-   
 
 
 
