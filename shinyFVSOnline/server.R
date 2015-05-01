@@ -1778,6 +1778,7 @@ cat ("length(allSum)=",length(allSum),"\n")
       }, min=1, max=12)
     }
     unlink(input$upload$datapath)
+    fixFVSKeywords() 
     output$reload<-renderUI(tags$script("location.reload();"))
   }) 
 

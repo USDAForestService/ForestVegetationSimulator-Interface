@@ -912,6 +912,59 @@ deleteRelatedDBRows <- function(runuuid,dbcon)
 }
 
 
+fixFVSKeywords <- function()
+{
+  dbDrv <- dbDriver("SQLite")
+  dbcon <- dbConnect(dbDrv,"FVS_Data.db")
+  tbs <- dbListTables(dbcon)
+  for (tb in tbs)
+  {
+cat ("in fixFVSKeywords, tb=",tb,"\n")
+    flds <- dbListFields(dbcon, tb)
+    kwdsIdxs <- grep ("keywords",flds,ignore.case = TRUE)
+    if (length(kwdsIdxs) == 0) next
+    for (kwdname in flds[kwdsIdxs])
+    {    
+      qry = paste0("select _ROWID_,",kwdname," from ",tb,
+        " where ",kwdname," is not null and ",kwdname," != '';")
+cat ("qry=",qry,"\n")              
+      res <- dbSendQuery(dbcon,qry)
+      kwdf <- dbFetch(res, n=-1)
+cat ("result nrow=",nrow(kwdf),"\n")      
+      dbClearResult(dbcon)
+      if (nrow(kwdf))
+      {
+        for (row in 1:nrow(kwdf))
+        {
+          if (nchar(kwdf[row,2]) < 2) {kwdf[row,1] = -1; next}
+          one <- gsub ("\r","",kwdf[row,2])
+          dsnin <- grep ("dsnin",one,ignore.case = TRUE)
+          if (length(dsnin) == 0) {kwdf[row,1] = -1; next}
+          one <- scan(text=one,sep="\n",what="character",quiet=TRUE)
+          dsnin <- grep ("dsnin",one,ignore.case = TRUE)+1
+          one[dsnin] <- "FVS_Data.db"
+          kwdf[row,2] <- paste0(paste0(one,collapse="\n"),"\n")
+        }
+        kwdf = subset(kwdf,rowid > 0)
+        if (nrow(kwdf) > 0)
+        {
+          dbBegin(dbcon)
+          for (row in 1:nrow(kwdf))
+          {
+            qut <- if (length(grep("'",kwdf[row,2],fixed=TRUE))) "\"" else "'"
+            qry <- paste0("update ",tb," set ",kwdname," = ",qut,
+              kwdf[row,2],qut," where _ROWID_ = ",kwdf[row,1],";")
+cat ("qry=",qry,"\n")              
+             dbSendQuery(dbcon,qry)              
+          }
+          dbCommit(dbcon)
+        }
+      }
+    }
+  }
+cat ("exit fixFVSKeywords\n")
+  dbDisconnect(dbcon)  
+}    
 
   
 
