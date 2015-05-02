@@ -64,8 +64,9 @@ shinyUI(fixedPage(
   ),
 
   fixedRow(
-  column(width=11,offset=0,uiOutput("uiHelpText")),
-  column(width=1,offset=.5,uiOutput("uiHelpClose"))),
+    column(width=11,offset=0,uiOutput("uiHelpText")),
+    column(width=1,offset=.2,uiOutput("uiHelpClose"))
+  ),
   
   fixedRow(
   column(width=4,offset=0,

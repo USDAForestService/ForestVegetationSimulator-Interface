@@ -2196,7 +2196,10 @@ cat ("backup=",backup,"\n")
         list(tags$style(type="text/css", 
              "#uiHelpText { overflow:auto; height:150px;}"),
              HTML(topHelp)))
-      output$uiHelpClose <- renderUI(actionButton("helpClose","Close Help"))
+      output$uiHelpClose <- renderUI(list(
+        actionButton("helpClose","Close Help"),
+        actionButton("feedBack", "Send Feedback")
+      ))
     }
   })
   #helpClose
@@ -2205,6 +2208,32 @@ cat ("backup=",backup,"\n")
     {
       output$uiHelpText <- renderUI(NULL)
       output$uiHelpClose <- renderUI(NULL)
+    }
+  })
+  #feedBack
+  observe({
+    if (length(input$feedBack) && input$feedBack > 0)
+    {
+      output$uiHelpText <- renderUI(list(
+        h5("Enter your comments and suggestions"),
+        tags$style(type="text/css",paste0("#comments {overflow:auto;",
+          "height:150px; width:95%; background-color: #eef8ff;}")),
+        tags$textarea(id="comments", rows=10)
+      ))
+      output$uiHelpClose <- renderUI(list(
+        tags$style(type="text/css","#submitComments {background-color: #eef8ff;}"),
+        actionButton("submitComments","Submit")
+      )) 
+    }
+  })
+  #helpClose
+  observe({
+    if (length(input$submitComments) && input$submitComments > 0)
+    {
+      cat ("Date: ",date(),"\n",input$comments,"\n",file="userComments.txt",
+        append=TRUE)     
+      output$uiHelpText <- renderUI(NULL)
+      output$uiHelpClose <- renderUI(NULL)     
     }
   })
   
