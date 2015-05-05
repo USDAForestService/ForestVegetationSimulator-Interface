@@ -58,6 +58,7 @@ shinyUI(fixedPage(
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
       actionButton("topHelp","Help"),
+      actionButton("feedBack", "Feedback"),
       uiOutput("reload"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
     )
