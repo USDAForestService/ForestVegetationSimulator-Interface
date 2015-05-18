@@ -13750,6 +13750,60 @@ FModList  !1,10!   Parms(!2!, !3!)\n}
 
 //end keyword.fire.FModList
 
+//start keyword.fire.FMortMlt
+
+description:
+{Modify the FFE calculation of the probability that a tree will die due to fire.
+The multipliers coded using this keyword are only in effect for the cycle or
+year in which they are scheduled. Several FMORTMLT keywords can be specified for
+the same time period where each applies to a different species or portion of the
+tree DBH distribution. The values apply to fire effects computed for potential
+fires as well as simulated fires that are scheduled for the same year. A major
+purpose for using this keyword is to represent the effects drought in years
+prior to the fire have on tree mortality (van Mantgem and others 2013). The
+keyword can also be used to represent the effect on mortality of wet years prior
+to fire. Values greater than 1.0 increase mortality rates, values less than 1.0
+decrease mortality rates. 
+
+Van Mantgem and others (2013) reported models that predict the probability of
+mortality given tree bark thickness, fire severity measures, and changes in
+climatic water deficit relative to long-term averages prior to fire. Using
+results from that work the following general guidelines can be used to choose
+multipliers on the FMORTMLT keyword. For low moisture deficit, code 1.2, for
+moderate, code 1.4, for high code 1.6, for very high code 1.8. Of course, any
+values may be used and you can use this keyword to represent other effects
+besides climatic water deficit.
+
+Reference:
+
+van Mantgem, Philip J.; Nesmith, Jonathan C.B.; Keifer, MaryBeth; Knapp, Eric
+E.; Flint, Alan; Flint, Lorriane. 2013. Climatic stress increases forest fire
+severity across the western United States. Ecology Letters doi:
+10.1111/ele.12151.
+}
+
+f1:{scheduleBox}
+
+f2:{numberBox The multiplier:}
+f4v:{1.0}
+
+f3:{speciesSelection Species to which this multiplier applies:}
+
+f4:{numberBox The lower (GE) DBH of trees to which the multiplier applies:}
+f4v:{0}
+
+f5:{numberBox The upper (LT) DBH of trees to which the multiplier applies:}
+f5v:{999.}
+
+expressionContents{always after}:{}
+
+parmsForm:{* Args: Mult, species, lower DBH, upper DBH
+FMortMlt  !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.fire.FMortMlt
+
+
+
 //start keyword.fire.FuelDcay
 
 description:
@@ -20545,6 +20599,10 @@ SIMFIRE keyword scheduled for the same year.}
 FModList {fire control modifier}:
 {Adjust the fuel models available for selection in conjuction with the new
 fuel model logic (see FireCalc keyword).}
+
+FMortMlt {fire modifier}:
+{Modify the FFE calculation of the probability of tree mortality.}
+
 
 FuelDcay {fire modifier}:
 {Set the total decay rates for each fuel size class and decay pool.}
