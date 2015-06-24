@@ -1312,7 +1312,7 @@ cat ("category selection, cmd=",cmd,"input$addCategories=",input$addCategories,"
       pkeys <- prms[[globals$currentCmdPkey]]
       eltList <- mkeltList(pkeys,prms,globals,fvsRun)
       if (!is.null(title)) eltList <- 
-        append(eltList,textInput("cmdTitle","", value=title),after=0)
+        append(eltList,list(textInput("cmdTitle","", value=title)),after=0)
       output$cmdBuild <- renderUI (if (length(eltList)) eltList else NULL)
       des <- getPstring(pkeys,"description",globals$activeVariants[1])
       output$cmdBuildDesc <- renderUI (if (!is.null(des) && nchar(des) > 0)
@@ -1376,7 +1376,7 @@ cat("input$schedbox=",input$schedbox,"\n")
         {
           title = getPstring(prms$conditions_list,input$condList)
           if (!is.null(title)) ui <- 
-            append(ui,textInput("cndTitle","", value=title),after=1)
+            append(ui,list(textInput("cndTitle","", value=title)),after=1)
         }
         ui
       })

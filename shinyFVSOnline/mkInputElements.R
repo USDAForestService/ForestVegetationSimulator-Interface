@@ -45,7 +45,7 @@ cat ("mkeltList f=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
       noInput = list(div(id=pkey,HTML(paste0("<p>",gsub("\n","<br/>",pmt),"<p/>")))),
       NULL)
-    if (!is.null(elt)) eltList <- append(eltList,elt)
+    if (!is.null(elt)) eltList <- append(eltList,list(elt))
   }
   if (cndflag) 
   {
