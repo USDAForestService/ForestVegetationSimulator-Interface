@@ -12,7 +12,7 @@ defaultPPIF{dos unix}:
                          {suppose.ppi}
 
 defaultUsePPE:           {no}
-newdwn
+
 defaultEditor{dos}:      {notepad}
 defaultEditor{unix}:     {dtpad}
 
