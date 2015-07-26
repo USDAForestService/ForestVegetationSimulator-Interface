@@ -40,17 +40,17 @@ mkglobals <<- setRefClass("globals",
     autoPanNav = "logical"))
 
 # load (and/or build) the prms.RData object
-mtrd <-  if (file.exists("prms.RData")) 
-  as.integer(file.info("prms.RData")["mtime"]) else 0
-mtpm <-  as.integer(file.info("suppose.prm")["mtime"])
-if (mtrd < mtpm) 
-{
-  source("mkpkeys.R")
-  prms <-  rdparms()
-  prms <-  lapply(prms,mkpkeys)
-  save(prms,file="prms.RData")
-  rm (prms)
-}
+#mtrd <-  if (file.exists("prms.RData")) 
+#  as.integer(file.info("prms.RData")["mtime"]) else 0
+#mtpm <-  as.integer(file.info("suppose.prm")["mtime"])
+#if (mtrd < mtpm) 
+#{
+#  source("mkpkeys.R")
+#  prms <-  rdparms()
+#  prms <-  lapply(prms,mkpkeys)
+#  save(prms,file="prms.RData")
+#  rm (prms)
+#}
 
 loadInvData <- function(globals,prms)
 {
