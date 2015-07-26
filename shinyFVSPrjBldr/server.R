@@ -45,7 +45,7 @@ cat ("fvsbin cmd=",cmd,"\n")
       # make link, send email:
       rptFile = tempfile()
       con = file(rptFile,"w")
-      link = paste0("http://forest.moscowfsl.wsu.edu:3838/FVSwork/",uuid)
+      link = paste0("http://forest.moscowfsl.wsu.edu/FVSwork/",uuid)
       cat (file=con,"Here is a link to the project named:",input$title,"\n\n")
       cat (file=con,link,"\n\n")
       cat (file=con,"Note that this and all other projects may be removed",
