@@ -44,7 +44,11 @@ customRunElements = list(
 source("modalDialog.R")
 
 shinyUI(fixedPage(
-  
+  tags$style(HTML(paste0(
+    ".nav>li>a {padding:6px;}",
+    ".btn {padding:4px 6px;}",
+    ".form-control {padding:2px 4px; height:auto;}",
+    ".form-group {margin-bottom:6px}"))),  
   fixedRow(
     column(width=6,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
@@ -68,14 +72,13 @@ shinyUI(fixedPage(
     column(width=11,offset=0,uiOutput("uiHelpText")),
     column(width=1,offset=.2,uiOutput("uiHelpClose"))
   ),
-  
   fixedRow(
   column(width=4,offset=0,
     tags$style(type="text/css","#leftPan {background-color: rgb(227,227,255);}"),
     tabsetPanel(id="leftPan",
       tabPanel("Runs",  
         tags$style(type="text/css", "#runSel { width: 100%; }"),
-        selectInput("runSel","", NULL, NULL, multiple=FALSE,
+        selectInput("runSel","Existing runs", NULL, NULL, multiple=FALSE,
                     selectize=FALSE),
         actionButton("newRun","New"),
         actionButton("reload","Reload"),
@@ -95,9 +98,9 @@ shinyUI(fixedPage(
         actionButton("mkfree","Change to freeform"),
         actionButton("cutCmp","Cut"),
         actionButton("copyCmp","Copy"),
-        h6(" "),
+        br(),
         actionButton("paste","Paste item selected below"),
-        selectInput("selpaste","", NULL, 
+        selectInput("selpaste","Items to paste", NULL, 
                     NULL, multiple=FALSE, selectize=FALSE) 
       ),
       tabPanel("Load Output", 
@@ -172,9 +175,9 @@ shinyUI(fixedPage(
         selectInput("addComponents","Components",NULL,
                      multiple=FALSE,selectize=FALSE),
         uiOutput("cmdBuild"),
-        tags$style(type="text/css", "#cmdCancel { color: red; }"),
+        tags$style(type="text/css", "#cmdCancel {color:red;}"),
         actionButton("cmdCancel","Cancel"),
-        tags$style(type="text/css", "#cmdSave { color: green; }"),
+        tags$style(type="text/css", "#cmdSave {color:green;}"),
         actionButton("cmdSave","Save"),
         uiOutput("cmdBuildDesc")
       ),

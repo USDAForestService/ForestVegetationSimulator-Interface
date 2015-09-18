@@ -34,23 +34,24 @@ mkglobals <<- setRefClass("globals",
     moutsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
     selStdList = "character", selVarList = "list", customCmps = "list",
-    schedBoxPkey = "character", currentCmdPkey = "numeric",
-    currentCndPkey = "numeric", existingCmps = "list", 
+    schedBoxPkey = "character", currentCmdPkey = "character",
+    currentCndPkey = "character", winBuildFunction = "character", 
+    existingCmps = "list", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     autoPanNav = "logical"))
 
 # load (and/or build) the prms.RData object
-#mtrd <-  if (file.exists("prms.RData")) 
-#  as.integer(file.info("prms.RData")["mtime"]) else 0
-#mtpm <-  as.integer(file.info("suppose.prm")["mtime"])
-#if (mtrd < mtpm) 
-#{
-#  source("mkpkeys.R")
-#  prms <-  rdparms()
-#  prms <-  lapply(prms,mkpkeys)
-#  save(prms,file="prms.RData")
-#  rm (prms)
-#}
+mtrd <-  if (file.exists("prms.RData")) 
+  as.integer(file.info("prms.RData")["mtime"]) else 0
+mtpm <-  as.integer(file.info("suppose.prm")["mtime"])
+if (mtrd < mtpm) 
+{
+  source("mkpkeys.R")
+  prms <-  rdparms()
+  prms <-  lapply(prms,mkpkeys)
+  save(prms,file="prms.RData")
+  rm (prms)
+}
 
 loadInvData <- function(globals,prms)
 {
@@ -489,8 +490,9 @@ cat ("globals$activeVariants=",globals$activeVariants,
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$extnsel <- character(0)  
   globals$schedBoxPkey <- character(0)  
-  globals$currentCmdPkey <- 0
-  globals$currentCndPkey <- 0
+  globals$currentCmdPkey <- "0"
+  globals$currentCndPkey <- "0"
+  globals$winBuildFunction <- character(0)
 }
 
 
@@ -500,7 +502,7 @@ uuidgen <- function (n=1)
 # special seed/status.
 # example: "36d3054f-553b-4f52-ac3f-b1a028f3dfa8"
 
-# designed to make it almost impossible to cause this generator
+# designed to make it very difficult to cause this generator
 # to generate a duplicate...even when the user first calls set.seed
 # and does not have package digest.
 
@@ -537,6 +539,8 @@ uuidgen <- function (n=1)
                substring(rstr[3],1,3),substring(rstr[3],4,7),rstr[4])
   }  
   .uuid.seed <<- .Random.seed
+  #if the seed did not exist upon function call, then remove it, otherwise
+  #restore the seed to the original value.
   if (is.null(ss)) rm(.Random.seed,envir=.GlobalEnv) else .Random.seed <<- ss
   uuid
 }
@@ -585,7 +589,7 @@ cat("mkKeyWrd, ansFrm=",ansFrm," input=",input,"\n")
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
-cat("mkKeyWrd, c=",c," state=",state,"\n")
+#cat("mkKeyWrd, c=",c," state=",state,"\n")
     if (state==0) # looking for first !
     {
       if (c != "!") out = paste0(out,c) else
@@ -686,7 +690,17 @@ cat ("mkcatsel, name=",name," mgmtsel=",length(globals$mgmtsel),
       if (length(intersect(ex,globals$activeExtens)) == 0) next
       # skip those that are tagged to non-existent mstext 
       mstext <- p2[length(p2)]
-      if (is.na(mstext <- match(mstext,names(prms)))) next
+      mstextNum <- match(mstext,names(prms))
+      if (is.na(mstextNum))
+      {
+        # if the mstext exists, then it is a function to be called
+        # but if it doesn't exist then we need to skip this entry
+        if (!exists(mstext)) next 
+      } else {
+        mstext <- as.character(mstextNum)
+      }
+      ssl <- as.character(mstext)
+      names(ssl) <- sl[1]
       ssl <- as.character(mstext)
       names(ssl) <- sl[1]
       if (!is.null(ssl)) sel <- append(sel,ssl)

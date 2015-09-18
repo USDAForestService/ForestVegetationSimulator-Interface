@@ -38,6 +38,7 @@ FVSOnlineNeeded = c(
 "AdirondackV1.R",
 "access2csv.jar",
 "autoOutKeys.R",
+"componentWins.R",
 "customRun_fvsRunAcadian.R",
 "customRun_fvsRunAdirondack.R",
 "editDataServer.R",

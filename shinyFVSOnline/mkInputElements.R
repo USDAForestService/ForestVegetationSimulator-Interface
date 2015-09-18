@@ -18,14 +18,14 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
       elt = fps
       pmt = NULL
     }
-    title = getPstring(pkeys,paste0(pkey,"title"),globals$activeVariants[1])
+    title = getPstring(pkeys,paste0(pkey,"title"),globals$activeVariants[1])    
     if (!is.null(title)) eltList <- append(eltList,
-                         list(HTML(paste0("<p>",gsub("\n","<br/>",title),"<p/>"))))
+        list(HTML(paste0("<p><b>",gsub("\n","<br/>",title),"<b/><p/>"))))
     fpvs <- if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) NULL else
             globals$currentEditCmp$reopn[f]    
     choices <- getPstring(pkeys,paste0(pkey,"v"),globals$activeVariants[1]) 
     if (cndflag) pkey = paste0("cnd.",pkey)
-cat ("mkeltList f=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
+cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
  "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,
  "\nchoices=",choices,"\n")
     elt = switch(elt,
@@ -43,7 +43,7 @@ cat ("mkeltList f=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
               mkTextInput (pkey, pmt, choices, fpvs) }, 
       speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,globals$activeVariants[1]),
       scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
-      noInput = list(div(id=pkey,HTML(paste0("<p>",gsub("\n","<br/>",pmt),"<p/>")))),
+      noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
       NULL)
     if (!is.null(elt)) eltList <- append(eltList,list(elt))
   }
@@ -51,8 +51,6 @@ cat ("mkeltList f=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
   {
     if (length(eltList) == 1) eltList <- append(eltList, 
       list(h6("No settings for this condition.")))
-    eltList <- append(eltList, 
-      list(h5("Settings for the action (e.g. keyword(s)):")))
   }
   eltList
 }
@@ -63,7 +61,7 @@ mkTextInput <- function (pkey, pmt, choices, fpvs)
   if (!is.null(fpvs)) choices = fpvs 
   tmp <- if (is.null(choices)) " " else scan(text=choices,what=" ",quiet=TRUE)[1]
   if (length(tmp) == 0 || is.na(tmp) || tmp == "blank") tmp = " " 
-  textInput(pkey, pmt, tmp)
+  myInlineTextInput(pkey, pmt, tmp)
 }
 
 
@@ -89,25 +87,28 @@ mkSelectInput <- function (inputId, label, choices, fpvs,
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
     as.list(as.character(1:length(choices)))
   names(mklist) = choices
-  selected = if (length(sel) > 0) mklist[mklist == sel] else "1"
+  selected = if (length(sel) > 0) unlist(mklist[mklist == sel]) else "1"
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=selected), 
-    "radiogroup"=list(radioButtons(inputId,label,
-         mklist,selected=selected),br()),
-    selectInput (inputId,label,mklist,selected=selected, 
-                 multiple=FALSE,selectize=FALSE))
+    "radiogroup"=myRadioGroup(inputId,label,
+         mklist,selected=selected),
+     myInlineListButton (inputId, label, mklist, selected=selected))
 }
       
 
 mkSelSpecies <- function (pkey,prms,pmt,fpvs,variant,addAll=TRUE)
 {
   spkeys <- prms[[paste0("species_",variant)]]
-  sps = if (addAll) list("All species") else list (NULL)
+  sps = if (addAll) list("All species") else list ()
   for (sp in spkeys) sps <- append(sps,attr(sp,"pstring"))
-  dsp = as.list(c("All",unlist(spkeys))) 
-  names(dsp) = sps
-  selectInput (pkey, pmt, dsp, selected = if (is.null(fpvs)) dsp[[1]] else fpvs, 
-               multiple = FALSE, selectize = FALSE)
+  dsp = if (addAll) as.list(c("All",unlist(spkeys))) else spkeys
+  if (is.null(fpvs)) fpvs = " "
+  if (fpvs== " ") 
+  {
+    dsp = append(dsp," ",after=0)
+    names(dsp) = c(" ",sps)
+  } else names(dsp) = sps
+  myInlineListButton (pkey, pmt, dsp, selected = fpvs)
 }
       
 
@@ -123,27 +124,27 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
         fvsRun$startyr
     if (length(globals$existingCmps)) mklist <- append(mklist,
        c("Attach to existing condition"="3"))
-    rtn <- list(
+    rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
-      textInput(pkey, "Year or cycle number", globals$schedBoxYrLastUsed)
-    )
-  } else
-  {    
-    sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year" else
+      myInlineTextInput(pkey, "Year or cycle number ", globals$schedBoxYrLastUsed)
+    ))
+  } else {    
+    sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year " else
       {
         cn = findCmp(fvsRun,globals$currentEditCmp$atag)
-        paste0('Schedule by condition: "',cn$kwdName,'"')
+        paste0('Schedule by condition: "',cn$title,'"')
       }
     rtn <- list(
-      HTML(sch),
-      textInput(pkey, 
+      h5(sch),div(style="background-color: rgb(240,255,240)",
+      myInlineTextInput(pkey, 
         label = if (globals$currentEditCmp$atag == "k") 
-                "Year or cycle number" else
-                "Number of years after condition is found true", 
-        value = globals$currentEditCmp$reopn[pkey])
+                "Year or cycle number " else
+                "Number of years after condition is found true ", 
+        value = globals$currentEditCmp$reopn[pkey]))
     )
   }
+  rtn
 }
       
 
@@ -183,6 +184,62 @@ mkExistingCndsList <- function (fvsRun)
 }
 
 
+myInlineTextInput <- function (inputId, label, value = "", size=10, style=NULL)
+{
+  style = if (!is.null(style)) paste0(' style="',style,'"') else ""
+  HTML(paste0(
+  '<div class="form-horizontal control-group"',style,'>',
+     '<label class="control-label" for="',inputId,'">',label,'&nbsp;&nbsp;</label>', 
+     '<input type="text" class="form-horizontal" id="',inputId,
+     '" size="', as.character(size),'" value="',gsub('"','',value),'">',
+  '</div>'))
+}
+
+
+myRadioGroup <- function (inputId, label, mklist, selected=NULL)
+{
+  inputs = NULL
+  if (is.null(selected)) selected = mklist[1]
+  for (item in 1:length(mklist))
+  {
+    inputs = c(inputs, paste0('<input type="radio" name="',inputId,'" value="',
+           gsub('"','',mklist[item]),'" ',
+           if (mklist[item] == selected) "checked" else "",
+           '>',names(mklist)[item],"&nbsp;&nbsp;"))
+  }
+  HTML(paste0('<div id="',inputId,'" class="shiny-input-radiogroup">',
+    '<label for="',inputId,'"><b>',label,'&nbsp;&nbsp;</b></label>'), 
+    paste0(inputs,collapse=""),"</div>")
+}
+
+
+myInlineListButton <- function (inputId, label, mklist, selected=NULL)
+{
+  inputs = NULL
+  if (length(mklist))
+  {
+    if (is.null(selected)) selected = unlist(mklist[1])
+    for (item in 1:length(mklist))
+    {
+      inputs = c(inputs, paste0('<option value="',
+             gsub('"','',mklist[item]),'" ',
+             if (mklist[[item]] == selected) "selected" else "",
+             '>',names(mklist)[item],"</option>"))
+    }
+  }
+  inputs = if (is.null(inputs)) '<option value=" "></option>' else 
+                                 paste0(inputs,collapse="")
+  if (nchar(label) > 15)
+    HTML(paste0('<div id="',inputId,' " style="width:100%;" class="shiny-input-container">',
+      '<label for="',inputId,'" style="max-width:50%;" ><b>',label,'&nbsp;&nbsp;</b></label>',
+      '<select id="',inputId,'" style="max-width:50%;" >', 
+     inputs,"</select></div>"))
+  else    
+    HTML(paste0('<div id="',inputId,'" style="width:400px;" class="shiny-input-container">',
+      '<label for="',inputId,'" style="max-width:30%;" ><b>',label,'&nbsp;&nbsp;</b></label>',
+      '<select id="',inputId,'" style="max-width:70%;" >', 
+     inputs,"</select></div>"))
+}
 
 
 
