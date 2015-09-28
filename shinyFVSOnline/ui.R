@@ -78,7 +78,7 @@ shinyUI(fixedPage(
     tabsetPanel(id="leftPan",
       tabPanel("Runs",  
         tags$style(type="text/css", "#runSel { width: 100%; }"),
-        selectInput("runSel","Existing runs", NULL, NULL, multiple=FALSE,
+        selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
                     selectize=FALSE),
         actionButton("newRun","New"),
         actionButton("reload","Reload"),
@@ -202,7 +202,7 @@ shinyUI(fixedPage(
                 "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE),
             customRunElements
           )
-        ), 
+        ),
         uiOutput("uiRunPlot"),
         uiOutput("uiErrorScan") 
       ),

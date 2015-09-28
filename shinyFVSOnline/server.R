@@ -4,7 +4,7 @@ library(parallel)
 library(RSQLite)
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=30*1024^2,shiny.trace = F) 
+options(shiny.maxRequestSize=30*1024^2,shiny.trace = FALSE) 
 
 shinyServer(function(input, output, session) {
 
@@ -12,6 +12,10 @@ shinyServer(function(input, output, session) {
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
   source("componentWins.R",local=TRUE)
+  if (file.exists("localSettings.R")) 
+           source("localSettings.R",local=TRUE) else if
+     (file.exists("../../FVSOnline/settings.R")) 
+           source("../../FVSOnline/settings.R",local=TRUE)
   
   load("prms.RData") 
 
@@ -44,6 +48,7 @@ shinyServer(function(input, output, session) {
     {
       globals$FVS_Runs = list()
       resetfvsRun(fvsRun,globals$FVS_Runs)
+      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
       break
     }
   }
@@ -51,6 +56,7 @@ shinyServer(function(input, output, session) {
   resetGlobals(globals,fvsRun,prms)
   selChoices = names(globals$FVS_Runs) 
   names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
+cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
   updateSelectInput(session=session, inputId="runSel", 
       choices=selChoices,selected=selChoices[[1]])
   updateTextInput(session=session, inputId="title",
@@ -72,14 +78,14 @@ shinyServer(function(input, output, session) {
   updateTextInput(session=session, inputId="cyclelen", value=fvsRun$cyclelen)
   updateTextInput(session=session, inputId="cycleat",  value=fvsRun$cycleat)
 
-  if (exists("fvsOutData")) rm (fvsOutData)
+  if (exists("fvsOutData")) rm (fvsOutData) 
   fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
   dbDrv <- dbDriver("SQLite")
   dbcon <- dbConnect(dbDrv,"FVSOut.db")    
   dbSendQuery(dbcon,'attach ":memory:" as m')
-
+                                              
   session$onSessionEnded(function ()
-  {
+  {                                                
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     if (exists("dbcon")) try(dbDisconnect(dbcon))
     if (!globals$saveOnExit) return()
@@ -90,7 +96,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     {
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
       write(file="projectId.txt",prjid)
-    }
+    }                                          
 #    stopApp()
   })
 
@@ -180,8 +186,11 @@ isolate({
                        "Explore Output" else "Load Output")
         }
       }
-      if (input$rightPan == "Run") 
+      if (input$rightPan == "Run")
+      {
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+        globals$currentQuickPlot = character(0)
+      }
     })
   })
 
@@ -230,8 +239,9 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
   })
 
   ## output run selection
-  observe({ 
-cat ("runs, run selection (load)\n")
+  observe({
+    if (input$leftPan != "Load Output") return()
+cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
       tbs <- dbListTables(dbcon)
@@ -315,7 +325,7 @@ cat ("runs, tbs=",tbs,"\n")
     } else
     {
       updateSelectInput(session, "selectdbtables", choices=list(" "))
-     }
+    }
   })
     
   # selectdbtables
@@ -699,12 +709,15 @@ cat ("renderPlot\n")
         selVarListUse <- globals$selVarList[selVarListUse]                                   
         vlst <- as.list (names(selVarListUse))
         names(vlst) = selVarListUse
-      } else {  
-        vlst <- as.list(globals$activeFVS[fvsRun$FVSpgm][[1]][[1]][1])
-        names(vlst) <- globals$selVarList[[vlst[[1]]]]
+      } else {
+        if (is.null(globals$activeFVS[[fvsRun$FVSpgm]])) vlst <- list() else
+        {
+          vlst <- as.list(globals$activeFVS[fvsRun$FVSpgm][[1]][[1]][1])
+          names(vlst) <- globals$selVarList[[vlst[[1]]]]
+        }
       }
       updateSelectInput(session=session, inputId="inVars", choices=vlst,
-            selected=vlst[[1]])
+            selected=if (length(vlst)) vlst[[1]] else NULL)
     } 
   })
   
@@ -793,6 +806,12 @@ cat ("renderPlot\n")
                             vlst, vlst[[1]])
           updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
+          if (input$rightPan != "Stands")
+          {
+            globals$autoPanNav = TRUE
+            updateTabsetPanel(session=session, inputId="rightPan", 
+               selected="Stands")
+          }
         }
       })
     }
@@ -826,18 +845,23 @@ cat ("renderPlot\n")
   observe({
     if (input$reload > 0 || !is.null(input$runSel))
     {
-      if (is.null(input$runSel)) return
 cat ("reload or run selection, runSel=",input$runSel," lensim=",
-  length(fvsRun$simcnts),"\n")      
+length(fvsRun$simcnts)," globals$currentQuickPlot=",globals$currentQuickPlot,"\n")      
+      if (length(globals$currentQuickPlot) &&
+          globals$currentQuickPlot != input$runSel)
+      {
+cat("setting uiRunPlot to NULL\n")        
+        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+        globals$currentQuickPlot = character(0)
+      }
       resetGlobals(globals,NULL,prms)
       loadFromList(fvsRun,globals$FVS_Runs[[input$runSel]])
       resetGlobals(globals,fvsRun,prms)
       mkSimCnts(fvsRun,fvsRun$selsim)
-      output$uiRunPlot = renderUI(NULL)
       output$uiCustomRunOps = renderUI(NULL)    
-cat ("reloaded: fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")      
+cat ("reloaded fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")      
 cat ("reloaded fvsRun$runScript=",fvsRun$runScript,"\n")
-if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
+      if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
 cat ("fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),fvsRun$uiCustomRunOps) else
 cat ("fvsRun$uiCustomRunOps is empty\n")
 
@@ -892,7 +916,7 @@ cat ("fvsRun$uiCustomRunOps is empty\n")
   
   ## Save saveRun  
   observe({
-    if (input$saveRun > 0)
+    if (input$saveRun > 0)                  
     {
 cat ("saveRun\n")
       saveRun()
@@ -919,7 +943,7 @@ cat ("saveRun\n")
             fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
             break
           }
-        }
+        }            
         resetGlobals(globals,fvsRun,prms) 
         extn <- extnslist[globals$activeExtens]
         updateSelectInput(session,"addCategories","Extension",
@@ -1310,13 +1334,15 @@ cat ("command set (radio), input$cmdSet=",input$cmdSet,
       return(NULL)
     }
     globals$currentEditCmp <- globals$NULLfvsCmp
-    globals$currentCndPkey <- "0"
+    globals$currentCndPkey <- "0"   
     globals$currentCmdPkey <- input$addComponents
+    isolate ({
 cat ("command selection, input$addComponents=",input$addComponents,
      " input$cmdSet=",input$cmdSet,"\n","globals$currentCndPkey=",
+     " input$addCategories=",input$addCategories,
      globals$currentCndPkey," globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
-    isolate ({
-      title = switch (input$cmdSet,
+       if (is.null(input$addCategories)) return()
+       title = switch (input$cmdSet,
         "Management" = globals$mgmtsel[[as.numeric(input$addCategories)]],
         "Modifiers"  = globals$mmodsel[[as.numeric(input$addCategories)]],
         "Outputs"    = globals$moutsel[[as.numeric(input$addCategories)]],
@@ -1647,15 +1673,17 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   observe(fvsRun$cyclelen <- input$cyclelen)
   observe(fvsRun$cycleat  <- input$cycleat)
 
-  ## saveandrun
+  ## Save and Run
   observe({  
     if (input$saveandrun == 0) return()
 
     isolate ({
       if (exists("fvsRun")) if (length(fvsRun$stands) > 0) 
       {
-        output$uiRunPlot = renderUI(NULL)
         saveRun()
+cat("Nulling uiRunPlot at Save and Run\n")
+        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+        globals$currentQuickPlot = character(0)
         selChoices = names(globals$FVS_Runs) 
         names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
         updateSelectInput(session=session, inputId="runSel", 
@@ -1672,12 +1700,17 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
           detail = "Write .key file and load program", value = 2)         
         writeKeyFile(fvsRun,globals$inData$FVS_StandInit,prms)
          dir.create(fvsRun$uuid)
-        fvschild = makePSOCKcluster(1)
+        if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
+        if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
+        if (!file.exists(rFVSDir)) return()
+        fvschild = makePSOCKcluster(1)     
+        clusterExport(fvschild,c("rFVSDir","fvsBinDir"),
+                      envir=parent.env(environment()))
         rtn = try(clusterEvalQ(fvschild,
-              for (rf in dir("rFVS/R")) source(paste0("rFVS/R/",rf))))               
+              for (rf in dir(rFVSDir)) source(paste0(rFVSDir,rf))))               
         if (class(rtn) == "try-error") return()
         rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,fvsLoad('",
-             fvsRun$FVSpgm,"',bin='./FVSbin'))"))) )
+             fvsRun$FVSpgm,"',bin='",fvsBinDir,"'))"))) )
         if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
         if (fvsRun$runScript != "fvsRun")
@@ -1740,7 +1773,6 @@ cat ("length(allSum)=",length(allSum),"\n")
         Attribute=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(fvsRun$stands)+5)
-
         for (i in 1:length(allSum)) 
         {
           X = c(X,rep(allSum[[i]][,"Year"],2))
@@ -1777,6 +1809,8 @@ cat ("length(allSum)=",length(allSum),"\n")
                 plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
         output$runPlot <- renderImage(list(src="quick.png", width=(width+1)*144, 
                 height=(height+1)*144), deleteFile=TRUE)
+cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
+        globals$currentQuickPlot = fvsRun$uuid
       }
     })
   })
@@ -2034,12 +2068,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   ## Tools, related to FVSRefresh
   observe({    
     if (input$rightPan == "Tools") 
-    { 
-      # pgmList is defined in settings.R, if it is not found in one place, 
-      # look in the current directory. 
-      if (file.exists("../../FVSOnline/settings.R")) 
-               source("../../FVSOnline/settings.R") else if 
-             (file.exists("localSettings.R")) source("localSettings.R")
+    {
       if (!exists("fvsBinDir")) return()
       if (!file.exists(fvsBinDir)) return()
       if (!exists("pgmList")) return()
@@ -2062,14 +2091,12 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
 cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
-      if (file.exists("../../FVSOnline/settings.R")) 
-               source("../../FVSOnline/settings.R") else if
-          (file.exists("localSettings.R")) source("localSettings.R")
-      if (!exists("fvsBinDir")) fvsBinDir="~/open-fvs/trunk/bin/"
+      if (!exists("fvsBinDir")) fvsBinDir="FVSbin/"
       if (!file.exists(fvsBinDir))
       {
         session$sendCustomMessage(type="infomessage",
           message="FVS programs can not be refreshed on this system.")
+        rm (fvsBinDir)
       } else
       {
         shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
@@ -2091,7 +2118,8 @@ cat ("FVSRefresh\n")
   observe({
     if(input$deleteRun > 0)
     {
-      if (is.null(globals$FVS_Runs[[input$runSel]])) return()
+      if (is.null(input$runSel) || 
+          is.null(globals$FVS_Runs[[input$runSel]])) return()
       isolate({
         tit = globals$FVS_Runs[[input$runSel]]$title
         session$sendCustomMessage(type = "dialogContentUpdate",
@@ -2105,55 +2133,21 @@ cat ("FVSRefresh\n")
     {
       isolate({
 cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
- "lenRuns=",length(globals$FVS_Runs),"\n") 
-        if (length(globals$FVS_Runs) == 0 || 
+ "lenRuns=",length(globals$FVS_Runs),"\n")                           
+        if (is.null(input$runSel) || length(globals$FVS_Runs) == 0 || 
             is.null(globals$FVS_Runs[[input$runSel]])) return() 
         globals$FVS_Runs[[input$runSel]] = NULL
         removeFVSRunFiles(input$runSel)
         deleteRelatedDBRows(input$runSel,dbcon)
-        resetfvsRun(fvsRun,globals$FVS_Runs)
-        if (length(globals$FVS_Runs) == 0)
+        FVS_Runs = globals$FVS_Runs
+        save (FVS_Runs,file="FVS_Runs.RData")
+        if (file.exists("projectId.txt"))
         {
-          updateSelectInput(session=session, inputId="runSel", 
-            choices=NULL,selected=NULL)
-        } else
-        {
-          selChoices = names(globals$FVS_Runs) 
-          names(selChoices) = unlist(lapply(globals$FVS_Runs,
-                                        function (x) x$title))
-          updateSelectInput(session=session, inputId="runSel", 
-              choices=selChoices,selected=selChoices[[1]])
-        }
-        resetGlobals(globals,NULL,prms)
-        loadFromList(fvsRun,globals$FVS_Runs[[1]])
-        mkSimCnts(fvsRun,fvsRun$selsim)        
-        isolate({
-          if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
-          {
-            globals$autoPanNav = TRUE
-            updateTabsetPanel(session=session, inputId="rightPan", 
-               selected="Components")
-          }
-          if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
-          {
-            globals$autoPanNav = TRUE
-            updateTabsetPanel(session=session, inputId="rightPan", 
-               selected="Stands")
-          }
-        })
-        updateTextInput(session=session, inputId="title", value=fvsRun$title)
-        updateTextInput(session=session, inputId="defMgmtID",
-                      value=fvsRun$defMgmtID)
-        updateSelectInput(session=session, inputId="simCont", 
-          choices=fvsRun$simcnts, selected=fvsRun$selsim)
-        updateTextInput(session=session, inputId="startyr",  
-                        value=fvsRun$startyr)
-        updateTextInput(session=session, inputId="endyr",    
-                        value=fvsRun$endyr)
-        updateTextInput(session=session, inputId="cyclelen", 
-                        value=fvsRun$cyclelen)
-        updateTextInput(session=session, inputId="cycleat",  
-                        value=fvsRun$cycleat)
+          prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+          write(file="projectId.txt",prjid)
+        } 
+        globals$saveOnExit = FALSE
+            output$reload<-renderUI(tags$script("location.reload();"))
       })
     }
   })

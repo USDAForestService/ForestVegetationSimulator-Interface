@@ -36,7 +36,7 @@ mkglobals <<- setRefClass("globals",
     selStdList = "character", selVarList = "list", customCmps = "list",
     schedBoxPkey = "character", currentCmdPkey = "character",
     currentCndPkey = "character", winBuildFunction = "character", 
-    existingCmps = "list", 
+    existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     autoPanNav = "logical"))
 
@@ -55,14 +55,12 @@ if (mtrd < mtpm)
 
 loadInvData <- function(globals,prms)
 {
-
   if (!file.exists("FVS_Data.db"))
   {
     if (file.exists("FVS_Data.db.backup")) 
         file.rename("FVS_Data.db.backup","FVS_Data.db") else
         file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
   }
-
   library(RSQLite)
   dbDrv <- dbDriver("SQLite")
   con <- dbConnect(dbDrv,"FVS_Data.db")
@@ -289,7 +287,7 @@ cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
     sRow = match (std$sid, fvsInit$STAND_ID)
     if (is.na(sRow)) next
     cat ("StdIdent\n",std$sid," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.na(fvsInit$STAND_CN[sRow])) 
+    if (!is.null(fvsInit$STAND_CN[sRow])) 
       cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="")
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
         fvsRun$defMgmtID,"\n",file=fc,sep="")                       
@@ -381,10 +379,10 @@ cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
 
 mkSimCnts <- function (fvsRun,sels=NULL)
 {
-cat("mkSimCnts\n")
   tmpcnts = list()
   tmptags = list()
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
+cat("mkSimCnts, sels NULL?",is.null(sels))
   if (length(fvsRun$stands)) for (i in 1:length(fvsRun$stands))
   {
     tmpcnts<-append(tmpcnts, 
@@ -429,7 +427,8 @@ cat("mkSimCnts\n")
      names(fvsRun$selsim) <- 
        names(fvsRun$simcnts)[match(fvsRun$selsim,fvsRun$simcnts)]
      if (any(is.na(names(fvsRun$selsim)))) fvsRun$selsim = list()
-  } 
+  }
+
   if (!is.null(sels) || length(fvsRun$selsim) == 0) 
   {
     selset <- NULL
@@ -447,6 +446,7 @@ cat("mkSimCnts\n")
        names(fvsRun$selsim) <- tmpcnts[selset]
     }
   }
+  cat("...return\n")
 }
 
 
@@ -456,12 +456,15 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
   if (is.null(fvsRun))
   {
     shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-    avalFVS <- dir("FVSbin",pattern=shlibsufx) 
+    avalFVS <- dir(fvsBinDir,pattern=shlibsufx) 
     avalFVSp <- sub(shlibsufx,"",avalFVS)
     globals$activeExtens <- "base"
     if (length(avalFVSp) == 0) avalFVSp = "FVSiec"
+    pgmNames = unique(unlist(prms[["programs"]]))
     if (length(avalFVSp)) for (i in 1:length(avalFVSp))
     {
+      ats = grep(avalFVSp[i],pgmNames,fixed=TRUE)
+      if (length(ats) == 0) next
       ats = attr(prms[["programs"]][prms[["programs"]] == avalFVSp[i]][[1]],
                 "atlist",exact=TRUE)
       if (!is.null(ats)) 
@@ -478,15 +481,17 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
   } else
   { 
     globals$schedBoxYrLastUsed <- fvsRun$startyr
-    if (length(fvsRun$FVSpgm) > 0)
+    if (length(fvsRun$FVSpgm) > 0 && 
+        !is.null(globals$activeFVS[[fvsRun$FVSpgm]]))
     {
       globals$activeFVS <- globals$activeFVS[fvsRun$FVSpgm]
-cat ("globals$activeVariants=",globals$activeVariants,
-     " globals$activeFVS[[1]][1]=", globals$activeFVS[[1]][1],"\n")
       globals$activeVariants <- globals$activeFVS[[1]][1]
       globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
     }
   }
+
+cat ("globals$activeVariants=",globals$activeVariants,
+     " globals$activeFVS[[1]][1]=", globals$activeFVS[[1]][1],"\n")
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$extnsel <- character(0)  
   globals$schedBoxPkey <- character(0)  
