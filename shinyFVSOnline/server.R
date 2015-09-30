@@ -1883,6 +1883,12 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     output$reload<-renderUI(tags$script("location.reload();"))
   }) 
 
+    ## climateFVSUpload
+  observe({  
+    if (is.null(input$climateFVSUpload)) return()
+    file.copy(input$climateFVSUpload$datapath,"FVSClimAttrs.csv",overwrite = TRUE)
+  }) 
+  
   ## recoverdb
   observe({  
     if (input$recoverdb == 0) return()
@@ -1890,6 +1896,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     if (file.exists("FVS_Data.db.backup")) 
         file.rename("FVS_Data.db.backup","FVS_Data.db") else
         file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+    output$reload<-renderUI(tags$script("location.reload();"))
   }) 
 
 
@@ -2202,7 +2209,7 @@ cat ("interfaceRefreshDlgBtn\n")
   
   ## restoreYesterday 
   observe({
-    if(input$interfaceRefresh > 0)
+    if(length(input$restoreYesterday) && input$restoreYesterday > 0)
     {
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restoreYesterdayDlg",
@@ -2210,10 +2217,9 @@ cat ("interfaceRefreshDlgBtn\n")
     }
   })
   observe({  
-    if (input$restoreYesterdayDlgBtn == 0) return()
-cat ("restoreYesterdayDlgBtn\n") 
-    if (file.exists("../../FVSOnline/settings.R")) 
-             source("../../FVSOnline/settings.R") 
+    if (length(input$restoreYesterdayDlgBtn) && 
+        input$restoreYesterdayDlgBtn == 0) return()
+cat ("restoreYesterdayDlgBtn\n")
     if (!exists("fvsWorkBackup")) return()
     # recover everything from backup
     cdir=getwd()

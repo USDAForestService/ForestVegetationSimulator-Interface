@@ -299,9 +299,14 @@ shinyUI(fixedPage(
       ),
       tabPanel("Tools",       
         h4(" "),
-        fileInput("upload","Upload FVS-Ready data (.accdb, .mdb, or .db)"),
+        fileInput("upload","Upload FVS-Ready data (.accdb, .mdb, or .db)",
+                  ), # width="90%"),  #can be used when we move to newer shiny
+        tags$style(type="text/css", "#launchDataEditor { color: red; }"),
         actionButton("launchDataEditor","Launch data editor (closes FVSOnline)"),
         h4(" "),
+        fileInput("climateFVSUpload",
+                  "Upload Climate-FVS ready data (FVSClimAttrs.csv).",
+                  ), # width="90%"),  #can be used when we move to newer shiny
         tags$style(type="text/css", "#recoverdb { color: red; }"),
         actionButton("recoverdb","Recover from input database backup or default"),
         h4(" "),
@@ -351,13 +356,18 @@ shinyUI(fixedPage(
           tags$button(type = "button", class = "btn btn-primary", 
             'data-dismiss' = "modal", "Cancel"))),
         h6(" "),
-        modalTriggerButton("restoreYesterday", "#restoreYesterdayDlg", 
-          "Restore all files from yesterday's backup"),
-        modalDialog(id="restoreYesterdayDlg", footer=list(
-          modalTriggerButton("restoreYesterdayDlgBtn", "#restoreYesterdayDlg", 
-            "Yes"),
-          tags$button(type = "button", class = "btn btn-primary", 
-            'data-dismiss' = "modal", "Cancel")))
+        if (headstr == "Online")
+        {
+          list(
+            modalTriggerButton("restoreYesterday", "#restoreYesterdayDlg", 
+              "Restore all files from yesterday's backup"),
+            modalDialog(id="restoreYesterdayDlg", footer=list(
+              modalTriggerButton("restoreYesterdayDlgBtn", "#restoreYesterdayDlg", 
+                "Yes"),
+              tags$button(type = "button", class = "btn btn-primary", 
+                'data-dismiss' = "modal", "Cancel")))
+          )
+        } else list()
 	    )
     )
   ))
