@@ -456,7 +456,8 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
   if (is.null(fvsRun))
   {
     shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-    avalFVS <- dir(fvsBinDir,pattern=shlibsufx) 
+    binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
+    avalFVS <- dir(binDir,pattern=shlibsufx) 
     avalFVSp <- sub(shlibsufx,"",avalFVS)
     globals$activeExtens <- "base"
     if (length(avalFVSp) == 0) avalFVSp = "FVSiec"

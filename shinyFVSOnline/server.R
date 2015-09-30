@@ -1703,14 +1703,14 @@ cat("Nulling uiRunPlot at Save and Run\n")
         if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) return()
-        fvschild = makePSOCKcluster(1)     
-        clusterExport(fvschild,c("rFVSDir","fvsBinDir"),
-                      envir=parent.env(environment()))
-        rtn = try(clusterEvalQ(fvschild,
-              for (rf in dir(rFVSDir)) source(paste0(rFVSDir,rf))))               
+        fvschild = makePSOCKcluster(1)
+        binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
+        rtn = try(eval(parse(text=paste0(
+          "clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
+          "')) source(paste0('",rFVSDir,"',rf)))"))) )
         if (class(rtn) == "try-error") return()
         rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,fvsLoad('",
-             fvsRun$FVSpgm,"',bin='",fvsBinDir,"'))"))) )
+             fvsRun$FVSpgm,"',bin='",binDir,"'))"))) )
         if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
         if (fvsRun$runScript != "fvsRun")
