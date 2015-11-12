@@ -4,7 +4,7 @@ library(parallel)
 library(RSQLite)
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=30*1024^2,shiny.trace = FALSE) 
+options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
 
 shinyServer(function(input, output, session) {
 
@@ -51,7 +51,7 @@ shinyServer(function(input, output, session) {
       globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
       break
     }
-  }
+  } 
   mkSimCnts(fvsRun,fvsRun$selsim)
   resetGlobals(globals,fvsRun,prms)
   selChoices = names(globals$FVS_Runs) 
@@ -448,7 +448,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         }, min=1, max=length(dat))
       } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
       
-      mdat = fvsOutData$dbData     
+      mdat = fvsOutData$dbData
       vars = colnames(mdat)
       sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
                 "TreeIndex","Species","DBHClass","RunDateTime"),vars) 
@@ -618,9 +618,26 @@ cat ("renderPlot\n")
 
     dat = fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass),]
+
     if (!is.null(vf) && nlevels(dat[,vf]) < 2) vf=NULL
     if (!is.null(hf) && nlevels(dat[,hf]) < 2) hf=NULL
     if (!is.null(pb) && nlevels(dat[,pb]) < 2) pb=NULL
+    if (!is.null(vf) && nlevels(dat[,vf]) > 8) 
+    {
+      updateSelectInput(session=session, inputId="vfacet", selected="None")
+      return (NULL)
+    }
+    if (!is.null(hf) && nlevels(dat[,hf]) > 8) 
+    {
+      updateSelectInput(session=session, inputId="hfacet", selected="None")
+      return (NULL)
+    }
+    if (!is.null(pb) && nlevels(dat[,pb]) > 30)
+    {
+      updateSelectInput(session=session, inputId="pltby", selected="None")
+      return (NULL)
+    }
+
 
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))
     
@@ -1338,9 +1355,10 @@ cat ("command set (radio), input$cmdSet=",input$cmdSet,
     globals$currentCmdPkey <- input$addComponents
     isolate ({
 cat ("command selection, input$addComponents=",input$addComponents,
-     " input$cmdSet=",input$cmdSet,"\n","globals$currentCndPkey=",
+     " input$cmdSet=",input$cmdSet,
      " input$addCategories=",input$addCategories,
-     globals$currentCndPkey," globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
+     "\nglobals$currentCndPkey=",globals$currentCndPkey,
+     " globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
        if (is.null(input$addCategories)) return()
        title = switch (input$cmdSet,
         "Management" = globals$mgmtsel[[as.numeric(input$addCategories)]],

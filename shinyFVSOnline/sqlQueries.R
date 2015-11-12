@@ -13,8 +13,9 @@ exqury = function (dbcon,x,dbhclassexp=NULL)
 mkdbhCase = function (smdbh=4,lgdbh=40)
 {
   classes = seq(smdbh,lgdbh,smdbh)
-  nc = paste0("%",nchar(as.character(classes[length(classes)])) + 1,"s")  
-  chrclasses = sprintf(nc,as.character(classes))
+  nc = nchar(as.character(classes[length(classes)])) + 1
+  nc = paste0("%",nc,".",nc,"i")
+  chrclasses = sprintf(nc,as.integer(classes))
   dbhclassexp = paste0("case when (dbh <= ",classes[1],") then '", 
                        chrclasses[1],"'")
   for (i in 1:(length(classes)-1))
@@ -22,7 +23,7 @@ mkdbhCase = function (smdbh=4,lgdbh=40)
     dbhclassexp = paste0(dbhclassexp," when (dbh > ",classes[i]," and dbh <= ",
      classes[i+1],") then '", chrclasses[i+1],"'")
   }
-  dbhclassexp = paste0(dbhclassexp," else '",sub(" ",">",chrclasses[i+1]),
+  dbhclassexp = paste0(dbhclassexp," else '",sub("0",">",chrclasses[i+1]),
                        "' end ")
   dbhclassexp
 }
