@@ -25,16 +25,19 @@ shinyServer(function(input, output, session) {
 
   ##load existing runs
   fvsRun <- mkfvsRun()
+  trys = 1
   repeat
   {
     if (file.exists("FVS_Runs.RData"))
     {
+cat ("FVS_Runs.RData exists, trys =",trys,"\n")      
       load("FVS_Runs.RData")
       globals$FVS_Runs = FVS_Runs
       rm (FVS_Runs)
       trycall <- try(loadFromList(fvsRun,globals$FVS_Runs[[1]]))
       if (class(trycall)=="try-error")
       {
+cat ("FVS_Runs try error...deleting one\n")      
         globals$FVS_Runs[[1]] = NULL
         if (length(globals$FVS_Runs)) 
         {
@@ -42,10 +45,13 @@ shinyServer(function(input, output, session) {
           save (FVS_Runs,file="FVS_Runs.RData")
         } else file.remove("FVS_Runs.RData")
         resetfvsRun(fvsRun,globals$FVS_Runs)
+        trys = trys+1
+        if (trys > 10) file.remove("FVS_Runs.RData")
         next
       } else break
     } else 
     {
+cat ("FVS_Runs does not exits, resetting\n")      
       globals$FVS_Runs = list()
       resetfvsRun(fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
@@ -777,9 +783,9 @@ cat ("renderPlot\n")
               scan(text=globals$inData$FVS_StandInit$GROUPS[i],
                    what=" ",quiet=TRUE) else c("All","All_Stands")
       hits[i] <- !all (is.na(match(v,var))) && !all (is.na(match(g,grps))) 
-    }   
+    }
     updateSelectInput(session=session, inputId="inStds", 
-         choices=globals$selStdList[hits], selected=globals$selStdList[hits])
+         choices=globals$selStdList[hits], selected=globals$selStdList[hits])    
   })
 
   ## New run    
@@ -946,7 +952,6 @@ cat ("saveRun\n")
     } 
   })
 
-
   ## inAdd: Add Selected Stands
   observe({
     if (input$inAdd > 0) 
@@ -1063,7 +1068,7 @@ cat ("run element selection\n")
     mkSimCnts(fvsRun,input$simCont[[1]])
     updateSelectInput(session=session, inputId="simCont", 
          choices=fvsRun$simcnts, selected=fvsRun$selsim)
-    })
+  })
 
   ## Edit  
   observe({

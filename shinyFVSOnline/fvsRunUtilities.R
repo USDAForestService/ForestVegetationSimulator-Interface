@@ -24,7 +24,7 @@ mkfvsRun <<- setRefClass("fvsRun",
     startyr = "character", endyr = "character", cyclelen = "character",
     cycleat = "character", refreshDB = "character", uuid="character",
     defMgmtID = "character", autoOut = "list", runScript = "character" ,
-    uiCustomRunOps = "list"))
+    uiCustomRunOps = "list", startDisp = "character"))
 
 if (exists("mkglobals")) rm(mkglobals)
 mkglobals <<- setRefClass("globals", 
@@ -223,6 +223,7 @@ cat("resetfvsRun\n")
   fvsRun$runScript = "fvsRun"
   uiCustomRunOps = list()
   fvsRun$uuid = uuidgen()
+  fvsRun$startDisp = character(0)
 }
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
@@ -380,10 +381,24 @@ cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
 mkSimCnts <- function (fvsRun,sels=NULL)
 {
   tmpcnts = list()
-  tmptags = list()
+  tmptags = list()                         
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
-cat("mkSimCnts, sels NULL?",is.null(sels))
-  if (length(fvsRun$stands)) for (i in 1:length(fvsRun$stands))
+  start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
+  if (!is.null(sels) && length(sels) == 1)
+  {
+    if (substr(sels[[1]],1,1) == "-") 
+    {
+      start = max((-as.numeric(sels[[1]]))-20,1) 
+    } else if (substr(sels[[1]],1,1)== "+") 
+    {
+      start = min(as.numeric(sels[[1]])+20,length(fvsRun$stands)-19)
+      if(start<1) start=1
+    }     
+  }
+  fvsRun$startDisp = as.character(start)
+  end = min(start+length(fvsRun$stands)-1,start+19)
+cat("mkSimCnts, start=",start," end=",end," is.null(sels)=",is.null(sels))
+  if (length(fvsRun$stands)) for (i in start:end)
   {
     tmpcnts<-append(tmpcnts, 
       if (length(fvsRun$stands[[i]]$rep) == 0) fvsRun$stands[[i]]$sid else 
@@ -411,6 +426,8 @@ cat("mkSimCnts, sels NULL?",is.null(sels))
     if (length(fvsRun$stands[[i]]$cmps) > 0)
       for (k in 1:length(fvsRun$stands[[i]]$cmps))
       { 
+cat ("i=",i," k=",k," atag=",fvsRun$stands[[i]]$cmps[[k]]$atag,"\n")
+if (length(fvsRun$stands[[i]]$cmps[[k]]$atag) == 0) next
         tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
               "c" = "> Cnd:",
               "k" = "> Kwd:",
@@ -420,6 +437,23 @@ cat("mkSimCnts, sels NULL?",is.null(sels))
         tmptags <- append(tmptags,fvsRun$stands[[i]]$cmps[[k]]$uuid)
       }
   }
+  if (start > 1) 
+  {
+    tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
+    newstart <- max(start-20,1) 
+    if(newstart<1) newstart=1
+    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+19)  
+    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+               " of ",length(fvsRun$stands)," stands >>"),after=0)
+  }
+  if (end < length(fvsRun$stands))
+  {
+    tmptags <- append(tmptags,paste0("+",as.character(start)))
+    newstart <- min(start+20,length(fvsRun$stands)-19)
+    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+19)  
+    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+               " of ",length(fvsRun$stands)," stands >>"))
+  }       
   fvsRun$simcnts <- tmptags
   names(fvsRun$simcnts) <- tmpcnts
   if (is.null(sels) && length(fvsRun$selsim)) 
@@ -434,7 +468,7 @@ cat("mkSimCnts, sels NULL?",is.null(sels))
     selset <- NULL
     tmpcnts <- unlist(tmpcnts)
     if (!is.null(sels)) 
-    {
+    {    
       selset=unlist(sels) == unlist(tmptags)
       if (all(!selset)) selset=NULL
     }
@@ -446,7 +480,7 @@ cat("mkSimCnts, sels NULL?",is.null(sels))
        names(fvsRun$selsim) <- tmpcnts[selset]
     }
   }
-  cat("...return\n")
+  cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
 }
 
 
@@ -870,7 +904,7 @@ pasteComponent <- function(fvsRun,sel,topaste)
   }
   if (is.null(idx))
   {
-    # selected element is a component. Find the grp to which it is listed.
+    # selected element is a component. Find the grp in which it is listed.
     for (grp in fvsRun$grps)
     {
 cat("pasteComponent finding cmp in groups, sel=",sel,"\n")     
