@@ -191,7 +191,7 @@ loadFromList <- function(refc,alist)
     if (length(alist$stands[[i]]$cmps)) for (j in 1:length(alist$stands[[i]]$cmps))
     {
       refc$stands[[i]]$cmps[[j]] = mkfvsCmp()
-      for (name in mkfvsCmp$fields())
+      for (name in names(mkfvsCmp$fields()))
         if (!is.null(alist$stands[[i]]$cmps[[j]][[name]])) 
           refc$stands[[i]]$cmps[[j]][[name]] = alist$stands[[i]]$cmps[[j]][[name]]
     }

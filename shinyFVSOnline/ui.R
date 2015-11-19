@@ -162,6 +162,7 @@ shinyUI(fixedPage(
                   multiple=FALSE, selectize=FALSE),
         selectInput("inGrps","Groups", NULL, NULL, 
                   multiple=TRUE, selectize=FALSE, size=6),
+        tags$style(type="text/css", "#inStds { height: 300px;}"),
         selectInput("inStds","Stands", NULL, NULL, 
                   multiple=TRUE, selectize=FALSE),
         br(),
