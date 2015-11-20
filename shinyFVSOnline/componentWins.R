@@ -58,19 +58,19 @@ cat ("in ClearcutWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$f2,
 
 PlantNaturalFullWin <- function(title, prms, fvsRun, globals, full=TRUE) 
 {
-
+c
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
   defs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",
     pnSprt=getPstring(atag=globals$activeVariants[1],pkey="hasSproutingSpecies",
           pkeys=prms[[pknum]])[[1]],
-    pnIng=getPstring(atag=globals$activeVariants[1],pkey="inGrowthDefault",
-          pkeys=prms[[pknum]])[[1]],
-    pnNt="1",pnSAj="1.0",
     pnYpn1="1",pnTr1="1",pnSp1=" ", pnTpa1=" ",pnPsv1="100.",pnAge1=" ",
     pnHt1=" ",pnShd1="0",
     pnYpn2="1",pnTr2="1",pnSp2=" ", pnTpa2=" ",pnPsv2="100.",pnAge2=" ",
     pnHt2=" ",pnShd2="0")
+  if (full) defs <- c(defs,
+    c(pnIng=getPstring(atag=globals$activeVariants[1],pkey="inGrowthDefault",
+          pkeys=prms[[pknum]])[[1]],pnNt="1",pnSAj="1.0"))
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
       defs[name] = globals$currentEditCmp$reopn[name]
@@ -183,20 +183,21 @@ cat ("in PlantNaturalFullWin.mkKeyWrd\n")
       input$pnSp2,input$pnTpa2,input$pnPsv2,input$pnAge2,input$pnHt2,
       input$pnShd2))
   }
+  reopn=c(pnDOD  =input$pnDOD , pnYD   =input$pnYD  ,
+          pnPBrn =input$pnPBrn, pnPMch =input$pnPMch,
+          pnSprt =input$pnSprt,
+          pnYpn1 =input$pnYpn1, pnTr1  =input$pnTr1 ,              
+          pnSp1  =input$pnSp1 , pnTpa1 =input$pnTpa1,
+          pnPsv1 =input$pnPsv1, pnAge1 =input$pnAge1,
+          pnHt1  =input$pnHt1 , pnShd1 =input$pnShd1,
+          pnYpn2 =input$pnYpn2, pnTr2  =input$pnTr2 ,
+          pnSp2  =input$pnSp2 , pnTpa2 =input$pnTpa2,
+          pnPsv2 =input$pnPsv2, pnAge2 =input$pnAge2,
+          pnHt2  =input$pnHt2 , pnShd2 =input$pnShd2)
+  if (full) reopn = c(reopn, 
+    c(pnIng=input$pnIng, pnSAj=input$pnSAj, pnNt=input$pnNt))
   list(ex   =if (full) "estb" else "strp",
-       kwds = kwds,
-       reopn=c(pnDOD  =input$pnDOD , pnYD   =input$pnYD  ,
-               pnPBrn =input$pnPBrn, pnPMch =input$pnPMch,
-               pnSprt =input$pnSprt, pnIng  =input$pnIng ,
-               pnNt   =input$pnNt  , pnSAj  =input$pnSAj ,
-               pnYpn1 =input$pnYpn1, pnTr1  =input$pnTr1 ,              
-               pnSp1  =input$pnSp1 , pnTpa1 =input$pnTpa1,
-               pnPsv1 =input$pnPsv1, pnAge1 =input$pnAge1,
-               pnHt1  =input$pnHt1 , pnShd1 =input$pnShd1,
-               pnYpn2 =input$pnYpn2, pnTr2  =input$pnTr2 ,
-               pnSp2  =input$pnSp2 , pnTpa2 =input$pnTpa2,
-               pnPsv2 =input$pnPsv2, pnAge2 =input$pnAge2,
-               pnHt2  =input$pnHt2 , pnShd2 =input$pnShd2))  
+       kwds = kwds, reopn = reopn)
 }
 
 
