@@ -33,7 +33,7 @@ mkglobals <<- setRefClass("globals",
     extnsel = "character", kwdsel = "list", mgmtsel = "list",
     moutsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
-    selStdList = "character", selVarList = "list", customCmps = "list",
+    selVarList = "list", oldInAdd = "numeric", customCmps = "list",
     schedBoxPkey = "character", currentCmdPkey = "character",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
@@ -53,55 +53,27 @@ if (mtrd < mtpm)
   rm (prms)
 }
 
-loadInvData <- function(globals,prms)
+loadVarData <- function(globals,prms,dbIcon)
 {
-  if (!file.exists("FVS_Data.db"))
-  {
-    if (file.exists("FVS_Data.db.backup")) 
-        file.rename("FVS_Data.db.backup","FVS_Data.db") else
-        file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-  }
-  library(RSQLite)
-  dbDrv <- dbDriver("SQLite")
-  con <- dbConnect(dbDrv,"FVS_Data.db")
-  tbs <- dbListTables(con)
+  tbs <- dbListTables(dbIcon)
   itab <- grep (tolower("FVS_StandInit"),tolower(tbs))
   if (length(itab)) 
   {
-    globals$inData$FVS_StandInit <- dbReadTable (con,tbs[itab])
-    names(globals$inData$FVS_StandInit) <- 
-          toupper(names(globals$inData$FVS_StandInit))
-    if (is.null(globals$inData$FVS_StandInit$GROUPS))
-       globals$inData$FVS_StandInit$GROUPS = "All All_Stands"   
-  } 
-  itab <- grep (tolower("FVS_PlotInit"),tolower(tbs))
-  if (length(itab)) 
-  {
-    globals$inData$FVS_PlotInit <- dbReadTable (con,tbs[itab])
-    names(globals$inData$FVS_PlotInit) <- 
-          toupper(names(globals$inData$FVS_PlotInit))
-    if (is.null(globals$inData$FVS_PlotInit$GROUPS))
-       globals$inData$FVS_PlotInit$GROUPS = "All All_Plots"   
-  } 
-  itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
-  if (length(itab)) 
-  {
-    globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (con,tbs[itab])
-    names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
-          toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
-  } 
-  dbDisconnect(con)
-  if (nrow(globals$inData$FVS_StandInit))
-  {
-    globals$selStdList <- globals$inData$FVS_StandInit$STAND_ID
-    names(globals$selStdList) <- globals$inData$FVS_StandInit$STAND_ID
-    selVars <- as.list(sort(unique(unlist(lapply 
-                  (tolower(globals$inData$FVS_StandInit$VARIANT),
-                    function (x) scan(text=x,what=" ",quiet=TRUE))))))
+    dbQ = dbSendQuery(dbIcon,'select distinct variant from FVS_StandInit')
+    vars = dbFetch(dbQ,n=-1)
+    selVars = unique(tolower(unlist(lapply(vars[,1],
+      function (x) strsplit(x," ")))))
     globals$selVarList <- lapply(selVars,function (x,pk) 
         paste(x,":",getPstring(pk,x)),prms$variants)
     names(globals$selVarList) <- selVars
   }
+  itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
+  if (length(itab)) 
+  {
+    globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,tbs[itab])
+    names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
+          toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
+  } 
 }
 
 
@@ -265,9 +237,19 @@ cat("findCmp, cmp=",cmp,"\n")
 }
 
 
-writeKeyFile <- function (fvsRun,fvsInit,prms)
+writeKeyFile <- function (fvsRun,dbIcon,prms)
 {
-cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
+  stds = unlist(lapply(fvsRun$stands,function(x) x$sid))
+cat("writeKeyFile, num stds=",length(stds),
+    " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
+  if (length(stds)==0) return()
+  dbSendQuery(dbIcon,'drop table if exists m.RunStds') 
+  dbWriteTable(dbIcon,"m.RunStds",data.frame(RunStds = stds))
+  dbQ = dbSendQuery(dbIcon,
+    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,FVSKeywords from FVS_StandInit ',
+      'where Stand_ID in (select RunStds from m.RunStds)'))         
+  fvsInit = dbFetch(dbQ,n=-1)
+                               
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
   if (!is.na(match("mist",extns))) defaultOutMist=NULL
@@ -285,10 +267,10 @@ cat("writeKeyFile, fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
   for (std in fvsRun$stands)
   {
-    sRow = match (std$sid, fvsInit$STAND_ID)
+    sRow = match (std$sid, fvsInit$Stand_ID)
     if (is.na(sRow)) next
     cat ("StdIdent\n",std$sid," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.null(fvsInit$STAND_CN[sRow])) 
+    if (!is.null(fvsInit$Stand_CN[sRow])) 
       cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="")
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
         fvsRun$defMgmtID,"\n",file=fc,sep="")                       
@@ -426,8 +408,6 @@ cat("mkSimCnts, start=",start," end=",end," is.null(sels)=",is.null(sels))
     if (length(fvsRun$stands[[i]]$cmps) > 0)
       for (k in 1:length(fvsRun$stands[[i]]$cmps))
       { 
-cat ("i=",i," k=",k," atag=",fvsRun$stands[[i]]$cmps[[k]]$atag,"\n")
-if (length(fvsRun$stands[[i]]$cmps[[k]]$atag) == 0) next
         tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
               "c" = "> Cnd:",
               "k" = "> Kwd:",

@@ -165,8 +165,9 @@ shinyUI(fixedPage(
         tags$style(type="text/css", "#inStds { height: 300px;}"),
         selectInput("inStds","Stands", NULL, NULL, 
                   multiple=TRUE, selectize=FALSE),
-        br(),
-        actionButton("inAdd","Add Selected Stands")
+        uiOutput("stdSelMsg"),
+        actionButton("inAdd",   "Add selected stands"),
+        actionButton("inAddGrp","Add all stands in selected groups")
       ),
       tabPanel("Components",
         radioButtons("cmdSet", NULL, c("Management","Modifiers",
