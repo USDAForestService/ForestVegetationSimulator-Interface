@@ -321,7 +321,22 @@ cat("writeKeyFile, num stds=",length(stds),
                cmp$exten),"\n",file=fc,sep="")
           lastExt = cmp$exten
         }
-        cat (cmp$kwds,"\n",file=fc,sep="")
+        if (cmp$exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
+        {
+          scn = unlist(strsplit(cmp$kwds,"\n"))[2]
+          qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
+                std$sid,"' and Scenario = '",scn,"';\n")
+          d = dbGetQuery(dbIcon,qur)
+          ans = apply(d,2,function (x) !any(is.na(x)))
+          d = d[,ans]          
+          if (nrow(d) == 0) cat (cmp$kwds,"\n",file=fc,sep="") else
+          {
+            cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
+            suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
+              sep=",",quote=FALSE,row.names=FALSE))
+            cat ("*\n",file=fc,sep="")
+          }
+        } else cat (cmp$kwds,"\n",file=fc,sep="")
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)

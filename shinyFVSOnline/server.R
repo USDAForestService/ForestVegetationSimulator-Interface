@@ -1999,7 +1999,137 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     ## climateFVSUpload
   observe({  
     if (is.null(input$climateFVSUpload)) return()
-    file.copy(input$climateFVSUpload$datapath,"FVSClimAttrs.csv",overwrite = TRUE)
+    progress <- shiny::Progress$new(session,min=1,max=10)
+    progress$set(message = "Loading data set",value = 2)    
+    if (input$climateFVSUpload$type == "application/zip")
+    {
+      cmd = paste0("unzip -l -p ",input$climateFVSUpload$datapath,
+        " FVSClimAttrs.csv > FVSClimAttrs.csv ")
+      system (cmd)
+    } else {
+      file.copy(input$climateFVSUpload$datapath,"FVSClimAttrs.csv",
+      overwrite = TRUE)
+    }
+    if (!file.exists("FVSClimAttrs.csv")) 
+    {
+cat ("no FVSClimAttrs.csv file\n")
+      progress$set(message = "FVSClimAttrs.csv not found", value = 6)
+      Sys.sleep (2)
+      progress$close()
+      return()
+    }
+cat ("processing FVSClimAttrs.csv\n")
+    progress$set(message = "Loading data set (big files take a while)",value = 2) 
+    climd = read.csv("FVSClimAttrs.csv",nrows=1)
+    climd = read.csv("FVSClimAttrs.csv",colClasses=c(rep("character",2),
+        "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
+    colnames(climd)[1] <- "Stand_ID"
+    unlink("FVSClimAttrs.csv")
+    climTab <- dbListTables(dbIcon)
+    if (!("FVS_ClimAttrs" %in% climTab))
+    {
+cat ("no current FVS_ClimAttrs\n")
+      progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
+      dbWriteTable(dbIcon,"FVS_ClimAttrs",climd)
+      rm (climd)
+      progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
+      dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
+      dbSendQuery(dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      progress$set(message = "Done", value = 9)
+      Sys.sleep (.5)
+      progress$close()
+      return()      
+    }
+cat ("current FVS_ClimAttrs\n")
+    if (file.exists("FVSClimAttrs.db")) unlink("FVSClimAttrs.db")
+    dbclim <- dbConnect(dbDrv,"FVSClimAttrs.db")
+    progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
+    dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
+    rm (climd)  
+    progress$set(message = "Query distinct stands and scenarios",value = 5) 
+    distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")
+    dbDisconnect(dbclim)
+    progress$set(message = "Cleaning previous climate data as needed",value = 6)    
+    dbBegin(dbIcon)
+    results = apply(distinct,1,function (x,dbIcon)
+    {
+      dbSendQuery(dbIcon,paste0('delete from FVS_ClimAttrs where Stand_ID = "',
+         x[1],'" and Scenario = "',x[2],'"'))
+    }, dbIcon)
+    dbCommit(dbIcon)
+    dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
+    
+    dbSendQuery(dbIcon,'attach database "FVSClimAttrs.db" as new')
+    # get the table:
+    progress$set(message = "Inserting new data",value = 8)    
+    qur = dbSendQuery(dbIcon,'select * from FVS_ClimAttrs')
+    oldAttrs = dbFetch(qur,n=1)
+    dbClearResult(qur)
+    if (nrow(oldAttrs) == 0) 
+    {
+cat ("simple copy from new, all rows were deleted\n")
+      dbSendQuery(dbIcon,'drop table FVS_ClimAttrs')
+      dbSendQuery(dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+    } else {
+      qur = dbSendQuery(dbIcon,'select * from new.FVS_ClimAttrs')
+      newAttrs = dbFetch(qur,n=1)
+      dbClearResult(qur)
+      if (identical(colnames(oldAttrs),colnames(newAttrs)))
+      {
+cat ("simple insert from new, all cols are identical\n")
+        dbSendQuery(dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+      } else {  
+cat ("need to match columns, cols are not identical\n")
+        oldAttrs=colnames(oldAttrs)[-(1:3)]
+        newAttrs=colnames(newAttrs)
+        ssid = newAttrs[1:3]
+        newAttrs = newAttrs[-(1:3)]
+        oldcl=unlist(lapply(oldAttrs,function (x) if (tolower(x) == x) x else NULL))
+        newcl=unlist(lapply(newAttrs,function (x) if (tolower(x) == x) x else NULL))
+        oldsp=unlist(lapply(oldAttrs,function (x) if (toupper(x) == x) x else NULL))
+        newsp=unlist(lapply(newAttrs,function (x) if (toupper(x) == x) x else NULL))
+        oldot=setdiff(setdiff(oldAttrs,oldcl),oldsp)   
+        newot=setdiff(setdiff(newAttrs,newcl),newsp)   
+        bothcl = union(oldcl,newcl)
+        bothsp = union(oldsp,newsp)
+        bothot = union(oldot,oldot)
+        newall = c(bothcl,bothsp,bothot)
+        oldmiss= setdiff(newall,oldAttrs)
+        newmiss= setdiff(newall,newAttrs)
+        newall = c(ssid,newall)
+        selnew = paste0(newall,collapse=",")
+cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
+        if (length(newmiss) > 0)  
+        {
+          dbBegin(dbIcon)
+          for (mis in newmiss) dbSendQuery(dbIcon,
+            paste0('alter table new.FVS_ClimAttrs add "',mis,'" real'))
+          dbCommit(dbIcon)
+        }
+cat ("length(oldmiss)=",length(oldmiss),"\n")
+        if (length(oldmiss) > 0)
+        {
+          dbSendQuery(dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
+          dbBegin(dbIcon)
+          for (mis in oldmiss) dbSendQuery(dbIcon,
+            paste0('alter table oldClimAttrs add "',mis,'" real'))
+          dbCommit(dbIcon)
+          dbSendQuery(dbIcon,
+            paste0('create table FVS_ClimAttrs as select ',selnew,' from oldClimAttrs'))
+          dbSendQuery(dbIcon,'drop table oldClimAttrs')
+        }     
+        dbSendQuery(dbIcon,
+          paste0('insert into FVS_ClimAttrs select ',selnew,' from new.FVS_ClimAttrs'))
+      }
+    }
+    dbSendQuery(dbIcon,'detach database new')   
+    unlink("FVSClimAttrs.db")
+    progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
+    dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
+    dbSendQuery(dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+    progress$set(message = "Done", value = 10)
+    Sys.sleep (.5)
+    progress$close()
   }) 
   
   ## recoverdb

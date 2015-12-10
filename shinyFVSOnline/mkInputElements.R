@@ -82,12 +82,18 @@ mkSelectInput <- function (inputId, label, choices, fpvs,
   choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
   sel = grep ("^>",choices)
   if (length(sel) > 0) choices[sel] = trim(substring(choices[sel],2))
-  if (!is.null(fpvs)) sel = fpvs
+  if (!is.null(fpvs))
+  {
+    sel = if (is.na(suppressWarnings(as.numeric(fpvs)))) 
+      grep (paste0("^",fpvs),choices) else fpvs
+  } 
+cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
   mklist = if (valpair) 
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
     as.list(as.character(1:length(choices)))
   names(mklist) = choices
-  selected = if (length(sel) > 0) unlist(mklist[mklist == sel]) else "1"
+  if (length(sel) == 0) sel = 1
+  selected = mklist[[as.numeric(sel)]]
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=selected), 
     "radiogroup"=myRadioGroup(inputId,label,

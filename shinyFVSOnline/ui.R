@@ -307,7 +307,7 @@ shinyUI(fixedPage(
         actionButton("launchDataEditor","Launch data editor (closes FVSOnline)"),
         h4(" "),
         fileInput("climateFVSUpload",
-                  "Upload Climate-FVS ready data (FVSClimAttrs.csv).",
+                  "Upload Climate-FVS ready data (FVSClimAttrs.csv or answers.zip).",
                   ), # width="90%"),  #can be used when we move to newer shiny
         tags$style(type="text/css", "#recoverdb { color: red; }"),
         actionButton("recoverdb","Recover from input database backup or default"),
