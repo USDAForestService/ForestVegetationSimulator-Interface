@@ -334,7 +334,7 @@ cat("writeKeyFile, num stds=",length(stds),
             cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
             suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
               sep=",",quote=FALSE,row.names=FALSE))
-            cat ("*\n",file=fc,sep="")
+            cat ("-999\n",file=fc,sep="")
           }
         } else cat (cmp$kwds,"\n",file=fc,sep="")
       }
