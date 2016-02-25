@@ -29,7 +29,11 @@ if (file.exists("projectId.txt"))
 #source("modalDialog.R")
 
 shinyUI(fixedPage(
-  
+  tags$style(HTML(paste0(
+    ".nav>li>a {padding:6px;}",
+    ".btn {padding:4px 6px;}",
+    ".form-control {padding:2px 4px; height:auto;}",
+    ".form-group {margin-bottom:6px}"))),  
   fixedRow(
     column(width=6,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',

@@ -195,7 +195,12 @@ shinyUI(fixedPage(
           column(width=3,
             tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
             textInput("defMgmtID","MgmtID (4 chars)",""),
-            actionButton("saveandrun","Save and Run")
+            actionButton("saveandrun","Save and Run"),
+            if (headstr == "Onlocal")
+            {
+              list(h4(" "),
+              actionButton("browseOutFile","View FVS Output"))
+            } else h4(" ")
           ),
           column(width=9,
             checkboxGroupInput("autoOut",

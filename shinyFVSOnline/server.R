@@ -8,6 +8,8 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE)
 
 shinyServer(function(input, output, session) {
 
+  #sink("FVSOnline.log")
+
   source("mkInputElements.R",local=TRUE)
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
@@ -95,6 +97,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
   }
   dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
   dbSendQuery(dbIcon,'attach ":memory:" as m')
+  checkMinColumnDefs(dbIcon)
   loadVarData(globals,prms,dbIcon)
   
   session$onSessionEnded(function ()
@@ -623,35 +626,31 @@ cat ("renderPlot\n")
         length(input$yaxis) == 0)) return(nullPlot())
 
     vf = if (input$vfacet == "None") NULL else input$vfacet
-    if (!is.null(vf) && (input$xaxis  == vf || input$yaxis == vf))  vf = NULL
     hf = if (input$hfacet == "None") NULL else input$hfacet
-    if (!is.null(hf) && (input$xaxis  == hf || input$yaxis == hf))  hf = NULL
     pb = if (input$pltby  == "None") NULL else input$pltby
-    if (!is.null(pb) && (input$xaxis  == pb || input$yaxis == pb))  pb = NULL
 
-    dat = fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
-          input$stdid, input$mgmid, input$year, input$species, input$dbhclass),]
-
-    if (!is.null(vf) && nlevels(dat[,vf]) < 2) vf=NULL
-    if (!is.null(hf) && nlevels(dat[,hf]) < 2) hf=NULL
-    if (!is.null(pb) && nlevels(dat[,pb]) < 2) pb=NULL
-    if (!is.null(vf) && nlevels(dat[,vf]) > 8) 
-    {
-      updateSelectInput(session=session, inputId="vfacet", selected="None")
-      return (NULL)
-    }
-    if (!is.null(hf) && nlevels(dat[,hf]) > 8) 
-    {
-      updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (NULL)
-    }
-    if (!is.null(pb) && nlevels(dat[,pb]) > 30)
+    dat = droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
+          input$stdid, input$mgmid, input$year, input$species, input$dbhclass),])
+    
+    if ((!is.null(pb) && nlevels(dat[,pb]) < 2 && nlevels(dat[,pb]) > 30) || 
+         length(intersect(input$pltby,c(input$xaxis,input$yaxis,vf,hf))))
     {
       updateSelectInput(session=session, inputId="pltby", selected="None")
       return (NULL)
     }
-
-
+    if ((!is.null(hf) && nlevels(dat[,hf]) < 2 && nlevels(dat[,hf]) > 8) || 
+         length(intersect(input$hfacet,c(input$xaxis,input$yaxis,pb,vf)))) 
+    {
+      updateSelectInput(session=session, inputId="hfacet", selected="None")
+      return (NULL)
+    }
+    if ((!is.null(vf) && nlevels(dat[,vf]) < 2 && nlevels(dat[,vf]) > 8) || 
+         length(intersect(input$vfacet,c(input$xaxis,input$yaxis,pb,hf))))
+    {
+      updateSelectInput(session=session, inputId="vfacet", selected="None")
+      return (NULL)
+    }
+    
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))
     
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)
@@ -697,6 +696,8 @@ cat ("renderPlot\n")
     colors = if (input$colBW == "B&W") rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
       ggplotColours(n=nlevels(nd$Attribute)+1)
     if (!is.null(colors)) p = p + scale_colour_manual(values=colors)
+    if (nlevels(nd$Attribute)>6) p = p +
+      scale_shape_manual(values=1:nlevels(nd$Attribute))
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
         geom_line    (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
@@ -1091,8 +1092,8 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
                          FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
               if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
                  mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
-                          kwdName="From: FVS_StandInit",
-                            title="From: FVS_StandInit")
+                          kwdName="From: FVS_GroupAddFilesAndKeywords",
+                            title="From: FVS_GroupAddFilesAndKeywords")
             }
             fvsRun$grps <- append(fvsRun$grps,newgrp)
           }
@@ -1822,11 +1823,12 @@ cat("Nulling uiRunPlot at Save and Run\n")
              fvsRun$FVSpgm,"',bin='",binDir,"'))"))) )
         if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
+    
         if (fvsRun$runScript != "fvsRun")
         {
           rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
                "source('customRun_",fvsRun$runScript,".R'))"))))
-          if (class(rtn) == "try-error") return()
+          if (class(rtn) == "try-error") return()        
           runOps <<- if (is.null(fvsRun$uiCustomRunOps)) list() else 
             fvsRun$uiCustomRunOps
           rtn = try(clusterExport(fvschild,list("runOps"))) 
@@ -1840,6 +1842,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
           progress$close()
           try(stopCluster(fvschild))
         }) 
+        #####
 cat ("at for start\n")          
         allSum = list()
         for (i in 1:length(fvsRun$stands))
@@ -1928,7 +1931,32 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     })
   })
 
-
+  ## View FVS Output
+  observe({ 
+    if (is.null(input$browseOutFile) || input$browseOutFile == 0) return()
+    isolate ({
+      if (exists("fvsRun")) 
+      {
+        filename = paste0(fvsRun$uuid,".out")
+cat ("FVS Output, filename=",filename,"\n")
+        if (!file.exists(filename)) return()
+        if (session$clientData$url_pathname == "/")
+        {
+          url = URLencode(paste0("file://",getwd(),"/",filename))
+cat ("FVS Output, url=",url,"\n")
+          browseURL(url)
+        } else {
+          url = URLencode(paste0("html://",session$clientData$url_hostname,
+               session$clientData$url_pathname,"/",filename))
+cat ("FVS Output, url=",url,"\n")
+# this doesn't work because the url is points to a file system that is not readable by httpd 
+#        browseURL(url)
+        }
+      }  
+    })
+  })
+   
+  
   ## Upload
   observe({  
     if (is.null(input$upload)) return()

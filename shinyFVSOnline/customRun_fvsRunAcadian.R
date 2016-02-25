@@ -1,12 +1,11 @@
 
 #load Acadian growth functions
-source("AcadianFunctionsV1.R")
-source("AcadianV2.R")
+source("AcadianV8.R")
 
 # Note: The form of the function call is very carefully coded. Make sure
 # "runOps" exists if you want them to be used.
 fvsRunAcadian <- function(runOps)
-{
+{  
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAcadianIngrowth)) "N" else 
              runOps$uiAcadianIngrowth
@@ -16,9 +15,21 @@ fvsRunAcadian <- function(runOps)
              runOps$uiAcadianMort
   volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
              runOps$uiAcadianVolume
+  CDEF     = if (is.null(runOps$uiAcadianSBWCDEF)) NA else 
+               as.numeric(runOps$uiAcadianSBWCDEF)
+  SBW.YR   = if (is.null(runOps$uiAcadianSBW.YR)) NA else 
+               as.numeric(runOps$uiAcadianSBW.YR)
+  SBW.DUR  = if (is.null(runOps$uiAcadianSBW.DUR)) NA else 
+               as.numeric(runOps$uiAcadianSBW.DUR)              
+  SBW      = if (is.null(runOps$uiAcadianSBW)) NULL else 
+               if (runOps$uiAcadianSBW == "No") NULL else 
+                 c(CDEF=CDEF,SBW.YR=SBW.YR,SBW.DUR=SBW.DUR)
+  if (!is.null(SBW) && any(is.na(SBW))) SBW=NULL
+
+  sink("Acadian.log")
 
   cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
-    mortModel," volLogic=",volLogic,"\n",file="fromAcadian.txt")            
+    mortModel,"\n    volLogic=",volLogic," SBW=",SBW,"\n")            
   
   mkGraphs=FALSE
   CutPoint=0
@@ -63,8 +74,8 @@ fvsRunAcadian <- function(runOps)
     incr$tree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio",
                                   "dg","htg","mort"))                             
     names(incr$tree) = toupper(names(incr$tree))
-    incr$tree$id = 1:nrow(incr$tree)
-    incr$tree$TREE= incr$tree$id
+    incr$tree$ID = 1:nrow(incr$tree)
+    incr$tree$TREE= incr$tree$ID
     names(incr$tree)[match("SPECIES",names(incr$tree))] = "SP"
     names(incr$tree)[match("TPA",names(incr$tree))] = "EXPF"
     incr$tree$SP = spcodes[incr$tree$SP,1]        
@@ -76,16 +87,17 @@ fvsRunAcadian <- function(runOps)
     incr$tree$DG   = incr$tree$DG   * INtoCM
     incr$tree$HTG  = incr$tree$HTG  * FTtoM
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
+    incr$tree$YEAR = stdInfo["year"]
                        
-    cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],"\n",
-         file="fromAcadian.txt",append=TRUE) 
-                       
+    cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],"\n") 
+                     
     #compute the growth
     incr = AcadianGY(incr$tree,CSI,cyclen=cyclen,
                      INGROWTH=INGROWTH,
                      MinDBH=MinDBH, 
                      CutPoint=0,   # >0 uses threshold probability (>0-1).
-                     mortModel=mortModel) 
+                     mortModel=mortModel,
+                     SBW=SBW,verbose=TRUE) 
                      
     #plot growth and ingrowth
 
@@ -130,7 +142,7 @@ fvsRunAcadian <- function(runOps)
       dev.off()
     }
                 
-    tofvs = data.frame(id=incr$tree$id,
+    tofvs = data.frame(id=incr$tree$ID,
             dg=incr$tree$dDBH*CMtoIN,
             htg=incr$tree$dHT*MtoFT,
             # set the crown ratio sign to negetive so that FVS 
@@ -146,8 +158,7 @@ fvsRunAcadian <- function(runOps)
     # adding regeneration?
     if (!is.null(incr$ingrow) && nrow(incr$ingrow)>0)
     {
-      cat ("fvsRunAcadian: Computing regeneration\n",
-            file="fromAcadian.txt",append=TRUE)            
+      cat ("fvsRunAcadian: Computing regeneration\n")            
       toadd = data.frame(dbh    =incr$ingrow$DBH*CMtoIN,
                          species=match(incr$ingrow$SP,spcodes[,"fvs"]),
                          ht     =incr$ingrow$HT*MtoFT,
@@ -160,15 +171,13 @@ fvsRunAcadian <- function(runOps)
         atstop6 = TRUE
         fvsAddTrees(toadd)
       } else cat ("fvsRunAcadian: Not enough room for new trees. Stand=",
-                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
-                  file="fromAcadian.txt",append=TRUE)            
+                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n")            
     }
     
     # modifying volume?
     if (volLogic == "Kozak")
     {
-      cat ("fvsRunAcadian: Applying Kozak volume logic\n",
-            file="fromAcadian.txt",append=TRUE)            
+      cat ("fvsRunAcadian: Applying Kozak volume logic\n")            
 
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
@@ -204,11 +213,12 @@ fvsRunAcadian <- function(runOps)
 #changing it using an update call in the server code.  
 
 uiAcadian <- function(fvsRun)
-{
+{  
+  source("mkInputElements.R",local=TRUE)  #for myInlineTextInput
 cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume)) "NULL" else 
               fvsRun$uiCustomRunOps$uiAcadianVolume,"\n")
-  
+            
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianIngrowth))
               fvsRun$uiCustomRunOps$uiAcadianIngrowth = "No"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
@@ -217,18 +227,35 @@ cat ("in uiAcadian uiAcadianVolume=",
               fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
               fvsRun$uiCustomRunOps$uiAcadianVolume   = "Base Model"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW))
+              fvsRun$uiCustomRunOps$uiAcadianSBW      = "No"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBWCDEF))
+              fvsRun$uiCustomRunOps$uiAcadianSBWCDEF  = "500"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.YR))
+              fvsRun$uiCustomRunOps$uiAcadianSBW.YR   = "2020"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.DUR))
+              fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "20"
   list(
     radioButtons("uiAcadianIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
-    textInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
+    myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAcadianMinDBH),
     radioButtons("uiAcadianMort", "Mortality model:", 
       c("Acadian","Base Model"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAcadianMort),
     radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
       c("Kozak","Base Model"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianVolume)
+      selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
+    radioButtons("uiAcadianSBW", "Run with Spruce Budworm Modifiers:", 
+       c("Yes","No"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
+    myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:", 
+               fvsRun$uiCustomRunOps$uiAcadianSBWCDEF),
+    myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:", 
+               fvsRun$uiCustomRunOps$uiAcadianSBW.YR),
+    myInlineTextInput("uiAcadianSBW.DUR","Defoliation duration (years):", 
+               fvsRun$uiCustomRunOps$uiAcadianSBW.DUR)
   )
 }
  

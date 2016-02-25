@@ -249,7 +249,6 @@ cat("writeKeyFile, num stds=",length(stds),
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,FVSKeywords from FVS_StandInit ',
       'where Stand_ID in (select RunStds from m.RunStds)'))         
   fvsInit = dbFetch(dbQ,n=-1)
-                               
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
   if (!is.na(match("mist",extns))) defaultOutMist=NULL
@@ -1015,5 +1014,64 @@ cat ("exit fixFVSKeywords\n")
   dbDisconnect(dbcon)  
 }    
 
+
+checkMinColumnDefs <- function(dbIcon)
+{
+  fields = dbListFields(dbIcon,"FVS_StandInit")
+  modStarted = FALSE
+  sID = FALSE
+  sCN = FALSE
+  # make sure groups are defined, if missing set one to "All"
+  if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbIcon)}
+    dbSendQuery(dbIcon,
+      "alter table FVS_StandInit add column Groups text not null default 'All'")
+  }
+  # make sure Stand_ID is defined
+  if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbIcon)}
+    dbSendQuery(dbIcon,
+      "alter table FVS_StandInit add column Stand_ID text")      
+    sID = TRUE
+  }
+  # make sure Stand_CN is defined
+  if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbIcon)}
+    dbSendQuery(dbIcon,
+      "alter table FVS_StandInit add column Stand_CN text")
+    sCN = TRUE
+  }
+  # make sure Inv_Year is defined
+  if (length(grep("Inv_Year",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbIcon)}
+    year=substring(as.character(Sys.time()),1,4)
+    dbSendQuery(dbIcon,paste0(
+      "alter table FVS_StandInit add column Inv_Year text not null default '",year,"'"))      
+  }
+  # make sure FVSKeywords is defined
+  if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbIcon)}
+    year=substring(as.character(Sys.time()),1,4)
+    dbSendQuery(dbIcon,
+      "alter table FVS_StandInit add column FVSKeywords text")
+  }
+  if (modStarted)
+  {
+    dbCommit(dbIcon)
+    if (sID || sCN) 
+    {
+      fvsInit = dbReadTable(dbIcon,"FVS_StandInit")
+      if (sID) fvsInit$Stand_ID = paste0("Stand",1:nrow(fvsInit))
+      if (sCN) fvsInit$Stand_CN = paste0("Stand",1:nrow(fvsInit))
+      fvsInit = dbWriteTable(dbIcon,"FVS_StandInit")
+    }
+  }
+}
+    
   
 
