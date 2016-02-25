@@ -32,8 +32,7 @@ pgmList= list(
   FVSsn  = "Southern")
 
 FVSOnlineNeeded = c(
-"AcadianFunctionsV1.R",
-"AcadianV2.R",
+"AcadianV8.R",
 "AdirondackFunctionsV1.R",
 "AdirondackV1.R",
 "access2csv.jar",
