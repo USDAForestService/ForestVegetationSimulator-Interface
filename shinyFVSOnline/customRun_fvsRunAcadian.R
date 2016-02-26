@@ -8,13 +8,15 @@ fvsRunAcadian <- function(runOps)
 {  
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAcadianIngrowth)) "N" else 
-             runOps$uiAcadianIngrowth
+               runOps$uiAcadianIngrowth
   MinDBH   = as.numeric(if (is.null(runOps$uiAcadianMinDBH)) "3.0" else 
-             runOps$uiAcadianMinDBH)
+               runOps$uiAcadianMinDBH)
   mortModel= if (is.null(runOps$uiAcadianMort)) "Acadian" else 
-             runOps$uiAcadianMort
+               runOps$uiAcadianMort
   volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
-             runOps$uiAcadianVolume
+               runOps$uiAcadianVolume
+  wThinMod = if (is.null(runOps$uiAcadianTHIN)) FALSE else 
+               runOps$uiAcadianTHIN == "Yes"
   CDEF     = if (is.null(runOps$uiAcadianSBWCDEF)) NA else 
                as.numeric(runOps$uiAcadianSBWCDEF)
   SBW.YR   = if (is.null(runOps$uiAcadianSBW.YR)) NA else 
@@ -45,6 +47,9 @@ fvsRunAcadian <- function(runOps)
   spcodes = fvsGetSpeciesCodes()
   stdIds  = fvsGetStandIDs()
 
+  #initialize THINMOD
+  THINMOD = NULL
+  
   incr    = list()
   repeat     
   {
@@ -69,6 +74,22 @@ fvsRunAcadian <- function(runOps)
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
     attributes(cyclen) = NULL
     CSI = stdInfo["site"] * FTtoM
+
+    #set/reset THINMOD based on pre and post event monitor variables
+    if (wThinMod)
+    {
+      thinning = fvsGetEventMonitorVariables(c("bba","aba","badbh","aadbh","rtpa"))
+      if (thinning["rtpa"] > 0) 
+      {
+        THINMOD = c(stdInfo["year"],
+                    1-(thinning["aba"]/thinning["bba"]),
+                    thinning["bba"]*fvsUnitConversion("FT2pACRtoM2pHA"),
+                    if (thinning["badbh"]>=1) 
+                        thinning["aadbh"]/thinning["badbh"] else NA)
+        names(THINMOD) = c("YEAR_CT","pBArm","BApre","QMDratio")
+      } else if (!is.null(THINMOD) && 
+                 stdInfo["year"]-THINMOD["YEAR_CT"] > 20) THINMOD=NULL
+    }
       
     #fetch the fvs trees and form the AcadianGY "tree" dataframe
     incr$tree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio",
@@ -89,15 +110,13 @@ fvsRunAcadian <- function(runOps)
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
     incr$tree$YEAR = stdInfo["year"]
                        
-    cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],"\n") 
+    cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],
+         " THINMOD=",THINMOD,"\n") 
                      
     #compute the growth
-    incr = AcadianGY(incr$tree,CSI,cyclen=cyclen,
-                     INGROWTH=INGROWTH,
-                     MinDBH=MinDBH, 
+    incr = AcadianGY(incr$tree,CSI,cyclen=cyclen,INGROWTH=INGROWTH,MinDBH=MinDBH, 
                      CutPoint=0,   # >0 uses threshold probability (>0-1).
-                     mortModel=mortModel,
-                     SBW=SBW,verbose=TRUE) 
+                     mortModel=mortModel,SBW=SBW,THINMOD=THINMOD,verbose=TRUE) 
                      
     #plot growth and ingrowth
 
@@ -227,6 +246,8 @@ cat ("in uiAcadian uiAcadianVolume=",
               fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
               fvsRun$uiCustomRunOps$uiAcadianVolume   = "Base Model"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianTHIN))
+              fvsRun$uiCustomRunOps$uiAcadianTHIN     = "Yes"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW))
               fvsRun$uiCustomRunOps$uiAcadianSBW      = "No"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBWCDEF))
@@ -247,7 +268,10 @@ cat ("in uiAcadian uiAcadianVolume=",
     radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
       c("Kozak","Base Model"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
-    radioButtons("uiAcadianSBW", "Run with Spruce Budworm Modifiers:", 
+    radioButtons("uiAcadianTHIN", "Run with thinning modifiers:", 
+      c("Yes","No"),inline=TRUE,
+      selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
+    radioButtons("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 
        c("Yes","No"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
     myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:", 

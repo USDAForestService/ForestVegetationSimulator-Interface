@@ -2698,7 +2698,7 @@ Summary.GY=function(tree){
   
 ###Acadian growth and yield model
 AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
-                      mortModel="Acadian",SBW=NULL,verbose=FALSE)
+                      mortModel="Acadian",SBW=NULL,THINMOD=NULL,verbose=FALSE)
 {
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
     " cyclen=",cyclen," INGROWTH=",INGROWTH,"\n           MinDBH=",MinDBH,
@@ -2792,11 +2792,21 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   tree$CDEF = CDEF
   cat ("SBW, curYear=",curYear," CDEF=",CDEF,"\n")   
   
-  #set thinning factors
-  tree$pBArm=ifelse("pBArm" %in% colnames(tree),tree$pBArm,NA)
-  tree$BApre=ifelse("BApre" %in% colnames(tree),tree$BApre,NA)
-  tree$QMDratio=ifelse("QMDratio" %in% colnames(tree),tree$QMDratio,NA)
-  tree$YEAR_CT=ifelse("YEAR_CT" %in% colnames(tree),tree$YEAR_CT,NA)
+  #set thinning factors.
+  if (is.null(THINMOD))
+  {
+    pBArm=NA
+    BApre=NA
+    QMDratio=NA
+    YEAR_CT=NA
+  } else {
+    pBArm   =if (is.null(THINMOD["pBArm"]))    NA else THINMOD["pBArm"]
+    BApre   =if (is.null(THINMOD["BApre"]))    NA else THINMOD["BApre"]
+    QMDratio=if (is.null(THINMOD["QMDratio"])) NA else THINMOD["QMDratio"]
+    YEAR_CT =if (is.null(THINMOD["YEAR_CT"]))  NA else THINMOD["YEAR_CT"]
+  }
+  cat ("THINMOD, is.null=",is.null(THINMOD),"pBArm=",pBArm," BApre=",
+       BApre," QMDratio=",QMDratio," YEAR_CT=",YEAR_CT,"\n")   
   
   #Compute basal area in larger trees
   tree<-sort.data.frame(tree,~+PLOT-DBH)
@@ -2886,8 +2896,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   tree$dDBH=mapply(dDBH.FUN, SPP=tree$SP, DBH=tree$DBH, BAL.SW=tree$BAL.SW, BAL.HW=tree$BAL.HW,
                  BA=tree$BAPH, CSI=CSI, tph=tree$tph,topht=tree$topht,CR=tree$CR,RD=tree$RD)
                  
-  tree$dDBH.thin.mod=mapply(dDBH.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, BApre=tree$BApre, QMDratio=tree$QMDratio, 
-                       YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
+  tree$dDBH.thin.mod=mapply(dDBH.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
+                       YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
   tree$dDBH.SBW.mod=mapply(dDBH.SBW.mod,Region='ME',SPP=tree$SP,DBH=tree$DBH,
           BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,CR=tree$CR,
@@ -2900,8 +2910,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   tree$dHT=mapply(Htincr,SPP=tree$SP,HT=tree$HT,CR=tree$CR,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,
                   BAPH=tree$BAPH,CSI=CSI)
 
-  tree$dHT.thin.mod=mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, BApre=tree$BApre, QMDratio=tree$QMDratio, 
-                           YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
+  tree$dHT.thin.mod=mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
+                           YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
   tree$dHT.SBW.mod=mapply(dHT.SBW.mod,SPP=tree$SP,DBH=tree$DBH,topht=tree$topht,CR=tree$CR,
                           avg.DBH.SW=tree$avgDBH.SW,CDEF=tree$CDEF)
@@ -2913,8 +2923,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   #crown recession
   tree$dHCB=mapply(dHCB,dHT=tree$dHT,DBH=tree$DBH,HT=tree$HT,HCB=tree$HCB,CCF=tree$CCF,shade=tree$shade)
 
-  tree$dHCB.thin.mod=mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, BApre=tree$BApre, QMDratio=tree$QMDratio, 
-                           YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
+  tree$dHCB.thin.mod=mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
+                           YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
   tree$dHCB=tree$dHCB*tree$dHCB.thin.mod
   cat ("mean tree$dHCB.thin.mod=",mean(tree$dHCB.thin.mod),"\n")
@@ -2944,8 +2954,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
                               BAG=tree$Sbag30,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
                               pBA.ih=tree$pIHW.ba)
   
-    tree$smort.thin.mod=mapply(BAmort.stand,BA=tree$BAPH, PCT=0, YEAR_CT=tree$YEAR_CT, 
-                               YEAR=tree$YEAR, PERCBArm=tree$pBArm, BApre=tree$BApre, QMDratio=tree$QMDratio)
+    tree$smort.thin.mod=mapply(BAmort.stand,BA=tree$BAPH, PCT=0, YEAR_CT=YEAR_CT, 
+                               YEAR=tree$YEAR, PERCBArm=pBArm, BApre=BApre, QMDratio=QMDratio)
     
     tree$smort.SBW.mod=mapply(SBW.smort.mod,region='ME',BA=tree$BAPH,BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
   
@@ -2960,8 +2970,8 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,CR=tree$DBH,HT=tree$HT,
                               BAL.HW=tree$BAL.HW,BAL.SW=tree$BAL.SW,avgHT.SW=tree$avgHT.SW,CDEF=tree$CDEF)
     
-    tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = tree$pBArm, BApre=tree$BApre, QMDratio=tree$QMDratio, 
-                             YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
+    tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
+                             YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
     
     tree$tsurv=pmin(mapply(tree.mort.prob,tree$SP,tree$DBH)^cyclen*tree$tsurv.SBW.mod*tree$tmort.thin.mod,1.0)
     
