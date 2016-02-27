@@ -1128,7 +1128,8 @@ tree.mort.prob=function(SPP,DBH)
   ddd <- b0 + b1 * DBH + b2 * DBH^2 #+b3*BAL +b4*BAG30
   surv <- exp(ddd)/(1 + exp(ddd))
   IDj <- as.integer(DBH/Djump)
-  Wprob <- exp(-Scale * ((IDj * (DBH - Djump))^Shape))
+#  Wprob <- exp(-Scale * ((IDj * (DBH - Djump))^Shape))
+  Wprob <- 1.  # as per Aaron's Email Feb 27, 2016
   tsurv <- surv * Wprob
   return(tsurv=tsurv)
 }

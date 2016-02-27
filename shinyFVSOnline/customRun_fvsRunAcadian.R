@@ -82,10 +82,10 @@ fvsRunAcadian <- function(runOps)
       if (thinning["rtpa"] > 0) 
       {
         THINMOD = c(stdInfo["year"],
-                    1-(thinning["aba"]/thinning["bba"]),
+                    (1-(thinning["aba"]/thinning["bba"]))*100.,
                     thinning["bba"]*fvsUnitConversion("FT2pACRtoM2pHA"),
-                    if (thinning["badbh"]>=1) 
-                        thinning["aadbh"]/thinning["badbh"] else NA)
+                    if (thinning["aadbh"]>=1) 
+                        thinning["badbh"]/thinning["aadbh"] else NA)
         names(THINMOD) = c("YEAR_CT","pBArm","BApre","QMDratio")
       } else if (!is.null(THINMOD) && 
                  stdInfo["year"]-THINMOD["YEAR_CT"] > 20) THINMOD=NULL
