@@ -8,7 +8,7 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE)
 
 shinyServer(function(input, output, session) {
 
-  #sink("FVSOnline.log")
+  sink("FVSOnline.log")
 
   source("mkInputElements.R",local=TRUE)
   source("fvsRunUtilities.R",local=TRUE)

@@ -268,7 +268,7 @@ cat("writeKeyFile, num stds=",length(stds),
   {
     sRow = match (std$sid, fvsInit$Stand_ID)
     if (is.na(sRow)) next
-    cat ("StdIdent\n",std$sid," ",fvsRun$title,"\n",file=fc,sep="")
+    cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
     if (!is.null(fvsInit$Stand_CN[sRow])) 
       cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="")
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
@@ -1017,6 +1017,7 @@ cat ("exit fixFVSKeywords\n")
 
 checkMinColumnDefs <- function(dbIcon)
 {
+  cat ("in checkMinColumnDefs\n")
   fields = dbListFields(dbIcon,"FVS_StandInit")
   modStarted = FALSE
   sID = FALSE
@@ -1060,6 +1061,8 @@ checkMinColumnDefs <- function(dbIcon)
     dbSendQuery(dbIcon,
       "alter table FVS_StandInit add column FVSKeywords text")
   }
+  cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
+       " sCN=",sCN,"\n")
   if (modStarted)
   {
     dbCommit(dbIcon)
@@ -1068,7 +1071,7 @@ checkMinColumnDefs <- function(dbIcon)
       fvsInit = dbReadTable(dbIcon,"FVS_StandInit")
       if (sID) fvsInit$Stand_ID = paste0("Stand",1:nrow(fvsInit))
       if (sCN) fvsInit$Stand_CN = paste0("Stand",1:nrow(fvsInit))
-      fvsInit = dbWriteTable(dbIcon,"FVS_StandInit")
+      dbWriteTable(dbIcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
     }
   }
 }
