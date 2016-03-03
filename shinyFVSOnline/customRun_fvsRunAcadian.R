@@ -73,8 +73,10 @@ fvsRunAcadian <- function(runOps)
     stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
     attributes(cyclen) = NULL
-    CSI = stdInfo["site"] * FTtoM
-
+    CSIin = stdInfo["site"] * FTtoM
+    CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSIin)
+    cat ("fvsRunAcadian: CSIin=",CSIin," CSI (used)=",CSI,"\n")
+    
     #set/reset THINMOD based on pre and post event monitor variables
     if (wThinMod)
     {

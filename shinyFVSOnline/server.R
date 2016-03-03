@@ -8,7 +8,7 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE)
 
 shinyServer(function(input, output, session) {
 
-  sink("FVSOnline.log")
+  #sink("FVSOnline.log")
 
   source("mkInputElements.R",local=TRUE)
   source("fvsRunUtilities.R",local=TRUE)
@@ -495,25 +495,49 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           choices  = list("None loaded"), selected = NULL) else 
         updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
           selected=levels(mdat$MgmtID))
+      if ("FVS_TreeList" %in% names(dat))
+        updateSelectInput(session, "plotType",selected="scatter") else 
+        if ("StdStk" %in% names(dat)) 
+          updateSelectInput(session, "plotType",selected="bar") else
+            updateSelectInput(session, "plotType",selected="line")
       if (is.null(mdat$Year)) updateSelectInput(session, "year", 
           choices  = list("None loaded"), selected = NULL) else 
-        updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
-          selected=levels(mdat$Year))
+        {
+          sel  = levels(mdat$Year)
+          isel = max(1,length(sel) %/% 2)
+          sel =  if (length(intersect(c("FVS_TreeList","StdStk"),names(dat)))) 
+                 sel[isel] else sel 
+          updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
+            selected=sel)
+        }
       if (is.null(mdat$Species)) updateSelectInput(session, "species", 
-          choices  = list("None loaded"), selected = NULL) else 
-        updateSelectInput(session, "species",
-          choices=as.list(levels(mdat$Species)), selected=levels(mdat$Species))
+          choices  = list("None loaded"), selected = NULL) else
+        {
+          sel = names(sort(table(mdat$Species),decreasing=TRUE))
+          sel = setdiff(sel,"All")
+          sel = sel[1:min(length(sel),5)]
+          updateSelectInput(session, "species",
+            choices=as.list(levels(mdat$Species)), selected=sel)
+        }
       if (is.null(mdat$DBHClass)) updateSelectInput(session, "dbhclass", 
-          choices  = list("None loaded"), selected = NULL) else 
-        updateSelectInput(session, "dbhclass", 
-          choices=as.list(levels(mdat$DBHClass)), selected=levels(mdat$DBHClass))
-      selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","Species",
-        "^Ht$","TCuFt","Total","SCuFt"),function (x,vs) 
+          choices  = list("None loaded"), selected = NULL) else
+        {
+          sel = if ("All" %in% levels(mdat$DBHClass)) "All" else 
+            { 
+              top = names(sort(table(mdat$DBHClass),decreasing=TRUE))
+              top[1:min(length(top),5)]
+            }
+          updateSelectInput(session, "dbhclass", 
+            choices=as.list(levels(mdat$DBHClass)), selected=sel)
+        }   
+        
+      selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
+        "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),function (x,vs) 
         {
           hits = unlist(grep(x,vs,ignore.case = TRUE))
           hits = hits[hits>0]
           vs[hits]
-        },vars))      
+        },vars)) 
       updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                selected=selVars,inline=TRUE)
       fvsOutData$dbData        <- mdat
@@ -526,6 +550,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
   output$table <- renderTable(
   {
 cat("renderTable\n")
+
     if (input$leftPan == "Load Output") return(NULL) 
     if (length(input$selectdbvars) == 0) return(NULL) 
 cat("renderTable continued\n")
@@ -560,7 +585,7 @@ cat ("match=",sel,"\n")
   observe({
     if (!is.null(input$browsevars)) 
     {
-cat ("browsevars\n")      
+cat ("browsevars\n")
       fvsOutData$browseSelVars <- input$browsevars
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
@@ -578,17 +603,19 @@ cat ("browsevars\n")
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
                       selected=sdisp)
-
-      sel = if (length(intersect(cont,"Year")) > 0) "Year" else 
-            if (length(cont) > 0) cont[1] else NULL
-      if (sel=="Year" && input$plotType == "scatter" && length(cont) > 1) 
-          sel = setdiff(cont,"Year")[1]
-      updateSelectInput(session, "xaxis",choices=
-             if (input$plotType == "line" || input$plotType == "scatter") 
-               as.list(cont) else as.list(cats), selected=sel)
-      sel = setdiff(cont,c(sel,"Year"))
-      if (length(sel) > 0 && input$plotType != "line" && 
-        input$plotType != "scatter") sel = sel[1]
+      if (input$plotType == "line" || input$plotType == "scatter")
+      {
+        sel = if ("Year" %in% cont) "Year" else 
+                if (length(cont) > 0) cont[1] else NULL
+        if (sel=="Year" && input$plotType == "scatter" && length(cont) > 1) 
+            sel = setdiff(cont,"Year")[1]
+        updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel) 
+      } else {
+        sel = if ("Species" %in% cats) "Species" else 
+               if (length(cats) > 0) cats[1] else NULL       
+        updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
+      }
+      sel = setdiff(cont,c(sel,"Year"))[1]
       updateSelectInput(session, "yaxis",choices=as.list(cont),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
@@ -610,8 +637,8 @@ cat ("browsevars\n")
 
   ## renderPlot
   output$outplot <- renderImage(
-  {
-cat ("renderPlot\n")
+  {   
+cat ("renderPlot\n")    
     nullPlot <- function ()
     {
       outfile = "nullPlot.png" 
