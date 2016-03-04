@@ -728,21 +728,23 @@ cat ("renderPlot\n")
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
         geom_line    (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
-        geom_line    (aes(x=X,y=Y,color=Attribute)),
+        geom_line    (aes(x=X,y=Y,color=Attribute,alpha(.5))),
       scatter = if (input$colBW == "B&W") 
         geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute)) else
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute)),
+        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute,alpha(.3))),
       bar     = if (input$colBW == "B&W") 
         geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),
            position="dodge",stat="identity") else
-        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),
+        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute,alpha(.8)),
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
         geom_boxplot (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
-        geom_boxplot (aes(x=X,y=Y,color=Attribute))
+        geom_boxplot (aes(x=X,y=Y,color=Attribute,alpha(.5)))
       )
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
+    if (input$plotType == "scatter") 
+      p = p + scale_size_manual(values=rep(.3,nlevels(nd$Attribute)))
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -1946,7 +1948,7 @@ cat ("length(allSum)=",length(allSum),"\n")
           width = 3
           toplot$Attribute = as.factor(paste0(toplot$Attribute,toplot$hfacet))
           ggplot(data = toplot) +  
-            geom_line (aes(x=X,y=Y,color=Attribute)) + 
+            geom_line (aes(x=X,y=Y,color=Attribute,alpha=.5)) + 
             labs(x="Year", y="Total cubic volume per acre") + 
                theme(text = element_text(size=9), legend.position="none",
                      panel.background = element_rect(fill="gray95"),
