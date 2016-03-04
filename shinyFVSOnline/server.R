@@ -1175,7 +1175,7 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
       })
     }
   })
-
+  
   ## run element selection
   observe({
     if (length(input$simCont) == 0) return()
@@ -1188,7 +1188,7 @@ cat ("run element selection\n")
 
   ## Edit  
   observe({
-    if (input$editSel == 0) return()
+    if (input$editSel == 0) return()      
     isolate ({
       globals$currentEditCmp <- globals$NULLfvsCmp
       updateSelectInput(session=session, inputId="addComponents", selected=0)
@@ -1323,6 +1323,13 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (substring(cmp$kwdName,1,10) == "Freeform: ") return()
       if (substring(cmp$kwdName,1,6) != "From: ")
       { 
+        kwPname = cmp$kwdName
+        pkeys = prms[[kwPname]]
+        if (!is.null(pkeys))
+        {
+          ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
+          cmp$kwds = mkKeyWrd(ansFrm,cmp$reopn,pkeys,globals$activeVariants[1])
+        }
         cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
         cmp$title = paste0("Freeform: ",cmp$title)
         cmp$reopn = character(0)
@@ -1626,10 +1633,9 @@ cat ("input$freeEdit=",input$freeEdit,"\n")
         kwPname = names(prms)[as.numeric(globals$currentCndPkey)]
         pkeys = prms[[as.numeric(globals$currentCndPkey)]]
         waityrs = getPstring(pkeys,"waitYears",globals$activeVariants[1])
-        # use parmsForm if it is available
-        ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
+        ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
         if (is.null(ansFrm)) ansFrm = 
-         getPstring(pkeys,"answerForm",globals$activeVariants[1])
+          getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         reopn = NULL
         f = 0
         repeat
@@ -1638,8 +1644,9 @@ cat ("input$freeEdit=",input$freeEdit,"\n")
           pkey = paste0("f",f)
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
-          reopn = c(reopn,as.character(input[[paste0("cnd.",pkey)]]))
-          names(reopn)[length(reopn)] = pkey
+          instr = input[[paste0("cnd.",pkey)]]
+          reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+          names(reopn)[f] = pkey
         } 
         kwds = if (is.null(waityrs)) "If\n" else 
                paste0("If           ",waityrs,"\n")
@@ -1689,10 +1696,9 @@ cat ("Save with if/then, kwds=",kwds,"\n")
         kwds = ans$kwds
         reopn = ans$reopn
       } else {
-        # always use parmsForm if it is available
-        ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
+        ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
         if (is.null(ansFrm)) ansFrm = 
-           getPstring(pkeys,"answerForm",globals$activeVariants[1])
+          getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         if (is.null(ansFrm)) 
         {
           kw = unlist(strsplit(kwPname,".",fixed=TRUE))[3]
@@ -1708,8 +1714,9 @@ cat ("Save with if/then, kwds=",kwds,"\n")
           pkey = paste0("f",f)
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
-          reopn = c(reopn,as.character(input[[pkey]]))
-          names(reopn)[length(reopn)] = pkey
+          instr = input[[pkey]]
+          reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+          names(reopn)[f] = pkey
         }
         ex = if (input$cmdSet != "Keywords") "base" else
                unlist(strsplit(input$addCategories,":"))[1] 
