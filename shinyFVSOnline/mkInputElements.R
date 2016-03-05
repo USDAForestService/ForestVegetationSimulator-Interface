@@ -205,6 +205,7 @@ myInlineTextInput <- function (inputId, label, value = "", size=10, style=NULL)
 myRadioGroup <- function (inputId, label, mklist, selected=NULL)
 {
   inputs = NULL
+  if (is.null(names(mklist))) names(mklist) = mklist
   if (is.null(selected)) selected = mklist[1]
   for (item in 1:length(mklist))
   {

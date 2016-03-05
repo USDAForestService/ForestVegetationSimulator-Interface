@@ -6,11 +6,12 @@ library(RSQLite)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
 
+source("mkInputElements.R",local=TRUE)
+
 shinyServer(function(input, output, session) {
 
   #sink("FVSOnline.log")
 
-  source("mkInputElements.R",local=TRUE)
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
   source("componentWins.R",local=TRUE)
@@ -532,12 +533,13 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         }   
         
       selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
-        "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),function (x,vs) 
-        {
-          hits = unlist(grep(x,vs,ignore.case = TRUE))
-          hits = hits[hits>0]
-          vs[hits]
-        },vars)) 
+        "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
+        function (x,vs) 
+          {
+            hits = unlist(grep(x,vs,ignore.case = TRUE))
+            hits = hits[hits>0]
+            vs[hits]
+          },vars)) 
       updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                selected=selVars,inline=TRUE)
       fvsOutData$dbData        <- mdat
@@ -607,15 +609,19 @@ cat ("browsevars\n")
       {
         sel = if ("Year" %in% cont) "Year" else 
                 if (length(cont) > 0) cont[1] else NULL
-        if (sel=="Year" && input$plotType == "scatter" && length(cont) > 1) 
-            sel = setdiff(cont,"Year")[1]
+        if (sel=="Year" && input$plotType == "scatter" && length(cont) > 1)
+        {
+          sel = setdiff(cont,"Year")
+          sel = if ("DBH" %in% cont) "DBH" else cont[1]
+        }
         updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel) 
       } else {
         sel = if ("Species" %in% cats) "Species" else 
                if (length(cats) > 0) cats[1] else NULL       
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
       }
-      sel = setdiff(cont,c(sel,"Year"))[1]
+      sel = setdiff(cont,c(sel,"Year"))
+      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else cont[1]
       updateSelectInput(session, "yaxis",choices=as.list(cont),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
@@ -718,8 +724,8 @@ cat ("renderPlot\n")
     p = ggplot(data = nd) + fg + labs(x=input$xlabel, y=input$ylabel, 
           title=input$ptitle)  + 
           theme(text = element_text(size=9),
-          panel.background = element_rect(fill="gray95"),
-          axis.text = element_text(color="black")) 
+            panel.background = element_rect(fill="gray95"),
+            axis.text = element_text(color="black")) 
     colors = if (input$colBW == "B&W") rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
       ggplotColours(n=nlevels(nd$Attribute)+1)
     if (!is.null(colors)) p = p + scale_colour_manual(values=colors)
@@ -730,8 +736,8 @@ cat ("renderPlot\n")
         geom_line    (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
         geom_line    (aes(x=X,y=Y,color=Attribute,alpha(.5))),
       scatter = if (input$colBW == "B&W") 
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute)) else
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute,alpha(.3))),
+        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute),size=.5) else
+        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute,alpha(.3)),size=.5),
       bar     = if (input$colBW == "B&W") 
         geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),
            position="dodge",stat="identity") else
@@ -743,8 +749,6 @@ cat ("renderPlot\n")
       )
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
-    if (input$plotType == "scatter") 
-      p = p + scale_size_manual(values=rep(.3,nlevels(nd$Attribute)))
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
