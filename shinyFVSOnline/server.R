@@ -10,7 +10,7 @@ source("mkInputElements.R",local=TRUE)
 
 shinyServer(function(input, output, session) {
 
-  #sink("FVSOnline.log")
+  sink("FVSOnline.log")
 
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
