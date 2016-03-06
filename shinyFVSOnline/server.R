@@ -734,14 +734,14 @@ cat ("renderPlot\n")
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
         geom_line    (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
-        geom_line    (aes(x=X,y=Y,color=Attribute,alpha(.5))),
+        geom_line    (aes(x=X,y=Y,color=Attribute),alpha=.8),
       scatter = if (input$colBW == "B&W") 
         geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute),size=.5) else
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute,alpha(.3)),size=.5),
+        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute),alpha=.3,size=.5),
       bar     = if (input$colBW == "B&W") 
         geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),
            position="dodge",stat="identity") else
-        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute,alpha(.8)),
+        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),alpha=.8,
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
         geom_boxplot (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else

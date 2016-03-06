@@ -288,7 +288,7 @@ shinyUI(fixedPage(
           column(width=3,
             myInlineTextInput("width",  "Width (inches)", value = 6, size=5)),
           column(width=3,
-	          myInlineTextInput("height", "Height (inches)", value = 4, size=5)), 
+	          myInlineTextInput("height", "Height (in)", value = 4, size=5)), 
 	        column(width=6,
 	          myRadioGroup("res","Resolution (ppi)", 
               c("144","288","576")))),
