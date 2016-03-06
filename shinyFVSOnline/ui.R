@@ -41,6 +41,7 @@ customRunElements = list(
   uiOutput("uiCustomRunOps"))
 
 source("modalDialog.R")
+source("mkInputElements.R")
 
 shinyUI(fixedPage(
   tags$style(HTML(paste0(

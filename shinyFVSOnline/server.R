@@ -6,8 +6,6 @@ library(RSQLite)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
 
-source("mkInputElements.R",local=TRUE)
-
 shinyServer(function(input, output, session) {
 
   sink("FVSOnline.log")
@@ -15,6 +13,8 @@ shinyServer(function(input, output, session) {
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
   source("componentWins.R",local=TRUE)
+  source("mkInputElements.R",local=TRUE)
+
   if (file.exists("localSettings.R")) 
            source("localSettings.R",local=TRUE) else if
      (file.exists("../../FVSOnline/settings.R")) 
@@ -621,7 +621,7 @@ cat ("browsevars\n")
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
       }
       sel = setdiff(cont,c(sel,"Year"))
-      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else cont[1]
+      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else sel[1]
       updateSelectInput(session, "yaxis",choices=as.list(cont),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
