@@ -1,11 +1,15 @@
 
 #load Acadian growth functions
 source("AcadianV8.R")
+if (file.exists("Acadian.log")) file.remove("Acadian.log")
 
 # Note: The form of the function call is very carefully coded. Make sure
 # "runOps" exists if you want them to be used.
 fvsRunAcadian <- function(runOps)
 {  
+  sink("Acadian.log",append=TRUE)
+  cat ("*** in fvsRunAcadian",date(),"\n")
+  
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAcadianIngrowth)) "N" else 
                runOps$uiAcadianIngrowth
@@ -28,11 +32,6 @@ fvsRunAcadian <- function(runOps)
                  c(CDEF=CDEF,SBW.YR=SBW.YR,SBW.DUR=SBW.DUR)
   if (!is.null(SBW) && any(is.na(SBW))) SBW=NULL
 
-  sink("Acadian.log")
-
-  cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
-    mortModel,"\n    volLogic=",volLogic," SBW=",SBW,"\n")            
-  
   mkGraphs=FALSE
   CutPoint=0
   
@@ -45,7 +44,6 @@ fvsRunAcadian <- function(runOps)
   ACRtoHA = fvsUnitConversion("ACRtoHA")
   HAtoACR = fvsUnitConversion("HAtoACR")
   spcodes = fvsGetSpeciesCodes()
-  stdIds  = fvsGetStandIDs()
 
   #initialize THINMOD
   THINMOD = NULL
@@ -64,6 +62,9 @@ fvsRunAcadian <- function(runOps)
     # end of current stand?
     if (stopPoint == 100) break
 
+    cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
+      mortModel,"\n    volLogic=",volLogic," SBW=",SBW,"\n")            
+      
     # if there are no trees, this code does not work.
     # NB: room is used below, so if this rule changes, move this code
     room=fvsGetDims()
@@ -71,6 +72,7 @@ fvsRunAcadian <- function(runOps)
 
     #fetch some stand level information
     stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
+    stdIds  = fvsGetStandIDs()
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
     attributes(cyclen) = NULL
     CSIin = stdInfo["site"] * FTtoM
@@ -113,12 +115,39 @@ fvsRunAcadian <- function(runOps)
     incr$tree$YEAR = stdInfo["year"]
                        
     cat ("fvsRunAcadian: calling AcadianGY, year=",stdInfo["year"],
-         " THINMOD=",THINMOD,"\n") 
-                     
+         " THINMOD=",THINMOD,"\n")
+         
+    ### this code saves the input so AcadianGY can be run outside of FVSOnline
+    #savefile=paste0("acadianInput","_",stdIds["standid"],"_",stdInfo["year"],
+    #                 ".RData")
+    #cat ("savefile=",savefile,"\n")
+    #save(incr,CSI,INGROWTH,MinDBH,mortModel,SBW,THINMOD,file=savefile)
+    ### 
+    
     #compute the growth
-    incr = AcadianGY(incr$tree,CSI,cyclen=cyclen,INGROWTH=INGROWTH,MinDBH=MinDBH, 
+    incr = AcadianGY(incr$tree,CSI,INGROWTH=INGROWTH,MinDBH=MinDBH, 
                      CutPoint=0,   # >0 uses threshold probability (>0-1).
                      mortModel=mortModel,SBW=SBW,THINMOD=THINMOD,verbose=TRUE) 
+
+    cat ("fvsRunAcadian: is.null(incr$tree$dEXPF)=",is.null(incr$tree$dEXPF),"\n")
+                     
+    cat ("fvsRunAcadian: cyclen=",cyclen,"sum1 EXPF=",sum(incr$tree$EXPF),
+         " dEXPF=",sum(incr$tree$dEXPF),"\n")
+    #Scale the growth to the number of years in the period. 
+    if (cyclen>1)
+    {
+      incr$tree$dDBH=incr$tree$dDBH*cyclen
+      incr$tree$dHT =incr$tree$dHT *cyclen
+      incr$tree$dHCB=incr$tree$dHCB*cyclen
+      if (!is.null(incr$tree$dEXPF)) 
+      {
+        incr$tree$dEXPF = incr$tree$EXPF*
+          (1-((1-(incr$tree$dEXPF/incr$tree$EXPF))^cyclen))
+        cat ("fvsRunAcadian: sum2 of dEXPF=",sum(incr$tree$dEXPF),"\n")
+      }
+    }
+
+    names(incr$tree)[match("TPA",names(incr$tree))] = "EXPF"
                      
     #plot growth and ingrowth
 
@@ -245,7 +274,7 @@ cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
               fvsRun$uiCustomRunOps$uiAcadianMinDBH   = "3.0"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
-              fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
+              fvsRun$uiCustomRunOps$uiAcadianMort     = "Base Model" #"Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
               fvsRun$uiCustomRunOps$uiAcadianVolume   = "Base Model"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianTHIN))
@@ -259,23 +288,18 @@ cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.DUR))
               fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "20"
   list(
-    radioButtons("uiAcadianIngrowth", "Simulate ingrowth:", 
-      c("Yes","No"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
+    myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:", 
+      c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
     myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAcadianMinDBH),
-    radioButtons("uiAcadianMort", "Mortality model:", 
-      c("Acadian","Base Model"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianMort),
-    radioButtons("uiAcadianVolume", "Merchantable volume logic:", 
-      c("Kozak","Base Model"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
-    radioButtons("uiAcadianTHIN", "Run with thinning modifiers:", 
-      c("Yes","No"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
-    radioButtons("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 
-       c("Yes","No"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
+    myRadioGroup("uiAcadianMort", "Mortality model:", 
+      c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianMort),
+    myRadioGroup("uiAcadianVolume", "Merchantable volume logic:", 
+      c("Kozak","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
+    myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:", 
+      c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
+    myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 
+       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
     myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:", 
                fvsRun$uiCustomRunOps$uiAcadianSBWCDEF),
     myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:", 

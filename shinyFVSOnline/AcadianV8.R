@@ -2698,11 +2698,11 @@ Summary.GY=function(tree){
 }
   
 ###Acadian growth and yield model
-AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
+AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
                       mortModel="Acadian",SBW=NULL,THINMOD=NULL,verbose=FALSE)
 {
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
-    " cyclen=",cyclen," INGROWTH=",INGROWTH,"\n           MinDBH=",MinDBH,
+    " INGROWTH=",INGROWTH,"\n           MinDBH=",MinDBH,
     " CutPoint=",CutPoint," mortModel=",mortModel," SBW=",SBW,"\n") 
     
   temp = mapply(SPP.func,tree$SP)  
@@ -2942,31 +2942,39 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
                            (x$DBH)^2*0.00007854)*x$EXPF
                     x$Sbag30=sum(ifelse(Csward1<=0.3,bag,0))
                     x
-                  })              
-    tree$stand.pmort=as.vector(mapply(stand.mort.prob,region='ME',BA=tree$BAPH,
-                            BAG=tree$Sbag30,
-                            QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)[1,])    
-  
-    tree$stand.pmort.cut=as.vector(mapply(stand.mort.prob,region='ME',BA=tree$BAPH,
-                                      BAG=tree$Sbag30,
-                                      QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)[2,])    
-    
+                  })
+                  
+    tmp = mapply(stand.mort.prob,region='ME',BA=tree$BAPH,BAG=tree$Sbag30,
+                 QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)                  
+    tree$stand.pmort=as.vector(tmp[1,])    
+    tree$stand.pmort.cut=as.vector(tmp[2,])    
+    cat ("mean tree$stand.pmort=",mean(tree$stand.pmort),"\n")
+    cat ("mean tree$stand.pmort.cut=",mean(tree$stand.pmort.cut),"\n")
+
     tree$stand.mort.BA=mapply(stand.mort.BA,region='ME',BA=tree$BAPH,
                               BAG=tree$Sbag30,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
                               pBA.ih=tree$pIHW.ba)
   
     tree$smort.thin.mod=mapply(BAmort.stand,BA=tree$BAPH, PCT=0, YEAR_CT=YEAR_CT, 
                                YEAR=tree$YEAR, PERCBArm=pBArm, BApre=BApre, QMDratio=QMDratio)
+    cat ("mean tree$smort.thin.mod=",mean(tree$smort.thin.mod),"\n")
     
     tree$smort.SBW.mod=mapply(SBW.smort.mod,region='ME',BA=tree$BAPH,BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
+    cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
   
-    
-    #at this point, tree$stand.mort.BA is a periodic value (scaled to cyclen)
-    
-    tree$stand.mort.BA = ifelse(
-      1-((1-tree$stand.pmort)^cyclen) > tree$stand.pmort.cut^cyclen, 
-      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*cyclen, 0)              
-    
+#    tree$stand.mort.BA = ifelse(
+#     1-((1-tree$stand.pmort)^cyclen) > tree$stand.pmort.cut^cyclen, 
+#     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*cyclen, 0)              
+
+## ISSUE: when tree$stand.pmort.cut is largest, this code used 0 mortality. 
+#    tree$stand.mort.BA = ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
+#      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
+## Crookston changed it to this:
+#    tree$stand.mort.BA = ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
+#      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, tree$stand.pmort.cut)
+## Crookston then changed it to this:
+    tree$stand.mort.BA = tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod
+
     #spruce budworm mortality modifier
     tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,CR=tree$DBH,HT=tree$HT,
                               BAL.HW=tree$BAL.HW,BAL.SW=tree$BAL.SW,avgHT.SW=tree$avgHT.SW,CDEF=tree$CDEF)
@@ -2974,9 +2982,10 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
                              YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
     
-    tree$tsurv=pmin(mapply(tree.mort.prob,tree$SP,tree$DBH)^cyclen*tree$tsurv.SBW.mod*tree$tmort.thin.mod,1.0)
-    
-    tree$mortBA=((tree$DBH+(tree$dDBH*cyclen))^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
+    tree$tsurv=pmin(mapply(tree.mort.prob,tree$SP,tree$DBH)*tree$tsurv.SBW.mod*tree$tmort.thin.mod,1.0)
+
+#   tree$mortBA=((tree$DBH+(tree$dDBH*cyclen))^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
+    tree$mortBA=((tree$DBH+tree$dDBH)         ^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
     
     tree = ddply (tree,.(PLOT),
                   function (x)
@@ -2992,11 +3001,11 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
                     x$vv=x$stand.mort.BA-(x$Cum.mort-x$mortBA)
                     x$xxmortBA=x$Cum.DmortBA-x$Cum.mort
                     x$TotBAmort=round(x$mortBA+x$xDmortBA,8)
-                    x$pBAmort=x$vv/x$mortBA#(((x$DBH+(x$dDBH*cyclen))^2*0.00007854)*x$EXPF)
+                    x$pBAmort=x$vv/x$mortBA
                     x$dEXPF=ifelse(x$Cum.mort<=x$stand.mort.BA,
                                    x$EXPF-(x$EXPF*x$tsurv),ifelse(x$vv>=0,  #x$TotBAmort<=(x$stand.mort.BA),
                                    x$EXPF - x$EXPF*(1-x$pBAmort),0))
-                    x$EXPF.ba=(((x$DBH+(x$dDBH*cyclen))^2*0.00007854)*x$dEXPF)
+                    x$EXPF.ba=(((x$DBH+x$dDBH)^2*0.00007854)*x$dEXPF)
                     x$Dead=cumsum(x$EXPF.ba)
                     x
                   })
@@ -3008,8 +3017,7 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     # this code is used in the FVS context).
     tree$dEXPF = NULL
   }
-                  
-
+  
 #  tree$dEXPF2=tree$EXPF*((1-tree$tsurv)*tree$stand.pmort)
 
 
@@ -3067,13 +3075,6 @@ AcadianGY <- function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     }
   }
     
-  #Scale the growth to the number of years in the period. 
-  if (cyclen>1)
-  {
-    tree$dDBH=tree$dDBH*cyclen
-    tree$dHT =tree$dHT *cyclen
-    tree$dHCB=tree$dHCB*cyclen
-  }
 
   # put the PLOT variable back to a character string (defactor it).
   if (is.factor(tree$PLOT)) tree$PLOT = 
