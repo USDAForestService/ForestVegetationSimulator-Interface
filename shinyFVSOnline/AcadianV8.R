@@ -2962,6 +2962,8 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     tree$smort.SBW.mod=mapply(SBW.smort.mod,region='ME',BA=tree$BAPH,BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
     cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
   
+
+## Crookston removed the cycle length scaling    
 #    tree$stand.mort.BA = ifelse(
 #     1-((1-tree$stand.pmort)^cyclen) > tree$stand.pmort.cut^cyclen, 
 #     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*cyclen, 0)              
