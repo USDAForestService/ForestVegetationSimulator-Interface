@@ -127,7 +127,8 @@ fvsRunAcadian <- function(runOps)
     #compute the growth
     incr = AcadianGY(incr$tree,CSI,INGROWTH=INGROWTH,MinDBH=MinDBH, 
                      CutPoint=0,   # >0 uses threshold probability (>0-1).
-                     mortModel=mortModel,SBW=SBW,THINMOD=THINMOD,verbose=TRUE) 
+                     mortType="continuous",mortModel=mortModel,SBW=SBW,
+                     THINMOD=THINMOD,verbose=TRUE) 
 
     cat ("fvsRunAcadian: is.null(incr$tree$dEXPF)=",is.null(incr$tree$dEXPF),"\n")
                      

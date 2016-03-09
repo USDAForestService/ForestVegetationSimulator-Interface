@@ -1855,31 +1855,39 @@ cat("Nulling uiRunPlot at Save and Run\n")
         if (!file.exists(rFVSDir)) return()
         fvschild = makePSOCKcluster(1)
         binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
-        rtn = try(eval(parse(text=paste0(
-          "clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
-          "')) source(paste0('",rFVSDir,"',rf)))"))) )
+        cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
+          "')) source(paste0('",rFVSDir,"',rf)))")
+cat ("load rFVS cmd=",cmd,"\n")          
+        rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()
-        rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,fvsLoad('",
-             fvsRun$FVSpgm,"',bin='",binDir,"'))"))) )
+        cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
+             fvsRun$FVSpgm,"',bin='",binDir,"'))")
+cat ("load FVSpgm cmd=",cmd,"\n")          
+        rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
     
         if (fvsRun$runScript != "fvsRun")
         {
-          rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
-               "source('customRun_",fvsRun$runScript,".R'))"))))
+          cmd = paste0("clusterEvalQ(fvschild,",
+               "source('customRun_",fvsRun$runScript,".R'))")
+cat ("run script load cmd=",cmd,"\n")
+          rtn = try(eval(parse(text=cmd)))
           if (class(rtn) == "try-error") return()        
           runOps <<- if (is.null(fvsRun$uiCustomRunOps)) list() else 
             fvsRun$uiCustomRunOps
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
-        rtn = try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
-              'fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key"))')))) 
+        cmd = paste0("clusterEvalQ(fvschild,",
+              'fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key"))')
+cat ("load run cmd=",cmd,"\n")
+        rtn = try(eval(parse(text=cmd))) 
         if (class(rtn) == "try-error") return()
         #on exit of the reactive context
         on.exit({          
           progress$close()
+cat ("exiting, stop fvschild\n")          
           try(stopCluster(fvschild))
         }) 
         #####
@@ -1890,9 +1898,11 @@ cat ("at for start\n")
           detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])          
           progress$set(message = "FVS running", detail = detail, value = i+2) 
           rtn = if (fvsRun$runScript != "fvsRun")
-             try(eval(parse(text=paste0("clusterEvalQ(fvschild,",
-                            fvsRun$runScript,"(runOps))")))) else
-             try(clusterEvalQ(fvschild,fvsRun()))
+            {
+              cmd = paste0("clusterEvalQ(fvschild,",fvsRun$runScript,"(runOps))")
+cat ("custom run cmd=",cmd,"\n")              
+              try(eval(parse(text=cmd)))
+            } else try(clusterEvalQ(fvschild,fvsRun()))
           if (class(rtn) == "try-error")
           { 
             cat ("run try error\n")
@@ -1901,7 +1911,7 @@ cat ("at for start\n")
           if (rtn != 0) break          
           ids = clusterEvalQ(fvschild,fvsGetStandIDs())[[1]]
           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
-cat ("rn=",rn,"\n")          
+cat ("rn=",rn,"\n")
           allSum[[rn]] = clusterEvalQ(fvschild,
                          fvsSetupSummary(fvsGetSummary()))[[1]]
         }
@@ -1986,15 +1996,17 @@ cat ("FVS Output, filename=",filename,"\n")
 cat ("FVS Output, url=",url,"\n")
           browseURL(url)
         } else {
+# this doesn't work likely because the url is points to a file system that is 
+# not readable by httpd 
+#        browseURL(url)
           url = URLencode(paste0("html://",session$clientData$url_hostname,
                session$clientData$url_pathname,"/",filename))
 cat ("FVS Output, url=",url,"\n")
-# this doesn't work because the url is points to a file system that is not readable by httpd 
-#        browseURL(url)
         }
       }  
     })
   })
+
    
   
   ## Upload

@@ -2699,11 +2699,11 @@ Summary.GY=function(tree){
   
 ###Acadian growth and yield model
 AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
-                      mortModel="Acadian",SBW=NULL,THINMOD=NULL,verbose=FALSE)
+   mortType="discrete",mortModel="Acadian",SBW=NULL,THINMOD=NULL,verbose=FALSE)
 {
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
-    " INGROWTH=",INGROWTH,"\n           MinDBH=",MinDBH,
-    " CutPoint=",CutPoint," mortModel=",mortModel," SBW=",SBW,"\n") 
+    " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           MinDBH=",MinDBH,
+    " mortType=",mortType," mortModel=",mortModel," SBW=",SBW,"\n") 
     
   temp = mapply(SPP.func,tree$SP)  
   tree$SPtype=as.vector(temp[1,])
@@ -2920,7 +2920,11 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   cat ("mean tree$dHT.thin.mod=",mean(tree$dHT.thin.mod),"\n")
   cat ("mean tree$dHT.SBW.mod=",mean(tree$dHT.SBW.mod),"\n")
   tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod
-  
+  # cap height growth
+  dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
+  cat ("mean dHTmult=",mean(dHTmult),"\n")
+  tree$dHT=tree$dHT*dHTmult
+    
   #crown recession
   tree$dHCB=mapply(dHCB,dHT=tree$dHT,DBH=tree$DBH,HT=tree$HT,HCB=tree$HCB,CCF=tree$CCF,shade=tree$shade)
 
@@ -2961,21 +2965,30 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     
     tree$smort.SBW.mod=mapply(SBW.smort.mod,region='ME',BA=tree$BAPH,BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
     cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
-  
 
-## Crookston removed the cycle length scaling    
-#    tree$stand.mort.BA = ifelse(
-#     1-((1-tree$stand.pmort)^cyclen) > tree$stand.pmort.cut^cyclen, 
-#     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*cyclen, 0)              
+    # tree$stand.pmort, annual probability of at least 1 tree dying 
+    # tree$stand.mort.BA, the amount of stand basal area mortality in m2/ha/yr given at least 1 tree dying
+    # tree$stand.pmort.cut, the probability threshold that dictates whether mortality occurred or not
+    # tree$tsurv, annual tree-level probability of survival
 
-## ISSUE: when tree$stand.pmort.cut is largest, this code used 0 mortality. 
-#    tree$stand.mort.BA = ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
-#      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
-## Crookston changed it to this:
-#    tree$stand.mort.BA = ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
-#      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, tree$stand.pmort.cut)
-## Crookston then changed it to this:
-    tree$stand.mort.BA = tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod
+    tree$stand.mort.BA = if (mortType == "discrete") 
+    {
+      # original, discrete mortality
+      ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
+        tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
+    } else {   
+      # Crookston's alternative continuous 
+      pmort = mapply(function(threshold, prmortgt0)
+        {
+          w = 1
+          # prmortgt0 == 1 is OK here because v can be Inf.
+          v = (prmortgt0*w)/(1-prmortgt0)  
+          qbeta(threshold, v, w, lower.tail = FALSE)
+        },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
+      cat ("mean pmort=",mean(pmort)," sd=",sd(pmort),"\n")
+      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*pmort
+    }
+    
 
     #spruce budworm mortality modifier
     tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,CR=tree$DBH,HT=tree$HT,
