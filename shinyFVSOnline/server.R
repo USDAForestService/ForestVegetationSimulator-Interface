@@ -8,7 +8,7 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE)
 
 shinyServer(function(input, output, session) {
 
-  sink("FVSOnline.log")
+  #sink("FVSOnline.log")
 
   source("fvsRunUtilities.R",local=TRUE)
   source("fvsOutUtilities.R",local=TRUE)
@@ -277,10 +277,13 @@ cat ("runs, tbs=",tbs,"\n")
         dbBegin(dbcon)      
         for (tb in tbs) 
         {
+cat ("tb=",tb,"\n")
           cnt = 0
           if (tb == "FVS_Cases") next
           else if (tb == "Composite")
             dbSendQuery(dbcon,"drop table Composite")
+          else if (tb == "Composite_East")
+            dbSendQuery(dbcon,"drop table Composite_East")
           else if (tb == "StdStk")
             dbSendQuery(dbcon,"drop table StdStk")
           else cnt = dbGetQuery(dbcon,paste0("select count(*) from ",
@@ -297,8 +300,17 @@ cat ("runs, tbs=",tbs,"\n")
             detail  = "Building composites", value = i); i = i+1
           exqury(dbcon,Create_Composite)
           tbs = c(tbs,"Composite")
+cat ("tbs1=",tbs,"\n")
         }
-#### add code for when FVS_Summary_East is present
+        if ("FVS_Summary_East" %in% tbs)
+        {
+          setProgress(message = "Output query", 
+            detail  = "Building composites", value = i); i = i+1
+          exqury(dbcon,Create_Composite_East)
+          tbs = c(tbs,"Composite_East")
+cat ("tbs2=",tbs,"\n")
+        }
+
         if ("FVS_TreeList" %in% tbs)  
         {
           setProgress(message = "Output query", 
@@ -327,12 +339,11 @@ cat ("runs, tbs=",tbs,"\n")
         names(dbd) = tbs
         if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
-#when the processing of the eastern summary is fixed up, need this code will be needed.
-#        if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
-#            c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMTCuFt","TPrdSCuFt","TPrdSBdFt"))
-#this code will need to be modified for eastern composites
+        if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
+            c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMTCuFt","TPrdSCuFt","TPrdSBdFt"))
         if (!is.null(dbd[["Composite"]])) dbd$Composite = c(dbd$Composite,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
+          
         if (length(dbd)) fvsOutData$dbLoadData <- dbd      
         updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
                     selected= intersect(tbs, 
@@ -394,20 +405,19 @@ cat ("Explore Output\n")
       dat = list()
       for (tb in tbs) 
       {
-        if (tb == "Composite") 
+        if (tb == "Composite" || tb == "Composite_East") 
         {
-          dtab = dbReadTable(dbcon,"Composite")
+          dtab = dbReadTable(dbcon,tb)
           dtab = by(dtab,as.factor(dtab$MgmtID),FUN=function (x) 
                  setupSummary(x,composite=TRUE))
           dtab = do.call("rbind",dtab)
           dtab$Year=as.factor(dtab$Year) 
           dtab$MgmtID=as.factor(dtab$MgmtID) 
           dat = list(Composite = dtab)
-          break
         } else{
           dtab = dbGetQuery(dbcon,paste0("select * from ",tb,
                  " where CaseID in (select CaseID from m.Cases)"))
-          if (tb == "FVS_Summary") 
+          if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
           { 
             dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
                       setupSummary(x))
@@ -530,8 +540,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
             }
           updateSelectInput(session, "dbhclass", 
             choices=as.list(levels(mdat$DBHClass)), selected=sel)
-        }   
-        
+        }           
       selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
         "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
         function (x,vs) 
@@ -665,19 +674,22 @@ cat ("renderPlot\n")
     dat = droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass),])
     
-    if ((!is.null(pb) && nlevels(dat[,pb]) < 2 && nlevels(dat[,pb]) > 30) || 
+    if ((!is.null(pb) && pb %in% colnames(dat) && 
+         nlevels(dat[,pb]) < 2 && nlevels(dat[,pb]) > 30) || 
          length(intersect(input$pltby,c(input$xaxis,input$yaxis,vf,hf))))
     {
       updateSelectInput(session=session, inputId="pltby", selected="None")
       return (NULL)
     }
-    if ((!is.null(hf) && nlevels(dat[,hf]) < 2 && nlevels(dat[,hf]) > 8) || 
+    if ((!is.null(hf) && hf %in% colnames(dat) && 
+         nlevels(dat[,hf]) < 2 && nlevels(dat[,hf]) > 8) || 
          length(intersect(input$hfacet,c(input$xaxis,input$yaxis,pb,vf)))) 
     {
       updateSelectInput(session=session, inputId="hfacet", selected="None")
       return (NULL)
     }
-    if ((!is.null(vf) && nlevels(dat[,vf]) < 2 && nlevels(dat[,vf]) > 8) || 
+    if ((!is.null(vf) && vf %in% colnames(dat) && 
+         nlevels(dat[,vf]) < 2 && nlevels(dat[,vf]) > 8) || 
          length(intersect(input$vfacet,c(input$xaxis,input$yaxis,pb,hf))))
     {
       updateSelectInput(session=session, inputId="vfacet", selected="None")
@@ -1891,7 +1903,7 @@ cat ("exiting, stop fvschild\n")
           try(stopCluster(fvschild))
         }) 
         #####
-cat ("at for start\n")          
+cat ("at for start\n") 
         allSum = list()
         for (i in 1:length(fvsRun$stands))
         {

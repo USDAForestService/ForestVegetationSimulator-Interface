@@ -69,7 +69,8 @@ filterRows <- function (dat, title, stdid, mgtid, year, species, dbhclass)
 
 setupSummary <- function(asum,composite=FALSE)
 {
-  std=c("Tpa","TCuFt","MCuFt","BdFt")
+  std=if (length(grep("SCuFt$",colnames(asum)))) 
+    c("Tpa","MCuFt","SCuFt","SBdFt") else c("Tpa","TCuFt","MCuFt","BdFt")
   rstd=paste("R",std,sep="")
   stdden = c("BA","SDI","CCF","TopHt","QMD")
   stddenAT = paste0("AT",stdden)

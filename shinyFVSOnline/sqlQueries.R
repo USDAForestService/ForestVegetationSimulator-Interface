@@ -228,3 +228,31 @@ select MgmtID,Year,
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
+Create_Composite_East = "
+drop table if exists Composite_East;
+create table Composite_East as 
+select MgmtID,Year,
+    round(sum(Age    *SamplingWt)/sum(SamplingWt),2) as CmpAge,
+    round(sum(Tpa    *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
+    round(sum(BA     *SamplingWT)/sum(SamplingWt),2) as CmpBA,
+    round(sum(SDI    *SamplingWT)/sum(SamplingWt),2) as CmpSDI,    
+    round(sum(CCF    *SamplingWT)/sum(SamplingWt),2) as CmpCCF,
+    round(sum(TopHt  *SamplingWT)/sum(SamplingWt),2) as CmpTopHt,
+    round(sum(QMD    *SamplingWT)/sum(SamplingWt),2) as CmpQMD,
+    round(sum(MCuFt  *SamplingWT)/sum(SamplingWt),2) as CmpMCuFt,
+    round(sum(SCuFt  *SamplingWT)/sum(SamplingWt),2) as CmpSCuFt,
+    round(sum(SBdFt  *SamplingWT)/sum(SamplingWt),2) as CmpSBdFt,
+    round(sum(RTpa   *SamplingWT)/sum(SamplingWt),2) as CmpRTpa,  
+    round(sum(RMCuFt *SamplingWT)/sum(SamplingWt),2) as CmpRMCuFt,      
+    round(sum(RSCuFt *SamplingWT)/sum(SamplingWt),2) as CmpRSCuFt,
+    round(sum(RSBdFt *SamplingWT)/sum(SamplingWt),2) as CmpRSBdFt,
+    round(sum(ATBA   *SamplingWT)/sum(SamplingWt),2) as CmpATBA,
+    round(sum(ATSDI  *SamplingWT)/sum(SamplingWt),2) as CmpATSDI,
+    round(sum(ATCCF  *SamplingWT)/sum(SamplingWt),2) as CmpATCCF,
+    round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
+    round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
+    round(sum(SamplingWt                        ),2) as CmpSamplingWt
+  from (select * from FVS_Summary_East where CaseID in (select CaseID from m.Cases))
+  join FVS_Cases using (CaseID)
+  group by MgmtID,Year;"
+
