@@ -2241,7 +2241,8 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
   output$dlFVSRunout <- downloadHandler(filename=
-       paste0(if(nchar(fvsRun$title)) fvsRun$title else "fvsRun",".out"),
+       paste0(if(nchar(input$runSel)) 
+         globals$FVS_Runs[[input$runSel]]$title else "fvsRun","_FVSoutput.txt"),
        content = 
          {
            isolate ({
@@ -2250,7 +2251,8 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
            })
          })
   output$dlFVSRunkey <- downloadHandler(filename=
-       paste0(if(nchar(fvsRun$title)) fvsRun$title else "fvsRun",".key"),
+       paste0(if(nchar(input$runSel)) 
+         globals$FVS_Runs[[input$runSel]]$title else "fvsRun",".key"),
        content = 
          {
            isolate ({

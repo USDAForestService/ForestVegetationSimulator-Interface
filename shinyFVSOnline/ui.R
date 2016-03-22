@@ -196,11 +196,9 @@ shinyUI(fixedPage(
             tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
             textInput("defMgmtID","MgmtID (4 chars)",""),
             actionButton("saveandrun","Save and Run"),
-            if (headstr == "Onlocal")
-            {
-              list(h4(" "),
-              actionButton("browseOutFile","View FVS Output"))
-            } else h4(" ")
+            h6(" "),
+            downloadButton("dlFVSRunout","FVS output"),
+            h4(" ")
           ),
           column(width=9,
             checkboxGroupInput("autoOut",
@@ -304,20 +302,19 @@ shinyUI(fixedPage(
       tabPanel("Tools",       
         h4(" "),
         fileInput("upload","Upload FVS-Ready data (.accdb, .mdb, or .db)",
-                  ), # width="90%"),  #can be used when we move to newer shiny
+                  width="90%"), 
         tags$style(type="text/css", "#launchDataEditor { color: red; }"),
         actionButton("launchDataEditor","Launch data editor (closes FVSOnline)"),
         h4(" "),
         fileInput("climateFVSUpload",
                   "Upload Climate-FVS ready data (FVSClimAttrs.csv or answers.zip).",
-                  ), # width="90%"),  #can be used when we move to newer shiny
+                  width="90%"), 
         tags$style(type="text/css", "#recoverdb { color: red; }"),
-        actionButton("recoverdb","Recover from input database backup or default"),
+        actionButton("recoverdb","Recover input database from backup or default"),
         h4(" "),
-        downloadButton("dlFVSDatadb","Download input data base"),
-        downloadButton("dlFVSOutdb", "Download output data base for all runs"),
-        downloadButton("dlFVSRunout","Download FVS output file for current run"),
-        downloadButton("dlFVSRunkey","Download keyword file for current run"),
+        downloadButton("dlFVSDatadb","Input data base"),
+        downloadButton("dlFVSOutdb", "Output data base"),
+        downloadButton("dlFVSRunkey","Keyword file"),
         h4(" "),
         checkboxGroupInput("dlZipSet","Select contents of fvsRun.zip", 
           zipList <- list(

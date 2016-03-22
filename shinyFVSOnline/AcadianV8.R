@@ -2704,7 +2704,8 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           MinDBH=",MinDBH,
     " mortType=",mortType," mortModel=",mortModel," SBW=",SBW,"\n") 
-    
+
+  tree$ID=tree$TREE
   temp = mapply(SPP.func,tree$SP)  
   tree$SPtype=as.vector(temp[1,])
   tree$shade=as.numeric(as.character(temp[2,]))
@@ -2792,6 +2793,8 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
       curYear <= SBW["SBW.YR"]+SBW["SBW.DUR"])) NA else SBW["CDEF"]
   tree$CDEF = CDEF
   cat ("SBW, curYear=",curYear," CDEF=",CDEF,"\n")   
+  
+  #CSI=tree$CSI
   
   #set thinning factors.
   if (is.null(THINMOD))
@@ -2889,7 +2892,7 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   if (is.null(tree$HCB)) tree$HCB = tree$HT*tree$CR
 
   ##diameter increment
-  tree$dBA=mapply(dBA, SPP=tree$SP, DBH=tree$DBH,BalSW=tree$BAL.SW,BalHW=tree$BAL.HW,SI=CSI)
+  #tree$dBA=mapply(dBA, SPP=tree$SP, DBH=tree$DBH,BalSW=tree$BAL.SW,BalHW=tree$BAL.HW,SI=tree$CSI)
   #tree$dDBH= sqrt((0.00007854*tree$DBH^2+tree$dBA)/0.00007854)-tree$DBH
 
   #dDBH.FUN=function(SPP,DBH,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD){
@@ -2920,6 +2923,7 @@ AcadianGY <- function(tree,CSI,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
   cat ("mean tree$dHT.thin.mod=",mean(tree$dHT.thin.mod),"\n")
   cat ("mean tree$dHT.SBW.mod=",mean(tree$dHT.SBW.mod),"\n")
   tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod
+  
   # cap height growth
   dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
   cat ("mean dHTmult=",mean(dHTmult),"\n")
