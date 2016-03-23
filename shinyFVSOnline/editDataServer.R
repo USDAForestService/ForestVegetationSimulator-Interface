@@ -7,11 +7,13 @@ library(shinysky)
 options(shiny.maxRequestSize=30*1024^2,shiny.trace = F)
 
 shinyServer(function(input, output, session) {
-
+                                                      
   globals <- new.env()
   globals$tbl <- NULL
-  globals$navsOn <- FALSE
+  globals$navsOn <- FALSE            
   globals$rowSelOn <- FALSE
+  globals$disprows <- 25
+  
   dbDrv <- dbDriver("SQLite")
   con <- dbConnect(dbDrv,"FVS_Data.db")
   tbs <- dbListTables(con)
@@ -28,10 +30,23 @@ shinyServer(function(input, output, session) {
   if (length(idx) == 0) idx=1 
 
   updateSelectInput(session=session, inputId="selectdbtabs", choices=tbs, 
-    selected=tbs[idx])      
-  
+    selected=tbs[idx])
+
   observe({
-cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,"\n")
+cat ("input$disprows=",input$disprows)   
+    ndr = suppressWarnings(as.numeric(input$disprows))
+    if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) 
+    {
+      ndr = 25 
+      updateTextInput(session=session, inputId="disprows",value="25")
+    }
+    globals$disprows <- ndr
+cat (" globals$disprows=",globals$disprows,"\n") 
+  })
+  
+  observe({                       
+cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
+     " input$mode=",input$mode,"\n")
     if (length(input$selectdbtabs)) 
     {
       globals$tblName <- input$selectdbtabs
@@ -63,13 +78,14 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,"\n")
   observe({              
     if (length(input$selectdbvars)) 
     {
-cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")            
-      switch(input$mode,
+cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")       
+      input$disprows
+      switch(input$mode,                    
         "New rows"= 
         {
           globals$rows <- NULL
           tbl <- as.data.frame(matrix("",ncol=length(input$selectdbvars),
-                               nrow=20))
+                               nrow=globals$disprows))
           colnames(tbl) <- input$selectdbvars
           output$tbl <- renderHotable(tbl,readOnly=FALSE)
           output$stdSel <- output$navRows <- renderUI(NULL)
@@ -82,7 +98,7 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
                      length(input$rowSelector))
             paste0(qry," where Stand_ID in (",
                   paste0("'",input$rowSelector,"'",collapse=","),");") else
-            paste0(qry,";") 
+            paste0(qry,";")                             
           res <- dbSendQuery(con,qry)
           globals$tbl <- dbFetch(res,n=-1)
           dbClearResult(con)
@@ -92,8 +108,8 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
           if (nrow(globals$tbl) == 0) globals$rows = NULL else
           {
             globals$tbl$Delete = "No"
-            globals$rows <- c(1,min(nrow(globals$tbl),20))
-            output$tbl <- renderHotable(globals$tbl[1:min(nrow(globals$tbl),20),
+            globals$rows <- c(1,min(nrow(globals$tbl),globals$disprows))
+            output$tbl <- renderHotable(globals$tbl[1:min(nrow(globals$tbl),globals$disprows),
               union(c("Delete"),input$selectdbvars),drop=FALSE],
               readOnly=FALSE)
             if (!globals$navsOn) 
@@ -119,8 +135,9 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
     if (length(input$nextRows) && input$nextRows > 0) 
     {
       if (is.null(globals$tbl)) return()
-      newBot <- min(globals$rows[2]+20,nrow(globals$tbl))
-      newTop <- max(newBot-19,1)
+      input$disprows
+      newBot <- min(globals$rows[2]+globals$disprows,nrow(globals$tbl))
+      newTop <- max(newBot-globals$disprows-1,1)
       globals$rows <- c(newTop,newBot)
       output$tbl <- renderHotable(globals$tbl[newTop:newBot,
         union(c("Delete"),isolate(input$selectdbvars)),
@@ -133,8 +150,9 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
     if (length(input$previousRows) && input$previousRows > 0) 
     {
       if (is.null(globals$tbl)) return()
-      newTop <- max(globals$rows[1]-20,1)
-      newBot <- min(newTop+19,nrow(globals$tbl))
+      input$disprows
+      newTop <- max(globals$rows[1]-globals$disprows,1)
+      newBot <- min(newTop+globals$disprows-1,nrow(globals$tbl))
       globals$rows <- c(newTop,newBot)
       output$tbl <- renderHotable(globals$tbl[newTop:newBot,
         union(c("Delete"),isolate(input$selectdbvars)),
@@ -162,7 +180,7 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
               for (ins in inserts) dbSendQuery(con,ins)
               dbCommit(con)
               tbl <- as.data.frame(matrix("",
-                     ncol=length(input$selectdbvars),nrow=15))
+                     ncol=length(input$selectdbvars),nrow=global$disprows))
               colnames(tbl) <- input$selectdbvars
               output$tbl <- renderHotable(tbl,readOnly=FALSE)
             }
@@ -183,15 +201,19 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
 cat ("edit del, qry=",qry,"\n")                     
                 dbSendQuery(con,qry)
                 if (!is.null(globals$sids)) globals$sids = NULL
-              } else {globals$rows
+              } else {
                 id = globals$tbl[globals$rows[1]:globals$rows[2],"rowid"][rn]
                 row = unlist(row)
+cat ("edit update, id =",id," row=",row,"\n")
                 if (length(row) < 2) next
                 row = row[-1]
                 org = subset(globals$tbl,rowid == id)
                 org = as.character(org[,names(row),drop=TRUE])
-                update = row[org != row]
-                if (length(update) == 0) next
+                names(org)=names(row)
+                neq = vector("logical",length(row))
+                for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])
+                if (sum(neq) == 0) next
+                update = row[neq]
                 toquote = globals$tbsCTypes[[globals$tblName]][names(update)]
                 if (!is.null(globals$sids) && 
                     !is.na(toquote["Stand_ID"])) globals$sids = NULL

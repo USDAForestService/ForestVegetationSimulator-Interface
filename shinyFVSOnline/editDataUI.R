@@ -26,6 +26,8 @@ if (file.exists("projectId.txt"))
   headstr = "Onlocal"
 }
 
+source("mkInputElements.R")
+
 #source("modalDialog.R")
 
 shinyUI(fixedPage(
@@ -46,7 +48,7 @@ shinyUI(fixedPage(
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-      actionButton("topHelp","Help"),
+#      actionButton("topHelp","Help"),
       uiOutput("reload"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
     )
@@ -58,8 +60,8 @@ shinyUI(fixedPage(
 
   fixedRow(
     column(width=3,offset=0,
-      radioButtons("mode", "Select mode", c("Edit","New rows"),
-                    inline=TRUE),
+      myRadioGroup("mode", "Mode ", c("Edit","New rows")),
+      myInlineTextInput("disprows",  "Number display rows", value = 25, size=5),
   	  selectInput("selectdbtabs", label="Table to process",
 	          choices  = list(), 
 	          selected = NULL, multiple = FALSE, selectize=FALSE),
@@ -67,18 +69,18 @@ shinyUI(fixedPage(
     	  selectInput("selectdbvars", "Variables to consider", 
           choices  = list(), 
           selected = NULL, multiple = TRUE, selectize=FALSE)),
-      uiOutput("stdSel"),
+      uiOutput("stdSel"),h5(),
+      tags$style(type="text/css", 
+        "#commitChanges { color: darkred; background-color: #eef8ff;}"),
+      shiny::actionButton("commitChanges","Commit changes"),h5(),
       tags$style(type="text/css", 
         "#FVSOnline { color: darkred; background-color: #eef8ff;}"),
       shiny::actionButton("FVSOnline","Return to FVSOnline")
     ),
     column(width=9,offset=0,
-      hotable("tbl"),
-      h3(),
-      uiOutput("navRows"),h5(),
-      tags$style(type="text/css", 
-        "#commitChanges { color: darkred; background-color: #eef8ff;}"),
-      shiny::actionButton("commitChanges","Commit changes")
+      uiOutput("navRows"),
+      h5(),
+      hotable("tbl")
     )
   )
 ))
