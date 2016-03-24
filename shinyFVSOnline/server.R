@@ -1992,34 +1992,6 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       }
     })
   })
-
-  ## View FVS Output
-  observe({ 
-    if (is.null(input$browseOutFile) || input$browseOutFile == 0) return()
-    isolate ({
-      if (exists("fvsRun")) 
-      {
-        filename = paste0(fvsRun$uuid,".out")
-cat ("FVS Output, filename=",filename,"\n")
-        if (!file.exists(filename)) return()
-        if (session$clientData$url_pathname == "/")
-        {
-          url = URLencode(paste0("file://",getwd(),"/",filename))
-cat ("FVS Output, url=",url,"\n")
-          browseURL(url)
-        } else {
-# this doesn't work likely because the url is points to a file system that is 
-# not readable by httpd 
-#        browseURL(url)
-          url = URLencode(paste0("html://",session$clientData$url_hostname,
-               session$clientData$url_pathname,"/",filename))
-cat ("FVS Output, url=",url,"\n")
-        }
-      }  
-    })
-  })
-
-   
   
   ## Upload
   observe({  
@@ -2044,7 +2016,9 @@ cat ("FVS Output, url=",url,"\n")
                 input$upload$datapath," --schema > schema"))
         setProgress(message = "Process schema", value = 2) 
         schema = scan("schema",what="character",sep="\n",quiet=TRUE)
-        fix = grep (")",schema)
+        schema = gsub(" LONG,"," INTEGER,",schema)
+        schema = gsub(" DOUBLE,"," REAL,",schema)
+        fix = grep (")",schema)        
         schema[fix] = sub (")",");",schema[fix])
         fix = fix - 1
         schema[fix] = sub (",","",schema[fix])
