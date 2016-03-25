@@ -247,7 +247,7 @@ cat("writeKeyFile, num stds=",length(stds),
   dbWriteTable(dbIcon,"m.RunStds",data.frame(RunStds = stds))
   dbQ = dbSendQuery(dbIcon,
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,FVSKeywords from FVS_StandInit ',
-      'where Stand_ID in (select RunStds from m.RunStds)'))         
+      'where Stand_ID in (select RunStds from m.RunStds)'))
   fvsInit = dbFetch(dbQ,n=-1)
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
@@ -269,8 +269,9 @@ cat("writeKeyFile, num stds=",length(stds),
     sRow = match (std$sid, fvsInit$Stand_ID)
     if (is.na(sRow)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.null(fvsInit$Stand_CN[sRow])) 
-      cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="")
+    if (!is.null(fvsInit$Stand_CN[sRow]) && fvsInit$Stand_CN[sRow] != " ") 
+      cat ("StandCN\n",fvsInit$Stand_CN[sRow],"\n",file=fc,sep="") else
+      cat ("StandCN\n",std$sid,"\n",file=fc,sep="") 
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
         fvsRun$defMgmtID,"\n",file=fc,sep="")                       
     if (length(std$invyr) == 0) std$invyr = as.character(thisYr) 
@@ -1017,7 +1018,7 @@ cat ("exit fixFVSKeywords\n")
 
 checkMinColumnDefs <- function(dbIcon)
 {
-  cat ("in checkMinColumnDefs\n")
+cat ("in checkMinColumnDefs\n")
   fields = dbListFields(dbIcon,"FVS_StandInit")
   modStarted = FALSE
   sID = FALSE
@@ -1061,10 +1062,10 @@ checkMinColumnDefs <- function(dbIcon)
     dbSendQuery(dbIcon,
       "alter table FVS_StandInit add column FVSKeywords text")
   }
-  cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
-       " sCN=",sCN,"\n")
+cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
+     " sCN=",sCN,"\n")
   if (modStarted)
-  {
+  {                                             
     dbCommit(dbIcon)
     if (sID || sCN) 
     {
@@ -1073,6 +1074,18 @@ checkMinColumnDefs <- function(dbIcon)
       if (sCN) fvsInit$Stand_CN = paste0("Stand",1:nrow(fvsInit))
       dbWriteTable(dbIcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
     }
+  }
+  # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
+  tabs = dbListTables(dbIcon)
+  if (! ("FVS_GroupAddFilesAndKeywords" %in% tabs))
+  {
+    dfin = data.frame(Groups = "All_Stands",Addfiles = "",
+      FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
+        "SELECT * FROM FVS_StandInit\nWHERE Stand_CN= '%Stand_CN%'\n",
+        "EndSQL\nTreeSQL\nSELECT * FROM FVS_TreeInit\n", 
+        "WHERE Stand_CN= '%Stand_CN%'\nEndSQL\nEND")    
+    )
+    dbWriteTable(dbIcon,name="FVS_GroupAddFilesAndKeywords",value=dfin)
   }
 }
     
