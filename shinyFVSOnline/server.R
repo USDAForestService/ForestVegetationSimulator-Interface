@@ -2215,26 +2215,23 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
   ## Download output
-  observe({     
-    if (is.null(input$runSel)) return(NULL)
-    sfile = paste0(input$runSel,".out")
-    if (!file.exists(sfile)) return(NULL)
-    ofile = paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSoutput.txt")
-cat ("Download output, sfile=",sfile," ofile=",ofile,"\n")
-    output$dlFVSRunout <- downloadHandler(filename=ofile,
-      content=function (tf = tempfile()) file.copy(sfile,tf))
-  })
-  ## Download keywords  
-  observe({  
-    if (is.null(input$runSel)) return(NULL)
-    sfile = paste0(input$runSel,".key")
-    if (!file.exists(sfile)) return(NULL)
-    ofile = paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSKeywords.txt")
-cat ("Download keywords, sfile=",sfile," ofile=",ofile,"\n")
-    output$dlFVSRunkey <- downloadHandler(filename=ofile,
-      content=function (tf = tempfile()) file.copy(sfile,tf))
-  })
-
+  output$dlFVSRunout <- downloadHandler(filename=function ()
+      paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSoutput.txt"),
+      content=function (tf = tempfile())
+      {
+        sfile = paste0(input$runSel,".out")
+        if (file.exists(sfile)) file.copy(sfile,tf) else
+          cat (file=tf,"Output not yet created.\n")
+      }, contentType="text")
+  ## Download keywords
+  output$dlFVSRunkey <- downloadHandler(filename=function ()
+      paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSkeywords.txt"),
+      content=function (tf = tempfile())
+      {
+        sfile = paste0(input$runSel,".key")
+        if (file.exists(sfile)) file.copy(sfile,tf) else
+          cat (file=tf,"Keywords not yet created.\n")
+      }, contentType="text")
   ## cpReload
   observe({      
     if (input$rightPan == "Build Components" || input$kcpReload > 0)
