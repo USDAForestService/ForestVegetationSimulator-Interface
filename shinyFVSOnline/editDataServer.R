@@ -50,6 +50,7 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
     if (length(input$selectdbtabs)) 
     {
       globals$tblName <- input$selectdbtabs
+      fixEmptyTable(con,globals,checkCnt=TRUE)
       globals$tbl <- NULL
       globals$tblCols <- names(globals$tbsCTypes[[globals$tblName]])
       if (length(intersect("Stand_ID",globals$tblCols))) 
@@ -58,6 +59,7 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
                           globals$tblName))
         globals$sids = dbFetch(res,n=-1)$Stand_ID
         dbClearResult(con)
+        if (any(is.na(globals$sids))) globals$sids[is.na(globals$sids)] = ""
         if (length(globals$sids) > 0)
         {
           if (globals$rowSelOn) updateSelectInput(session=session, 
@@ -233,6 +235,7 @@ cat ("edit upd, qry=",qry,"\n")
               }
             }   
             dbCommit(con)
+            fixEmptyTable(con,globals,checkCnt=TRUE)
 cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
      " globals$tblName=",globals$tblName,
      " Stand_ID yes=",length(intersect("Stand_ID",globals$tblCols)),"\n")
@@ -243,6 +246,7 @@ cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
                                 globals$tblName))
               globals$sids = dbFetch(res,n=-1)$Stand_ID
               dbClearResult(con)
+              if (any(is.na(globals$sids))) globals$sids[is.na(globals$sids)] = ""
               if (globals$rowSelOn && length(globals$sids)) 
                 updateSelectInput(session=session, inputId="rowSelector",
                   choices  = globals$sids) else 
@@ -275,6 +279,24 @@ cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
         )
       })
     }
+  })
+  
+  
+  observe(if (input$clearTable > 0) 
+  {
+cat ("clearTable, tbl=",globals$tblName,"\n")
+    dbSendQuery(con,paste0("delete from ",globals$tblName))
+    globals$navsOn <- FALSE            
+    globals$rowSelOn <- FALSE
+    globals$sids <- NULL
+    output$stdSel <- renderUI(NULL)
+    fixEmptyTable(con,globals)
+    output$tbl <- renderHotable(
+       globals$tbl[,union(c("Delete"),input$selectdbvars),drop=FALSE],
+                readOnly=FALSE)
+    output$rowRng <- renderText("1 to 1 of 1")
+    isolate(if (input$mode=="New rows") updateRadioButtons(session=session, 
+      inputId="mode",selected="Edit"))
   })
   
   observe(if (input$FVSOnline > 0) 
@@ -323,5 +345,23 @@ mkStdSel <- function (globals)
      selectize=FALSE, size=10))
 }
       
-    
+fixEmptyTable <- function (con,globals,checkCnt=FALSE)
+{
+  if (checkCnt)
+  {
+    qry = paste0("select count(*) from ",globals$tblName)
+    res = dbSendQuery(con,qry)
+    tmp = dbFetch(res,n=-1)
+    if (tmp[1,1] > 0) return()
+  }
+  tmp = dbReadTable(con,globals$tblName)
+  for (i in 1:ncol(tmp)) tmp[1,i]=if (class(tmp[1,i]) == "character") "" else NA 
+  dbWriteTable(con,globals$tblName,tmp,overwrite=TRUE)
+  qry <- paste0("select _ROWID_,* from ",globals$tblName)
+  res <- dbSendQuery(con,qry)
+  globals$tbl <- dbFetch(res,n=-1)
+  globals$rows = c(1,1)
+  globals$tbl$Delete = "No"
+}
+
     

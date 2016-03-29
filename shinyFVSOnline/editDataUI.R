@@ -33,7 +33,7 @@ source("mkInputElements.R")
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
     ".nav>li>a {padding:6px;}",
-    ".btn {padding:4px 6px;}",
+    ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
     ".form-group {margin-bottom:6px}"))),  
   fixedRow(
@@ -48,7 +48,6 @@ shinyUI(fixedPage(
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-#      actionButton("topHelp","Help"),
       uiOutput("reload"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
     )
@@ -69,11 +68,8 @@ shinyUI(fixedPage(
           choices  = list(), size=10,
           selected = NULL, multiple = TRUE, selectize=FALSE),
       uiOutput("stdSel"),h5(),
-      tags$style(type="text/css", 
-        "#commitChanges { color: darkred; background-color: #eef8ff;}"),
+      shiny::actionButton("clearTable","Remove all rows and commit"),h5(),
       shiny::actionButton("commitChanges","Commit changes"),h5(),
-      tags$style(type="text/css", 
-        "#FVSOnline { color: darkred; background-color: #eef8ff;}"),
       shiny::actionButton("FVSOnline","Return to FVSOnline")
     ),
     column(width=9,offset=0,

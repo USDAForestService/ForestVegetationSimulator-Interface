@@ -1079,7 +1079,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   tabs = dbListTables(dbIcon)
   if (! ("FVS_GroupAddFilesAndKeywords" %in% tabs))
   {
-    dfin = data.frame(Groups = "All_Stands",Addfiles = "",
+    dfin = data.frame(Groups = "All, All_Stands",Addfiles = "",
       FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
         "SELECT * FROM FVS_StandInit\nWHERE Stand_CN= '%Stand_CN%'\n",
         "EndSQL\nTreeSQL\nSELECT * FROM FVS_TreeInit\n", 

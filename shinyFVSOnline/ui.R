@@ -46,7 +46,7 @@ source("mkInputElements.R")
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
     ".nav>li>a {padding:6px;}",
-    ".btn {padding:4px 6px;}",
+    ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
     ".form-group {margin-bottom:6px}"))),  
   fixedRow(
