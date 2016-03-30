@@ -269,7 +269,8 @@ cat("writeKeyFile, num stds=",length(stds),
     sRow = match (std$sid, fvsInit$Stand_ID)
     if (is.na(sRow)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.null(fvsInit$Stand_CN[sRow]) && fvsInit$Stand_CN[sRow] != " ") 
+    if (!is.null(fvsInit$Stand_CN[sRow]) && !is.na(fvsInit$Stand_CN[sRow]) && 
+        fvsInit$Stand_CN[sRow] != " ") 
       cat ("StandCN\n",fvsInit$Stand_CN[sRow],"\n",file=fc,sep="") else
       cat ("StandCN\n",std$sid,"\n",file=fc,sep="") 
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
@@ -1087,6 +1088,31 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     )
     dbWriteTable(dbIcon,name="FVS_GroupAddFilesAndKeywords",value=dfin)
   }
+  #check for blank or NA Stand_CN values in FVS_StandInit
+  res = dbSendQuery(dbIcon,paste0(
+      "select _ROWID_,Stand_ID,Stand_CN from FVS_StandInit where Stand_CN is null"))
+  res = dbFetch(res,n=-1)
+  if (nrow(res) > 0)
+  {
+    for (i in 1:nrow(res))
+    {
+      dbSendQuery(dbIcon,paste0(
+        "update FVS_StandInit set Stand_CN='",res[i,2],"' where _ROWID_=",res[i,1],";"))
+    }
+  }  
+  #check for blank or NA Stand_CN values in FVS_TreeInit  
+  res = dbSendQuery(dbIcon,paste0(
+      "select _ROWID_,Stand_ID,Stand_CN from FVS_TreeInit where Stand_CN is null"))
+  res = dbFetch(res,n=-1)
+  if (nrow(res) > 0)
+  {
+    for (i in 1:nrow(res))
+    {
+      dbSendQuery(dbIcon,paste0(
+        "update FVS_TreeInit set Stand_CN='",res[i,2],"' where _ROWID_=",res[i,1],";"))
+    }
+  }  
+
 }
     
   

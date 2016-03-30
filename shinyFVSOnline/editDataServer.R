@@ -31,18 +31,6 @@ shinyServer(function(input, output, session) {
 
   updateSelectInput(session=session, inputId="selectdbtabs", choices=tbs, 
     selected=tbs[idx])
-
-  observe({
-cat ("input$disprows=",input$disprows)   
-    ndr = suppressWarnings(as.numeric(input$disprows))
-    if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) 
-    {
-      ndr = 25 
-      updateTextInput(session=session, inputId="disprows",value="25")
-    }
-    globals$disprows <- ndr
-cat (" globals$disprows=",globals$disprows,"\n") 
-  })
   
   observe({                       
 cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
@@ -81,7 +69,9 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
     if (length(input$selectdbvars)) 
     {
 cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")       
-      input$disprows
+      ndr = suppressWarnings(as.numeric(input$disprows))
+      if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) ndr = 25 
+      globals$disprows <- ndr
       switch(input$mode,                    
         "New rows"= 
         {
@@ -182,7 +172,7 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
               for (ins in inserts) dbSendQuery(con,ins)
               dbCommit(con)
               tbl <- as.data.frame(matrix("",
-                     ncol=length(input$selectdbvars),nrow=global$disprows))
+                     ncol=length(input$selectdbvars),nrow=globals$disprows))
               colnames(tbl) <- input$selectdbvars
               output$tbl <- renderHotable(tbl,readOnly=FALSE)
             }

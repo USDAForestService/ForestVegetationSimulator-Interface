@@ -707,11 +707,13 @@ cat ("renderPlot\n")
     for (v in vars[(nlv+1):length(vars)])
     {
       if (is.na(v)) return(nullPlot())
+      if (length(intersect(c(vars[1:nlv],v),colnames(dat))) == 0) next
       pd = dat[,c(vars[1:nlv],v),drop=FALSE]
       names(pd)[ncol(pd)] = "Y"
       nd = rbind(nd, data.frame(pd,Attribute=v,stringsAsFactors=FALSE))
     }
     nd = na.omit(nd)
+    if (length(nd) == 0) return(nullPlot())
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
     if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet"      
