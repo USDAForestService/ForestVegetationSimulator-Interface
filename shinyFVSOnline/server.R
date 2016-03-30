@@ -2232,6 +2232,52 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Keywords not yet created.\n")
       }, contentType="text")
+  ## Download FVSData.zip  
+  output$dlFVSRunZip <- downloadHandler(filename="FVSData.zip",	
+     content = function (tf = tempfile())	
+         {
+           tempDir = paste0(dirname(tf),"/tozip")
+           dir.create(tempDir)
+           opref = globals$FVS_Runs[[input$runSel]]$title
+           for (ele in input$dlZipSet)
+           {
+             switch (ele,
+               outdb = file.copy(from="FVSOut.db",
+                                 to=paste0(tempDir,"/FVSOut.db")),
+               key   = {
+                 from=paste0(input$runSel,".key")
+                 if (file.exists(from)) file.copy(from=from,
+                   to=paste0(tempDir,"/",opref,"_FVSkeywords.txt"))
+               },
+               out   = {
+                 from=paste0(input$runSel,".out")
+                 if (file.exists(from)) file.copy(from=from,
+                   to=paste0(tempDir,"/",opref,"_FVSoutput.txt"))
+               },
+               subdir= {
+                 from=input$runSel
+                 if (dir.exists(from)) 
+                 {
+                   to = paste0(tempDir,"/",opref,"_SVS/")
+                   dir.create (to)
+                   file.copy(from=from,to=to,recursive = TRUE)
+                   file.copy(from=paste0(from,"_index.svs"),to=to)
+                 }
+               },              
+               FVS_Data = file.copy(from="FVS_Data.db",
+                                    to=paste0(tempDir,"/FVS_Data.db")),
+               FVS_Runs = file.copy(from="FVS_Runs.RData",
+                                    to=paste0(tempDir,"/FVS_Runs.RData")),
+               FVS_kcps = file.copy(from="FVS_kcps.RData",
+                                    to=paste0(tempDir,"/FVS_kcps.RData"))
+           )}
+           curdir = getwd()
+           setwd(tempDir)
+           zip(tf,dir())
+           unlink(tempDir,recursive = TRUE)
+           setwd(curdir)
+         }, contentType="application/zip")
+      
   ## cpReload
   observe({      
     if (input$rightPan == "Build Components" || input$kcpReload > 0)
