@@ -458,13 +458,21 @@ cat ("returnToFVSOnline\n")
       }
       cols = na.omit(pmatch(tolower(colnames(indat)),
                tolower(names(globals$tbsCTypes[[globals$tblName]]))))
-      if (length(cols) == 0) return()
+      if (length(cols) == 0) 
+      {
+        output$actionMsg = renderText(paste0("No columns match what is defined for ",
+               globals$tblName,", no data loaded."))
+        Sys.sleep(2)
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
+        return()
+      }
       kill = attr(cols,"na.action")
       if (length(kill)) indat = indat[,-kill,drop=FALSE]
       types = globals$tbsCTypes[[globals$tblName]][cols]
       req = switch(globals$tblName,
          FVS_StandInit = c("Stand_ID","Variant","Inv_Year"),
          FVS_TreeInit  = c("Stand_ID","Species","DBH"),
+         FVS_GroupAddFilesAndKeywords = c("Groups"),
          NULL)
       if (!is.null(req) && !all(req %in% names(types)))
       {
@@ -477,8 +485,9 @@ cat ("returnToFVSOnline\n")
       colnames(indat) = names(types)
       quote = types[types]
       if (length(quote)) for (cn in names(quote)) 
-        indat[,cn] = paste0("'",indat[,cn],"'")     
+        indat[,cn] = paste0("'",indat[,cn],"'")
       dbBegin(dbcon)
+      err = FALSE
       for (i in 1:nrow(indat))
       {
         row = indat[i,,drop=FALSE]
@@ -486,11 +495,21 @@ cat ("returnToFVSOnline\n")
         qry = paste0("insert into ",globals$tblName," (",
                 paste0(colnames(row),collapse=","),
                   ") values (",paste0(row,collapse=","),");")
-        dbSendQuery(dbcon,qry)
+        res = try(dbSendQuery(dbcon,qry))
+        if (class(res) == "try-error") {err=TRUE; break}
       }
-      dbCommit(dbcon)
-      output$actionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
+      if (err) 
+      {
+        dbRollback(dbcon) 
+        output$actionMsg = renderText(paste0("Error processing: ",qry))
+        return()
+      } else {
+        dbCommit(dbcon)
+        output$actionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
                globals$tblName))
+      }
+      Sys.sleep(2)
+      session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
       dbSendQuery(dbcon,paste0("delete from ",globals$tblName,
         " where Stand_ID = ''"))      
       res = dbSendQuery(dbcon,paste0("select distinct Stand_ID from ",
