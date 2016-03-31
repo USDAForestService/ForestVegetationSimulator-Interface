@@ -28,14 +28,19 @@ if (file.exists("projectId.txt"))
 
 source("mkInputElements.R")
 
-#source("modalDialog.R")
-
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
     ".nav>li>a {padding:6px;}",
     ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:6px}"))),  
+    ".form-group {margin-bottom:6px}"))),
+  tags$script('
+      Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
+          var el = $("#" + x);
+          el.replaceWith(el = el.clone(true));
+          var id = "#" + x + "_progress";     
+          $(id).css("visibility", "hidden");
+        });'),
   fixedRow(
     column(width=6,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
@@ -60,7 +65,7 @@ shinyUI(fixedPage(
   fixedRow(
     column(width=3,offset=0,
       myRadioGroup("mode", "Mode ", c("Edit","New rows")),
-      myInlineTextInput("disprows",  "Number display rows", value = 25, size=5),
+      myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
   	  selectInput("selectdbtabs", label="Table to process",
 	          choices  = list(), 
 	          selected = NULL, multiple = FALSE, selectize=FALSE),
@@ -68,14 +73,24 @@ shinyUI(fixedPage(
           choices  = list(), size=10,
           selected = NULL, multiple = TRUE, selectize=FALSE),
       uiOutput("stdSel"),h5(),
+      shiny::actionButton("recoverdb","Recover database from backup or default"),h5(),
       shiny::actionButton("clearTable","Remove all rows and commit"),h5(),
-      shiny::actionButton("commitChanges","Commit changes"),h5(),
+      shiny::actionButton("commitChanges","Commit edits or new rows"),h5(),
       shiny::actionButton("FVSOnline","Return to FVSOnline")
     ),
     column(width=9,offset=0,
       uiOutput("navRows"),
       h5(),
-      hotable("tbl")
+      hotable("tbl"),
+      h4(" "),
+      textOutput("actionMsg"),
+      fileInput("upload","Upload and commit FVS-Ready database (.accdb, .mdb, or .db (SQLite3))",
+                width="90%"), 
+      fileInput("uploadStdTree","Upload and commit Stand or Tree data (.csv with headers, data will be appended)",
+                width="90%"), 
+      fileInput("climateFVSUpload",
+                "Upload and commit Climate-FVS data (append and replace; FVSClimAttrs.csv or answers.zip).",
+                width="90%")
     )
   )
 ))
