@@ -438,7 +438,7 @@ cat ("returnToFVSOnline\n")
       if (class(indat) == "try-error" || nrow(indat)==0)
       {
         output$actionMsg = renderText("Input empty, no data loaded.")
-        Sys.sleep(2)
+        Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
@@ -452,7 +452,7 @@ cat ("returnToFVSOnline\n")
       if (nrow(indat)==0)
       {
         output$actionMsg = renderText("All rows were empty,  no data loaded.")
-        Sys.sleep(2)
+        Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
@@ -462,7 +462,7 @@ cat ("returnToFVSOnline\n")
       {
         output$actionMsg = renderText(paste0("No columns match what is defined for ",
                globals$tblName,", no data loaded."))
-        Sys.sleep(2)
+        Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
@@ -478,7 +478,7 @@ cat ("returnToFVSOnline\n")
       {
         output$actionMsg = renderText(paste0("Required columns were missing for ",
                globals$tblName,", no data loaded."))
-        Sys.sleep(2)
+        Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
@@ -508,7 +508,7 @@ cat ("returnToFVSOnline\n")
         output$actionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
                globals$tblName))
       }
-      Sys.sleep(2)
+      Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
       dbSendQuery(dbcon,paste0("delete from ",globals$tblName,
         " where Stand_ID = ''"))      
@@ -543,7 +543,7 @@ cat ("returnToFVSOnline\n")
           union(c("Delete"),input$selectdbvars),drop=FALSE],
           readOnly=FALSE)
       } 
-      Sys.sleep(2)
+      Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
     })
   }) 

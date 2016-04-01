@@ -83,6 +83,7 @@ shinyUI(fixedPage(
       h5(),
       hotable("tbl"),
       h4(" "),
+      tags$style(type="text/css","#actionMsg{color:darkred;}"), 
       textOutput("actionMsg"),
       fileInput("upload","Upload and commit FVS-Ready database (.accdb, .mdb, or .db (SQLite3))",
                 width="90%"), 
