@@ -339,7 +339,7 @@ cat ("tbs2=",tbs,"\n")
         if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
         if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
-            c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMTCuFt","TPrdSCuFt","TPrdSBdFt"))
+            c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMCuFt","TPrdSCuFt","TPrdSBdFt"))
         if (!is.null(dbd[["Composite"]])) dbd$Composite = c(dbd$Composite,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
           
@@ -413,7 +413,7 @@ cat ("Explore Output\n")
           dtab$Year=as.factor(dtab$Year) 
           dtab$MgmtID=as.factor(dtab$MgmtID) 
           dat = list(Composite = dtab)
-        } else{
+        } else {
           dtab = dbGetQuery(dbcon,paste0("select * from ",tb,
                  " where CaseID in (select CaseID from m.Cases)"))
           if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
@@ -437,7 +437,7 @@ cat ("Explore Output\n")
           dat[[tb]] = dtab
         }
       }
-cat ("Explore, len(dat)=",length(dat),"\n")      
+cat ("Explore, len(dat)=",length(dat),"\n") 
       mdat = dat$FVS_Cases
       dat$FVS_Cases = NULL
       if (is.null(mdat))  mdat = dat[[1]]
@@ -489,7 +489,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
       vars = union(setdiff(vars,endvars),endvars)
       mdat = mdat[sby,vars,drop=FALSE]
       mdat$srtOrd = NULL
-      vars = colnames(mdat)
+      vars = colnames(mdat)     
       if (length(vars) == 0) return()
       if (is.null(mdat$RunTitle)) 
         updateSelectInput(session, "stdtitle", choices  = list("None loaded"), 
