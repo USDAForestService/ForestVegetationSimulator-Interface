@@ -702,30 +702,29 @@ cat ("renderPlot\n")
     if (input$xaxis == "Year" && input$plotType != "box" && 
         input$plotType != "bar") dat$Year = as.numeric(as.character(dat$Year))
 
-    nd = NULL  
+    nd = NULL
     for (v in vars[(nlv+1):length(vars)])
     {
-      if (is.na(v)) return(nullPlot())
-      if (length(intersect(c(vars[1:nlv],v),colnames(dat))) == 0) next
+      if (is.na(v) || !v %in% names(dat)) return(nullPlot())
       pd = dat[,c(vars[1:nlv],v),drop=FALSE]
       names(pd)[ncol(pd)] = "Y"
-      nd = rbind(nd, data.frame(pd,Attribute=v,stringsAsFactors=FALSE))
+      nd = rbind(nd, data.frame(pd,Legend=v,stringsAsFactors=FALSE))
     }
     nd = na.omit(nd)
     if (length(nd) == 0) return(nullPlot())
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
     if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet"      
-    if (!is.null(pb) && !is.null(nd$Attribute)) 
+    if (!is.null(pb) && !is.null(nd$Legend)) 
     {
-      alv = nlevels(as.factor(nd$Attribute))
-      nd$Attribute = if (alv == 1) paste(pb,nd[,pb],sep=":") else
-                                   paste(nd$Attribute,pb,nd[,pb],sep=":")
+      alv = nlevels(as.factor(nd$Legend))
+      nd$Legend = if (alv == 1) paste(pb,nd[,pb],sep=":") else
+                                   paste(nd$Legend,pb,nd[,pb],sep=":")
     }
       
     if (!is.null(nd$vfacet))    nd$vfacet    = as.factor(nd$vfacet)
     if (!is.null(nd$hfacet))    nd$hfacet    = as.factor(nd$hfacet)
-    if (!is.null(nd$Attribute)) nd$Attribute = as.factor(nd$Attribute)
+    if (!is.null(nd$Legend)) nd$Legend = as.factor(nd$Legend)
 
     fg = NULL
     fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
@@ -738,30 +737,35 @@ cat ("renderPlot\n")
           title=input$ptitle)  + 
           theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
-            axis.text = element_text(color="black")) 
+            axis.text = element_text(color="black"))
     colors = if (input$colBW == "B&W") rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
-      ggplotColours(n=nlevels(nd$Attribute)+1)
+      ggplotColours(n=nlevels(nd$Legend)+1)
     if (!is.null(colors)) p = p + scale_colour_manual(values=colors)
-    if (nlevels(nd$Attribute)>6) p = p +
-      scale_shape_manual(values=1:nlevels(nd$Attribute))
+    if (nlevels(nd$Legend)>6) p = p +
+      scale_shape_manual(values=1:nlevels(nd$Legend))
+    alpha = approxfun(c(50,100,1000),c(1,.7,.4),rule=2)(nrow(nd))    
+    size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))    
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
-        geom_line    (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
-        geom_line    (aes(x=X,y=Y,color=Attribute),alpha=.8),
+        geom_line    (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
+        geom_line    (aes(x=X,y=Y,color=Legend),alpha=.8),
       scatter = if (input$colBW == "B&W") 
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute),size=.5) else
-        geom_point   (aes(x=X,y=Y,shape=Attribute,color=Attribute),alpha=.3,size=.5),
+        geom_point   (aes(x=X,y=Y,shape=Legend,color=Legend),size=size) else
+        geom_point   (aes(x=X,y=Y,shape=Legend,color=Legend),
+                          alpha=alpha,size=size),
       bar     = if (input$colBW == "B&W") 
-        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),
+        geom_bar     (aes(x=X,y=Y,color=Legend,fill=Legend),
            position="dodge",stat="identity") else
-        geom_bar     (aes(x=X,y=Y,color=Attribute,fill=Attribute),alpha=.8,
+        geom_bar     (aes(x=X,y=Y,color=Legend,fill=Legend),alpha=.8,
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
-        geom_boxplot (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) else
-        geom_boxplot (aes(x=X,y=Y,color=Attribute,alpha(.5)))
+        geom_boxplot (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
+        geom_boxplot (aes(x=X,y=Y,color=Legend),alpha=alpha)
       )
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
+    p = p + theme(text=element_text(size=9)) 
+    if (input$colBW == "color") p = p + scale_colour_brewer(palette = "Set1")
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -811,8 +815,8 @@ cat ("renderPlot\n")
       { 
         gr=unlist(strsplit(x[2]," "))
         st=rep(x[1],length(gr))
-        attributes(st) = NULL
-        attributes(gr) = NULL
+        Legends(st) = NULL
+        Legends(gr) = NULL
         list(st,gr)    
       })
     dd = lapply(dd,function(x) matrix(unlist(x),ncol=2))
@@ -1950,7 +1954,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         X = vector("numeric",0)
         hfacet = vector("character",0)
         Y = vector("numeric",0)
-        Attribute=vector("character",0)
+        Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(fvsRun$stands)+5)
         for (i in 1:length(allSum)) 
@@ -1958,25 +1962,25 @@ cat ("length(allSum)=",length(allSum),"\n")
           X = c(X,rep(allSum[[i]][,"Year"],2))
           hfacet = c(hfacet,rep(names(allSum)[i],nrow(allSum[[i]])*2))
           Y = c(Y,c(allSum[[i]][,"TCuFt"],allSum[[i]][,"TPrdTCuFt"]))
-          Attribute=c(Attribute,c(rep("TCuFt",nrow(allSum[[i]])),
+          Legend=c(Legend,c(rep("TCuFt",nrow(allSum[[i]])),
                                   rep("TPrdTCuFt",nrow(allSum[[i]]))))
         }
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
-                  Attribute=as.factor(Attribute))
+                  Legend=as.factor(Legend))
         width = max(4,nlevels(toplot$hfacet)*2)
         height = 2.5
         plt = if (nlevels(toplot$hfacet) < 5)
           ggplot(data = toplot) + facet_grid(.~hfacet) + 
-            geom_line (aes(x=X,y=Y,color=Attribute,linetype=Attribute)) +
+            geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
             labs(x="Year", y="Total cubic volume per acre") + 
             theme(text = element_text(size=9), legend.position="none",
                   panel.background = element_rect(fill="gray95"),
                   axis.text = element_text(color="black"))  else
         {
           width = 3
-          toplot$Attribute = as.factor(paste0(toplot$Attribute,toplot$hfacet))
+          toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
           ggplot(data = toplot) +  
-            geom_line (aes(x=X,y=Y,color=Attribute,alpha=.5)) + 
+            geom_line (aes(x=X,y=Y,color=Legend,alpha=.5)) + 
             labs(x="Year", y="Total cubic volume per acre") + 
                theme(text = element_text(size=9), legend.position="none",
                      panel.background = element_rect(fill="gray95"),
