@@ -815,8 +815,8 @@ cat ("renderPlot\n")
       { 
         gr=unlist(strsplit(x[2]," "))
         st=rep(x[1],length(gr))
-        Legends(st) = NULL
-        Legends(gr) = NULL
+        attributes(st) = NULL
+        attributes(gr) = NULL
         list(st,gr)    
       })
     dd = lapply(dd,function(x) matrix(unlist(x),ncol=2))
