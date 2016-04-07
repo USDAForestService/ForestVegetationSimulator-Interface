@@ -845,13 +845,13 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
 }
 
 
-fixFVSKeywords <- function()
+fixFVSKeywords <- function(dbcon)
 {
-  tbs <- dbListTables()
+  tbs <- dbListTables(dbcon)
   for (tb in tbs)
   {
 cat ("in fixFVSKeywords, tb=",tb,"\n")
-    flds <- dbListFields(, tb)
+    flds <- dbListFields(dbcon, tb)
     kwdsIdxs <- grep ("keywords",flds,ignore.case = TRUE)
     if (length(kwdsIdxs) == 0) next
     for (kwdname in flds[kwdsIdxs])
@@ -859,10 +859,10 @@ cat ("in fixFVSKeywords, tb=",tb,"\n")
       qry = paste0("select _ROWID_,",kwdname," from ",tb,
         " where ",kwdname," is not null and ",kwdname," != '';")
 cat ("qry=",qry,"\n")              
-      res <- dbSendQuery(,qry)
+      res <- dbSendQuery(dbcon,qry)
       kwdf <- dbFetch(res, n=-1)
 cat ("result nrow=",nrow(kwdf),"\n")      
-      dbClearResult()
+      dbClearResult(dbcon)
       if (nrow(kwdf))
       {
         for (row in 1:nrow(kwdf))
@@ -879,16 +879,16 @@ cat ("result nrow=",nrow(kwdf),"\n")
         kwdf = subset(kwdf,rowid > 0)
         if (nrow(kwdf) > 0)
         {
-          dbBegin()
+          dbBegin(dbcon)
           for (row in 1:nrow(kwdf))
           {
             qut <- if (length(grep("'",kwdf[row,2],fixed=TRUE))) "\"" else "'"
             qry <- paste0("update ",tb," set ",kwdname," = ",qut,
               kwdf[row,2],qut," where _ROWID_ = ",kwdf[row,1],";")
 cat ("qry=",qry,"\n")              
-             dbSendQuery(,qry)              
+             dbSendQuery(dbcon,qry)              
           }
-          dbCommit()
+          dbCommit(dbcon)
         }
       }
     }
