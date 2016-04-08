@@ -366,7 +366,7 @@ cat ("returnToFVSOnline\n")
         setProgress(message = "Create schema", value = 1) 
         curDir=getwd()
         setwd(dirname(input$upload$datapath))
-        system (paste0("java -jar ",curDir,"/access2csv.jar ",
+        system (paste0("java -jar '",curDir,"/access2csv.jar' ",
                 input$upload$datapath," --schema > schema"))
         setProgress(message = "Process schema", value = 2)
         if (!file.exists("schema") || file.size("schema") == 0) 
@@ -395,7 +395,7 @@ cat ("returnToFVSOnline\n")
         }        
         cat (paste0(schema,"\n"),file="schema")
         setProgress(message = "Extract data", value = 3) 
-        system (paste0("java -jar ",curDir,"/access2csv.jar ",
+        system (paste0("java -jar '",curDir,"/access2csv.jar' ",
                  input$upload$datapath))  
         setProgress(message = "Import schema to Sqlite3", value = 4) 
         system (paste0 ("sqlite3 ","FVS_Data.db"," < schema"))
@@ -743,8 +743,25 @@ fixEmptyTable <- function (con,globals,checkCnt=FALSE)
     
 checkMinColumnDefs <- function(dbcon)
 {
+  #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
+  # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
-  fields = dbListFields(dbcon,"FVS_StandInit")
+  fields = try(dbListFields(dbcon,"FVS_StandInit"))
+  # if this is an error, then FVS_StandInit does not exist and this is an error
+  # where the standard fixup in this case is to try recovery of the database.
+  if (class(fields) == "try-error")
+  {
+    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
+    if (file.exists("FVS_Data.db.backup"))
+    {
+      file.rename("FVS_Data.db.backup","FVS_Data.db")
+      checkMinColumnDefs(dbcon)
+    } else {
+      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+      unlink("FVS_Data.db.backup")
+    }
+    return()
+  }
   modStarted = FALSE
   sID = FALSE
   sCN = FALSE
@@ -795,9 +812,13 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     if (sID || sCN) 
     {
       fvsInit = dbReadTable(dbcon,"FVS_StandInit")
-      if (sID) fvsInit$Stand_ID = paste0("Stand",1:nrow(fvsInit))
-      if (sCN) fvsInit$Stand_CN = paste0("Stand",1:nrow(fvsInit))
-      dbWriteTable(dbcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
+      if (nrow(fvsInit))
+      {
+        if (sID) fvsInit$Stand_ID = 
+          if (sCN) paste0("Stand",1:nrow(fvsInit)) else fvsInit$Stand_CN
+        if (sCN) fvsInit$Stand_CN = fvsInit$Stand_ID
+        dbWriteTable(dbcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
+      }
     }
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
@@ -816,32 +837,6 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     )
     dbWriteTable(dbcon,name="FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
   }
-  #check for blank or NA Stand_CN values in FVS_StandInit
-  res = dbSendQuery(dbcon,paste0(
-      "select _ROWID_,Stand_ID,Stand_CN from FVS_StandInit where Stand_CN is null"))
-  res = dbFetch(res,n=-1)
-  if (nrow(res))
-  {
-    for (i in 1:nrow(res))
-    {
-      dbSendQuery(dbcon,paste0(
-        "update FVS_StandInit set Stand_CN='",res[i,2],"' where _ROWID_=",res[i,1],";"))
-    }
-  } 
-
-  #check for blank or NA Stand_CN values in FVS_TreeInit  
-  res = dbSendQuery(dbcon,paste0(
-      "select _ROWID_,Stand_ID,Stand_CN from FVS_TreeInit where Stand_CN is null"))
-  res = dbFetch(res,n=-1)
-  if (nrow(res))
-  {
-    for (i in 1:nrow(res))
-    {
-      dbSendQuery(dbcon,paste0(
-        "update FVS_TreeInit set Stand_CN='",res[i,2],"' where _ROWID_=",res[i,1],";"))
-    }
-  }  
-
 }
 
 
