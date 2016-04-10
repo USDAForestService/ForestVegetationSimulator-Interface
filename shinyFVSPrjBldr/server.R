@@ -49,14 +49,19 @@ cat ("fvsbin cmd=",cmd,"\n")
       cat (file=con,"Here is a link to the project named:",input$title,"\n\n")
       cat (file=con,link,"\n\n")
       cat (file=con,"Note that this and all other projects may be removed",
-           "from the sytem 2 months after the last access.")
+           "from the system 2 months after the last access.")
       close(con)
 
       mailCmd = paste('mailx -t',input$emailnew,'-a "From: FVSOnline"',
        '-a "Subject: New project: ',input$title,'"',
        '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
-       '-a "Cc: ncrookston.fs@gmail.com" < ',rptFile)  
+       '-a "Cc: ncrookston.fs@gmail.com" < ',rptFile)      
       system (mailCmd)
+      if (nchar(input$title)) 
+      {
+        msg = paste0('Project: "',input$title,'" created.')
+        output$actionMsg = renderText(msg)
+      }
       updateTextInput(session=session, inputId="title", value="")
     })
   })

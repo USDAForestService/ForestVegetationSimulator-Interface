@@ -1,6 +1,11 @@
 library(shiny)
 
 shinyUI(fluidPage(
+  tags$style(HTML(paste0(
+    ".nav>li>a {padding:6px;}",
+    ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
+    ".form-control {padding:2px 4px; height:auto;}",
+    ".form-group {margin-bottom:6px}"))),
   verticalLayout(
     h2("Forest Vegetation Simulator (FVS-Online)"),
     p("Set up an FVSOnline project by filling out this form, including the ",
@@ -11,8 +16,10 @@ shinyUI(fluidPage(
     tags$style(type="text/css", "#title { width: 500px; }"),
     textInput("title", "Your new project title"),
     textInput("emailnew", "Your Email address"),
-    uiOutput("uivariants"),
+    uiOutput("uivariants"),    
     actionButton("submitnew","Submit"),
+    tags$style(type="text/css","#actionMsg{color:darkred;}"), 
+    textOutput("actionMsg"),
     hr(),
     p("Get a list of existing projects"),
     textInput("emailexist", "Your Email address", ""),
