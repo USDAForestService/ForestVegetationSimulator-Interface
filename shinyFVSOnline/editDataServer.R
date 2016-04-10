@@ -765,12 +765,14 @@ cat ("in checkMinColumnDefs\n")
   modStarted = FALSE
   sID = FALSE
   sCN = FALSE
+  grp = FALSE
   # make sure groups are defined, if missing set one to "All"
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbcon)}
     dbSendQuery(dbcon,
-      "alter table FVS_StandInit add column Groups text not null default 'All'")
+      "alter table FVS_StandInit add column Groups text not null default 'All_Stands'")
+    grp = TRUE
   }
   # make sure Stand_ID is defined
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
@@ -820,6 +822,13 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         dbWriteTable(dbcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
       }
     }
+  }
+  # check groups
+  if (!grp)
+  {
+    grps = dbGetQuery(dbcon,"select Groups from FVS_StandInit")
+    if (any(grps[,1] == "")) dbSendQuery(dbcon,
+      "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
   gtab = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))

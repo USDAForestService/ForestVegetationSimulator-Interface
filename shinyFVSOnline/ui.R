@@ -203,8 +203,9 @@ shinyUI(fixedPage(
           column(width=9,
             checkboxGroupInput("autoOut",
               "Database output (summaries are always produced)",
-              c("Treelists"="autoTreelists","Carbon"="autoCarbon",
-                "Fire"="autoFire","Deadwood"="autoDead"),inline=TRUE),
+              c("Treelists"="autoTreelists","Compute"="autoCompute",
+                "Carbon"="autoCarbon","Fire"="autoFire","Deadwood"="autoDead"),
+              inline=TRUE),
             customRunElements
           )
         ),

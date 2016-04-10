@@ -25,6 +25,12 @@ Cutlist        1
 End
 "
 
+autoCompute="
+Database
+Compute            0         0
+End
+"
+
 autoCarbon="
 FMIn
 CarbRept        2

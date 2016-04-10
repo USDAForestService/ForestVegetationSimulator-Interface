@@ -547,7 +547,9 @@ cat ("Explore, len(dat)=",length(dat),"\n")
             hits = unlist(grep(x,vs,ignore.case = TRUE))
             hits = hits[hits>0]
             vs[hits]
-          },vars)) 
+          },vars))
+      keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
+      selVars = selVars[keep]
       updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                selected=selVars,inline=TRUE)
       fvsOutData$dbData        <- mdat
@@ -1858,12 +1860,11 @@ cat("Nulling uiRunPlot at Save and Run\n")
             choices=selChoices,selected=selChoices[[1]])
         FVS_Runs = globals$FVS_Runs
         progress <- shiny::Progress$new(session,min=1,
-                           max=length(fvsRun$stands)+5)
+                           max=length(fvsRun$stands)+6)
         progress$set(message = "Run preparation: ", 
-          detail = "Deleting obsolete output data", value = 1)         
+          detail = "Saving FVS Runs, deleting old ouputs", value = 1)         
         save (FVS_Runs,file="FVS_Runs.RData")
         removeFVSRunFiles(fvsRun$uuid)
-        deleteRelatedDBRows(fvsRun$uuid,dbcon)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and load program", value = 2)
         writeKeyFile(fvsRun,dbIcon,prms)
@@ -1947,16 +1948,21 @@ cat ("rn=",rn,"\n")
                     "FVS finished" else
                     "FVS run failed", detail = "", 
                     value = length(fvsRun$stands)+4)
-        Sys.sleep(.4)
+        Sys.sleep(.1)       
 cat ("length(allSum)=",length(allSum),"\n")
-        if (length(allSum) == 0) return()
-
+        if (length(allSum) == 0) {Sys.sleep(.4); return()}
+        progress$set(message = "FVS finished",  
+                     detail = "Merging output to master database",
+                     value = length(fvsRun$stands)+5)
+        res = addNewRun2DB(fvsRun$uuid,dbcon)
+cat ("addNewRun2DB res=",res,"\n")
+        unlink(paste0(fvsRun$uuid,".db"))
         X = vector("numeric",0)
         hfacet = vector("character",0)
         Y = vector("numeric",0)
         Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
-                     value = length(fvsRun$stands)+5)
+                     value = length(fvsRun$stands)+6)
         for (i in 1:length(allSum)) 
         {
           X = c(X,rep(allSum[[i]][,"Year"],2))
