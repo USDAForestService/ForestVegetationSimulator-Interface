@@ -281,11 +281,12 @@ cat("writeKeyFile, num stds=",length(stds),
     cat ("InvYear       ",std$invyr,"\n",file=fc,sep="")
     thiscyc = union(seq(ninvyr,cycleat[1],as.numeric(fvsRun$cyclelen)),cycleat)
     ints = diff(sort(thiscyc))
+    if (length(ints)==0) ints = fvsRun$cyclelen
     mostint = names(which.max(table(ints)))
     ints = as.character(ints)
     cat ("TimeInt                ",mostint,"\n",file=fc)
     for (i in 1:length(ints)) if (ints[i] != mostint) 
-         cat ("TimeInt      ",as.character(i),"      ",ints[i],"\n",file=fc)
+       cat ("TimeInt      ",as.character(i),"      ",ints[i],"\n",file=fc)
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
     cat ("DelOTab            1\n",file=fc)
     cat ("DelOTab            2\n",file=fc)

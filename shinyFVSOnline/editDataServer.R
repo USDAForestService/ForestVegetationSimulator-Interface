@@ -796,7 +796,7 @@ cat ("in checkMinColumnDefs\n")
     if (!modStarted) {modStarted=TRUE; dbBegin(dbcon)}
     year=substring(as.character(Sys.time()),1,4)
     dbSendQuery(dbcon,paste0(
-      "alter table FVS_StandInit add column Inv_Year text not null default '",year,"'"))      
+      "alter table FVS_StandInit add column Inv_Year integer not null default ",year))      
   }
   # make sure FVSKeywords is defined
   if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
@@ -827,7 +827,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   if (!grp)
   {
     grps = dbGetQuery(dbcon,"select Groups from FVS_StandInit")
-    if (any(grps[,1] == "")) dbSendQuery(dbcon,
+    if (any(is.na(grps[,"Groups"])) || any(grps[,"Groups"] == "")) dbSendQuery(dbcon,
       "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
