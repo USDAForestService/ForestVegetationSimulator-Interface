@@ -73,7 +73,7 @@ shinyUI(fixedPage(
           choices  = list(), size=10,
           selected = NULL, multiple = TRUE, selectize=FALSE),
       uiOutput("stdSel"),h5(),
-      shiny::actionButton("recoverdb","Recover database from backup or default"),h5(),
+      shiny::actionButton("recoverdb","Recover backup or default database"),h5(),
       shiny::actionButton("clearTable","Remove all rows and commit"),h5(),
       shiny::actionButton("commitChanges","Commit edits or new rows"),h5(),
       shiny::actionButton("FVSOnline","Return to FVSOnline")
