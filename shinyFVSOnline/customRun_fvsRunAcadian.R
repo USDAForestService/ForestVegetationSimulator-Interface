@@ -8,7 +8,7 @@ if (file.exists("Acadian.log")) file.remove("Acadian.log")
 fvsRunAcadian <- function(runOps,logfile="Acadian.log")
 { 
   if (!is.null(logfile)) sink(logfile,append=TRUE)
-  cat ("*** in fvsRunAcadian",date()," versionTag=",versionTag,"\n")
+  cat ("*** in fvsRunAcadian",date()," AcadianVersionTag=",AcadianVersionTag,"\n")
   
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAcadianIngrowth)) "N" else 
@@ -32,7 +32,6 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                  c(CDEF=CDEF,SBW.YR=SBW.YR,SBW.DUR=SBW.DUR)
   if (!is.null(SBW) && any(is.na(SBW))) SBW=NULL
 
-  mkGraphs=FALSE
   CutPoint=0
   
   #load some handy conversion factors
@@ -113,29 +112,21 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     ops   = list(INGROWTH=INGROWTH,MinDBH=MinDBH, 
                  CutPoint=0.5,   # >0 uses threshold probability (>0-1).
                  mortType="continuous", #mortType="discrete", 
-                 SBW=SBW,THINMOD=THINMOD,verbose=TRUE)
-   
-    #compute the growth
-    keepCols = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB","CR")
-    incr = list(tree=orgtree,ingrow=NULL)    
+                 SBW=SBW,THINMOD=THINMOD,verbose=TRUE,
+                 rtnVars = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB"))
+    
+    tree=orgtree 
     for (year in stdInfo["year"]:stdInfo["cendyear"])
     {
-      incr$tree$YEAR = year
+      tree$YEAR = year
       cat ("fvsRunAcadian: calling AcadianGY, year=",year,"\n")
-      incr = AcadianGY(incr$tree,stand=stand,ops=ops)
-      incr$tree$DBH  = incr$tree$DBH+incr$tree$dDBH
-      incr$tree$HT   = incr$tree$HT +incr$tree$dHT 
-      incr$tree$HCB  = incr$tree$HCB+incr$tree$dHCB
-      incr$tree$CR   = (incr$tree$HT-incr$tree$HCB)/incr$tree$HT
-      incr$tree$EXPF = incr$tree$EXPF-incr$tree$dEXPF
-      incr$tree = incr$tree[,keepCols]
-      if (!is.null(incr$ingrow)) 
-      { 
-        incr$tree = rbind(incr$tree,incr$ingrow[,keepCols])
-        incr$ingrow = NULL
-      }     
+      tree = AcadianGYOneStand(tree,stand=stand,ops=ops)
     }
-    
+    # put the PLOT variable back to a character string (defactor it).
+    if (is.factor(tree$PLOT)) tree$PLOT = levels(tree$PLOT)[as.numeric(tree$PLOT)]
+    # restore the order of the trees
+    tree = tree[order(tree$TREE),]
+
     ### this code saves the input so AcadianGY can be run outside of FVSOnline
     #savefile=paste0("acadianInput","_",stdIds["standid"],"_",stdInfo["year"],
     #                 ".RData")
@@ -143,81 +134,40 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     #save(orgtree,incr,stand,ops,file=savefile)
     ### 
 
-    cat ("fvsRunAcadian: is.null(incr$tree$dEXPF)=",is.null(incr$tree$dEXPF),"\n")                    
-    cat ("fvsRunAcadian: cyclen=",cyclen,"sum1 EXPF=",sum(incr$tree$EXPF),
-         " sum dEXPF=",if (is.null(incr$tree$dEXPF)) NA else sum(incr$tree$dEXPF),"\n")
+    cat ("fvsRunAcadian: is.null(tree$dEXPF)=",is.null(tree$dEXPF),"\n")                    
+    cat ("fvsRunAcadian: cyclen=",cyclen,"sum1 EXPF=",sum(tree$EXPF),
+         " sum dEXPF=",if (is.null(tree$dEXPF)) NA else sum(tree$dEXPF),"\n")
          
-    names(incr$tree)[match("TPA",names(incr$tree))] = "EXPF"
-                     
-    #plot growth and ingrowth
-
-    if (mkGraphs)
-    {
-      file=paste0("SId_",fvsGetStandIDs()["standid"],"_Year_",
-                   stdInfo["year"],".png")
-      main=paste0("SId=",fvsGetStandIDs()["standid"],"; Year=",
-                  stdInfo["year"],"; Cyclen=",cyclen)
-      png (filename=file,height=6,width=6,units="in",pointsize=10,res=300)
-      par(mfcol=c(3,2),mar=c(4,4,3,1))
-      barplot(by(orgtree$EXPF,FUN=base::sum,
-           INDICES=list(orgtree$PLOT,orgtree$SP)),
-           main=main,ylab="Stocking (t/ha)",xlab="Species",cex.names=.7)
-      box("figure")
-      barplot(by(orgtree$dEXPF,FUN=base::sum,
-           INDICES=list(orgtree$PLOT,orgtree$SP)),
-           main=main,ylab="Mortality (t/ha)",xlab="Species",cex.names=.7)
-      box("figure")
-      plot(y=orgtree$HT,x=orgtree$DBH,xlab="DBH (cm)",ylab="Ht (m)",
-           col=as.numeric(as.factor(orgtree$SP)),main=main)
-      box("figure")
-      plot(y=orgtree$dHT,x=orgtree$HT,xlab="Ht (m)",ylab="dHt (m)",
-           col=as.numeric(as.factor(orgtree$SP)),main=main)
-      box("figure")
-      plot(y=orgtree$dDBH,ylab="dDBH (cm)",xlab="DBH (cm)",
-           x=orgtree$DBH,col=as.numeric(as.factor(orgtree$SP)),main=main)
-      box("figure")
-      if (is.null(incr$ingrow))
-      {
-        plot.new()
-        text(.5,.5,"No ingrowth")
-      } else 
-      {
-        barplot(by(incr$ingrow$EXPF,FUN=base::sum,
-             INDICES=list(incr$ingrow$PLOT,incr$ingrow$SP)),
-             main=paste0(main,"\nMinDBH=",MinDBH," NumPlots=",
-                         max(incr$ingrow$PLOT)),
-             ylab="Ingrowth (t/ha)",xlab="Species",cex.names=.7)
-      }
-      box("figure")
-      dev.off()
-    }
+    names(tree)[match("TPA",names(tree))] = "EXPF"
+    
+    tree$CR = round((1-(tree$HCB/tree$HT))*100,1)                
     tofvs = data.frame(id=orgtree$TREE,
-              dg=(incr$tree$DBH[orgtree$TREE]-orgtree$DBH)*CMtoIN,
-              htg=(incr$tree$HT[orgtree$TREE]-orgtree$HT)*MtoFT,
+              dg=(tree$DBH[orgtree$TREE]-orgtree$DBH)*CMtoIN,
+              htg=(tree$HT[orgtree$TREE]-orgtree$HT)*MtoFT,
               # set the crown ratio sign to negetive so that FVS 
               # doesn't change them. if already negetive, don't change them.
               cratio=ifelse(orgtree$CRATIO < 0, orgtree$CRATIO,
-                            -round(incr$tree$CR[orgtree$TREE]*100,0)))
+                            -tree$CR[orgtree$TREE]))
     if (mortModel == "Acadian") tofvs$mort=(orgtree$EXPF-
-      incr$tree$EXPF[orgtree$TREE])*ACRtoHA          
+      tree$EXPF[orgtree$TREE])*ACRtoHA          
     fvsSetTreeAttrs(tofvs)
 
     atstop6 = FALSE
     
     # adding regeneration?
-    newTrees = nrow(incr$tree) - nrow(orgtree)
+    newTrees = nrow(tree) - nrow(orgtree)
     cat ("fvsRunAcadian: num newtrees=",newTrees,"\n") 
     if (newTrees)
     {
       if (newTrees < room["maxtrees"] - room["ntrees"])
       {
-        newTrees = (nrow(orgtree)+1):nrow(incr$tree)
-        toadd = data.frame(dbh    =incr$tree$DBH[newTrees]*CMtoIN,
-                           species=match(incr$tree$SP[newTrees],spcodes[,"fvs"]),
-                           ht     =incr$tree$HT[newTrees]*MtoFT,
-                           cratio =incr$tree$CR[newTrees],
-                           plot   =as.numeric(incr$tree$PLOT[newTrees]),
-                           tpa    =incr$tree$EXPF[newTrees]*ACRtoHA)
+        newTrees = (nrow(orgtree)+1):nrow(tree)
+        toadd = data.frame(dbh    =tree$DBH[newTrees]*CMtoIN,
+                           species=match(tree$SP[newTrees],spcodes[,"fvs"]),
+                           ht     =tree$HT[newTrees]*MtoFT,
+                           cratio =-tree$CR[newTrees],
+                           plot   =as.numeric(tree$PLOT[newTrees]),
+                           tpa    =tree$EXPF[newTrees]*ACRtoHA)
         fvsRun(stopPointCode=6,stopPointYear=-1)
         atstop6 = TRUE
         fvsAddTrees(toadd)
@@ -276,19 +226,19 @@ cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
               fvsRun$uiCustomRunOps$uiAcadianMinDBH   = "3.0"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
-              fvsRun$uiCustomRunOps$uiAcadianMort     = "Base Model" #"Acadian"
+              fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
-              fvsRun$uiCustomRunOps$uiAcadianVolume   = "Base Model"
+              fvsRun$uiCustomRunOps$uiAcadianVolume   = "Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianTHIN))
               fvsRun$uiCustomRunOps$uiAcadianTHIN     = "Yes"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW))
               fvsRun$uiCustomRunOps$uiAcadianSBW      = "No"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBWCDEF))
-              fvsRun$uiCustomRunOps$uiAcadianSBWCDEF  = "500"
+              fvsRun$uiCustomRunOps$uiAcadianSBWCDEF  = "100"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.YR))
               fvsRun$uiCustomRunOps$uiAcadianSBW.YR   = "2020"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.DUR))
-              fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "20"
+              fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "10"
   list(
     myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
@@ -297,7 +247,7 @@ cat ("in uiAcadian uiAcadianVolume=",
     myRadioGroup("uiAcadianMort", "Mortality model:", 
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianMort),
     myRadioGroup("uiAcadianVolume", "Merchantable volume logic:", 
-      c("Kozak","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
+      c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
     myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:", 
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
     myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 

@@ -20,7 +20,7 @@
 
 library(plyr)  #needed for ddply
 
-versionTag = "AcadianV9.1"
+AcadianVersionTag = "AcadianV9.1"
 
 #Define all functions below
 #sort data frames
@@ -760,11 +760,10 @@ dDBH.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   dDBH.mod = ifelse(!is.na(PERCBArm) & !is.na(QMDratio) & !is.na(BApre) & !is.na(YEAR_CT) & YEAR_CT <= YEAR & SP==1,
                     1+(exp(y0+(y1/((100*PERCBArm*QMDratio)+0.01)))*y2^TST*TST^y3),1.0)
   return(dDBH.mod = round(dDBH.mod,5))
-}
+}        
 
 #Diameter increment modifier for SBW (Cen et al. 2016)
-dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA)
-{
+dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA){
   BF=ifelse(SPP=='BF',1,0)
   BS.RS=ifelse(SPP=='BS'|SPP=='RS',1,0)
   WS=ifelse(SPP=='WS',1,0)
@@ -782,7 +781,7 @@ dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA)
     b6.WS=-0.3715
     b7.BF=-0.0016
     b7.BS.RS=-0.0006
-    b7.WS=-0.0183 }
+    b7.WS=-0.0183 }              
   else if(Region=='NB'){
     b1.BF=0.0701
     b1.BS.RS=0.0320
@@ -942,6 +941,7 @@ dHT.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   return(dHT.mod = dHT.mod)
 }
 
+
 #SBW Height modifier (Cen et al. 2016)
 dHT.SBW.mod=function(SPP,DBH,topht,CR,avg.DBH.SW,CDEF=NA){
   BF=ifelse(SPP=='BF',1,0)
@@ -1010,7 +1010,6 @@ dHCB.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   return(dHCB.mod = dHCB.mod)
 }
 
-
 #Mortality using the approach of Kershaw
 stand.mort.prob=function(region,BA,BAG,QMD,pBA.BF,pBA.IH)
 {
@@ -1042,7 +1041,6 @@ stand.mort.BA=function(region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih){
   return(mort.tot=mort.tot)
 }
 
-
 #SBW mortality modifier
 SBW.smort.mod=function(region,BA,BA.BF,topht,CDEF){
   if(region=='ME'){
@@ -1062,9 +1060,7 @@ SBW.smort.mod=function(region,BA,BA.BF,topht,CDEF){
   rat=ifelse(is.na(CDEF),1,bb/aa)
   return(rat=rat)
 }
-
-
-
+                               
 #Thinning mortality modifier
 BAmort.stand=function(BA,PCT,YEAR_CT,YEAR, PERCBArm, BApre, QMDratio){
   TST=YEAR-YEAR_CT
@@ -1081,7 +1077,6 @@ BAmort.stand=function(BA,PCT,YEAR_CT,YEAR, PERCBArm, BApre, QMDratio){
   #BAmort=BAmort*mod
   return(mod=mod)
 }
-
 
 tree.mort.prob=function(SPP,DBH)
 {
@@ -1152,7 +1147,7 @@ tree.mort.mod.SBW=function(Region,SPP,DBH,CR,HT,BAL.HW,BAL.SW,avgHT.SW,CDEF=NA){
     b2=-0.4866
     b3.BF=-0.0355
     b3.BS.RS=-0.1231
-    b3.WS=-0.1755
+    b3.WS=-0.1755                        
     b4=0.0316
     b5.BF=1.5087
     b5.BS.RS=1.5087
@@ -1425,11 +1420,11 @@ KozakTaper=function(Bark,SPP,DHT,DBH,HT,Planted){
     b7_tap=0
   }
   else if(Bark=='ib' & SPP=='BS'){
-    a0_tap=0.80472902                                            
+    a0_tap=0.80472902
     a1_tap=1.00804553
     a2_tap=0.05601099
     b1_tap=0.35533529
-    b2_tap=-0.41320046  
+    b2_tap=-0.41320046
     b3_tap=0.41527304
     b4_tap=1.11652424
     b5_tap=0.0990167
@@ -2676,7 +2671,6 @@ Summary.GY=function(tree){
   tree$ba.GB=ifelse(tree$SP=='GB',tree$ba,0)
   tree$ba.HW=ifelse(tree$SPtype=='HW',tree$ba,0)
   tree$ba.SW=ifelse(tree$SPtype!='HW',tree$ba,0)
-  
   tree$CR=((tree$HT-tree$HCB)/tree$HT)*tree$EXPF
   tree$HT=tree$HT*tree$EXPF
   temp <- subset(tree,select=c("YEAR","STAND","PLOT",'TREE','DBH','HT','CR',
@@ -2697,7 +2691,7 @@ Summary.GY=function(tree){
   temp$pBS.ba=temp$ba.BS/temp$BAPH
   temp$pWS.ba=temp$ba.WS/temp$BAPH
   temp$pPB.ba=temp$ba.PB/temp$BAPH
-  temp$pYB.ba=temp$ba.YB/temp$BAPH                                                     
+  temp$pYB.ba=temp$ba.YB/temp$BAPH
   temp$pGB.ba=temp$ba.GB/temp$BAPH
   temp$Avg.HT=temp$HT/temp$EXPF
   temp$Avg.LCR=temp$CR/temp$EXPF
@@ -2712,22 +2706,42 @@ Summary.GY=function(tree){
 }
   
 ###Acadian growth and yield model
-AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
+Acadian.GY=function(tree,stand,ops)
+{
+  ops=as.list(ops)
+  ans = ddply(tree,.(STAND), function (x,stand,ops) 
+    {
+      stand = as.list(subset(stand,STAND == x[1,"STAND"]))
+      tree = AcadianGYOneStand(tree,stand=stand,ops=ops)
+    }, stand,ops)                
+  tree<-sort.data.frame(ans,~+YEAR+STAND+PLOT+TREE)
+  tree <<- tree   ### this is dangerous and needs to be removed.
+  tree
+}
+
+
+
+
+###Acadian growth and yield model called for one stand at time
+AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
 {
   verbose  = if (is.null(ops$verbose))   FALSE      else ops$verbose
   INGROWTH = if (is.null(ops$INGROWTH))  "Y"        else ops$INGROWTH
   MinDBH   = if (is.null(ops$MinDBH))    10         else ops$MinDBH
   CutPoint = if (is.null(ops$CutPoint))  0.5        else ops$CutPoint
   mortType = if (is.null(ops$mortType))  "discrete" else ops$mortType
+  rtnVars  = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE",
+     "SP","DBH","HT","HCB","EXPF",'pHT','pHCB')     else ops$rtnVars
   SBW      = ops$SBW      
   THINMOD  = ops$THINMOD  
   CSI      = if (is.null(stand$CSI))    12          else stand$CSI
   
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           MinDBH=",MinDBH,
-    " mortType=",mortType," SBW=",SBW,"\n") 
+    " mortType=",mortType," SBW=",SBW,"\n")
+  if (exists("AcadianVersionTag") && verbose) 
+    cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
-  tree$ID=tree$TREE
   temp = mapply(SPP.func,tree$SP)  
   tree$SPtype=as.vector(temp[1,])
   tree$shade=as.numeric(as.character(temp[2,]))
@@ -2792,7 +2806,7 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   temp$pPB.ba=ifelse(temp$pBRH==0,0,temp$ba.PB/temp$ba.BRH)
   temp$pYB.ba=ifelse(temp$pBRH==0,0,temp$ba.YB/temp$ba.BRH)
   temp$pGB.ba=ifelse(temp$pBRH==0,0,1-(temp$pPB.ba+temp$pYB.ba))
-  temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)  
+  temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)
   temp$meanSG=ifelse(temp$meanSG>.68,.68,temp$meanSG)
   temp$SDImax=-6017.3*temp$meanSG+4156.3
   temp$RD=temp$SDI/temp$SDImax  
@@ -2815,8 +2829,6 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
       curYear <= SBW["SBW.YR"]+SBW["SBW.DUR"])) NA else SBW["CDEF"]
   tree$CDEF = CDEF
   if (verbose) cat ("SBW, curYear=",curYear," CDEF=",CDEF,"\n")   
-  
-  #CSI=tree$CSI
   
   #set thinning factors.
   if (is.null(THINMOD))
@@ -2863,12 +2875,14 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   #calculate heights of any with missing values.
   #generally, none will be missing when funciton is used with FVS, but some or
   #all would be missing when code us used to grow tree lists from other sources.
-  if (any(is.na(tree$HT))) 
+  tree$pHT = is.na(tree$HT) | tree$HT>900 | tree$HT==0
+  if (any(tree$pHT)) 
   {
     pHT.m=mapply(HTPred,SPP=tree$SP,DBH=tree$DBH,CSI=CSI,                                
                  CCF=tree$CCF,BAL=tree$BAL)
-    tree$HT=ifelse(is.na(tree$HT),pHT.m,tree$HT)
+    tree$HT=ifelse(tree$pHT,pHT.m,tree$HT)
   }
+  tree$pHT = as.numeric(tree$pHT)
 
   #compute plot top height
   topht = ddply(tree,.(PLOT), function (x)
@@ -2895,21 +2909,24 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   
   #calculate crown ratio if it is missing or if any are missing
   #see comment about missing heights
+  
+  tree$pHCB=FALSE
   if (is.null(tree$CR) || any(is.na(tree$CR)))
   {
     if (is.null(tree$CR)) tree$CR = NA
     # compute crown ratio from base height, compute if missing
-    if (is.null(tree$HCB) || any(is.na(tree$HCB)))
-    {
-      if (is.null(tree$HCB)) tree$HCB = NA
+    if (is.null(tree$HCB)) tree$HCB = NA    
+    tree$pHCB = is.na(tree$HCB) | tree$HCB=='NA' | tree$HCB==0
+    {      
       # Height to crown base
-      pHCB=mapply(HCBPred,SPP=tree$SP,DBH=tree$DBH,HT=tree$HT,
+      pHCB.m=mapply(HCBPred,SPP=tree$SP,DBH=tree$DBH,HT=tree$HT,
                   CCF=tree$CCF,BAL=tree$BAL)
-      tree$HCB=ifelse(is.na(tree$HCB),pHCB,tree$HCB)
+      tree$HCB=ifelse(tree$pHCB,pHCB.m,tree$HCB)
     }
     tree$CR=ifelse(is.na(tree$CR),1-(tree$HCB/tree$HT),tree$CR)
   }
-  # maybe CR is defined on input and HCB is not, at this point CR will be.
+  tree$pHCB = as.numeric(tree$pHCB)
+  # maybe CR is defined on input and HCB is not, at this point CR will be defined.
   if (is.null(tree$HCB)) tree$HCB = tree$HT*tree$CR
   
   tree$dDBH=mapply(dDBH.FUN, SPP=tree$SP, DBH=tree$DBH, BAL.SW=tree$BAL.SW, BAL.HW=tree$BAL.HW,
@@ -3005,8 +3022,7 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
       },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
     if (verbose) cat ("mean pmort=",mean(pmort)," sd=",sd(pmort),"\n")
     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*pmort
-  }
-  
+  } 
 
   #spruce budworm mortality modifier
   tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,CR=tree$DBH,HT=tree$HT,
@@ -3092,21 +3108,27 @@ AcadianGY <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
                        CCF=CCF,BAL=BAPH)                     
       ingrow$HCB=mapply(HCBPred,SPP=ingrow$SP,DBH=ingrow$DBH,HT=ingrow$HT,
                         CCF=CCF,BAL=BAPH)
-      ingrow$CR=1-(ingrow$HCB/ingrow$HT)
     }
   }
-    
-  # put the PLOT variable back to a character string (defactor it).
-  if (is.factor(tree$PLOT)) tree$PLOT = 
-     levels(tree$PLOT)[as.numeric(tree$PLOT)]
 
-  # restore the order of the trees
-  tree = tree[order(tree$ID),]
-
+  tree$YEAR <- tree$YEAR+ 1
+  tree$DBH  <- tree$DBH + tree$dDBH
+  tree$HT   <- tree$HT  + tree$dHT
+  tree$HCB  <- tree$HCB + tree$dHCB
+  tree$EXPF <- tree$EXPF- tree$dEXPF
+  rtnVars   <- setdiff(rtnVars,setdiff(rtnVars,colnames(tree)))  
+  tree<-subset(tree,select=rtnVars)
+                 
   if (verbose) cat ("AcadianGY return: nrow(tree)=",nrow(tree),
     " Num ingrowth trees=",if (is.null(ingrow)) 0 else nrow(ingrow),"\n") 
 
-  # return the original trees and the ingrowth separately
-  list(tree=tree,ingrow=ingrow)
+  if (!is.null(ingrow))
+  {
+    missing <- setdiff(rtnVars,colnames(ingrow))
+    if (length(missing)) for (miss in missing) ingrow[[miss]] = NA
+    tree <- rbind(tree,ingrow)
+  }
+  
+  tree
 }
 
