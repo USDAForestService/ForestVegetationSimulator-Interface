@@ -176,10 +176,10 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
           stdInfo["year"],"\n")            
     }
     
-    # modifying volume?
-    if (volLogic == "Kozak")
+    # modifying volume?  
+    if (volLogic == "Acadian")
     {
-      cat ("fvsRunAcadian: Applying Kozak volume logic\n")            
+      cat ("fvsRunAcadian: Applying Acadian volume logic\n")            
 
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             

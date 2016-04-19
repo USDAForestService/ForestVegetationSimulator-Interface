@@ -59,410 +59,199 @@ sort.data.frame <- function(form,dat)
   dat[do.call("order",calllist),]
 }
 
+
 #Species function
 SPP.func=function(SPP)
 {            
-  if(SPP=='AB'){ #American beech
-    SPtype='HW'
-    sg=0.64
-    wd=0.56
-    shade=4.75
-    drought=1.5
-    waterlog=1.5
-  }
-  else if(SPP=='AS'){ #ash
-    SPtype='HW'
-    sg=0.57
-    wd=0.51
-    shade=2.84
-    drought=2.74
-    waterlog=3.02
-  }
-  else if(SPP=='BA'){ #black ash
-    SPtype='HW'
-    sg=0.49
-    wd=0.45
-    shade=2.96
-    drought=2
-    waterlog=3.5
-    sg=0.5
-  }
-  else if(SPP=='BC'){ #black cherry
-    SPtype='HW'
-    sg=0.5
-    wd=0.47
-    shade=2.46
-    drought=3.02
-    waterlog=1.06
-  }
-  else if(SPP=='BF'){ #balsam fir
-    SPtype='SW'
-    sg=0.35
-    wd=0.33
-    shade=5.01
-    drought=1
-    waterlog=2
-  }
-  else if(SPP=='BP'){ #balsam poplar
-    SPtype='HW'
-    sg=0.34
-    wd=0.31
-    shade=1.27
-    drought=1.77
-    waterlog=2.63
-  }
-  else if(SPP=='BS'){ #black spruce
-    SPtype='SW'
-    sg=0.46
-    wd=0.38
-    shade=4.08
-    drought=2.0
-    waterlog=2.0
-  }
-  else if(SPP=='BT'){ #bigtooth aspen
-    SPtype='HW'
-    sg=0.39
-    wd=0.36
-    shade=1.21
-    drought=2.5
-    waterlog=2
-  }
-  else if(SPP=='EC'){ #eastern cottonwood
-    SPtype='HW'
-    sg=0.4
-    wd=0.37
-    shade=1.76
-    drought=1.57
-    waterlog=3.03
-  }
-  else if(SPP=='EH'){ #eastern hemlock
-    SPtype='SW'
-    sg=0.4
-    wd=0.38
-    shade=4.83
-    drought=1
-    waterlog=1.25
-  }
-  else if(SPP=='GA'){ #green ash
-    SPtype='HW'
-    sg=0.56
-    wd=0.53
-    shade=3.11
-    drought=3.85
-    waterlog=2.98
-  }
-  else if(SPP=='GB'){ #gray birch
-    SPtype='HW'
-    sg=0.48
-    wd=0.45
-    shade=1.5
-    drought=2.34
-    waterlog=1}
-  else if(SPP=='HH'){ #eastern hophornbeam
-    SPtype='HW'
-    sg=0.78
-    wd=0.63
-    shade=4.58
-    drought=3.25
-    waterlog=1.07
-  }
-  else if(SPP=='JP'){ #jack pine
-    SPtype='SW'
-    sg=0.43
-    wd=0.4
-    shade=1.36
-    drought=4
-    waterlog=1
-  }
-  else if(SPP=='NS'){ #Norway spruce
-    SPtype='SW'
-    sg=0.43
-    wd=0.37023
-    shade=4.45
-    drought=1.75
-    waterlog=1.22
-  }    
-  else if(SPP=='OH'){ #other hardwoods
-    SPtype='HW'
-    sg=0.5121
-    wd=0
-    shade=2.29
-    drought= 0
-    waterlog=0
-  }
-  else if(SPP=='OS'){ #other softwoods
-    SPtype='SW'
-    sg=0.445
-    wd=0
-    shade=2.27
-    drought=0
-    waterlog=0
-  }
-  else if(SPP=='PB'){ #paper birch
-    SPtype='SW'
-    sg=0.55
-    wd=0.48
-    shade=1.54
-    drought=2.02
-    waterlog=1.25
-  }
-  else if(SPP=='PC' | SPP=='PR'){ #pin cherry 
-    SPtype='HW'
-    sg=0.38
-    wd=0.36
-    shade=2.26
-    drought=0
-    waterlog=0
-  }
-  else if(SPP=='QA'){ #quaking aspen
-    SPtype='HW'
-    sg=0.38
-    wd=0.35
-    shade=1.21
-    drought=1.77
-    waterlog=1.77
-  }
-  else if(SPP=='RB'){ #river birch
-    SPtype='HW'
-    sg=0.62
-    wd=0.49
-    shade=1.45
-    drought=1.53
-    waterlog=2.85
-  }
-  else if(SPP=='RM'){ #red maple
-    SPtype='HW'
-    sg=0.54
-    wd=0.49
-    shade=3.44
-    drought=1.84
-    waterlog=3.08
-  }
-  else if(SPP=='RP' | SPP=='RN'){ #red pine
-    SPtype='SW'
-    sg=0.46
-    wd=0.41
-    shade=1.89
-    drought=3
-    waterlog=1
-  }
-  else if(SPP=='RO'){ #red oak
-    SPtype='HW'
-    sg=0.63
-    wd=0.56
-    shade=2.75
-    drought=2.88
-    waterlog=1.12
-  }
-  else if(SPP=='RS'){ #red spruce
-    SPtype='SW'
-    sg=0.4
-    wd=0.37
-    shade=4.39
-    drought=2.5
-    waterlog=2
-  }
-  else if(SPP=='SB'){ #Sweet birch
-    SPtype='HW'
-    sg=0.65
-    wd=0.6
-    shade=2.58
-    drought=3
-    waterlog=1
-  }
-  else if(SPP=='SM'){ #sugar maple
-    SPtype='HW'
-    sg=0.63
-    wd=0.56
-    shade=4.76
-    drought=2.25
-    waterlog=1.09
-  }
-  else if(SPP=='ST'){#striped maple
-    SPtype='HW'
-    sg=0.46
-    wd=0.44
-    shade=3.56
-    drought=2
-    waterlog=1
-  }
-  else if(SPP=='TA'){ #larch/tamarack
-    SPtype='SW'
-    sg=0.53
-    wd=0.49
-    shade=0.98
-    drought=2
-    waterlog=3
-  }
-  else if(SPP=='WA'){ #white ash
-    SPtype='HW'
-    sg=0.6
-    wd=0.55                     
-    shade=2.46
-    drought=2.38
-    waterlog=2.59
-  }
-  else if(SPP=='WC'){ #northern white cedar
-    SPtype='SW'
-    sg=0.31
-    wd=0.29
-    shade=3.45
-    drought=2.71
-    waterlog=1.46
-  }
-  else if(SPP=='WP'){ #white pine
-    SPtype='SW'
-    sg=0.35
-    wd=0.34
-    shade=3.21
-    drought=2.29
-    waterlog=1.03
-  }
-  else if(SPP=='WS'){ #white spruce
-    SPtype='SW'
-    sg=0.4
-    wd=0.33
-    shade=4.15
-    drought=2.88
-    waterlog=1.02
-  }
-  else if(SPP=='YB'){ #yellow birch
-    SPtype='HW'
-    sg=0.62
-    wd=0.55
-    shade=3.17
-    drought=3
-    waterlog=2
-  }
-  else{
-    SPtype='HW'
-    sg=0.3
-    wd=0.3
-    shade=3.0
-    drought=0
-    waterlog=0
-  }    
-  return(c(SPtype=SPtype,shade=shade,sg=sg))
+  SPcodes = c( 
+    'AB',  # AB=American beech
+    'AS',  # AS=ash                  
+    'BA',  # BA=black ash
+    'BC',  # BC=black cherry
+    'BF',  # BF=balsam fir
+    'BP',  # BP=balsam poplar         
+    'BS',  # BS=black spruce
+    'BT',  # BT=bigtooth aspen
+    'EC',  # EC=eastern cottonwood
+    'EH',  # EH=eastern hemlock
+    'GA',  # GA=green ash
+    'GB',  # GB=gray birch
+    'HH',  # HH=eastern hophornbeam
+    'JP',  # JP=jack pine
+    'NS',  # NS=Norway spruce
+    'OH',  # OH=other hardwoods
+    'OS',  # OS=other softwoods
+    'PB',  # PB=paper birch
+    'PC',  # PC=pin cherry  
+    'PR',  # PR=pin cherry 
+    'QA',  # QA=quaking aspen
+    'RB',  # RB=river birch
+    'RM',  # RM=red maple
+    'RP',  # RP=red pine 
+    'RN',  # RN=red pine
+    'RO',  # RO=red oak
+    'RS',  # RS=red spruce
+    'SB',  # SB=Sweet birch
+    'SM',  # SM=sugar maple
+    'ST',  # ST=striped maple
+    'TA',  # TA=larch/tamarack
+    'WA',  # WA=white ash
+    'WC',  # WC=northern white cedar
+    'WP',  # WP=white pine
+    'WS',  # WS=white spruce
+    'YB',  # YB=yellow birch
+    '99')  # other
+   SPtype = c(
+    'HW', # AB=American beech
+    'HW', # AS=ash
+    'HW', # BA=black ash
+    'HW', # BC=black cherry
+    'SW', # BF=balsam fir
+    'HW', # BP=balsam poplar
+    'SW', # BS=black spruce
+    'HW', # BT=bigtooth aspen
+    'HW', # EC=eastern cottonwood
+    'SW', # EH=eastern hemlock
+    'HW', # GA=green ash
+    'HW', # GB=gray birch
+    'HW', # HH=eastern hophornbeam
+    'SW', # JP=jack pine
+    'SW', # NS=Norway spruce
+    'HW', # OH=other hardwoods
+    'SW', # OS=other softwoods
+    'SW', # PB=paper birch
+    'HW', # PC=pin cherry  
+    'HW', # PR=pin cherry 
+    'HW', # QA=quaking aspen
+    'HW', # RB=river birch
+    'HW', # RM=red maple
+    'SW', # RP=red pine 
+    'SW', # RN=red pine
+    'HW', # RO=red oak
+    'SW', # RS=red spruce
+    'HW', # SB=Sweet birch
+    'HW', # SM=sugar maple
+    'HW', # ST=striped maple
+    'SW', # TA=larch/tamarack
+    'HW', # WA=white ash
+    'SW', # WC=northern white cedar
+    'SW', # WP=white pine
+    'SW', # WS=white spruce
+    'HW', # YB=yellow birch
+    'HW') # other
+   attrs = matrix (c(
+    # sg      wd     shade drought  waterlog
+      0.64  ,0.56   , 4.75 , 1.5  , 1.5 ,    # AB=American beech
+      0.57  ,0.51   , 2.84 , 2.74 , 3.02,    # AS=ash                 
+      0.5   ,0.45   , 2.96 , 2    , 3.5 ,    # BA=black ash
+      0.5   ,0.47   , 2.46 , 3.02 , 1.06,    # BC=black cherry
+      0.35  ,0.33   , 5.01 , 1    , 2   ,    # BF=balsam fir
+      0.34  ,0.31   , 1.27 , 1.77 , 2.63,    # BP=balsam poplar
+      0.46  ,0.38   , 4.08 , 2.0  , 2.0 ,    # BS=black spruce
+      0.39  ,0.36   , 1.21 , 2.5  , 2   ,    # BT=bigtooth aspen
+      0.4   ,0.37   , 1.76 , 1.57 , 3.03,    # EC=eastern cottonwood
+      0.4   ,0.38   , 4.83 , 1    , 1.25,    # EH=eastern hemlock
+      0.56  ,0.53   , 3.11 , 3.85 , 2.98,    # GA=green ash
+      0.48  ,0.45   , 1.5  , 2.34 , 1   ,    # GB=gray birch
+      0.78  ,0.63   , 4.58 , 3.25 , 1.07,    # HH=eastern hophornbeam
+      0.43  ,0.4    , 1.36 , 4    , 1   ,    # JP=jack pine
+      0.43  ,0.37023, 4.45 , 1.75 , 1.22,    # NS=Norway spruce
+      0.5121,0      , 2.29 ,  0   , 0   ,    # OH=other hardwoods
+      0.445 ,0      , 2.27 , 0    , 0   ,    # OS=other softwoods
+      0.55  ,0.48   , 1.54 , 2.02 , 1.25,    # PB=paper birch
+      0.38  ,0.36   , 2.26 , 0    , 0   ,    # PC=pin cherry  
+      0.38  ,0.36   , 2.26 , 0    , 0   ,    # PR=pin cherry 
+      0.38  ,0.35   , 1.21 , 1.77 , 1.77,    # QA=quaking aspen
+      0.62  ,0.49   , 1.45 , 1.53 , 2.85,    # RB=river birch
+      0.54  ,0.49   , 3.44 , 1.84 , 3.08,    # RM=red maple
+      0.46  ,0.41   , 1.89 , 3    , 1   ,    # RP=red pine 
+      0.46  ,0.41   , 1.89 , 3    , 1   ,    # RN=red pine
+      0.63  ,0.56   , 2.75 , 2.88 , 1.12,    # RO=red oak
+      0.4   ,0.37   , 4.39 , 2.5  , 2   ,    # RS=red spruce
+      0.65  ,0.6    , 2.58 , 3    , 1   ,    # SB=Sweet birch
+      0.63  ,0.56   , 4.76 , 2.25 , 1.09,    # SM=sugar maple
+      0.46  ,0.44   , 3.56 , 2    , 1   ,    # ST=striped maple
+      0.53  ,0.49   , 0.98 , 2    , 3   ,    # TA=larch/tamarack
+      0.6   ,0.55   , 2.46 , 2.38 , 2.59,    # WA=white ash             
+      0.31  ,0.29   , 3.45 , 2.71 , 1.46,    # WC=northern white cedar
+      0.35  ,0.34   , 3.21 , 2.29 , 1.03,    # WP=white pine
+      0.4   ,0.33   , 4.15 , 2.88 , 1.02,    # WS=white spruce
+      0.62  ,0.55   , 3.17 , 3    , 2   ,    # YB=yellow birch
+      0.3   ,0.3    , 3.0  , 0    , 0   ),   # other
+        ncol=5,byrow=TRUE)
+  sprow = match(SPP,SPcodes)
+  sprow[is.na(sprow)] = length(SPcodes)   
+  return(list(SPtype=SPtype[sprow],shade=attrs[sprow,3],sg=attrs[sprow,1]))
 }
+ 
 
 #Maximum crown width
 mcw=function(sp,dbh)
 {
-  if(sp=='BF'){
-    a1=1.37; a2=0.572
-  }
-  else if(sp=='BS'){
-    a1=0.535; a2=0.742
-  }
-  else if(sp=='EH'){
-    a1=2.44; a2=0.408
-  }
-  else if(sp=='WP'){
-    a1=1.24; a2=0.585
-  }
-  else if(sp=='NC'){
-    a1=1.63; a2=0.436
-  }
-  else if(sp=='RS'){
-    a1=1.80; a2=0.461
-  }
-  else if(sp=='WS'){
-    a1=1.50; a2=0.496
-  }
-  else if(sp=='AB'){
-    a1=2.93; a2=0.434
-  }
-  else if(sp=='GB' | sp=='RB'){
-    a1=2.24; a2=0.382
-  }
-  else if(sp=='RO'){
-    a1=4.08; a2=0.310
-  }
-  else if(sp=='PB'){
-    a1=1.48; a2=0.623}
-  else if(sp=='QA'){
-    a1=1.31; a2=0.586
-  }
-  else if(sp=='RM'){
-    a1=2.17; a2= 0.491
-  }
-  else if(sp=='SM'){
-    a1=3.31; a2=0.356
-  }
-  else if(sp=='YB'){
-    a1=4.04; a2=0.308
-  }
-  else if(sp=='OH'){
-    a1=4.04; a2=0.308
-  }
-  else if(sp=='OS'){
-    a1=1.597128571; a2=0.513957143
-  }
-  else{
-    a1=2.24262; a2=0.462653333
-  }        
-  mcw=a1*dbh**a2
+  SPcodes=c('BF','BS','EH','WP','NC','RS','WS','AB','GB','RB','RO','PB','QA',
+            'RM','SM','YB','OH','OS','99')       
+  coefs = matrix(c(
+   # a1           a2
+    1.37       , 0.572      ,    # BF
+    0.535      , 0.742      ,    # BS
+    2.44       , 0.408      ,    # EH   
+    1.24       , 0.585      ,    # WP
+    1.63       , 0.436      ,    # NC
+    1.80       , 0.461      ,    # RS
+    1.50       , 0.496      ,    # WS
+    2.93       , 0.434      ,    # AB
+    2.24       , 0.382      ,    # GB
+    2.24       , 0.382      ,    # RB
+    4.08       , 0.310      ,    # RO
+    1.48       , 0.623      ,    # PB
+    1.31       , 0.586      ,    # QA
+    2.17       , 0.491      ,    # RM
+    3.31       , 0.356      ,    # SM
+    4.04       , 0.308      ,    # YB
+    4.04       , 0.308      ,    # OH
+    1.597128571, 0.513957143,    # OS
+    2.24262    , 0.462653333),   # 99
+    ncol=2,byrow=TRUE)
+  sprow = match(sp,SPcodes)
+  sprow[is.na(sprow)] = length(SPcodes)  
+  mcw=coefs[sprow,1]*dbh**coefs[sprow,2]
   return(mcw)
 }
 
    
 #These are the parm ests for estimating largest crown width (lcw)
 lcw=function(sp,mcw,dbh){
-  if(sp=='BF'){
-    b1=1.49; b2=0.105
-  }
-  else if(sp=='BS'){
-    b1=1; b2=0.174
-  }
-  else if(sp=='EH'){
-    b1=1.90; b2=-0.057}
-  else if(sp=='WP'){
-    b1=1; b2=0.147
-  }
-  else if(sp=='NC'){
-    b1=2.19; b2=-0.080
-  }
-  else if(sp=='RS'){
-    b1=4.33; b2=-0.264
-  }
-  else if(sp=='WS'){
-    b1=2.09; b2=-0.069
-  }
-  else if(sp=='AB'){
-    b1=1; b2=0.194
-  }
-  else if(sp=='GB' | sp=='RB'){
-    b1=3.10; b2=-0.214
-  }
-  else if(sp=='RO'){
-    b1=4.10; b2=-0.272
-  }
-  else if(sp=='PB'){
-    b1=2.10; b2=-0.035}
-  else if(sp=='QA'){
-    b1=2.65; b2=0.157
-  }
-  else if(sp=='RM'){
-    b1=2.63; b2=-0.132
-  }
-  else if(sp=='SM'){
-    b1=1; b2=0.161
-  }
-  else if(sp=='YB'){
-    b1=4.23; b2=-0.264
-  }
-  else if(sp=='OH'){
-    b1=2.65; b2=0.157
-  }
-  else if(sp=='OS'){
-    b1=2.3276; b2=0.027842857
-  }
-  else{
-    b1=2.79282; b2=-0.090113333
-  }
-  lcw=mcw/(b1*dbh**b2)
+  SPcodes=c('BF','BS','EH','WP','NC','RS','WS','AB','GB','RB','RO','PB','QA',
+            'RM','SM','YB','OH','OS','99')
+  coefs = matrix(c(
+   # b1           b2            
+     1.49   , 0.105       ,   # BF     
+     1      , 0.174       ,   # BS
+     1.90   , -0.057      ,   # EH
+     1      , 0.147       ,   # WP
+     2.19   , -0.080      ,   # NC
+     4.33   , -0.264      ,   # RS
+     2.09   , -0.069      ,   # WS
+     1      , 0.194       ,   # AB
+     3.10   , -0.214      ,   # GB
+     3.10   , -0.214      ,   # RB
+     4.10   , -0.272      ,   # RO
+     2.10   , -0.035      ,   # PB
+     2.65   , 0.157       ,   # QA
+     2.63   , -0.132      ,   # RM
+     1      , 0.161       ,   # SM
+     4.23   , -0.264      ,   # YB
+     2.65   , 0.157       ,   # OH
+     2.3276 , 0.027842857 ,   # OS
+     2.79282, -0.090113333),  # 99
+    ncol=2,byrow=TRUE)     
+  sprow = match(sp,SPcodes)
+  sprow[is.na(sprow)] = length(SPcodes)  
+  lcw=mcw/(coefs[sprow,1]*dbh**coefs[sprow,2])      
   return(lcw)
 }   
+
+
 
 ### Total height prediction function (updated 8/31/2012) using species as a random effect
 HTPred=function(SPP,DBH,CSI,CCF,BAL) 
@@ -668,7 +457,8 @@ dBA=function(SPP,DBH,BalSW,BalHW,SI)
 }
 
 #Diameter increment function (1/27/16)
-dDBH.FUN=function(SPP,DBH,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD){
+dDBH.FUN=function(SPP,DBH,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD)
+{
   BAL=BAL.SW+BAL.HW+0.001
   RS=sqrt(10000/tph)/topht
   BAperc=1-((BAL+0.001)/BA)
@@ -682,63 +472,80 @@ dDBH.FUN=function(SPP,DBH,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD){
   b5=  0.2941056 #0.00440865 900799  66.71111  0.0000
   b6= -0.0616965 #0.01147665 900799  -5.37583  0.0000
   b7= -0.1465285 #0.00254133 900799 -57.65824  0.0000
-  if(SPP=='AB'){b0.spp=-0.034977457; b1.spp=0.007276127; b4.spp=0.117697955; b6.spp=-0.0382661}
-  else if(SPP=='AE'){b0.spp=0.074435665; b1.spp=0.005121491; b4.spp=0.004234682; b6.spp=-0.003699426}
-  else if(SPP=='AH'){b0.spp=-0.552782012; b1.spp=0.008947672; b4.spp=0.092785668; b6.spp=-0.00685572}
-  else if(SPP=='AL'){b0.spp=-0.784491091; b1.spp=0.0004018074; b4.spp=0.020919252; b6.spp=0.034001417}
-  else if(SPP=='AP'){b0.spp=-0.29246248; b1.spp=-0.006769558; b4.spp=-0.015389101; b6.spp=0.077813582}
-  else if(SPP=='BA'){b0.spp=-0.368193403; b1.spp=-0.005871838; b4.spp=-0.027100093; b6.spp=0.092172968}
-  else if(SPP=='BC'){b0.spp=0.388327436; b1.spp=-0.0235497; b4.spp=-0.267714578; b6.spp=0.117466223}
-  else if(SPP=='BF'){b0.spp=0.124494862; b1.spp=0.00123841; b4.spp=0.021706955; b6.spp=-0.012162306}
-  else if(SPP=='BL'){b0.spp=0.117176372; b1.spp=0.002545407; b4.spp=0.013811927; b6.spp=-0.017087026}
-  else if(SPP=='BN'){b0.spp=0.010205759; b1.spp=-0.002034886; b4.spp=-0.019239214; b6.spp=0.01551137}
-  else if(SPP=='BO'){b0.spp=-0.010250719; b1.spp=0.01297885; b4.spp=0.07809603; b6.spp=-0.023175186}
-  else if(SPP=='BP'){b0.spp=0.586348887; b1.spp=-0.009991966; b4.spp=-0.114795789; b6.spp=-0.023104677}
-  else if(SPP=='BS'){b0.spp=-0.032226829; b1.spp=-0.01442781; b4.spp=-0.021477635; b6.spp=-0.001507636}
-  else if(SPP=='BT'){b0.spp=0.107871306; b1.spp=-0.0004487118; b4.spp=-0.049918635; b6.spp=0.049907667}
-  else if(SPP=='BW'){b0.spp=-0.495538825; b1.spp=0.005412451; b4.spp=0.074999908; b6.spp=0.072129181}
-  else if(SPP=='CC'){b0.spp=-0.583232513; b1.spp=0.01992249; b4.spp=0.167838499; b6.spp=-0.047543001}
-  else if(SPP=='EC'){b0.spp=0.120658466; b1.spp=0.004819623; b4.spp=0.028503873; b6.spp=-0.014215554}
-  else if(SPP=='EH'){b0.spp=-0.073679869; b1.spp=0.01541532; b4.spp=0.176123957; b6.spp=-0.070655479}
-  else if(SPP=='GA'){b0.spp=-0.094347968; b1.spp=0.008437199; b4.spp=0.065152022; b6.spp=-0.04727368}
-  else if(SPP=='GB'){b0.spp=0.108941251; b1.spp=-0.03491995; b4.spp=-0.226167418; b6.spp=0.095737848}
-  else if(SPP=='HH'){b0.spp=-0.015136196; b1.spp=-0.01588083; b4.spp=-0.060643885; b6.spp=-0.010730512}
-  else if(SPP=='HT'){b0.spp=-0.219875954; b1.spp=-0.0005893354; b4.spp=-0.004531752; b6.spp=0.01724835}
-  else if(SPP=='JP'){b0.spp=0.332589343; b1.spp=-0.01144129; b4.spp=-0.207567868; b6.spp=-0.039412593}
-  else if(SPP=='LD'){b0.spp=0.253835715; b1.spp=0.01079078; b4.spp=0.079762745; b6.spp=-0.029911935}
-  else if(SPP=='MA'){b0.spp=0.170639841; b1.spp=0.002539446; b4.spp=0.014799827; b6.spp=-0.041455623}
-  else if(SPP=='MM'){b0.spp=-0.316673999; b1.spp=-0.006395035; b4.spp=-0.030971447; b6.spp=0.020471357}
-  else if(SPP=='NS'){b0.spp=0.538786115; b1.spp=0.005732204; b4.spp=0.136374018; b6.spp=-0.109911823}
-  else if(SPP=='OH'){b0.spp=0.182086574; b1.spp=0.004291105; b4.spp=0.031149091; b6.spp=-0.038283159}
-  else if(SPP=='OK'){b0.spp=0.394296696; b1.spp=0.01192989; b4.spp=0.083083665; b6.spp=-0.065052689}
-  else if(SPP=='PB'){b0.spp=0.147672195; b1.spp=-0.01733291; b4.spp=-0.121852844; b6.spp=0.002444024}
-  else if(SPP=='PP'){b0.spp=0.280883206; b1.spp=-0.004079587; b4.spp=-0.036381255; b6.spp=-0.013142199}
-  else if(SPP=='PR'){b0.spp=-0.212449655; b1.spp=0.01248223; b4.spp=0.104456335; b6.spp=-0.075016334}
-  else if(SPP=='QA'){b0.spp=0.007482821; b1.spp=0.002451922; b4.spp=-0.065695862; b6.spp=0.048381867}
-  else if(SPP=='RM'){b0.spp=-0.053329455; b1.spp=-0.0000425553; b4.spp=-0.018221214; b6.spp=0.02432616}
-  else if(SPP=='RN'){b0.spp=0.593594914; b1.spp=-0.01538272; b4.spp=-0.12775315; b6.spp=0.072963004}
-  else if(SPP=='RO'){b0.spp=-0.658621415; b1.spp=0.01809487; b4.spp=0.166063488; b6.spp=0.051722322}
-  else if(SPP=='RS'){b0.spp=0.040808688; b1.spp=0.004242409; b4.spp=-0.004858248; b6.spp=-0.008108392}
-  else if(SPP=='SB'){b0.spp=-0.380053588; b1.spp=0.008042379; b4.spp=0.077679112; b6.spp=-0.019651545}
-  else if(SPP=='SC'){b0.spp=1.031379405; b1.spp=-0.03062604; b4.spp=-0.274198164; b6.spp=0.02751689}
-  else if(SPP=='SE'){b0.spp=-0.457689963; b1.spp=0.006625638; b4.spp=0.051058869; b6.spp=-0.033442386}
-  else if(SPP=='SH'){b0.spp=-0.056357337; b1.spp=-0.002619051; b4.spp=-0.019521142; b6.spp=0.012376529}
-  else if(SPP=='SM'){b0.spp=0.12397129; b1.spp=0.006428658; b4.spp=0.0137845; b6.spp=-0.047456949}
-  else if(SPP=='ST'){b0.spp=0.030222397; b1.spp=0.001147229; b4.spp=0.002783061; b6.spp=0.003902373}
-  else if(SPP=='SV'){b0.spp=0.151457796; b1.spp=0.01306281; b4.spp=0.072299347; b6.spp=-0.137235705}
-  else if(SPP=='TA'){b0.spp=-0.45496371; b1.spp=0.01386419; b4.spp=0.043701246; b6.spp=0.050849231}
-  else if(SPP=='WA'){b0.spp=-0.097174269; b1.spp=0.008959311; b4.spp=0.086349472; b6.spp=-0.010883404}
-  else if(SPP=='WC'){b0.spp=-0.414076962; b1.spp=0.01074121; b4.spp=0.145425792; b6.spp=-0.001819793}
-  else if(SPP=='WI'){b0.spp=0.202666239; b1.spp=-0.04083091; b4.spp=-0.327089624; b6.spp=0.207172533}
-  else if(SPP=='WO'){b0.spp=0.024007926; b1.spp=-0.003156131; b4.spp=-0.031406355; b6.spp=-0.020914639}
-  else if(SPP=='WP'){b0.spp=0.133589236; b1.spp=0.008688826; b4.spp=0.064063728; b6.spp=-0.011417414}
-  else if(SPP=='WS'){b0.spp=0.286219598; b1.spp=-0.00003104828; b4.spp=-0.049962785; b6.spp=-0.027217847}
-  else if(SPP=='YB'){b0.spp=0.09393567; b1.spp=0.003789904; b4.spp=0.087753032; b6.spp=-0.047504164}
-  else{b0.spp=0.0; b1.spp=0.0; b4.spp=0.0; b6.spp=0.0}
-  dDBH=exp((b0+b0.spp)+(b1+b1.spp)*DBH+(b2*DBH^2)+(b3)*log(CR)+(b4+b4.spp)*log(BALmod+0.1)+(b5)*log(CSI)+
-             (b6+b6.spp)*sqrt(BA*RD+1)+b7*sqrt(pBAL.SW+0.0001)) 
-  return(dDBH=dDBH)}
-
+  spConst = matrix(c(
+  #     b0.spp        b1.spp          b4.spp        b6.spp
+      -0.034977457, 0.007276127   , 0.117697955 , -0.0382661,      # AB
+      0.074435665 , 0.005121491   , 0.004234682 , -0.003699426,    # AE
+      -0.552782012, 0.008947672   , 0.092785668 , -0.00685572,     # AH
+      -0.784491091, 0.0004018074  , 0.020919252 , 0.034001417,     # AL
+      -0.29246248 , -0.006769558  , -0.015389101, 0.077813582,     # AP
+      -0.368193403, -0.005871838  , -0.027100093, 0.092172968,     # BA
+      0.388327436 , -0.0235497    , -0.267714578, 0.117466223,     # BC
+      0.124494862 , 0.00123841    , 0.021706955 , -0.012162306,    # BF
+      0.117176372 , 0.002545407   , 0.013811927 , -0.017087026,    # BL
+      0.010205759 , -0.002034886  , -0.019239214, 0.01551137,      # BN
+      -0.010250719, 0.01297885    , 0.07809603  , -0.023175186,    # BO
+      0.586348887 , -0.009991966  , -0.114795789, -0.023104677,    # BP
+      -0.032226829, -0.01442781   , -0.021477635, -0.001507636,    # BS
+      0.107871306 , -0.0004487118 , -0.049918635, 0.049907667,     # BT
+      -0.495538825, 0.005412451   , 0.074999908 , 0.072129181,     # BW
+      -0.583232513, 0.01992249    , 0.167838499 , -0.047543001,    # CC
+      0.120658466 , 0.004819623   , 0.028503873 , -0.014215554,    # EC
+      -0.073679869, 0.01541532    , 0.176123957 , -0.070655479,    # EH
+      -0.094347968, 0.008437199   , 0.065152022 , -0.04727368,     # GA
+      0.108941251 , -0.03491995   , -0.226167418, 0.095737848,     # GB
+      -0.015136196, -0.01588083   , -0.060643885, -0.010730512,    # HH
+      -0.219875954, -0.0005893354 , -0.004531752, 0.01724835,      # HT
+      0.332589343 , -0.01144129   , -0.207567868, -0.039412593,    # JP
+      0.253835715 , 0.01079078    , 0.079762745 , -0.029911935,    # LD
+      0.170639841 , 0.002539446   , 0.014799827 , -0.041455623,    # MA
+      -0.316673999, -0.006395035  , -0.030971447, 0.020471357,     # MM
+      0.538786115 , 0.005732204   , 0.136374018 , -0.109911823,    # NS
+      0.182086574 , 0.004291105   , 0.031149091 , -0.038283159,    # OH
+      0.394296696 , 0.01192989    , 0.083083665 , -0.065052689,    # OK
+      0.147672195 , -0.01733291   , -0.121852844, 0.002444024,     # PB
+      0.280883206 , -0.004079587  , -0.036381255, -0.013142199,    # PP
+      -0.212449655, 0.01248223    , 0.104456335 , -0.075016334,    # PR
+      0.007482821 , 0.002451922   , -0.065695862, 0.048381867,     # QA
+      -0.053329455, -0.0000425553 , -0.018221214, 0.02432616,      # RM
+      0.593594914 , -0.01538272   , -0.12775315 , 0.072963004,     # RN
+      -0.658621415, 0.01809487    , 0.166063488 , 0.051722322,     # RO
+      0.040808688 , 0.004242409   , -0.004858248, -0.008108392,    # RS
+      -0.380053588, 0.008042379   , 0.077679112 , -0.019651545,    # SB
+      1.031379405 , -0.03062604   , -0.274198164, 0.02751689,      # SC
+      -0.457689963, 0.006625638   , 0.051058869 , -0.033442386,    # SE
+      -0.056357337, -0.002619051  , -0.019521142, 0.012376529,     # SH
+      0.12397129  , 0.006428658   , 0.0137845   , -0.047456949,    # SM
+      0.030222397 , 0.001147229   , 0.002783061 , 0.003902373,     # ST
+      0.151457796 , 0.01306281    , 0.072299347 , -0.137235705,    # SV
+      -0.45496371 , 0.01386419    , 0.043701246 , 0.050849231,     # TA
+      -0.097174269, 0.008959311   , 0.086349472 , -0.010883404,    # WA
+      -0.414076962, 0.01074121    , 0.145425792 , -0.001819793,    # WC
+      0.202666239 , -0.04083091   , -0.327089624, 0.207172533,     # WI
+      0.024007926 , -0.003156131  , -0.031406355, -0.020914639,    # WO
+      0.133589236 , 0.008688826   , 0.064063728 , -0.011417414,    # WP
+      0.286219598 , -0.00003104828, -0.049962785, -0.027217847,    # WS
+      0.09393567  , 0.003789904   , 0.087753032 , -0.047504164,    # YB
+      0.0         , 0.0           , 0.0         , 0.0),            # 99
+      ncol=4,byrow=TRUE)
+  SPcodes=c('AB','AE','AH','AL','AP','BA','BC','BF','BL','BN','BO','BP','BS',
+            'BT','BW','CC','EC','EH','GA','GB','HH','HT','JP','LD','MA','MM',
+            'NS','OH','OK','PB','PP','PR','QA','RM','RN','RO','RS','SB','SC',
+            'SE','SH','SM','ST','SV','TA','WA','WC','WI','WO','WP','WS','YB',
+            '99')
+  sprow = match(SPP,SPcodes)
+  sprow[is.na(sprow)] = nrow(spConst)
+  B0 = b0+spConst[sprow,1]
+  B1 = b1+spConst[sprow,2]
+  B4 = b4+spConst[sprow,3]
+  B6 = b6+spConst[sprow,4]
+  
+  dDBH=exp(B0+(B1*DBH) +(b2*DBH^2)+(b3*log(CR))+(B4*log(BALmod+0.1))+
+          (b5*log(CSI))+(B6*sqrt(BA*RD+1))+b7*sqrt(pBAL.SW+0.0001)) 
+  return(dDBH=dDBH)
+}
+  
+  
 ## Diameter modifier function (3/15/16 based on results by Christian Kuehne)
 dDBH.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   TST = YEAR - YEAR_CT # time since thinning
@@ -804,7 +611,6 @@ dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA){
   return(dDBH.mod)
 }
 
-#dDBH.SBW.mod('NB','WS',30,20,20,0.4,15,20,100)
 
 #Height increment (10/8/14) (Russell et al. 2014 EJFR)
 Htincr=function(SPP,HT,CR,BAL.SW,BAL.HW,BAPH,CSI)
@@ -860,63 +666,81 @@ Htincr=function(SPP,HT,CR,BAL.SW,BAL.HW,BAPH,CSI)
 }
 
 #Height increment (2/12/16) 
-dHT=function(SPP,HT,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD){
+dHT=function(SPP,HT,CR,BAL.SW,BAL.HW,BA,CSI,tph,topht,RD)
+{
   BAL=BAL.SW+BAL.HW
   RS=sqrt(10000/tph)/topht
   BAperc=1-((BAL+0.001)/BA)
   BALmod=(1-BAperc)/RS
   pBAL.SW=BAL.SW/(BAL.SW+BAL.HW+0.1)
-  b0= -3.925083# 0.12585923 88851 -31.18629  0.0000
-  b1= -0.061691# 0.00863269 88851  -7.14623  0.0000
-  b2=  0.255589# 0.02770593 88851   9.22507  0.0000
-  b3=  0.199307# 0.00714525 88851  27.89361  0.0000
-  b4= -0.091328# 0.02934160 88851  -3.11258  0.0019
-  b5=  1.025877# 0.01692808 88851  60.60211  0.0000
-  b6=  0.115358# 0.03248193 88851   3.55145  0.0004
-  b7=  0.098963# 0.06078804 88851   1.62801  0.1035
-  b8=  0.003199# 0.00059196 88851   5.40484  0.0000
-  if(SPP=='AB'){b0.spp=-0.415979307; b1.spp=0.0274010197; b4.spp=0.196582208; b6.spp=-0.164287184; b7.spp=0.17710536}
-  else if(SPP=='AE'){b0.spp=-0.097680261; b1.spp=0.010285478; b4.spp=-0.034514623; b6.spp=0.013798257; b7.spp=0.05393479}
-  else if(SPP=='AL'){b0.spp=-0.518622556; b1.spp=0.0336615657; b4.spp=0.038332872; b6.spp=-0.073282395; b7.spp=0.14078092}
-  else if(SPP=='AP'){b0.spp=-0.352394417; b1.spp=0.0189693013; b4.spp=0.017053302; b6.spp=-0.033141501; b7.spp=0.12245193}
-  else if(SPP=='BA'){b0.spp=-0.008991184; b1.spp=-0.0002972318; b4.spp=0.002365564; b6.spp=-0.005565805; b7.spp=0.00451468}
-  else if(SPP=='BC'){b0.spp=-0.6947698; b1.spp=0.0593437011; b4.spp=0.052465134; b6.spp=-0.154325374; b7.spp=0.37385923}
-  else if(SPP=='BF'){b0.spp=-0.252382258; b1.spp=0.0100278394; b4.spp=-0.115915182; b6.spp=-0.019904875; b7.spp=0.35826384}
-  else if(SPP=='BS'){b0.spp=0.09727877; b1.spp=-0.0270708651; b4.spp=0.034082833; b6.spp=0.023416841; b7.spp=-0.27796473}
-  else if(SPP=='BT'){b0.spp=0.097631862; b1.spp=-0.0019892345; b4.spp=-0.033205181; b6.spp=0.178102299; b7.spp=-0.42712909}
-  else if(SPP=='CC'){b0.spp=0.100493172; b1.spp=0.0024756469; b4.spp=-0.015890142; b6.spp=0.014850572; b7.spp=-0.01463509}
-  else if(SPP=='EH'){b0.spp=-0.338641101; b1.spp=0.0149152575; b4.spp=0.042828473; b6.spp=-0.023914376; b7.spp=-0.02984288}
-  else if(SPP=='GB'){b0.spp=0.664242356; b1.spp=-0.0507004025; b4.spp=0.008938324; b6.spp=-0.04425826; b7.spp=-0.04842967}
-  else if(SPP=='HH'){b0.spp=-0.275493334; b1.spp=0.0114373559; b4.spp=0.017621827; b6.spp=-0.029794703; b7.spp=-0.05039664}
-  else if(SPP=='HT'){b0.spp=-0.294495258; b1.spp=0.0213413046; b4.spp=0.024225138; b6.spp=-0.058721102; b7.spp=0.10119773}
-  else if(SPP=='JP'){b0.spp=-0.143833414; b1.spp=0.0264402706; b4.spp=0.091549503; b6.spp=-0.233275814; b7.spp=0.24538541}
-  else if(SPP=='MA'){b0.spp=-0.362473516; b1.spp=0.0149305507; b4.spp=-0.014660213; b6.spp=0.045285396; b7.spp=0.04807392}
-  else if(SPP=='MM'){b0.spp=0.178128436; b1.spp=-0.0134191286; b4.spp=0.006131074; b6.spp=-0.01282847; b7.spp=0.01233981}
-  else if(SPP=='NC'){b0.spp=-0.2152392; b1.spp=0.0131073208; b4.spp=0.044087868; b6.spp=-0.086432379; b7.spp=0.09571151}
-  else if(SPP=='NS'){b0.spp=0.238378153; b1.spp=-0.0080475871; b4.spp=-0.26663534; b6.spp=0.27525792; b7.spp=-0.12455711}
-  else if(SPP=='OH'){b0.spp=0.190850506; b1.spp=0.008856123; b4.spp=0.096511731; b6.spp=-0.179549618; b7.spp=0.11449758}
-  else if(SPP=='OK'){b0.spp=0.312876712; b1.spp=-0.0023761163; b4.spp=-0.032469484; b6.spp=0.002288521; b7.spp=0.01575391}
-  else if(SPP=='PB'){b0.spp=-0.130932583; b1.spp=-0.0078414315; b4.spp=0.111669147; b6.spp=-0.044044815; b7.spp=0.11333075}
-  else if(SPP=='PR'){b0.spp=-0.327481197; b1.spp=0.0225428886; b4.spp=-0.031332766; b6.spp=0.152794717; b7.spp=-0.0259612}
-  else if(SPP=='QA'){b0.spp=1.417306413; b1.spp=-0.0403686248; b4.spp=0.006821086; b6.spp=-0.075758317; b7.spp=-0.37292927}
-  else if(SPP=='RM'){b0.spp=0.12732005; b1.spp=-0.0245368295; b4.spp=0.053246849; b6.spp=0.00579006; b7.spp=0.14672003}
-  else if(SPP=='RN'){b0.spp=1.443710317; b1.spp=-0.1417363545; b4.spp=-0.027265101; b6.spp=0.309824702; b7.spp=-0.8134972}
-  else if(SPP=='RO'){b0.spp=0.080065633; b1.spp=-0.0071379908; b4.spp=-0.023614962; b6.spp=0.010061635; b7.spp=0.02383219}
-  else if(SPP=='RP'){b0.spp=0; b1.spp=0; b4.spp=0; b6.spp=0; b7.spp=0}
-  else if(SPP=='RS'){b0.spp=-0.048412618; b1.spp=-0.0079040397; b4.spp=-0.145815645; b6.spp=0.060567801; b7.spp=0.0797388}
-  else if(SPP=='SC'){b0.spp=-0.203824654; b1.spp=0.0094728516; b4.spp=0.062125666; b6.spp=-0.050945155; b7.spp=0.01973029}
-  else if(SPP=='SE'){b0.spp=0.63707386; b1.spp=-0.0313557553; b4.spp=-0.013765425; b6.spp=0.02075583; b7.spp=-0.25319517}
-  else if(SPP=='SM'){b0.spp=0.088620046; b1.spp=0.0258811205; b4.spp=0.073470611; b6.spp=-0.218583608; b7.spp=-0.14200099}
-  else if(SPP=='ST'){b0.spp=0.0692123; b1.spp=-0.0072937033; b4.spp=-0.103051494; b6.spp=0.091091102; b7.spp=0.12312381}
-  else if(SPP=='TA'){b0.spp=-0.351090474; b1.spp=0.0079995727; b4.spp=-0.019048797; b6.spp=0.218764622; b7.spp=-0.13129184}
-  else if(SPP=='WA'){b0.spp=-0.556856239; b1.spp=0.0312274808; b4.spp=0.09900893; b6.spp=0.036092242; b7.spp=-0.01154009}
-  else if(SPP=='WI'){b0.spp=-0.205319428; b1.spp=0.0109161657; b4.spp=0.033229394; b6.spp=-0.038651961; b7.spp=0.03410209}
-  else if(SPP=='WP'){b0.spp=0.004458537; b1.spp=0.0069854589; b4.spp=-0.079402408; b6.spp=0.031357732; b7.spp=0.16043057}
-  else if(SPP=='WS'){b0.spp=-0.004902983; b1.spp=0.001696414; b4.spp=-0.204246802; b6.spp=0.058944828; b7.spp=0.15403836}
-  else if(SPP=='YB'){b0.spp=0.052168661; b1.spp=-0.0178393926; b4.spp=0.048486031; b6.spp=-0.001779362; b7.spp=0.00445344}
-  else{b0.spp=0; b1.spp=0; b4.spp=0; b6.spp=0; b7.spp=0}
-  dHT=exp((b0+b0.spp)+(b1+b1.spp)*HT+b2*log(HT)+(b3)*log(CR)+(b4+b4.spp)*log(BALmod+1)+(b5)*log(CSI)+(b6+b6.spp)*log(BA*RD+1)+(b7+b7.spp)*sqrt(pBAL.SW)+b8*(BA*RD)) 
-  return(dHT=dHT)}
+  b0= -3.925083  # 0.12585923 88851 -31.18629  0.0000
+  b1= -0.061691  # 0.00863269 88851  -7.14623  0.0000
+  b2=  0.255589  # 0.02770593 88851   9.22507  0.0000
+  b3=  0.199307  # 0.00714525 88851  27.89361  0.0000
+  b4= -0.091328  # 0.02934160 88851  -3.11258  0.0019
+  b5=  1.025877  # 0.01692808 88851  60.60211  0.0000
+  b6=  0.115358  # 0.03248193 88851   3.55145  0.0004
+  b7=  0.098963  # 0.06078804 88851   1.62801  0.1035
+  b8=  0.003199  # 0.00059196 88851   5.40484  0.0000 
+  spConst = matrix(c(
+  #   b0.spp        b1.spp          b4.spp        b6.spp        b7.spp
+    -0.415979307, 0.0274010197 , 0.196582208 , -0.164287184, 0.17710536 ,  #AB
+    -0.097680261, 0.010285478  , -0.034514623, 0.013798257 , 0.05393479 ,  #AE
+    -0.518622556, 0.0336615657 , 0.038332872 , -0.073282395, 0.14078092 ,  #AL
+    -0.352394417, 0.0189693013 , 0.017053302 , -0.033141501, 0.12245193 ,  #AP
+    -0.008991184, -0.0002972318, 0.002365564 , -0.005565805, 0.00451468 ,  #BA
+    -0.6947698  , 0.0593437011 , 0.052465134 , -0.154325374, 0.37385923 ,  #BC
+    -0.252382258, 0.0100278394 , -0.115915182, -0.019904875, 0.35826384 ,  #BF
+    0.09727877  , -0.0270708651, 0.034082833 , 0.023416841 , -0.27796473,  #BS
+    0.097631862 , -0.0019892345, -0.033205181, 0.178102299 , -0.42712909,  #BT
+    0.100493172 , 0.0024756469 , -0.015890142, 0.014850572 , -0.01463509,  #CC
+    -0.338641101, 0.0149152575 , 0.042828473 , -0.023914376, -0.02984288,  #EH
+    0.664242356 , -0.0507004025, 0.008938324 , -0.04425826 , -0.04842967,  #GB
+    -0.275493334, 0.0114373559 , 0.017621827 , -0.029794703, -0.05039664,  #HH
+    -0.294495258, 0.0213413046 , 0.024225138 , -0.058721102, 0.10119773 ,  #HT
+    -0.143833414, 0.0264402706 , 0.091549503 , -0.233275814, 0.24538541 ,  #JP
+    -0.362473516, 0.0149305507 , -0.014660213, 0.045285396 , 0.04807392 ,  #MA
+    0.178128436 , -0.0134191286, 0.006131074 , -0.01282847 , 0.01233981 ,  #MM
+    -0.2152392  , 0.0131073208 , 0.044087868 , -0.086432379, 0.09571151 ,  #NC
+    0.238378153 , -0.0080475871, -0.26663534 , 0.27525792  , -0.12455711,  #NS
+    0.190850506 , 0.008856123  , 0.096511731 , -0.179549618, 0.11449758 ,  #OH
+    0.312876712 , -0.0023761163, -0.032469484, 0.002288521 , 0.01575391 ,  #OK
+    -0.130932583, -0.0078414315, 0.111669147 , -0.044044815, 0.11333075 ,  #PB
+    -0.327481197, 0.0225428886 , -0.031332766, 0.152794717 , -0.0259612 ,  #PR
+    1.417306413 , -0.0403686248, 0.006821086 , -0.075758317, -0.37292927,  #QA
+    0.12732005  , -0.0245368295, 0.053246849 , 0.00579006  , 0.14672003 ,  #RM
+    1.443710317 , -0.1417363545, -0.027265101, 0.309824702 , -0.8134972 ,  #RN
+    0.080065633 , -0.0071379908, -0.023614962, 0.010061635 , 0.02383219 ,  #RO
+    0           , 0            , 0           , 0           , 0          ,  #RP
+    -0.048412618, -0.0079040397, -0.145815645, 0.060567801 , 0.0797388  ,  #RS
+    -0.203824654, 0.0094728516 , 0.062125666 , -0.050945155, 0.01973029 ,  #SC
+    0.63707386  , -0.0313557553, -0.013765425, 0.02075583  , -0.25319517,  #SE
+    0.088620046 , 0.0258811205 , 0.073470611 , -0.218583608, -0.14200099,  #SM
+    0.0692123   , -0.0072937033, -0.103051494, 0.091091102 , 0.12312381 ,  #ST
+    -0.351090474, 0.0079995727 , -0.019048797, 0.218764622 , -0.13129184,  #TA
+    -0.556856239, 0.0312274808 , 0.09900893  , 0.036092242 , -0.01154009,  #WA
+    -0.205319428, 0.0109161657 , 0.033229394 , -0.038651961, 0.03410209 ,  #WI
+    0.004458537 , 0.0069854589 , -0.079402408, 0.031357732 , 0.16043057 ,  #WP
+    -0.004902983, 0.001696414  , -0.204246802, 0.058944828 , 0.15403836 ,  #WS
+    0.052168661 , -0.0178393926, 0.048486031 , -0.001779362, 0.00445344 ,  #YB
+    0           ,         0    , 0           ,            0,          0),  #99
+      ncol=5,byrow=TRUE) 
+  SPcodes=c('AB','AE','AL','AP','BA','BC','BF','BS','BT','CC','EH','GB','HH',
+            'HT','JP','MA','MM','NC','NS','OH','OK','PB','PR','QA','RM','RN',
+            'RO','RP','RS','SC','SE','SM','ST','TA','WA','WI','WP','WS','YB',
+            '99')     
+  sprow = match(SPP,SPcodes)
+  sprow[is.na(sprow)] = length(SPcodes)
+  B0 = b0+spConst[sprow,1]
+  B1 = b1+spConst[sprow,2]
+  B4 = b4+spConst[sprow,3]
+  B6 = b6+spConst[sprow,4]
+  B7 = b7+spConst[sprow,5]  
+  
+  dHT=exp(B0+(B1*HT)+(b2*log(HT))+(b3*log(CR))+(B4*log(BALmod+1))+
+    (b5*log(CSI))+(B6*log(BA*RD+1))+(B7*sqrt(pBAL.SW))+(b8*BA*RD)) 
+  return(dHT=dHT)
+}
 
 #thinning height modifier (Kuehne et al. 2016)
 dHT.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
@@ -1021,7 +845,7 @@ stand.mort.prob=function(region,BA,BAG,QMD,pBA.BF,pBA.IH)
   else if(region=='PQ'){b0=1.0472726; b1=0.161746; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.7351621}
   k=b0+b1*BA+b2*BA^2+b3*BAG+b4*QMD+b5*BA.BF+b6*BA.IH
   prob=exp(k)/(1+exp(k))
-  return(c(prob=prob,cut=cut))
+  return(list(prob=prob,cut=cut))
 }
 
 stand.mort.BA=function(region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih){
@@ -1078,63 +902,77 @@ BAmort.stand=function(BA,PCT,YEAR_CT,YEAR, PERCBArm, BApre, QMDratio){
   return(mod=mod)
 }
 
+
 tree.mort.prob=function(SPP,DBH)
 {
-  if(SPP=='AB'){b0=2.152681379; b1=-0.0269825907; b2=0.0002203177; Djump=41; Scale=20; Shape=4.5}
-  else if(SPP=='AE'){b0=2.948346662; b1=-0.1017558326; b2=0.0018279137; Djump=22.5; Scale=40; Shape=2}
-  else if(SPP=='AH'){b0=4.552236589; b1=-0.4626664119; b2=0.0125996045; Djump=12; Scale=15; Shape=4.5}
-  else if(SPP=='AP'){b0=5.6430024532; b1=-0.4644532732; b2=0.0132654057; Djump=16; Scale=10.6; Shape=4.1}
-  else if(SPP=='BA'){b0=1.7183600838; b1=0.0393047451; b2=-0.0023514773; Djump=39; Scale=37; Shape=4.25}
-  else if(SPP=='BC'){b0=4.8627898851; b1=-0.3695674404; b2=0.0109822297; Djump=9.2; Scale=31; Shape=3.63}
-  else if(SPP=='BE'){b0=4.552236589; b1=-0.2313332059; b2=0.0125996045; Djump=14; Scale=20; Shape=4.5}
-  else if(SPP=='BF'){b0=2.5743949775; b1=-0.0851930923; b2=0.0015971909; Djump=53; Scale=40.6; Shape=1.51}
-  else if(SPP=='BL'){b0=-3.5183135273; b1=0.5008393656; b2=-0.0114432915; Djump=10; Scale=10; Shape=2}
-  else if(SPP=='BN'){b0=9.6140856026; b1=-0.8619281584; b2=0.0215901194; Djump=15; Scale=27.5; Shape=1.5}
-  else if(SPP=='BO'){b0=2.7402431243; b1=-0.0403087; b2=0.0014846314; Djump=40; Scale=40; Shape=2}
-  else if(SPP=='BP'){b0=1.8795415329; b1=-0.3915484285; b2=0.0298003249; Djump=33; Scale=33.6; Shape=4.75}
-  else if(SPP=='BS'){b0=1.9568828063; b1=0.0535388009; b2=-0.0010376306; Djump=34; Scale=22; Shape=3.75}
-  else if(SPP=='BT'){b0=2.1791849646; b1=-0.0125375225; b2=0.0008529794; Djump=40; Scale=30; Shape=3}
-  else if(SPP=='BW'){b0=-1.4145296118; b1=0.3204863989; b2=-0.0029710752; Djump=15; Scale=30; Shape=3}
-  else if(SPP=='CC'){b0=4.8627898851; b1=-0.3695674404; b2=0.0109822297; Djump=10; Scale=20; Shape=3.63}
-  else if(SPP=='EC'){b0=-0.4584998714; b1=0.1992627013; b2=-0.0028451758; Djump=40.6; Scale=11; Shape=4.28}
-  else if(SPP=='EH'){b0=4.5205542708; b1=-0.0670350692; b2=0.0012041907; Djump=50; Scale=40; Shape=3.5}
-  else if(SPP=='GA'){b0=7.2061395918; b1=-0.2239701333; b2=0.0070370484; Djump=34; Scale=39.6; Shape=3.41}
-  else if(SPP=='GB'){b0=0.1922677751; b1=0.1517490102; b2=-0.0039268819; Djump=16; Scale=8.2; Shape=3.83}
-  else if(SPP=='HH'){b0=2.9674489273; b1=-0.1009595852; b2=0.0071673636; Djump=18; Scale=24; Shape=2}
-  else if(SPP=='JP'){b0=-0.4488149338; b1=0.1939739736; b2=-0.0019541699; Djump=30; Scale=20; Shape=3}
-  else if(SPP=='NM'){b0=4.552236589; b1=-0.2313332059; b2=0.0125996045; Djump=24; Scale=40; Shape=4.5}
-  else if(SPP=='NS'){b0=17.4833923331; b1=-1.809142126; b2=0.0616970369; Djump=15; Scale=35; Shape=2}
-  else if(SPP=='OH'){b0=4.552236589; b1=-0.5204997134; b2=0.0125996045; Djump=12; Scale=10; Shape=4.5}
-  else if(SPP=='PB'){b0=2.5863343441; b1=-0.0518497247; b2=0.0021853588; Djump=26.4; Scale=41.2; Shape=1.88}
-  else if(SPP=='PP'){b0=12.1649655944; b1=-1.0483772747; b2=0.0233147008; Djump=25.8; Scale=41.6; Shape=4.41}
-  else if(SPP=='PR'){b0=-1.2171488097; b1=0.3211464783; b2=-0.0097154365; Djump=10; Scale=40; Shape=2}
-  else if(SPP=='QA'){b0=-0.4584998714; b1=0.1992627013; b2=-0.0028451758; Djump=60.6; Scale=11; Shape=4.28}
-  else if(SPP=='RM'){b0=2.1674971386; b1=0.0557266595; b2=-0.0010435394; Djump=60.2; Scale=40.6; Shape=4.38}
-  else if(SPP=='RO'){b0=3.1202275212; b1=-0.041290776; b2=0.0022978235; Djump=41; Scale=40.4; Shape=3.27}
-  else if(SPP=='RP'){b0=1.1361278304; b1=0.1436446742; b2=0.0018438454; Djump=30; Scale=30; Shape=3}
-  else if(SPP=='RS'){b0=2.0420797297; b1=0.0425701678; b2=-0.0004901795; Djump=41; Scale=32; Shape=4.8}
-  else if(SPP=='SB'){b0=44.2565091524; b1=-2.4248136198; b2=0.1388397603; Djump=22; Scale=35.6; Shape=4.57}
-  else if(SPP=='SH'){b0=4.552236589; b1=-0.2313332059; b2=0.0125996045; Djump=15; Scale=10; Shape=4.5}
-  else if(SPP=='SM'){b0=2.7069022565; b1=0.0086263655; b2=0.0007235392; Djump=54.4; Scale=42; Shape=1.33}
-  else if(SPP=='SP'){b0=5; b1=-0.3; b2=0.01; Djump=20; Scale=40; Shape=3}
-  else if(SPP=='ST'){b0=4.5522366258; b1=-0.4626664068; b2=0.012599604; Djump=4.4; Scale=24.4; Shape=4.51}
-  else if(SPP=='SV'){b0=4.552236589; b1=-0.2313332059; b2=0.0125996045; Djump=24; Scale=40; Shape=4.5}
-  else if(SPP=='TA'){b0=1.4269435976; b1=0.0886275939; b2=-0.0021232407; Djump=30; Scale=33.6; Shape=4.5}
-  else if(SPP=='WA'){b0=1.0042653571; b1=0.165359309; b2=-0.0005814562; Djump=21; Scale=40; Shape=4}
-  else if(SPP=='WC'){b0=3.647647507; b1=-0.0606735724; b2=0.0008507857; Djump=40; Scale=45; Shape=5}
-  else if(SPP=='WL'){b0=-3.5183135273; b1=0.5008393656; b2=-0.0114432915; Djump=10; Scale=10; Shape=2}
-  else if(SPP=='WO'){b0=-4.8640326448; b1=0.6250645999; b2=-0.0064419714; Djump=18; Scale=40; Shape=4}
-  else if(SPP=='WP'){b0=3.3383526175; b1=-0.0294498474; b2=0.0009561864; Djump=61.2; Scale=41.2; Shape=2.87}
-  else if(SPP=='WS'){b0=0.5437824528; b1=0.1052397713; b2=0.0006332627; Djump=19; Scale=54; Shape=2}
-  else if(SPP=='YB'){b0=2.6967072576; b1=-0.001250889; b2=0.0007521152; Djump=48; Scale=60; Shape=2}
-  else{b0=2.6967072576; b1=-0.001250889; b2=0.0007521152; Djump=48; Scale=60; Shape=2}
-  ddd <- b0 + b1 * DBH + b2 * DBH^2 #+b3*BAL +b4*BAG30
+  SPcodes = c('AB','AE','AH','AP','BA','BC','BE','BF','BL','BN','BO','BP','BS',
+              'BT','BW','CC','EC','EH','GA','GB','HH','JP','NM','NS','OH','PB',
+              'PP','PR','QA','RM','RO','RP','RS','SB','SH','SM','SP','ST','SV',
+              'TA','WA','WC','WL','WO','WP','WS','YB','99')
+  spConst = matrix(c(
+    # b0             b1              b2        Djump Scale Shape=4.5 
+    2.152681379  , -0.0269825907,  0.0002203177 , 41  , 20  , 4.5 ,  # AB
+    2.948346662  , -0.1017558326,  0.0018279137 , 22.5, 40  , 2   ,  # AE
+    4.552236589  , -0.4626664119,  0.0125996045 , 12  , 15  , 4.5 ,  # AH
+    5.6430024532 , -0.4644532732,  0.0132654057 , 16  , 10.6, 4.1 ,  # AP
+    1.7183600838 , 0.0393047451 ,  -0.0023514773, 39  , 37  , 4.25,  # BA
+    4.8627898851 , -0.3695674404,  0.0109822297 , 9.2 , 31  , 3.63,  # BC
+    4.552236589  , -0.2313332059,  0.0125996045 , 14  , 20  , 4.5 ,  # BE
+    2.5743949775 , -0.0851930923,  0.0015971909 , 53  , 40.6, 1.51,  # BF
+    -3.5183135273, 0.5008393656 ,  -0.0114432915, 10  , 10  , 2   ,  # BL
+    9.6140856026 , -0.8619281584,  0.0215901194 , 15  , 27.5, 1.5 ,  # BN
+    2.7402431243 , -0.0403087   ,  0.0014846314 , 40  , 40  , 2   ,  # BO
+    1.8795415329 , -0.3915484285,  0.0298003249 , 33  , 33.6, 4.75,  # BP
+    1.9568828063 , 0.0535388009 ,  -0.0010376306, 34  , 22  , 3.75,  # BS
+    2.1791849646 , -0.0125375225,  0.0008529794 , 40  , 30  , 3   ,  # BT
+    -1.4145296118, 0.3204863989 ,  -0.0029710752, 15  , 30  , 3   ,  # BW
+    4.8627898851 , -0.3695674404,  0.0109822297 , 10  , 20  , 3.63,  # CC
+    -0.4584998714, 0.1992627013 ,  -0.0028451758, 40.6, 11  , 4.28,  # EC
+    4.5205542708 , -0.0670350692,  0.0012041907 , 50  , 40  , 3.5 ,  # EH
+    7.2061395918 , -0.2239701333,  0.0070370484 , 34  , 39.6, 3.41,  # GA
+    0.1922677751 , 0.1517490102 ,  -0.0039268819, 16  , 8.2 , 3.83,  # GB
+    2.9674489273 , -0.1009595852,  0.0071673636 , 18  , 24  , 2   ,  # HH
+    -0.4488149338, 0.1939739736 ,  -0.0019541699, 30  , 20  , 3   ,  # JP
+    4.552236589  , -0.2313332059,  0.0125996045 , 24  , 40  , 4.5 ,  # NM
+    17.4833923331, -1.809142126 ,  0.0616970369 , 15  , 35  , 2   ,  # NS
+    4.552236589  , -0.5204997134,  0.0125996045 , 12  , 10  , 4.5 ,  # OH
+    2.5863343441 , -0.0518497247,  0.0021853588 , 26.4, 41.2, 1.88,  # PB
+    12.1649655944, -1.0483772747,  0.0233147008 , 25.8, 41.6, 4.41,  # PP
+    -1.2171488097, 0.3211464783 ,  -0.0097154365, 10  , 40  , 2   ,  # PR
+    -0.4584998714, 0.1992627013 ,  -0.0028451758, 60.6, 11  , 4.28,  # QA
+    2.1674971386 , 0.0557266595 ,  -0.0010435394, 60.2, 40.6, 4.38,  # RM
+    3.1202275212 , -0.041290776 ,  0.0022978235 , 41  , 40.4, 3.27,  # RO
+    1.1361278304 , 0.1436446742 ,  0.0018438454 , 30  , 30  , 3   ,  # RP
+    2.0420797297 , 0.0425701678 ,  -0.0004901795, 41  , 32  , 4.8 ,  # RS
+    44.2565091524, -2.4248136198,  0.1388397603 , 22  , 35.6, 4.57,  # SB
+    4.552236589  , -0.2313332059,  0.0125996045 , 15  , 10  , 4.5 ,  # SH
+    2.7069022565 , 0.0086263655 ,  0.0007235392 , 54.4, 42  , 1.33,  # SM
+    5            , -0.3         ,  0.01         , 20  , 40  , 3   ,  # SP
+    4.5522366258 , -0.4626664068,  0.012599604  , 4.4 , 24.4, 4.51,  # ST
+    4.552236589  , -0.2313332059,  0.0125996045 , 24  , 40  , 4.5 ,  # SV
+    1.4269435976 , 0.0886275939 ,  -0.0021232407, 30  , 33.6, 4.5 ,  # TA
+    1.0042653571 , 0.165359309  ,  -0.0005814562, 21  , 40  , 4   ,  # WA
+    3.647647507  , -0.0606735724,  0.0008507857 , 40  , 45  , 5   ,  # WC
+    -3.5183135273, 0.5008393656 ,  -0.0114432915, 10  , 10  , 2   ,  # WL
+    -4.8640326448, 0.6250645999 ,  -0.0064419714, 18  , 40  , 4   ,  # WO
+    3.3383526175 , -0.0294498474,  0.0009561864 , 61.2, 41.2, 2.87,  # WP
+    0.5437824528 , 0.1052397713 ,  0.0006332627 , 19  , 54  , 2   ,  # WS
+    2.6967072576 , -0.001250889 ,  0.0007521152 , 48  , 60  , 2   ,  # YB
+    2.6967072576 , -0.001250889 ,  0.0007521152 , 48  , 60  , 2   ), # 99
+      ncol=6,byrow=TRUE)
+  sprow = match(SPP,SPcodes)
+  sprow[is.na(sprow)] = nrow(spConst)
+  # same as: ddd <- b0 + b1 * DBH + b2 * DBH^2
+  ddd <- spConst[sprow,1] + spConst[sprow,2] * DBH + spConst[sprow,3] * DBH^2 
   surv <- exp(ddd)/(1 + exp(ddd))
-  IDj <- as.integer(DBH/Djump)
-  Wprob <-1.0# exp(-Scale * ((IDj * (DBH - Djump))^Shape))
+  # same as: IDj <- as.integer(DBH/Djump)
+  IDj <- as.integer(DBH/spConst[sprow,4])
+             # same as: exp(-Scale * ((IDj * (DBH - Djump))^Shape))
+  Wprob <-1.0# exp(-SPcoefs[sprow,5] * ((IDj * (DBH - SPcoefs[sprow,4]))^SPcoefs[sprow,6]))
   tsurv <- surv * Wprob
   return(tsurv=tsurv)
 }
+
 
 #tree probability of mortality modifier for SBW (Cen et al. 2016) 
 tree.mort.mod.SBW=function(Region,SPP,DBH,CR,HT,BAL.HW,BAL.SW,avgHT.SW,CDEF=NA){
@@ -1207,6 +1045,7 @@ tmort.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   tmort.mod = ifelse((!is.na(YEAR_CT) & YEAR_CT <= YEAR) & SP==1,tmort.mod,1)
   return(tmort.mod = tmort.mod)
 }
+
 
 ##INGROWTH FUNCTION of Li et al. (2011; CJFR 41, 2077-2089)
 # PARMS is GNLS (generalized least squares) or NLME (mixed effects), 
@@ -2653,10 +2492,15 @@ Honer.Vol=function(SPP,HT,DBHO,topD=NA,topHT=NA)
 Summary.GY=function(tree){
   library(nlme)
 
-  temp = mapply(SPP.func,tree$SP)  
-  tree$SPtype=as.vector(temp[1,])
-  tree$shade=as.numeric(as.character(temp[2,]))
-  tree$SG=as.numeric(as.character(temp[3,])) 
+#  temp = mapply(SPP.func,tree$SP)  
+#  tree$SPtype=as.vector(temp[1,])
+#  tree$shade=as.numeric(as.character(temp[2,]))
+#  tree$SG=as.numeric(as.character(temp[3,]))
+  temp = SPP.func(tree$SP)  
+  tree$SPtype=temp$SPtype
+  tree$shade=temp$shade
+  tree$SG=temp$sg
+
   tree$ba<-round((tree$DBH^2*0.00007854)*tree$EXPF,2)
   tree$sdi=(tree$DBH/25.4)^1.605*tree$EXPF
   tree$SG.wt=tree$SG*tree$EXPF
@@ -2720,8 +2564,6 @@ Acadian.GY=function(tree,stand,ops)
 }
 
 
-
-
 ###Acadian growth and yield model called for one stand at time
 AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
 {
@@ -2742,10 +2584,10 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   if (exists("AcadianVersionTag") && verbose) 
     cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
-  temp = mapply(SPP.func,tree$SP)  
-  tree$SPtype=as.vector(temp[1,])
-  tree$shade=as.numeric(as.character(temp[2,]))
-  tree$SG=as.numeric(as.character(temp[3,])) 
+  temp = SPP.func(tree$SP)  
+  tree$SPtype=temp$SPtype
+  tree$shade=temp$shade
+  tree$SG=temp$sg
    
   tree$ba<-(tree$DBH^2*0.00007854)*tree$EXPF
   tree$SDIadd=(tree$DBH/25.4)^1.6*tree$EXPF
@@ -2820,14 +2662,13 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   temp$maxTREE = NULL
   tree=merge(tree,temp,by="PLOT")
   
-  #set tree$CDEF for all trees:
+  #set CDEF:
   # to NA if outside a SBW period (or if SBW is not set)
   # to SBW$CDEF if YEAR is within a SBW period.
   curYear = tree$YEAR[1]
   CDEF = if (is.null(SBW) || any(is.null(SBW)) || 
     !(curYear >= SBW["SBW.YR"] && 
       curYear <= SBW["SBW.YR"]+SBW["SBW.DUR"])) NA else SBW["CDEF"]
-  tree$CDEF = CDEF
   if (verbose) cat ("SBW, curYear=",curYear," CDEF=",CDEF,"\n")   
   
   #set thinning factors.
@@ -2855,8 +2696,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   tree$BAL.HW = tree$BAL-tree$BAL.SW
 
   #compute tree-level crown width-related metrics
-  tree$mcw=mapply(mcw,sp=tree$SP,dbh=tree$DBH)
-  tree$lcw=mapply(lcw,sp=tree$SP,mcw=tree$mcw,dbh=tree$DBH)
+  tree$mcw=mcw(sp=tree$SP,dbh=tree$DBH)
+  tree$lcw=lcw(sp=tree$SP,mcw=tree$mcw,dbh=tree$DBH)
   tree$MCA=100*((pi*(tree$mcw/2)^2)/10000)*tree$EXPF
   tree$MCA.SW<-ifelse(tree$SPtype=='SW',tree$MCA,0)
   temp = unlist(by(tree$MCA,INDICES=tree$PLOT,FUN=cumsum))
@@ -2886,7 +2727,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
 
   #compute plot top height
   topht = ddply(tree,.(PLOT), function (x)
-    { 
+    {
       cum.EXPF = cumsum(x$EXPF)
       tree.inc = mapply(the.includer.func,x$EXPF,cum.EXPF)
       wt.HT=tree.inc*x$HT
@@ -2928,33 +2769,36 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   tree$pHCB = as.numeric(tree$pHCB)
   # maybe CR is defined on input and HCB is not, at this point CR will be defined.
   if (is.null(tree$HCB)) tree$HCB = tree$HT*tree$CR
+
+  tree$dDBH=dDBH.FUN(SPP=tree$SP, DBH=tree$DBH, BAL.SW=tree$BAL.SW, BAL.HW=tree$BAL.HW,
+         BA=tree$BAPH, CSI=CSI, tph=tree$tph,topht=tree$topht,CR=tree$CR,RD=tree$RD)
+         
+  tree$dDBH.thin.mod = if (is.null(YEAR_CT)) 1 else 
+    mapply(dDBH.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre,  
+           QMDratio=QMDratio, YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
-  tree$dDBH=mapply(dDBH.FUN, SPP=tree$SP, DBH=tree$DBH, BAL.SW=tree$BAL.SW, BAL.HW=tree$BAL.HW,
-                 BA=tree$BAPH, CSI=CSI, tph=tree$tph,topht=tree$topht,CR=tree$CR,RD=tree$RD)
-                 
-  tree$dDBH.thin.mod=mapply(dDBH.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
-                       YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
-  
-  tree$dDBH.SBW.mod=mapply(dDBH.SBW.mod,Region='ME',SPP=tree$SP,DBH=tree$DBH,
-          BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,CR=tree$CR,
-          avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=tree$CDEF)
-  if (verbose) cat ("mean tree$dDBH.thin.mod=",mean(tree$dDBH.thin.mod),"\n")
-  if (verbose) cat ("mean tree$dDBH.SBW.mod=",mean(tree$dDBH.SBW.mod),"\n")
+  tree$dDBH.SBW.mod = if (is.null(CDEF)) 1 else 
+    mapply(dDBH.SBW.mod,Region='ME',SPP=tree$SP,DBH=tree$DBH,
+           BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,CR=tree$CR,
+           avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=CDEF)
+  if (verbose) cat ("mean tree$dDBH.thin.mod=",mean(tree$dDBH.thin.mod),"\n")          
+  if (verbose) cat ("mean tree$dDBH.SBW.mod= ",mean(tree$dDBH.SBW.mod),"\n")
   tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod
   
   #height increment
-  #tree$dHT=mapply(Htincr,SPP=tree$SP,HT=tree$HT,CR=tree$CR,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,BAPH=tree$BAPH,CSI=tree$CSI)
-  
-  tree$dHT=mapply(dHT,SPP=tree$SP,HT=tree$HT,CR=tree$CR,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,BA=tree$BAPH,CSI=CSI,tph=tree$tph,topht=tree$topht,RD=tree$RD)
+  tree$dHT=dHT(SPP=tree$SP,HT=tree$HT,CR=tree$CR,BAL.SW=tree$BAL.SW,
+     BAL.HW=tree$BAL.HW,BA=tree$BAPH,CSI=CSI,tph=tree$tph,topht=tree$topht,RD=tree$RD)
 
-  tree$dHT.thin.mod=mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
-                           YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
+  tree$dHT.thin.mod = if (is.null(YEAR_CT)) 1 else 
+    mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre,  
+           QMDratio=QMDratio, YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
-  tree$dHT.SBW.mod=mapply(dHT.SBW.mod,SPP=tree$SP,DBH=tree$DBH,topht=tree$topht,CR=tree$CR,
-                          avg.DBH.SW=tree$avgDBH.SW,CDEF=tree$CDEF)
+  tree$dHT.SBW.mod = if (is.null(CDEF)) 1 else 
+    mapply(dHT.SBW.mod,SPP=tree$SP,DBH=tree$DBH,topht=tree$topht,CR=tree$CR,
+           avg.DBH.SW=tree$avgDBH.SW,CDEF=CDEF)
   
   if (verbose) cat ("mean tree$dHT.thin.mod=",mean(tree$dHT.thin.mod),"\n")
-  if (verbose) cat ("mean tree$dHT.SBW.mod=",mean(tree$dHT.SBW.mod),"\n")
+  if (verbose) cat ("mean tree$dHT.SBW.mod=", mean(tree$dHT.SBW.mod),"\n")
   tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod
   
   # cap height growth
@@ -2963,10 +2807,12 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   tree$dHT=tree$dHT*dHTmult
     
   #crown recession
-  tree$dHCB=mapply(dHCB,dHT=tree$dHT,DBH=tree$DBH,HT=tree$HT,HCB=tree$HCB,CCF=tree$CCF,shade=tree$shade)
+  tree$dHCB=dHCB(dHT=tree$dHT,DBH=tree$DBH,HT=tree$HT,HCB=tree$HCB,
+                  CCF=tree$CCF,shade=tree$shade)
 
-  tree$dHCB.thin.mod=mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
-                           YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
+  tree$dHCB.thin.mod = if (is.null(YEAR_CT)) 1 else
+    mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre,  
+           QMDratio=QMDratio, YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
   tree$dHCB=tree$dHCB*tree$dHCB.thin.mod
   if (verbose) cat ("mean tree$dHCB.thin.mod=",mean(tree$dHCB.thin.mod),"\n")
@@ -2983,22 +2829,26 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
                 x
               })              
                 
-  tmp = mapply(stand.mort.prob,region='ME',BA=tree$BAPH,BAG=tree$Sbag30,
+  tmp = stand.mort.prob(region='ME',BA=tree$BAPH,BAG=tree$Sbag30,
                QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)                  
-  tree$stand.pmort=as.vector(tmp[1,])    
-  tree$stand.pmort.cut=as.vector(tmp[2,])    
+  tree$stand.pmort=tmp$prob    
+  tree$stand.pmort.cut=tmp$cut    
+
   if (verbose) cat ("mean tree$stand.pmort=",mean(tree$stand.pmort),"\n")
   if (verbose) cat ("mean tree$stand.pmort.cut=",mean(tree$stand.pmort.cut),"\n")
 
-  tree$stand.mort.BA=mapply(stand.mort.BA,region='ME',BA=tree$BAPH,
-                            BAG=tree$Sbag30,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
-                            pBA.ih=tree$pIHW.ba)
+  tree$stand.mort.BA=stand.mort.BA(region='ME',BA=tree$BAPH,
+         BAG=tree$Sbag30,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
+         pBA.ih=tree$pIHW.ba)
 
-  tree$smort.thin.mod=mapply(BAmort.stand,BA=tree$BAPH, PCT=0, YEAR_CT=YEAR_CT, 
-                             YEAR=tree$YEAR, PERCBArm=pBArm, BApre=BApre, QMDratio=QMDratio)
+  tree$smort.thin.mod = if (is.null(YEAR_CT)) 1 else 
+    BAmort.stand(BA=tree$BAPH, PCT=0, YEAR_CT=YEAR_CT, 
+           YEAR=tree$YEAR, PERCBArm=pBArm, BApre=BApre, QMDratio=QMDratio)
   if (verbose) cat ("mean tree$smort.thin.mod=",mean(tree$smort.thin.mod),"\n")
   
-  tree$smort.SBW.mod=mapply(SBW.smort.mod,region='ME',BA=tree$BAPH,BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
+  tree$smort.SBW.mod = if (is.null(CDEF)) 1 else 
+    SBW.smort.mod(region='ME',BA=tree$BAPH,
+           BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=CDEF)
   if (verbose) cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
 
   # tree$stand.pmort, annual probability of at least 1 tree dying 
@@ -3013,25 +2863,26 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
       tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
   } else {   
     # Crookston's alternative continuous 
-    pmort = mapply(function(threshold, prmortgt0)
-      {
-        w = 1
-        # prmortgt0 == 1 is OK here because v can be Inf.
-        v = (prmortgt0*w)/(1-prmortgt0)  
-        qbeta(threshold, v, w, lower.tail = FALSE)
-      },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
+    w=1
+    pmort = qbeta(tree$stand.pmort.cut, 
+             (tree$stand.pmort*w)/(1-tree$stand.pmort), w, lower.tail = FALSE)
     if (verbose) cat ("mean pmort=",mean(pmort)," sd=",sd(pmort),"\n")
     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*pmort
   } 
 
+  #thinning mortalaity modifier
+  tree$tmort.thin.mod = if (is.na(YEAR_CT)) 1 else   
+    mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, 
+                  QMDratio=QMDratio, YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   #spruce budworm mortality modifier
-  tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,CR=tree$DBH,HT=tree$HT,
-                            BAL.HW=tree$BAL.HW,BAL.SW=tree$BAL.SW,avgHT.SW=tree$avgHT.SW,CDEF=tree$CDEF)
+  tree$tsurv.SBW.mod = if (is.null(CDEF)) 1 else 
+    mapply(tree.mort.mod.SBW,Region='ME',SPP=tree$SP,DBH=tree$DBH,
+           CR=tree$DBH,HT=tree$HT,BAL.HW=tree$BAL.HW,BAL.SW=tree$BAL.SW,
+           avgHT.SW=tree$avgHT.SW,CDEF=CDEF)
+  if (verbose) cat ("mean tree$tmort.thin.mod=",mean(tree$tmort.thin.mod),"\n")
+  if (verbose) cat ("mean tree$tsurv.SBW.mod=",mean(tree$tsurv.SBW.mod),"\n")
   
-  tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = pBArm, BApre=BApre, QMDratio=QMDratio, 
-                           YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
-  
-  tree$tsurv=pmax(0,pmin(mapply(tree.mort.prob,tree$SP,tree$DBH)*tree$tsurv.SBW.mod*tree$tmort.thin.mod,1.0))
+  tree$tsurv=pmax(0,pmin(tree.mort.prob(tree$SP,tree$DBH)*tree$tsurv.SBW.mod*tree$tmort.thin.mod,1.0))
 
   tree$mortBA=((tree$DBH+tree$dDBH)^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
          
