@@ -20,8 +20,8 @@ autoTreelists="
 Treelist       0                   0
 Cutlist        0                   0
 Database
-Treelist       1
-Cutlist        1
+Treelist       2
+Cutlist        2
 End
 "
 

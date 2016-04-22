@@ -195,6 +195,8 @@ shinyUI(fixedPage(
           column(width=3,
             tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
             textInput("defMgmtID","MgmtID (4 chars)",""),
+            radioButtons("runwaitback", NULL, 
+              c("Wait for run","Run in background")),
             actionButton("saveandrun","Save and Run"),
             h6(" "),
             downloadButton("dlFVSRunout","FVS output"),
@@ -210,7 +212,11 @@ shinyUI(fixedPage(
           )
         ),
         uiOutput("uiRunPlot"),
-        uiOutput("uiErrorScan") 
+        uiOutput("uiErrorScan"),
+    	  selectInput("bkgRuns", "Background run status", 
+	        choices  = list(), size=2, width = "75%", selected = NULL, selectize=FALSE),
+        actionButton("bkgKill","Kill selected background run"),
+        actionButton("bkgRefresh","Refresh list")
       ),
       tabPanel("Build Components",
         tags$style(type="text/css", "#kcpSel { width: 65%; }"),

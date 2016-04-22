@@ -207,8 +207,37 @@ cat("mkpair, length(alist)=",length(alist),"\n")
   names(l) <- names(alist)
   l
 }
-  
 
+
+getBkgRunList = function ()
+{
+  pidfiles=dir(pattern="pidStatus$")
+  if (length(pidfiles) == 0) return (list())
+  theList = unlist(lapply(pidfiles,function (x)
+    scan(file=x,what="character",sep="\n",quiet=TRUE)))
+  pidfiles=as.list(pidfiles)
+  names(pidfiles) = theList
+  pidfiles
+  
+}
+
+killIfRunning = function (uuid)
+{
+  fn = paste0(uuid,".pidStatus")
+cat ("killIfRunning, fn=",fn,"\n")
+  if (file.exists(fn))
+  {
+    pid = scan (file=fn,what="character",n=1,sep=" ",quiet=TRUE)
+    cmd = if (.Platform$OS.type == "windows") paste("taskkill /pid",pid) else 
+      paste("kill ",pid)    
+cat ("kill cmd =",cmd,"\n")
+    system (cmd)
+    Sys.sleep(.5)
+    unlink(fn)
+  }
+}
+    
+   
 removeFVSRunFiles = function (uuid)
 {
   if (file.exists(uuid)) 
@@ -938,11 +967,22 @@ cat("pasteComponent finding cmp in stands, sel=",sel,"\n")
 }
 
 
-deleteRelatedDBRows <- function(runuuid,dbcon)
+
+deleteRelatedDBRows <- function(runuuid,dbcon,attached=FALSE)
 {
   tbs <- dbListTables(dbcon)
   if (! ("FVS_Cases" %in% tbs)) return()
-  todel = paste0("m.todel",gsub("-","",runuuid))
+  muuid  = gsub("-","",runuuid)
+  newrun = paste0("newrun",muuid)
+  if (!attached)
+  {  
+    fn = paste0(runuuid,".db")
+    qry = paste0("attach database '",fn,"' as ",newrun)
+cat ("qry=",qry,"\n") 
+    res = try (dbSendQuery(dbcon,qry))
+    if (class(res) == "try-error") return ("new run database attach failed")
+  }
+  todel = paste0(newrun,".todel",muuid)
   droptodel = paste0("drop table if exists ",todel)
   dbSendQuery(dbcon,droptodel)      
   qry = paste0("create table ",todel,
@@ -973,34 +1013,42 @@ addNewRun2DB <- function(runuuid,dbcon)
 
 cat ("addNewRun2DB, runuuid=",runuuid,"\n")  
   fn = paste0(runuuid,".db")
+  newrun = paste0("newrun",gsub("-","",runuuid))
   if (! (file.exists(fn) && file.size(fn))) return("no new database found")
-  qry = paste0("attach database '",fn,"' as newrun")
+  qry = paste0("attach database '",fn,"' as ",newrun)
+cat ("qry=",qry,"\n") 
   res = try (dbSendQuery(dbcon,qry))
   if (class(res) == "try-error") return ("new run database attach failed")
-  newtabs = dbGetQuery(dbcon,
-     "select * from newrun.sqlite_master where type='table'")[,"tbl_name",drop=TRUE]
+  qry = paste0("select * from ",newrun,".sqlite_master where type='table'")
+cat ("qry=",qry,"\n") 
+  newtabs = dbGetQuery(dbcon,qry)[,"tbl_name",drop=TRUE]
   if (length(newtabs)==0)
   {
-    try (dbSendQuery(dbcon,"detach database 'newrun';"))
+    try (dbSendQuery(dbcon,paste0("detach database '",newrun,"'")))
     return("no data found in new run")
   }
   ic = grep ("FVS_Cases",newtabs)
   if (length(ic) == 0) return("no FVS_Cases found in new run") 
-
-  res = dbGetQuery(dbcon,"select * from newrun.FVS_Cases")
+  qry = paste0("select * from ",newrun,".FVS_Cases")
+cat ("qry=",qry,"\n") 
+  res = dbGetQuery(dbcon,qry)
+cat ("nrow(res)=",nrow(res),"\n")
   if (nrow(res) == 0) return("no new cases found in new run") 
 
-  deleteRelatedDBRows(runuuid,dbcon)
+  deleteRelatedDBRows(runuuid,dbcon,attached=TRUE)
    
   tbs <- dbListTables(dbcon)
+cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
   {
     if (newtab %in% tbs)
     {
-      qry = paste0("PRAGMA newrun.table_info('",newtab,"')")
+      qry = paste0("PRAGMA ",newrun,".table_info('",newtab,"')")
+cat ("qry=",qry,"\n") 
       newCols = dbGetQuery(dbcon,qry)
       newColNs = newCols[,"name",drop=TRUE]
       qry = paste0("PRAGMA table_info('",newtab,"')")
+cat ("qry=",qry,"\n") 
       existCols = dbGetQuery(dbcon,qry)[,"name",drop=TRUE]
       toAdd = setdiff(newColNs,existCols)
       if (length(toAdd))
@@ -1016,16 +1064,16 @@ cat ("qry=",qry,"\n")
         dbCommit(dbcon)
       }
       qry = if (identical(newColNs,existCols)) 
-        paste0("insert into ",newtab," select * from newrun.",newtab) else
+        paste0("insert into ",newtab," select * from ",newrun,".",newtab) else
         paste0("insert into ",newtab," (",
-          paste0(newColNs,collapse=","),") select * from newrun.",newtab)
+          paste0(newColNs,collapse=","),") select * from ",newrun,".",newtab)
 cat ("qry=",qry,"\n") 
       dbSendQuery(dbcon,qry)
     } else {
-      qry = paste0("create table ",newtab," as select * from newrun.",newtab,";")
+      qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
       dbSendQuery(dbcon,qry)
     }
   }    
-  dbSendQuery(dbcon,"detach database 'newrun';")
+  dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
   "data inserted"
 }

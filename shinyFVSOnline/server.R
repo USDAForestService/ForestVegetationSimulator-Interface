@@ -52,7 +52,7 @@ cat ("FVS_Runs try error...deleting one\n")
       } else break
     } else 
     {
-cat ("FVS_Runs does not exits, resetting\n")      
+cat ("FVS_Runs does not exist, resetting\n")      
       globals$FVS_Runs = list()
       resetfvsRun(fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
@@ -205,6 +205,8 @@ isolate({
       if (input$rightPan == "Run")
       {
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+        updateSelectInput(session=session, inputId="bkgRuns", 
+                          choices=getBkgRunList(),selected=0)
         globals$currentQuickPlot = character(0)
       }
     })
@@ -1846,7 +1848,6 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   ## Save and Run
   observe({  
     if (input$saveandrun == 0) return()
-
     isolate ({
       if (exists("fvsRun")) if (length(fvsRun$stands) > 0) 
       {
@@ -1864,16 +1865,86 @@ cat("Nulling uiRunPlot at Save and Run\n")
         progress$set(message = "Run preparation: ", 
           detail = "Saving FVS Runs, deleting old ouputs", value = 1)         
         save (FVS_Runs,file="FVS_Runs.RData")
+        killIfRunning(fvsRun$uuid)
         removeFVSRunFiles(fvsRun$uuid)
+        updateSelectInput(session=session, inputId="bkgRuns", 
+                          choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and load program", value = 2)
+          detail = "Write .key file and prepare program", value = 2)
         writeKeyFile(fvsRun,dbIcon,prms)
         dir.create(fvsRun$uuid)
         if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) return()
-        fvschild = makePSOCKcluster(1)
         binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
+cat ("runwaitback=",input$runwaitback,"\n")
+        if (input$runwaitback!="Wait for run")
+        {
+          runScript = paste0(fvsRun$uuid,".rscript")
+          rs = file(runScript,open="wt")
+          cat ('options(echo=TRUE)\nlibrary(RSQLite)\nlibrary(methods)\n',file=rs)
+          cat ('pid = Sys.getpid()\n',file=rs) 
+          cmd = paste0("title = '",fvsRun$title,"'")
+          cat (cmd,"\n",file=rs)                   
+          cmd = paste0("nstands = ",length(fvsRun$stands))
+          cat (cmd,"\n",file=rs)          
+          cmd = paste0("for (rf in dir('",rFVSDir,
+             "')) source(paste0('",rFVSDir,"',rf))")
+          cat (cmd,"\n",file=rs)
+          cmd = paste0("fvsLoad('",
+             fvsRun$FVSpgm,"',bin='",binDir,"')")
+          cat (cmd,"\n",file=rs)
+          if (fvsRun$runScript != "fvsRun")
+          {
+            cmd = paste0("source('customRun_",fvsRun$runScript,".R')")
+            cat (cmd,"\n",file=rs)
+            cat ("runOps = ",deparse(fvsRun$uiCustomRunOps),"\n",file=rs)        
+          }
+          cmd = paste0('fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key")')
+          cat (cmd,"\n",file=rs)
+          runCmd = if (fvsRun$runScript == "fvsRun") "fvsRun()" else
+               paste0(fvsRun$runScript,"(runOps)")
+          pidfile = paste0(fvsRun$uuid,".pidStatus")
+          cmd = 'cat (pid,"Starting title=",title,"\n")'
+          cat (cmd,"\n",file=rs)       
+          cmd = paste0('cat (pid,"Starting title=",title,file="',pidfile,'")')
+          cat (cmd,"\n",file=rs)       
+          cmd = paste0('for (istand in 1:nstands)\n{\n',
+                       '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n")\n',
+                       '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n",file="',pidfile,
+                       '")\n',
+                       '  rtn = ',runCmd,'\n}')
+          cat (cmd,"\n",file=rs)
+          cat ('source("fvsRunUtilities.R")\n',file=rs)
+          cmd = paste0('dbDrv = dbDriver("SQLite")\n',
+                       'dbcon = dbConnect(dbDrv,"FVSOut.db")')
+          cat (cmd,"\n",file=rs)
+          cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n")')
+          cat (cmd,"\n",file=rs)
+          cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n",file="',pidfile,
+                       '")')
+          cat (cmd,"\n",file=rs)
+          cmd = paste0('addNewRun2DB("',fvsRun$uuid,'",dbcon)')
+          cat (cmd,"\n",file=rs)
+          cat ("dbDisconnect(dbcon)\n",file=rs)
+          cmd = paste0("unlink('",pidfile,"')")
+          cat (cmd,"\n",file=rs)
+          progress$set(message = "Run starting in background", 
+              detail = "", value = 5)
+          unlink(paste0(fvsRun$uuid,".db"))
+          close (rs)
+          cmd = paste0("Rscript --no-restore --no-save --no-init-file ",runScript,
+                       " > ",runScript,".Rout")
+          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
+cat ("cmd=",cmd,"\n")
+          system (cmd,wait=FALSE) 
+          Sys.sleep(2)
+          updateSelectInput(session=session, inputId="bkgRuns", 
+                          choices=getBkgRunList(),selected=0)
+          progress$close()
+          return()
+        }
+        fvschild = makePSOCKcluster(1)
         cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
           "')) source(paste0('",rFVSDir,"',rf)))")
 cat ("load rFVS cmd=",cmd,"\n")          
@@ -2005,6 +2076,27 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     })
   })
 
+## bkgKill  
+  observe({  
+    if (input$bkgKill == 0) return()
+    isolate ({
+      if (!is.null(input$bkgRuns))
+      {
+        uuid=sub(".pidStatus","",input$bkgRuns)
+        killIfRunning(uuid)
+        removeFVSRunFiles(uuid)
+      }
+      updateSelectInput(session=session, inputId="bkgRuns", 
+                      choices=getBkgRunList(),selected=0)
+    })
+  })
+  
+## bkgRefresh
+  observe({  
+    if (input$bkgRefresh == 0) return()
+    updateSelectInput(session=session, inputId="bkgRuns", 
+                      choices=getBkgRunList(),selected=0)
+  })
   
   ## Download handlers
   output$dlFVSDatadb <- downloadHandler(filename="FVS_Data.db",
@@ -2281,6 +2373,7 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
         if (is.null(input$runSel) || length(globals$FVS_Runs) == 0 || 
             is.null(globals$FVS_Runs[[input$runSel]])) return() 
         globals$FVS_Runs[[input$runSel]] = NULL
+        killIfRunning(input$runSel)
         removeFVSRunFiles(input$runSel)
         deleteRelatedDBRows(input$runSel,dbcon)
         FVS_Runs = globals$FVS_Runs
@@ -2310,6 +2403,8 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
     if (input$deleteAllRunsDlgBtn == 0) return()
     isolate({
 cat ("delete all runs\n")
+      rmfiles=dir(pattern="[.]pidStatus$")      
+      for (tokill in rmfiles) killIfRunning(sub(".pidStatus","",tokill))
       file.remove("FVSOut.db")
       file.remove("FVS_Runs.RData")
       rmfiles=dir(pattern="[.]key$")      
