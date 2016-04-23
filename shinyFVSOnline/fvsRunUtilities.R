@@ -968,41 +968,44 @@ cat("pasteComponent finding cmp in stands, sel=",sel,"\n")
 
 
 
-deleteRelatedDBRows <- function(runuuid,dbcon,attached=FALSE)
+deleteRelatedDBRows <- function(runuuid,dbcon)
 {
   tbs <- dbListTables(dbcon)
   if (! ("FVS_Cases" %in% tbs)) return()
-  muuid  = gsub("-","",runuuid)
-  newrun = paste0("newrun",muuid)
-  if (!attached)
-  {  
-    fn = paste0(runuuid,".db")
-    qry = paste0("attach database '",fn,"' as ",newrun)
+  tmpDel = paste0("tmp",gsub("-","",runuuid),Sys.getpid())
+  qry = paste0("attach database ':memory:' as ",tmpDel)
 cat ("qry=",qry,"\n") 
-    res = try (dbSendQuery(dbcon,qry))
-    if (class(res) == "try-error") return ("new run database attach failed")
-  }
-  todel = paste0(newrun,".todel",muuid)
-  droptodel = paste0("drop table if exists ",todel)
-  dbSendQuery(dbcon,droptodel)      
+  dbSendQuery(dbcon,qry)
+  todel = paste0(tmpDel,".todel")
+  qry = paste0("drop table if exists ",todel)
+cat ("qry=",qry,"\n") 
+  dbSendQuery(dbcon,qry)      
   qry = paste0("create table ",todel,
      " as select CaseID from FVS_Cases where KeywordFile = '",runuuid,"'")
+cat ("qry=",qry,"\n") 
   dbSendQuery(dbcon,qry)    
-  tbs <- dbListTables(dbcon)
-  dbBegin(dbcon)
-  for (tab in tbs)
+  nr = dbGetQuery(dbcon,paste0("select count(*) from ",todel))[,1]
+cat ("ncases to delete=",nr,"\n")
+  if (nr)
   {
-    if ("CaseID" %in% dbListFields(dbcon,name=tab))
-    { 
-      qry = paste0("delete from ",tab," where CaseID in (",
-                   "select CaseID from ",todel,")")
-      dbSendQuery(dbcon,qry)
-      nr = dbGetQuery(dbcon,paste0("select count(*) from ",tab))[,1]
-      if (nr == 0) dbSendQuery(dbcon,paste0("drop table ",tab))
-    } else dbSendQuery(dbcon,paste0("drop table ",tab)) 
+    tbs <- dbListTables(dbcon)
+    dbBegin(dbcon)
+    for (tab in tbs)
+    {
+      if ("CaseID" %in% dbListFields(dbcon,name=tab))
+      { 
+        qry = paste0("delete from ",tab," where CaseID in (",
+                     "select CaseID from ",todel,")")
+cat ("qry=",qry,"\n")                      
+        dbSendQuery(dbcon,qry)
+        nr = dbGetQuery(dbcon,paste0("select count(*) from ",tab))[,1]
+cat ("nr=",nr,"\n")                      
+        if (nr == 0) dbSendQuery(dbcon,paste0("drop table ",tab))
+      } else dbSendQuery(dbcon,paste0("drop table ",tab)) 
+    }
+    dbCommit(dbcon)
   }
-  dbCommit(dbcon)
-  dbSendQuery(dbcon,droptodel)      
+  dbSendQuery(dbcon,paste0("detach database '",tmpDel,"'"))
 }
 
 
@@ -1013,8 +1016,8 @@ addNewRun2DB <- function(runuuid,dbcon)
 
 cat ("addNewRun2DB, runuuid=",runuuid,"\n")  
   fn = paste0(runuuid,".db")
-  newrun = paste0("newrun",gsub("-","",runuuid))
   if (! (file.exists(fn) && file.size(fn))) return("no new database found")
+  newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
 cat ("qry=",qry,"\n") 
   res = try (dbSendQuery(dbcon,qry))
@@ -1033,9 +1036,13 @@ cat ("qry=",qry,"\n")
 cat ("qry=",qry,"\n") 
   res = dbGetQuery(dbcon,qry)
 cat ("nrow(res)=",nrow(res),"\n")
-  if (nrow(res) == 0) return("no new cases found in new run") 
+  if (nrow(res) == 0)
+  {
+    dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
+    return("no new cases found in new run")
+  }
 
-  deleteRelatedDBRows(runuuid,dbcon,attached=TRUE)
+  deleteRelatedDBRows(runuuid,dbcon)
    
   tbs <- dbListTables(dbcon)
 cat ("length(tbs)=",length(tbs),"\n")
@@ -1071,6 +1078,7 @@ cat ("qry=",qry,"\n")
       dbSendQuery(dbcon,qry)
     } else {
       qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
+cat ("qry=",qry,"\n") 
       dbSendQuery(dbcon,qry)
     }
   }    
