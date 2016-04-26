@@ -427,7 +427,7 @@ cat ("Explore Output\n")
             dtab$ForTyp =as.factor(dtab$ForTyp)
             dtab$SizeCls=as.factor(dtab$SizeCls)
             dtab$StkCls =as.factor(dtab$StkCls)
-          }
+          } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
           cls = intersect(c(cols,"srtOrd"),colnames(dtab))
           if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
           for (col in colnames(dtab)) if (is.character(dtab[,col])) 
