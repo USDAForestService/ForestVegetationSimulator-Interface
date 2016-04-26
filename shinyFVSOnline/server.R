@@ -1,4 +1,5 @@
 library(shiny)
+library(rhandsontable)
 library(ggplot2)
 library(parallel)
 library(RSQLite)
@@ -561,12 +562,13 @@ cat ("Explore, len(dat)=",length(dat),"\n")
   })
   
   ## renderTable
-  output$table <- renderTable(
+  output$table <- renderRHandsontable(
   {
 cat("renderTable\n")
+    rhandsontable(data.frame())
 
-    if (input$leftPan == "Load Output") return(NULL) 
-    if (length(input$selectdbvars) == 0) return(NULL) 
+    if (input$leftPan == "Load Output") return(rhandsontable(data.frame())) 
+    if (length(input$selectdbvars) == 0) return(rhandsontable(data.frame())) 
 cat("renderTable continued\n")
     if (length(input$browsevars) == 0)
     {
@@ -575,7 +577,7 @@ cat("renderTable continued\n")
     }
     fvsOutData$browseSelVars <- input$browsevars
     {
-      if (length(input$browsevars) > 0) 
+      dat = if (length(input$browsevars) > 0) 
       {
         dat = fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
@@ -583,14 +585,15 @@ cat("renderTable continued\n")
 cat ("nrow fvsOutData$dbData=",nrow(fvsOutData$dbData),
      " nrow dat=",nrow(dat),"\n")
         sel=match(input$browsevars,colnames(dat))
-cat ("match=",sel,"\n")
         dat = dat[,sel,drop=FALSE]
         if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
             !is.null(input$dispVar) && input$dispVar != "None") dat = 
               pivot(dat,input$pivVar,input$dispVar)
-       fvsOutData$render = dat
+        fvsOutData$render = dat
         if (nrow(dat) > 3000) dat[1:3000,,drop=FALSE] else dat
       } else NULL
+      if (is.null(dat)) rhandsontable(data.frame()) else
+        rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE)
     }
   })
 
@@ -2105,6 +2108,14 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
        content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
   output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
+  ## Download dlRenderData
+  output$dlRenderData <- downloadHandler(filename="table.csv",
+      content=function (tf = tempfile())
+      {
+        if (nrow(fvsOutData$render) > 0)
+          write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
+          cat (file=tf,'"No data"\n')
+      }, contentType="text")
   ## Download output
   output$dlFVSRunout <- downloadHandler(filename=function ()
       paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSoutput.txt"),
@@ -2171,7 +2182,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       
   ## cpReload
   observe({      
-    if (input$rightPan == "Build Components" || input$kcpReload > 0)
+    if (input$rightPan == "Build Components")
     {
       if (length(globals$customCmps) == 0) 
       {
@@ -2347,7 +2358,7 @@ cat ("FVSRefresh\n")
         session$sendCustomMessage(type="infomessage",
           message=paste0(i," of ",length(input$FVSprograms),
             " selected FVS programs refreshed."))
-        if (i) output$reload<-renderUI(tags$script("location.reload();"))
+        if (i) output$locReload<-renderUI(tags$script("location.reload();"))
       } 
     })
   })
@@ -2386,7 +2397,7 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
           write(file="projectId.txt",prjid)
         } 
         globals$saveOnExit = FALSE
-            output$reload<-renderUI(tags$script("location.reload();"))
+            output$locReload<-renderUI(tags$script("location.reload();"))
       })
     }
   })
@@ -2416,7 +2427,7 @@ cat ("delete all runs\n")
       rmfiles=gsub ("[.]out$","*",rmfiles)
       if (length(rmfiles)) unlink(rmfiles,recursive=TRUE)
       globals$saveOnExit = FALSE
-      output$reload<-renderUI(tags$script("location.reload();"))
+      output$locReload<-renderUI(tags$script("location.reload();"))
     })  
   })
   
@@ -2438,7 +2449,7 @@ cat ("interfaceRefreshDlgBtn\n")
     # shiny code, etc
     needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ")  
     system (paste0("cp -R ",needed," ."))
-    output$reload<-renderUI(tags$script("location.reload();"))
+    output$locReload<-renderUI(tags$script("location.reload();"))
   }) 
   
   ## restoreYesterday 
@@ -2465,7 +2476,7 @@ cat ("backup=",backup,"\n")
       system (paste0("cp -R -p ",backup,"/* ."))
       globals$saveOnExit=FALSE
     }   
-    output$reload<-renderUI(tags$script("location.reload();"))
+    output$locReload<-renderUI(tags$script("location.reload();"))
   }) 
 
   ## rpRestart
@@ -2548,14 +2559,14 @@ cat ("backup=",backup,"\n")
   })
   
   #dataEditor
-  observe(if (input$launchDataEditor > 0) 
+  observe(if (input$launchDataEditor > 0 || input$inDataEdit > 0) 
   {
 cat ("dataEditor\n")
     file.copy("server.R","fvsOnlineServer.R", overwrite=TRUE)
     file.copy("ui.R",    "fvsOnlineUI.R",     overwrite=TRUE)
     file.copy("editDataServer.R","server.R",  overwrite=TRUE)
     file.copy("editDataUI.R",    "ui.R",      overwrite=TRUE)   
-    output$reload<-renderUI(tags$script("location.reload();"))
+    output$locReload<-renderUI(tags$script("location.reload();"))
   })
 
   #runScript selection

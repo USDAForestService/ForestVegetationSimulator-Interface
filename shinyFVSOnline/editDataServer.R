@@ -1,7 +1,6 @@
 library(shiny)
 library(RSQLite)
-library(shinysky)
-
+library(rhandsontable)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=30*1024^2,shiny.trace = F)
@@ -80,7 +79,8 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
           tbl <- as.data.frame(matrix("",ncol=length(input$selectdbvars),
                                nrow=globals$disprows))
           colnames(tbl) <- input$selectdbvars
-          output$tbl <- renderHotable(tbl,readOnly=FALSE)
+          output$tbl <- renderRHandsontable(rhandsontable(tbl,
+            readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
           output$stdSel <- output$navRows <- renderUI(NULL)
           globals$rowSelOn <- globals$navsOn <- FALSE
         },
@@ -94,23 +94,25 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
             paste0(qry,";")                             
           res <- dbSendQuery(dbcon,qry)
           globals$tbl <- dbFetch(res,n=-1)
+          rownames(globals$tbl) = globals$tbl$rowid
           dbClearResult(dbcon)
           for (col in 2:ncol(globals$tbl))
             if (class(globals$tbl[[col]]) != "character") 
                globals$tbl[[col]] = as.character(globals$tbl[[col]])
           if (nrow(globals$tbl) == 0) globals$rows = NULL else
           {
-            globals$tbl$Delete = "No"
+            globals$tbl$Delete = FALSE
             globals$rows <- c(1,min(nrow(globals$tbl),globals$disprows))
-            output$tbl <- renderHotable(globals$tbl[1:min(nrow(globals$tbl),globals$disprows),
-              union(c("Delete"),input$selectdbvars),drop=FALSE],
-              readOnly=FALSE)
+            output$tbl <- renderRHandsontable(
+              rhandsontable(globals$tbl[1:min(nrow(globals$tbl),globals$disprows),
+                union(c("Delete"),input$selectdbvars),drop=FALSE],
+                 readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
             if (!globals$navsOn) 
             {
               globals$navsOn <- TRUE
               output$navRows <- renderUI(list(
-                shiny::actionButton("previousRows","<< previous rows"),
-                shiny::actionButton("nextRows","next rows >>"),
+                actionButton("previousRows","<< previous rows"),
+                actionButton("nextRows","next rows >>"),
                 textOutput("rowRng",inline=TRUE)))
             }
             output$rowRng <- renderText(paste0(globals$rows[1]," to ",
@@ -132,9 +134,9 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
       newBot <- min(globals$rows[2]+globals$disprows,nrow(globals$tbl))
       newTop <- max(newBot-globals$disprows-1,1)
       globals$rows <- c(newTop,newBot)
-      output$tbl <- renderHotable(globals$tbl[newTop:newBot,
+      output$tbl <- renderRHandsontable(rhandsontable(globals$tbl[newTop:newBot,
         union(c("Delete"),isolate(input$selectdbvars)),
-          drop=FALSE],readOnly=FALSE)
+          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
       output$rowRng <- renderText(paste0(newTop," to ",
           newBot," of ",nrow(globals$tbl)))
     }
@@ -147,9 +149,9 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
       newTop <- max(globals$rows[1]-globals$disprows,1)
       newBot <- min(newTop+globals$disprows-1,nrow(globals$tbl))
       globals$rows <- c(newTop,newBot)
-      output$tbl <- renderHotable(globals$tbl[newTop:newBot,
+      output$tbl <- renderRHandsontable(rhandsontable(globals$tbl[newTop:newBot,
         union(c("Delete"),isolate(input$selectdbvars)),
-          drop=FALSE],readOnly=FALSE)
+          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
       output$rowRng <- renderText(paste0(newTop," to ",
           newBot," of ",nrow(globals$tbl)))
     }
@@ -158,14 +160,18 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
   
   observe({
     if (input$commitChanges > 0) 
-    {
+    {             
       isolate({
 cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
+        inputTbl = matrix(unlist(input$tbl$params$data),
+                   ncol=length(input$tbl$params$columns),byrow=TRUE)
+        colnames(inputTbl) = unlist(input$tbl$params$colHeaders)
+        rownames(inputTbl) = unlist(input$tbl$params$rowHeaders)
         switch(input$mode,
           "New rows"= 
           {
-            inserts <- mkInserts(input$tbl,globals$tblName,
-                             globals$tbsCTypes[[globals$tblName]])
+            inserts <- mkInserts(inputTbl,globals$tblName,
+                                 globals$tbsCTypes[[globals$tblName]])
 lapply(inserts,function (x) cat("ins=",x,"\n"))                             
             if (length(inserts)) 
             {
@@ -188,40 +194,40 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
               tbl <- as.data.frame(matrix("",
                      ncol=length(input$selectdbvars),nrow=globals$disprows))
               colnames(tbl) <- input$selectdbvars
-              output$tbl <- renderHotable(tbl,readOnly=FALSE)
+              output$tbl <- renderRHandsontable(rhandsontable(tbl,
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
             }
           },
           Edit = 
           {
-            dbBegin(dbcon)
             err=FALSE
-            ln = length(input$tbl$data)
+            nrows = nrow(inputTbl)
             nprocess = 0
-            if (ln) for (rn in 1:ln)
+            dbBegin(dbcon)
+            if (nrows) for (rn in 1:nrows)
             {
-              row = input$tbl$data[[rn]]
-              names(row) = unlist(input$tbl$colHeaders)
-              id = globals$tbl[globals$rows[1]:globals$rows[2],"rowid"][rn]
-              if (row$Delete != "No") 
+              row = inputTbl[rn,]
+              id = rownames(inputTbl)[rn]
+              if (row["Delete"] == "TRUE") 
               {
                 qry = paste0("delete from ",globals$tblName," where _ROWID_ = ",
-                             id,";")
+                             id)
 cat ("edit del, qry=",qry,"\n")                     
                 res = try(dbSendQuery(dbcon,qry))
                 if (class(res) == "try-error") {err=TRUE; break}
                 nprocess = nprocess+1
                 if (!is.null(globals$sids)) globals$sids = NULL
               } else {
-                id = globals$tbl[globals$rows[1]:globals$rows[2],"rowid"][rn]
-                row = unlist(row)
-cat ("edit update, id =",id," row=",row,"\n")
+                row = inputTbl[rn,]              
+#cat ("edit update, id =",id," row=",row,"\n")
                 if (length(row) < 2) next
                 row = row[-1]
                 org = subset(globals$tbl,rowid == id)
                 org = as.character(org[,names(row),drop=TRUE])
+                org[org=="character(0)"] = ""
                 names(org)=names(row)
                 neq = vector("logical",length(row))
-                for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])
+                for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])              
                 if (sum(neq) == 0) next
                 update = row[neq]
                 toquote = globals$tbsCTypes[[globals$tblName]][names(update)]
@@ -237,7 +243,7 @@ cat ("edit update, id =",id," row=",row,"\n")
                 }
                 qry = paste0("update ",globals$tblName," set ",
                   paste(paste0(names(update)," = ",update),collapse=", "),
-                    " where _ROWID_ = ",id,";")
+                    " where _ROWID_ = ",id)
 cat ("edit upd, qry=",qry,"\n")
                 res = try(dbSendQuery(dbcon,qry))              
                 if (class(res) == "try-error") {err=TRUE; break}
@@ -279,19 +285,20 @@ cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
               paste0(qry,";") 
             res <- dbSendQuery(dbcon,qry)
             globals$tbl <- dbFetch(res,n=-1)
+            rownames(globals$tbl) = globals$tbl$rowid
             dbClearResult(dbcon)
             for (col in 2:ncol(globals$tbl))
               if (class(globals$tbl[[col]]) != "character") 
                  globals$tbl[[col]] = as.character(globals$tbl[[col]])
             if (nrow(globals$tbl) == 0) globals$rows = NULL else 
             {
-              globals$tbl$Delete = "No"
+              globals$tbl$Delete = FALSE
               globals$rows <- c(globals$rows[1],
                               min(nrow(globals$tbl),globals$rows[2]))
-              output$tbl <- renderHotable(
+              output$tbl <- renderRHandsontable(rhandsontable(
                 globals$tbl[globals$rows[1]:globals$rows[2],
                 union(c("Delete"),input$selectdbvars),drop=FALSE],
-                readOnly=FALSE)
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
             }
           }
         )
@@ -306,7 +313,7 @@ cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
     if (file.exists("FVS_Data.db.backup")) 
         file.rename("FVS_Data.db.backup","FVS_Data.db") else
         file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$reload<-renderUI(tags$script("location.reload();"))
+    output$locReload<-renderUI(tags$script("location.reload();"))
   }) 
 
   
@@ -319,9 +326,9 @@ cat ("clearTable, tbl=",globals$tblName,"\n")
     globals$sids <- NULL
     output$stdSel <- renderUI(NULL)
     fixEmptyTable(dbcon,globals)
-    output$tbl <- renderHotable(
+    output$tbl <- renderRHandsontable(rhandsontable(
        globals$tbl[,union(c("Delete"),input$selectdbvars),drop=FALSE],
-                readOnly=FALSE)
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
     output$rowRng <- renderText("1 to 1 of 1")
     isolate(if (input$mode=="New rows") updateRadioButtons(session=session, 
       inputId="mode",selected="Edit"))
@@ -339,7 +346,7 @@ cat ("returnToFVSOnline\n")
       unlink("fvsOnlineServer.R")
       unlink("fvsOnlineUI.R")
       Sys.sleep(.5)
-      output$reload <- renderUI(tags$script("location.reload();"))
+      output$locReload <- renderUI(tags$script("location.reload();"))
     } 
   })
 
@@ -425,7 +432,7 @@ cat ("returnToFVSOnline\n")
     fixFVSKeywords(dbcon) 
     checkMinColumnDefs(dbcon)
     dbDisconnect(dbcon)
-    output$reload<-renderUI(tags$script("location.reload();"))
+    output$locReload<-renderUI(tags$script("location.reload();"))
   }) 
 
   ## uploadStdTree
@@ -529,19 +536,20 @@ cat ("returnToFVSOnline\n")
         paste0(qry,";") 
       res <- dbSendQuery(dbcon,qry)
       globals$tbl <- dbFetch(res,n=-1)
+      rownames(globals$tbl) = globals$tbl$rowid
       dbClearResult(dbcon)
       for (col in 2:ncol(globals$tbl))
         if (class(globals$tbl[[col]]) != "character") 
            globals$tbl[[col]] = as.character(globals$tbl[[col]])
       if (nrow(globals$tbl) == 0) globals$rows = NULL else 
       {
-        globals$tbl$Delete = "No"
+        globals$tbl$Delete = FALSE
         globals$rows <- c(globals$rows[1],
                         min(nrow(globals$tbl),globals$rows[2]))
-        output$tbl <- renderHotable(
+        output$tbl <- renderRHandsontable(rhandsontable(
           globals$tbl[globals$rows[1]:globals$rows[2],
           union(c("Delete"),input$selectdbvars),drop=FALSE],
-          readOnly=FALSE)
+          readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
       } 
       Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
@@ -695,15 +703,14 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
 mkInserts <- function (ctbl,dbtblName,dbtbltypes)
 {
   ins = list()
-
-  for (row in ctbl$data)
+  for (i in 1:nrow(ctbl))
   {
-    row <- unlist(row)
+    row <- ctbl[i,]
     keep <- row != ""
     if (! any(keep)) next
-    vars <- unlist(ctbl$colHeaders[keep])
+    vars <- colnames(ctbl)[keep]
     row <- row[keep]
-    needtypes <- dbtbltypes[unlist(ctbl$colHeaders[keep])] 
+    needtypes <- dbtbltypes[vars] 
     if (any(needtypes)) row[needtypes] = paste0("'",row[needtypes],"'")
     ins <- append(ins,
        paste0("insert into ",dbtblName," (",paste0(vars,collapse=","),
@@ -736,8 +743,9 @@ fixEmptyTable <- function (con,globals,checkCnt=FALSE)
   qry <- paste0("select _ROWID_,* from ",globals$tblName)
   res <- dbSendQuery(con,qry)
   globals$tbl <- dbFetch(res,n=-1)
+  rownames(globals$tbl) = globals$tbl$rowid
   globals$rows = c(1,1)
-  globals$tbl$Delete = "No"
+  globals$tbl$Delete = FALSE
 }
 
     

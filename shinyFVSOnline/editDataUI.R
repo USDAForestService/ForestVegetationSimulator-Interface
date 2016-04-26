@@ -1,5 +1,5 @@
 library(shiny)
-library(shinysky)
+library(rhandsontable)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
@@ -30,10 +30,10 @@ source("mkInputElements.R")
 
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
-    ".nav>li>a {padding:6px;}",
-    ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
+    ".nav>li>a {padding:3px;}",
+    ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:6px}"))),
+    ".form-group {margin-bottom:5px}"))),  
   tags$script('
       Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
           var el = $("#" + x);
@@ -42,9 +42,9 @@ shinyUI(fixedPage(
           $(id).css("visibility", "hidden");
         });'),
   fixedRow(
-    column(width=6,offset=0,
+    column(width=5,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
-             '<h3><img src="FVSlogo.png" align="middle"</img>',
+             '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;FVS Input Data Editor (',headstr,')</h3>'))),
     column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
     # created a column just to add these invisible elements
@@ -53,7 +53,9 @@ shinyUI(fixedPage(
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-      uiOutput("reload"),
+      h4(),
+      actionButton("FVSOnline","Return to FVSOnline"),
+      uiOutput("locReload"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
     )
   ),
@@ -73,15 +75,14 @@ shinyUI(fixedPage(
           choices  = list(), size=10,
           selected = NULL, multiple = TRUE, selectize=FALSE),
       uiOutput("stdSel"),h5(),
-      shiny::actionButton("recoverdb","Recover backup or default database"),h5(),
-      shiny::actionButton("clearTable","Remove all rows and commit"),h5(),
-      shiny::actionButton("commitChanges","Commit edits or new rows"),h5(),
-      shiny::actionButton("FVSOnline","Return to FVSOnline")
+      actionButton("recoverdb","Recover backup or default database"),h5(),
+      actionButton("clearTable","Remove all rows and commit"),h5(),
+      actionButton("commitChanges","Commit edits or new rows")
     ),
     column(width=9,offset=0,
       uiOutput("navRows"),
       h5(),
-      hotable("tbl"),
+      rHandsontableOutput("tbl"),
       h4(" "),
       tags$style(type="text/css","#actionMsg{color:darkred;}"), 
       textOutput("actionMsg"),

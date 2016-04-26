@@ -1,4 +1,5 @@
 library(shiny)
+library(rhandsontable)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
@@ -45,25 +46,26 @@ source("mkInputElements.R")
 
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
-    ".nav>li>a {padding:6px;}",
-    ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
+    ".nav>li>a {padding:3px;}",
+    ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:6px}"))),  
+    ".form-group {margin-bottom:5px}"))),  
   fixedRow(
-    column(width=6,offset=0,
+    column(width=5,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
-             '<h3><img src="FVSlogo.png" align="middle"</img>',
+             '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator ',headstr,'</h3>'))),
     column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
     # created a column just to add these invisible elements
-    column(width=1,
+    column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
       actionButton("topHelp","Help"),
       actionButton("feedBack", "Feedback"),
-      uiOutput("reload"),
+      actionButton("inDataEdit", "Input Load/Edit"),
+      uiOutput("locReload"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
     )
   ),
@@ -219,19 +221,17 @@ shinyUI(fixedPage(
         actionButton("bkgRefresh","Refresh list")
       ),
       tabPanel("Build Components",
-        tags$style(type="text/css", "#kcpSel { width: 65%; }"),
-        selectInput("kcpSel",NULL, NULL, NULL, multiple=FALSE,
-                     selectize=FALSE),
+        selectInput("kcpSel","Existing components", NULL, NULL, multiple=FALSE,
+                     selectize=FALSE,width="65%"),
         h6(" "),
         actionButton("kcpNew","New"),
-        actionButton("kcpReload","Reload"),
         tags$style(type="text/css", "#kcpSave { color: green; }"),
         actionButton("kcpSave","Save"),
         tags$style(type="text/css", "#kcpDelete { color: red; }"),
         actionButton("kcpDelete","Delete"),
         h6(" "),
         tags$style(type="text/css", "#kcpTitle { width: 60%; }"),
-        textInput("kcpTitle", "", ""), 
+        myInlineTextInput("kcpTitle", "Title: ", value = "", size="65%"),
         h6(" "),
         tags$style(type="text/css", 
            "#kcpCols{font-family:monospace;font-size:90%;width:80%;}"), 
@@ -242,7 +242,8 @@ shinyUI(fixedPage(
         tags$textarea(id="kcpEdit", rows=15),
         h4(" "),
         fileInput("kcpUpload",
-                  "Upload and append Component (keyword) file (.kcp).")
+                  "Upload and append Component (keyword) file (.kcp).",
+                  width="90%")
       ),
       tabPanel("Tables",
         fixedRow(
@@ -253,8 +254,9 @@ shinyUI(fixedPage(
             selectInput("dispVar", choices=list("None"), 
               "Variable to display", selectize=FALSE)),         
           column(width=3,
-            actionButton("rpTableAdd","Add table to report")),
-        fixedRow(column(width=12,tableOutput("table")))
+            actionButton("rpTableAdd","Add table to report"),
+            downloadButton("dlRenderData","table.csv")),
+        fixedRow(column(width=12,rHandsontableOutput("table")))
       )),
       tabPanel("Graphs",
         fixedRow(
@@ -291,9 +293,9 @@ shinyUI(fixedPage(
 	          textInput("ylabel", "Y-label", value = ""))),
         fixedRow(
           column(width=3,
-            myInlineTextInput("width",  "Width (inches)", value = 6, size=5)),
+            myInlineTextInput("width",  "Width (in)", value = 4, size=5)),
           column(width=3,
-	          myInlineTextInput("height", "Height (in)", value = 4, size=5)), 
+	          myInlineTextInput("height", "Height (in)", value = 3, size=5)), 
 	        column(width=6,
 	          myRadioGroup("res","Resolution (ppi)", 
               c("144","288","576")))),
