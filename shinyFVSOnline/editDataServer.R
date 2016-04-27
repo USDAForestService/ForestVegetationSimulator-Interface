@@ -18,10 +18,14 @@ shinyServer(function(input, output, session) {
   tbs <- dbListTables(dbcon)
   globals$tbsCTypes <- lapply(tbs,function(x,dbcon) 
     {
-      res <- dbSendQuery(dbcon,paste0("Select * from ",x," limit 1"))
-      tb <- dbFetch(res)
-      dbClearResult(dbcon)
-      unlist(lapply(tb,class)) == "character"
+      tb <- dbGetQuery(dbcon,paste0("PRAGMA table_info('",x,"')"))
+      tbtypes = toupper(tb[,"type"])
+      res = vector("logical",length(tbtypes))
+      res[grep ("INT",tbtypes)] = TRUE
+      res[grep ("FLOAT",tbtypes)] = TRUE
+      res[grep ("REAL",tbtypes)] = TRUE
+      names(res) = tb[,"name"]
+      res[] = !res
     }, dbcon)     
   names(globals$tbsCTypes) = tbs
     
@@ -37,7 +41,7 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
     if (length(input$selectdbtabs)) 
     {
       globals$tblName <- input$selectdbtabs
-      fixEmptyTable(dbcon,globals,checkCnt=TRUE)
+      fixEmptyTable(dbcon,globals)
       checkMinColumnDefs(dbcon)
       globals$tbl <- NULL
       globals$tblCols <- names(globals$tbsCTypes[[globals$tblName]])
@@ -165,6 +169,7 @@ cat ("selectdbvars, input$selectdbvars=",input$selectdbvars,"\n")
 cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
         inputTbl = matrix(unlist(input$tbl$params$data),
                    ncol=length(input$tbl$params$columns),byrow=TRUE)
+        inputTbl[inputTbl=="NA"] = NA
         colnames(inputTbl) = unlist(input$tbl$params$colHeaders)
         rownames(inputTbl) = unlist(input$tbl$params$rowHeaders)
         switch(input$mode,
@@ -217,14 +222,17 @@ cat ("edit del, qry=",qry,"\n")
                 if (class(res) == "try-error") {err=TRUE; break}
                 nprocess = nprocess+1
                 if (!is.null(globals$sids)) globals$sids = NULL
-              } else {
+              } else {              
                 row = inputTbl[rn,]              
-#cat ("edit update, id =",id," row=",row,"\n")
                 if (length(row) < 2) next
                 row = row[-1]
+                row[is.na(row)] = ""
+                row[row == "NA"] = ""
                 org = subset(globals$tbl,rowid == id)
                 org = as.character(org[,names(row),drop=TRUE])
+                org[is.na(org)] = ""
                 org[org=="character(0)"] = ""
+                org[org == "NA"] = ""
                 names(org)=names(row)
                 neq = vector("logical",length(row))
                 for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])              
@@ -237,10 +245,11 @@ cat ("edit del, qry=",qry,"\n")
                 {
                   for (toq in names(toquote[toquote]))
                   {
-                    update[toq] = gsub("'","''",update[toq])  
-                    update[toq] = paste0("'",update[toq],"'")
+                    update[toq] = if (update[toq]=="") "NULL" else
+                      paste0("'",gsub("'","''",update[toq]),"'")
                   }
                 }
+                update[update==""] = "NULL"
                 qry = paste0("update ",globals$tblName," set ",
                   paste(paste0(names(update)," = ",update),collapse=", "),
                     " where _ROWID_ = ",id)
@@ -259,7 +268,7 @@ cat ("edit upd, qry=",qry,"\n")
               dbCommit(dbcon)
               output$actionMsg = renderText(paste0(nprocess," change(s) processed."))
             }
-            fixEmptyTable(dbcon,globals,checkCnt=TRUE)
+            fixEmptyTable(dbcon,globals)
 cat ("after commit, is.null(globals$sids)=",is.null(globals$sids),
      " globals$tblName=",globals$tblName,
      " Stand_ID yes=",length(intersect("Stand_ID",globals$tblCols)),"\n")
@@ -325,7 +334,15 @@ cat ("clearTable, tbl=",globals$tblName,"\n")
     globals$rowSelOn <- FALSE
     globals$sids <- NULL
     output$stdSel <- renderUI(NULL)
-    fixEmptyTable(dbcon,globals)
+    tmp = as.data.frame(lapply(globals$tbsCTypes[[globals$tblName]],
+      function (x) vector(if (x) "character" else "numeric",1)),
+      stringsAsFactors=FALSE)
+    tmp[1,] = NA
+    dbWriteTable(dbcon,globals$tblName,tmp,overwrite=TRUE)
+    qry <- paste0("select _ROWID_,* from ",globals$tblName)
+    globals$tbl <- dbGetQuery(dbcon,qry)
+    rownames(globals$tbl) = globals$tbl$rowid
+    globals$tbl$Delete = FALSE
     output$tbl <- renderRHandsontable(rhandsontable(
        globals$tbl[,union(c("Delete"),input$selectdbvars),drop=FALSE],
                 readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
@@ -388,6 +405,7 @@ cat ("returnToFVSOnline\n")
         schema = scan("schema",what="character",sep="\n",quiet=TRUE)
         schema = gsub(" LONG,"," INTEGER,",schema)
         schema = gsub(" DOUBLE,"," REAL,",schema)
+        schema = gsub(" MEMO,"," TEXT,",schema)
         fix = grep (")",schema)        
         schema[fix] = sub (")",");",schema[fix])
         fix = fix - 1
@@ -706,7 +724,7 @@ mkInserts <- function (ctbl,dbtblName,dbtbltypes)
   for (i in 1:nrow(ctbl))
   {
     row <- ctbl[i,]
-    keep <- row != ""
+    keep <- row != "" & !is.na(row)
     if (! any(keep)) next
     vars <- colnames(ctbl)[keep]
     row <- row[keep]
@@ -728,21 +746,15 @@ mkStdSel <- function (globals)
      selectize=FALSE, size=10))
 }
       
-fixEmptyTable <- function (con,globals,checkCnt=FALSE)
+fixEmptyTable <- function (con,globals)
 {
-  if (checkCnt)
-  {
-    qry = paste0("select count(*) from ",globals$tblName)
-    res = dbSendQuery(con,qry)
-    tmp = dbFetch(res,n=-1)
-    if (tmp[1,1] > 0) return()
-  }
+  qry = paste0("select count(*) from ",globals$tblName)
+  tmp = dbGetQuery(con,qry)
+  if (tmp[1,1] > 0) return()    
   tmp = dbReadTable(con,globals$tblName)
-  for (i in 1:ncol(tmp)) tmp[1,i]=if (class(tmp[1,i]) == "character") "" else NA 
+  tmp[1,] = tmp[1,]  
   dbWriteTable(con,globals$tblName,tmp,overwrite=TRUE)
-  qry <- paste0("select _ROWID_,* from ",globals$tblName)
-  res <- dbSendQuery(con,qry)
-  globals$tbl <- dbFetch(res,n=-1)
+  globals$tbl  <- dbGetQuery(con,paste0("select _ROWID_,* from ",globals$tblName))
   rownames(globals$tbl) = globals$tbl$rowid
   globals$rows = c(1,1)
   globals$tbl$Delete = FALSE
