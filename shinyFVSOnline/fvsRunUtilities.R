@@ -278,6 +278,7 @@ cat("writeKeyFile, num stds=",length(stds),
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,FVSKeywords from FVS_StandInit ',
       'where Stand_ID in (select RunStds from m.RunStds)'))
   fvsInit = dbFetch(dbQ,n=-1)
+  names(fvsInit) = toupper(names(fvsInit))
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
@@ -296,12 +297,12 @@ cat("writeKeyFile, num stds=",length(stds),
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
   for (std in fvsRun$stands)
   {
-    sRow = match (std$sid, fvsInit$Stand_ID)
+    sRow = match (std$sid, fvsInit$STAND_ID)
     if (is.na(sRow)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.null(fvsInit$Stand_CN[sRow]) && !is.na(fvsInit$Stand_CN[sRow]) && 
-        fvsInit$Stand_CN[sRow] != " ") 
-      cat ("StandCN\n",fvsInit$Stand_CN[sRow],"\n",file=fc,sep="") else
+    if (!is.null(fvsInit$STAND_CN[sRow]) && !is.na(fvsInit$STAND_CN[sRow]) && 
+        fvsInit$STAND_CN[sRow] != " ") 
+      cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="") else
       cat ("StandCN\n",std$sid,"\n",file=fc,sep="") 
     cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
         fvsRun$defMgmtID,"\n",file=fc,sep="")                       

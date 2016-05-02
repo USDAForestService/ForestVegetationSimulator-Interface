@@ -192,6 +192,7 @@ errorScan <- function (outfile)
   if (missing(outfile)) return("outfile not specified")
   if (!file.exists(outfile)) return("outfile does not exist") 
   fout<-file(outfile,"rt")
+  on.exit(close(fout))
   errs<-list()
   sid<-line<-l0<-l1<-""
   foundSum = FALSE  
@@ -200,8 +201,8 @@ errorScan <- function (outfile)
   {
     l0<-l1
     l1<-line
-    line=suppressWarnings(scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
-         blank.lines.skip = FALSE))
+    line=scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
+         blank.lines.skip = FALSE)
     if (length(line) == 0) break
     ln = ln+1
     hit=grep("STAND ID= ",line,fixed=TRUE)
@@ -222,7 +223,6 @@ errorScan <- function (outfile)
       errs<-append(errs,err)
     }
   }
-  close(fout)
   errs <- append(errs,if (length(errs)) 
     {
       errs[unlist(lapply(errs,nchar)) == 0] <- NULL

@@ -3,7 +3,7 @@ library(RSQLite)
 library(rhandsontable)
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=30*1024^2,shiny.trace = F)
+options(shiny.maxRequestSize=300*1024^2,shiny.trace = F)
 
 shinyServer(function(input, output, session) {
                                                       
@@ -45,7 +45,7 @@ cat ("selectdbtabs, input$selectdbtabs=",input$selectdbtabs,
       checkMinColumnDefs(dbcon)
       globals$tbl <- NULL
       globals$tblCols <- names(globals$tbsCTypes[[globals$tblName]])
-      if (length(intersect("Stand_ID",globals$tblCols))) 
+      if (length(grep("Stand_ID",globals$tblCols,ignore.case=TRUE))) 
       {
         res = dbSendQuery(dbcon,paste0("select distinct Stand_ID from ",
                           globals$tblName))
@@ -387,7 +387,8 @@ cat ("returnToFVSOnline\n")
       Sys.sleep (.1)        
       withProgress(session, 
       {  
-        setProgress(message = "Create schema", value = 1) 
+        setProgress(message = "Create schema", value = 1)
+        source("dbNamesAndTypes.R")
         curDir=getwd()
         setwd(dirname(input$upload$datapath))
         system (paste0("java -jar '",curDir,"/access2csv.jar' ",
@@ -403,21 +404,38 @@ cat ("returnToFVSOnline\n")
           return()
         }
         schema = scan("schema",what="character",sep="\n",quiet=TRUE)
-        schema = gsub(" LONG,"," INTEGER,",schema)
-        schema = gsub(" DOUBLE,"," REAL,",schema)
-        schema = gsub(" MEMO,"," TEXT,",schema)
         fix = grep (")",schema)        
         schema[fix] = sub (")",");",schema[fix])
         fix = fix - 1
-        schema[fix] = sub (",","",schema[fix])
+        schema[fix] = sub (",","",schema[fix])       
         for (i in 1:length(schema))
         {
-          if (substring(schema[i],1,12) == "CREATE TABLE") next
+          if (substring(schema[i],1,12) == "CREATE TABLE") 
+          {
+            tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
+            cknt = switch(toupper(tblName),
+              "FVS_STANDINIT" = standNT,
+              "FVS_TREEINIT"  = treeNT,
+              NULL)
+            next
+          }
           if (substring(schema[i],1,2)  == ");") next
           items = unlist(strsplit(schema[i]," "))
           items = items[nchar(items)>0]
+          ckntrow = match(toupper(items[1]),toupper(cknt[,1]))
+          if (!is.na(ckntrow)) 
+          {
+            items[1] = cknt[ckntrow,1]
+            comma = nchar(items[2])
+            comma = substring(items[2],comma,comma)
+            items[2] = cknt[ckntrow,2] 
+            if (comma == ",") items[2] = paste0(items[2],",")
+          }
           schema[i] = paste0(' "',items[1],'" ',items[2])
         }        
+        schema = gsub(" LONG,"," INTEGER,",schema)
+        schema = gsub(" DOUBLE,"," REAL,",schema)
+        schema = gsub(" MEMO,"," TEXT,",schema)
         cat (paste0(schema,"\n"),file="schema")
         setProgress(message = "Extract data", value = 3) 
         system (paste0("java -jar '",curDir,"/access2csv.jar' ",
@@ -847,15 +865,18 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   if (!grp)
   {
     grps = dbGetQuery(dbcon,"select Groups from FVS_StandInit")
-    if (any(is.na(grps[,"Groups"])) || any(grps[,"Groups"] == "")) dbSendQuery(dbcon,
-      "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
+    names(grps) = toupper(names(grps))
+    if (is.null(grps$GROUPS) || any(is.na(grps$GROUPS)) || any(grps$GROUPS == "")) 
+      dbSendQuery(dbcon,
+        "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
   gtab = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
-  need = class(try) == "try-error"
-  if (!need) need = nrow(gtab) == 0 
-  if (!need) need = all(is.na(gtab[,"FVSKeywords"]))
-  if (!need) need = all(gtab[,"FVSKeywords"] == "")
+  need = class(gtab) == "try-error"
+  if (!need) need = nrow(gtab) == 0
+  names(gtab) = toupper(names(gtab))
+  if (!need) need = all(is.na(gtab$FVSKEYWORDS))
+  if (!need) need = all(gtab$FVSKEYWORDS == "")
   if (need)
   {
     dfin = data.frame(Groups = "All All_Stands",Addfiles = "",
