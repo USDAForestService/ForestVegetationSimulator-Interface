@@ -275,7 +275,7 @@ cat("writeKeyFile, num stds=",length(stds),
   dbSendQuery(dbIcon,'drop table if exists m.RunStds') 
   dbWriteTable(dbIcon,"m.RunStds",data.frame(RunStds = stds))
   dbQ = dbSendQuery(dbIcon,
-    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,FVSKeywords from FVS_StandInit ',
+    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from FVS_StandInit ',
       'where Stand_ID in (select RunStds from m.RunStds)'))
   fvsInit = dbFetch(dbQ,n=-1)
   names(fvsInit) = toupper(names(fvsInit))

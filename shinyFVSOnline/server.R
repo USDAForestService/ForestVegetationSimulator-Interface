@@ -1091,16 +1091,21 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         curstartyr = as.numeric(fvsRun$startyr)
 
         fields = dbListFields(dbIcon,"FVS_StandInit")
-        fields = intersect(fields,c("Stand_ID","Stand_CN","Groups",
-                 "Inv_Year","FVSKeywords"))        
+        
+        fields = intersect(toupper(fields),toupper(c("Stand_ID","Stand_CN","Groups",
+                 "Inv_Year","FVSKeywords")))        
         # use if inAdd was hit (test on old value of oldInAdd)
+        dbQ = NULL
         if (input$inAdd > globals$oldInAdd)
         {
           dbSendQuery(dbIcon,'drop table if exists m.Stds') 
-          dbWriteTable(dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
-          dbQ = try(dbSendQuery(dbIcon,
-            paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-              'where Stand_ID in (select SelStds from m.Stds)')))
+          if (length(input$inStds))
+          {
+            dbWriteTable(dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
+            dbQ = try(dbSendQuery(dbIcon,
+              paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
+                'where Stand_ID in (select SelStds from m.Stds)')))
+          } 
         } else {
           # use if inAddGrp
           dbQ = try(dbSendQuery(dbIcon,
@@ -1109,8 +1114,10 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
                   'where Grp in (select SelGrps from m.SGrps))')))
         }
         globals$oldInAdd=as.numeric(input$inAdd)
+        if (is.null(dbQ) || class(dbQ) == "try-error") return()
         fvsInit = dbFetch(dbQ,n=-1)
         if (nrow(fvsInit) == 0) return()
+        names(fvsInit) = toupper(names(fvsInit))
         maxMsgs = (nrow(fvsInit) %/% 10) + 2
         progress <- shiny::Progress$new(session,min=1,max=maxMsgs)
         msgVal = 1
@@ -1123,15 +1130,15 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
             msgVal = msgVal+1
             progress$set(value = msgVal)
           }
-          sid = fvsInit[row,"Stand_ID"]
+          sid = fvsInit[row,"STAND_ID"]
           newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
-          addkeys <- fvsInit[row,"FVSKeywords"]
+          addkeys <- fvsInit[row,"FVSKEYWORDS"]
           if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
             newstd$cmps[[1]] <- mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
                      exten="base", atag="k",kwdName="From: FVS_StandInit",
                      title="From: FVS_StandInit")
-          grps <- if (!is.null(fvsInit$Groups))
-             scan(text=fvsInit[row,"Groups"],
+          grps <- if (!is.null(fvsInit$GROUPS))
+             scan(text=fvsInit[row,"GROUPS"],
                   what=" ",quiet=TRUE) else c("All All_Stands")
           requ <- unlist(grps[grep("^All",grps)])
           grps <- sort(union(intersect(input$inGrps,grps),requ))
@@ -1155,7 +1162,7 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
             }
             fvsRun$grps <- append(fvsRun$grps,newgrp)
           }
-          invyr <- as.numeric(fvsInit[row,"Inv_Year"])
+          invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
           if (invyr > curstartyr) 
           {
             curstartyr <- invyr
@@ -2014,11 +2021,14 @@ cat ("rn=",rn,"\n")
         stopCluster(fvschild)
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(fvsRun$stands)+3)
+        errScan = try(errorScan(paste0(fvsRun$uuid,".out")))
+        if (class(errScan) == "try-error") errScan = 
+          "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
           h5("FVS output error scan"),
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
-          HTML(paste(errorScan(paste0(fvsRun$uuid,".out")),"<br>"))))
+          HTML(paste(errScan,"<br>"))))
         if (length(dir(fvsRun$uuid)) == 0) file.remove(fvsRun$uuid)
         progress$set(message = if (length(allSum) == length(fvsRun$stands))
                     "FVS finished" else
