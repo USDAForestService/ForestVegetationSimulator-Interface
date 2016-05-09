@@ -662,11 +662,14 @@ cat ("browsevars\n")
 cat ("renderPlot\n")    
     nullPlot <- function ()
     {
-      outfile = "nullPlot.png" 
-      png(outfile, width=3, height=2, res=72, units="in", pointsize=12)              
-      plot.new()
-      text(x=.5,y=.5,"Nothing to graph",col="red")
-      dev.off()
+      outfile = "nullPlot.png"
+      if (!file.exists(outfile))
+      {
+        png(outfile, width=3, height=2, res=72, units="in", pointsize=12)              
+        plot.new()
+        text(x=.5,y=.5,"Nothing to graph",col="red")
+        dev.off()
+      }
       list(src = outfile)
     }
     if (input$leftPan == "Load Output"  || 
@@ -679,27 +682,61 @@ cat ("renderPlot\n")
 
     dat = droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass),])
-    
-    if ((!is.null(pb) && pb %in% colnames(dat) && 
-         nlevels(dat[,pb]) < 2 && nlevels(dat[,pb]) > 30) || 
-         length(intersect(input$pltby,c(input$xaxis,input$yaxis,vf,hf))))
+cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
+    if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
     {
-      updateSelectInput(session=session, inputId="pltby", selected="None")
-      return (NULL)
-    }
-    if ((!is.null(hf) && hf %in% colnames(dat) && 
-         nlevels(dat[,hf]) < 2 && nlevels(dat[,hf]) > 8) || 
-         length(intersect(input$hfacet,c(input$xaxis,input$yaxis,pb,vf)))) 
-    {
+cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
       updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (NULL)
+      return (nullPlot())
     }
-    if ((!is.null(vf) && vf %in% colnames(dat) && 
-         nlevels(dat[,vf]) < 2 && nlevels(dat[,vf]) > 8) || 
-         length(intersect(input$vfacet,c(input$xaxis,input$yaxis,pb,hf))))
+    if (!is.null(vf) && (nlevels(dat[,vf]) == 1 || nlevels(dat[,vf]) > 8))
     {
+cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       updateSelectInput(session=session, inputId="vfacet", selected="None")
-      return (NULL)
+      return (nullPlot())
+    }
+          
+    if (!is.null(pb) && pb %in% colnames(dat) && 
+         input$pltby %in% c(input$xaxis,input$yaxis,vf,hf))
+    {
+cat ("pb test hit\n")
+      if (input$pltby == input$xaxis)
+        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
+      else if (input$pltby == input$yaxis)
+        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
+      else if (input$pltby == vf)
+        updateSelectInput(session=session, inputId="vfacet", selected="None")
+      else if (input$pltby == hf)
+        updateSelectInput(session=session, inputId="hfacet", selected="None")
+      return (nullPlot())
+    }
+    if (!is.null(hf) && hf %in% colnames(dat) && 
+        input$hfacet %in% c(input$xaxis,input$yaxis,pb,vf))
+    {
+cat ("hfacet test hit\n")
+      if (!is.null(input$xaxis) && input$hfacet == input$xaxis)
+        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
+      else if (!is.null(input$yaxis) && input$hfacet == input$yaxis)
+        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
+      else if (input$hfacet == input$pltby)
+        updateSelectInput(session=session, inputId="pltby", selected="None")
+      else if (input$hfacet == vf)
+        updateSelectInput(session=session, inputId="vfacet", selected="None")
+      return (nullPlot())
+    }
+    if (!is.null(vf) && vf %in% colnames(dat) && 
+        input$vfacet %in% c(input$xaxis,input$yaxis,pb,hf))
+    {
+cat ("vfacet test hit\n")
+      if (!is.null(input$xaxis) && input$vfacet == input$xaxis)
+        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
+      else if (!is.null(input$yaxis) && input$vfacet == input$yaxis)
+        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
+      else if (input$vfacet == input$pltby)
+        updateSelectInput(session=session, inputId="pltby", selected="None")
+      else if (input$vfacet == hf)
+        updateSelectInput(session=session, inputId="hfacet", selected="None")
+      return (nullPlot())
     }
     
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))
@@ -729,8 +766,8 @@ cat ("renderPlot\n")
                                    paste(nd$Legend,pb,nd[,pb],sep=":")
     }
       
-    if (!is.null(nd$vfacet))    nd$vfacet    = as.factor(nd$vfacet)
-    if (!is.null(nd$hfacet))    nd$hfacet    = as.factor(nd$hfacet)
+    if (!is.null(nd$vfacet)) nd$vfacet = as.factor(nd$vfacet)
+    if (!is.null(nd$hfacet)) nd$hfacet = as.factor(nd$hfacet)
     if (!is.null(nd$Legend)) nd$Legend = as.factor(nd$Legend)
 
     fg = NULL
@@ -771,7 +808,8 @@ cat ("renderPlot\n")
       )
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
-    p = p + theme(text=element_text(size=9)) 
+    p = p + theme(text=element_text(size=9))
+    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>9) p = p + theme(legend.position="none")
     if (input$colBW == "color") p = p + scale_colour_brewer(palette = "Set1")
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(input$res)
