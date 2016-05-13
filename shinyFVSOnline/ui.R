@@ -154,7 +154,7 @@ shinyUI(fixedPage(
 	          choices = list("None"),selected = NULL,inline=TRUE)
       ),
       tabPanel("Custom Query",
-        h5("Enter SQL on FVSOut.db"),
+        h5("Enter SQL on FVSOut.db (SQLite3)"),
         tags$style(type="text/css", 
               "#sqlQuery{font-family:monospace;font-size:90%;width:95%;}"), 
         tags$textarea(id="sqlQuery",rows=15,""),
