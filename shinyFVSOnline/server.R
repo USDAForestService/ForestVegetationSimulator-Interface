@@ -35,6 +35,7 @@ shinyServer(function(input, output, session) {
 cat ("FVS_Runs.RData exists, trys =",trys,"\n")      
       load("FVS_Runs.RData")
       globals$FVS_Runs = FVS_Runs
+      globals$customQuery = if (exists("cqury")) cqury else character(0)
       rm (FVS_Runs)
       trycall <- try(loadFromList(fvsRun,globals$FVS_Runs[[1]]))
       if (class(trycall)=="try-error")
@@ -44,7 +45,8 @@ cat ("FVS_Runs try error...deleting one\n")
         if (length(globals$FVS_Runs)) 
         {
           FVS_Runs = globals$FVS_Runs
-          save (FVS_Runs,file="FVS_Runs.RData")
+          cqury = globals$customQuery
+          save (FVS_Runs,cqury,file="FVS_Runs.RData")
         } else file.remove("FVS_Runs.RData")
         resetfvsRun(fvsRun,globals$FVS_Runs)
         trys = trys+1
@@ -109,7 +111,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     if (!globals$saveOnExit) return()
     saveRun()
     FVS_Runs = globals$FVS_Runs
-    save (FVS_Runs,file="FVS_Runs.RData")
+    cqury = globals$customQuery
+    save (FVS_Runs,cqury,file="FVS_Runs.RData")
     if (file.exists("projectId.txt"))
     {
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
@@ -288,9 +291,13 @@ cat ("tb=",tb,"\n")
             dbSendQuery(dbcon,"drop table Composite_East")
           else if (tb == "StdStk")
             dbSendQuery(dbcon,"drop table StdStk")
-          else cnt = dbGetQuery(dbcon,paste0("select count(*) from ",
+          else 
+          {
+            cnt = if ("CaseID" %in% dbListFields(dbcon,tb))  
+              dbGetQuery(dbcon,paste0("select count(*) from ",
                    "(select distinct CaseID from ",tb," where CaseID in ",
-                   "(select CaseID from m.Cases))"))
+                   "(select CaseID from m.Cases))")) else 1
+          }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
@@ -372,7 +379,7 @@ cat("selectdbtables\n")
       updateSelectInput(session, "selectdbtables", 
                         choices=as.list(names(fvsOutData$dbLoadData)),
                         selected=tables)
-      vars = lapply(tables,function (tb,dbd) paste0(tb,":",dbd[[tb]]), 
+      vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)
       if (length(vars) == 0) return()
@@ -391,6 +398,95 @@ cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")
       fvsOutData$dbSelVars <- input$selectdbvars
     }
   })
+  
+  ## Custom Query
+  observe({  
+    if (input$leftPan == "Custom Query")
+    { 
+cat("Custom Query\n")        
+      updateTextInput(session=session, inputId="sqlQuery", label="", 
+                      value=globals$customQuery)
+      fvsOutData$dbData = data.frame()
+      fvsOutData$runs = character(0)
+      fvsOutData$dbVars = character(0)
+      fvsOutData$browseVars = character(0)
+      fvsOutData$dbSelVars = character(0)
+      fvsOutData$browseSelVars = character(0)
+      choices = list()               
+      updateSelectInput(session,"pivVar",choices=choices)              
+      updateSelectInput(session,"hfacet",choices=choices) 
+      updateSelectInput(session,"vfacet",choices=choices) 
+      updateSelectInput(session,"pltby", choices=choices) 
+      updateSelectInput(session,"dispVar",choices=choices)       
+      updateSelectInput(session,"xaxis",choices=choices) 
+      updateSelectInput(session,"yaxis",choices=choices)
+      updateCheckboxGroupInput(session, "browsevars", choices=choices)
+    }
+  })
+
+      
+  ## btnSQL
+  observe({ 
+    if (input$btnSQL > 0)
+    {
+cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")      
+      isolate({
+        globals$customQuery = input$sqlQuery
+        msgtxt = character(0)
+        qrys = trim(scan(text=gsub("\n"," ",input$sqlQuery),
+                    sep=";",what="",quote="",quiet=TRUE))
+        iq = 0
+        dfrtn = NULL
+        for (qry in qrys) 
+        {
+          if (nchar(qry))
+          {
+            iq = iq+1
+            res = try (dbGetQuery(dbcon,qry))
+            msgtxt = if (class(res) == "data.frame") paste0(msgtxt,
+              "query ",iq," returned a data frame with ",nrow(res)," rows and ",
+              ncol(res)," cols\n") else  
+              if (class(res) == "try-error") paste0(msgtxt,"query ",iq,
+                " returned\n",attr(res,"condition"),"\n") else
+              paste0(msgtxt,"query ",iq," ran\n")         
+            updateTextInput(session=session, inputId="sqlOutput", label="", 
+                            value=msgtxt)
+            if (class(res) == "try-error") break
+            if (class(res) == "data.frame")
+            {
+              for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
+                res[[col]] = as.factor(res[[col]])
+              if (!is.null(res$Year)) res$Year = as.factor(res$Year)
+              fvsOutData$dbData = res
+              fvsOutData$runs = character(0)
+              fvsOutData$dbVars = colnames(res)
+              fvsOutData$browseVars = colnames(res)
+              fvsOutData$dbSelVars = character(0)
+              fvsOutData$browseSelVars = colnames(res)
+              choices = as.list(c("None",
+                colnames(res)[unlist(lapply(res, is.factor))]))
+              updateSelectInput(session,"pivVar",choices=choices,selected="None")              
+              updateSelectInput(session,"hfacet",choices=choices,selected="None") 
+              updateSelectInput(session,"vfacet",choices=choices,selected="None") 
+              updateSelectInput(session,"pltby", choices=choices,selected="None") 
+              choices = as.list(c("None",
+                colnames(res)[!unlist(lapply(res, is.factor))]))              
+              updateSelectInput(session,"dispVar",choices=choices,selected="None")
+              choices = as.list(colnames(res))              
+              updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
+              updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
+              if (input$rightPan != "Tables")
+              {
+                globals$autoPanNav = TRUE
+                updateSelectInput(session,"rightPan",selected="Tables")
+              }
+            }
+          }
+        }
+      })
+    }
+  })
+    
 
   ## Explore Output
   observe({ 
@@ -398,15 +494,22 @@ cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")
     { 
 cat ("Explore Output\n")      
       if (length(fvsOutData$dbSelVars) == 0) return()
-      tbs = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,":"),
+    withProgress(session, 
+    {  
+      iprg = 1
+      setProgress(message = "Processing variable names", detail="",
+                  value = iprg)
+      tbs = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
             function (x) x[1])))
       if (length(tbs) == 0) return()
-      cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,":"),
+      cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
             function (x) x[2])))
       if (length(cols) == 0) return()
       dat = list()
-      for (tb in tbs) 
+      for (tb in tbs)       
       {
+        iprg = iprg+1
+        setProgress(message = "Processing tables", detail=tb,value = iprg)
         if (tb == "Composite" || tb == "Composite_East") 
         {
           dtab = dbReadTable(dbcon,tb)
@@ -417,8 +520,10 @@ cat ("Explore Output\n")
           dtab$MgmtID=as.factor(dtab$MgmtID) 
           dat = list(Composite = dtab)
         } else {
-          dtab = dbGetQuery(dbcon,paste0("select * from ",tb,
-                 " where CaseID in (select CaseID from m.Cases)"))
+          dtab = if ("CaseID" %in% dbListFields(dbcon,tb))
+            dbGetQuery(dbcon,paste0("select * from ",tb,
+                 " where CaseID in (select CaseID from m.Cases)")) else
+            dbGetQuery(dbcon,paste0("select * from ",tb))       
           if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
           { 
             dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
@@ -461,44 +566,54 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         return()
       }
       # this merges the data on all columns      
+      iprg = iprg+1
+      setProgress(message = "Merging selected tables", detail  = "", value = iprg)
       if (length(dat) > 0)
       {
-        withProgress(session, 
-        {  
-          i = 1
-          for (tb in names(dat))
-          {
-            setProgress(message = "Merging selected tables", 
-                        detail  = tb, value = i); i = i+1
-            mdat = merge(mdat,dat[[tb]],all=TRUE)
-          }
-          fvsOutData$dbData = mdat
-          setProgress(value = NULL)          
-        }, min=1, max=length(dat))
+        for (tb in names(dat))
+        {
+          setProgress(message = "Merging selected tables", 
+                      detail  = tb, value = iprg)
+          mdat = merge(mdat,dat[[tb]],all=TRUE)
+        }
+        fvsOutData$dbData = mdat
       } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
-      
+      iprg = iprg+1
+      setProgress(message = "Processing variables", detail=tb,value = iprg)
       mdat = fvsOutData$dbData
       vars = colnames(mdat)
       sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-                "TreeIndex","Species","DBHClass","RunDateTime"),vars) 
-      cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
+                "TreeIndex","Species","DBHClass","RunDateTime"),vars)
+      sby = if (length(sby)) 
+      {
+        cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
              if("srtOrd" %in% vars) ",mdat$srtOrd)" else ")")
-      sby = eval(parse(text=cmd))
+        sby = try(eval(parse(text=cmd)))
+        if (class(sby) == "try-error") NULL else sby
+      } else NULL
       vars = intersect(c("MgmtID","Stand_CN","StandID","Year",
                          "Species","DBHClass"),colnames(mdat))
       vars = c(vars,setdiff(colnames(mdat),vars))
       endvars = intersect(c("SamplingWt","Variant","RunTitle",
                        "Groups","RunDateTime","KeywordFile","CaseID"),vars)
       vars = union(setdiff(vars,endvars),endvars)
-      mdat = mdat[sby,vars,drop=FALSE]
+      if (!is.null(sby)) mdat = mdat[sby,vars,drop=FALSE]
       mdat$srtOrd = NULL
       vars = colnames(mdat)     
-      if (length(vars) == 0) return()
+      if (length(vars) == 0) 
+      {
+        setProgress(value = NULL)  
+        return()
+      }
+      iprg = iprg+1
+      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
       if (is.null(mdat$RunTitle)) 
         updateSelectInput(session, "stdtitle", choices  = list("None loaded"), 
           selected = NULL) else 
         updateSelectInput(session, "stdtitle", 
           choices=as.list(levels(mdat$RunTitle)), selected=levels(mdat$RunTitle))      
+      iprg = iprg+1
+      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
       if (is.null(mdat$StandID)) 
         updateSelectInput(session, "stdid", choices  = list("None loaded"), 
           selected = NULL) else 
@@ -513,6 +628,8 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         if ("StdStk" %in% names(dat)) 
           updateSelectInput(session, "plotType",selected="bar") else
             updateSelectInput(session, "plotType",selected="line")
+      iprg = iprg+1
+      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
       if (is.null(mdat$Year)) updateSelectInput(session, "year", 
           choices  = list("None loaded"), selected = NULL) else 
         {
@@ -543,6 +660,8 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           updateSelectInput(session, "dbhclass", 
             choices=as.list(levels(mdat$DBHClass)), selected=sel)
         }           
+      iprg = iprg+1
+      setProgress(message = "Finishing", detail  = "", value = iprg)
       selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
         "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
         function (x,vs) 
@@ -553,11 +672,14 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           },vars))
       keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
       selVars = selVars[keep]
+      if (length(vars) < 7) selVars = vars
       updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                selected=selVars,inline=TRUE)
       fvsOutData$dbData        <- mdat
       fvsOutData$browseVars    <- vars
       fvsOutData$browseSelVars <- selVars
+      setProgress(value = NULL)          
+    }, min=1, max=10)
     } 
   })
   
@@ -565,25 +687,31 @@ cat ("Explore, len(dat)=",length(dat),"\n")
   output$table <- renderRHandsontable(
   {
 cat("renderTable\n")
-    rhandsontable(data.frame())
-
-    if (input$leftPan == "Load Output") return(rhandsontable(data.frame())) 
-    if (length(input$selectdbvars) == 0) return(rhandsontable(data.frame())) 
-cat("renderTable continued\n")
-    if (length(input$browsevars) == 0)
+    if (input$leftPan == "Custom Query" || input$btnSQL > 1)
     {
-      fvsOutData$browseSelVars <- character(0)
-      return (NULL)
-    }
-    fvsOutData$browseSelVars <- input$browsevars
-    {
-      dat = if (length(input$browsevars) > 0) 
+cat("renderTable continued, custom query, input$btnSQL=",input$btnSQL,"\n")
+      dat = if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
+                !is.null(input$dispVar) && input$dispVar != "None") 
+        pivot(fvsOutData$dbData,input$pivVar,input$dispVar) else
+        fvsOutData$dbData
+        fvsOutData$render = dat
+      if (nrow(dat) > 3000) dat = dat[1:3000,,drop=FALSE]
+      if (nrow(dat) == 0) dat=NULL
+    } else {
+      if (input$leftPan == "Load Output") return(rhandsontable(data.frame())) 
+      if (length(input$selectdbvars) == 0) return(rhandsontable(data.frame())) 
+cat("renderTable continued, not custom query\n")
+      if (length(input$browsevars) == 0)
+      {
+        fvsOutData$browseSelVars <- character(0)
+        return (rhandsontable(data.frame()))
+      }
+      fvsOutData$browseSelVars <- input$browsevars
+      dat = if (length(fvsOutData$browseSelVars) > 0) 
       {
         dat = fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
-          input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
-          ,,drop=FALSE]
-cat ("nrow fvsOutData$dbData=",nrow(fvsOutData$dbData),
-     " nrow dat=",nrow(dat),"\n")
+            input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
+            ,,drop=FALSE]
         sel=match(input$browsevars,colnames(dat))
         dat = dat[,sel,drop=FALSE]
         if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
@@ -592,9 +720,9 @@ cat ("nrow fvsOutData$dbData=",nrow(fvsOutData$dbData),
         fvsOutData$render = dat
         if (nrow(dat) > 3000) dat[1:3000,,drop=FALSE] else dat
       } else NULL
-      if (is.null(dat)) rhandsontable(data.frame()) else
-        rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE)
     }
+    if (is.null(dat)) rhandsontable(data.frame()) else
+      rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE)
   })
 
   
@@ -609,7 +737,8 @@ cat ("browsevars\n")
       cats = intersect(cats,input$browsevars)
       cont = union("Year",setdiff(input$browsevars,cats))
       
-      spiv  = if (input$pivVar  %in% cats) input$pivVar  else "None"
+      spiv  = if (length(input$dispVar) && 
+                  input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
                   input$dispVar %in% input$browsevars) 
                                              input$dispVar else "None"
@@ -672,15 +801,16 @@ cat ("renderPlot\n")
       }
       list(src = outfile)
     }
-    if (input$leftPan == "Load Output"  || 
-        length(input$selectdbvars) == 0 || (length(input$xaxis) == 0 && 
+
+    if (input$leftPan == "Load Output"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
 
     vf = if (input$vfacet == "None") NULL else input$vfacet
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
 
-    dat = droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
+    dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else
+      droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdid, input$mgmid, input$year, input$species, input$dbhclass),])
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
     if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
@@ -737,15 +867,11 @@ cat ("vfacet test hit\n")
       else if (input$vfacet == hf)
         updateSelectInput(session=session, inputId="hfacet", selected="None")
       return (nullPlot())
-    }
-    
-    nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))
-    
-    vars = c(input$xaxis, vf, hf, pb, input$yaxis)
-                                         
+    }   
+    nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
+    vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && input$plotType != "box" && 
         input$plotType != "bar") dat$Year = as.numeric(as.character(dat$Year))
-
     nd = NULL
     for (v in vars[(nlv+1):length(vars)])
     {
@@ -764,12 +890,10 @@ cat ("vfacet test hit\n")
       alv = nlevels(as.factor(nd$Legend))
       nd$Legend = if (alv == 1) paste(pb,nd[,pb],sep=":") else
                                    paste(nd$Legend,pb,nd[,pb],sep=":")
-    }
-      
+    }      
     if (!is.null(nd$vfacet)) nd$vfacet = as.factor(nd$vfacet)
     if (!is.null(nd$hfacet)) nd$hfacet = as.factor(nd$hfacet)
     if (!is.null(nd$Legend)) nd$Legend = as.factor(nd$Legend)
-
     fg = NULL
     fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
          facet_grid(vfacet~hfacet)
@@ -777,35 +901,44 @@ cat ("vfacet test hit\n")
          facet_grid(.~hfacet) else fg
     fg = if (is.null(fg)         && !is.null(nd$vfacet)) 
          facet_grid(vfacet~.) else fg
+    if (input$plotType %in% c("bar","box") && is.factor(nd$Y))
+    {
+      flip = TRUE
+      nd$temp = nd$X
+      nd$X    = nd$Y
+      nd$Y    = nd$temp
+      nd$temp = NULL
+    } else flip = FALSE
     p = ggplot(data = nd) + fg + labs(x=input$xlabel, y=input$ylabel, 
           title=input$ptitle)  + 
           theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
+    if (flip) p = p + coord_flip() 
     colors = if (input$colBW == "B&W") rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
       ggplotColours(n=nlevels(nd$Legend)+1)
     if (!is.null(colors)) p = p + scale_colour_manual(values=colors)
     if (nlevels(nd$Legend)>6) p = p +
       scale_shape_manual(values=1:nlevels(nd$Legend))
     alpha = approxfun(c(50,100,1000),c(1,.7,.4),rule=2)(nrow(nd))    
-    size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))    
+    size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
-        geom_line    (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
-        geom_line    (aes(x=X,y=Y,color=Legend),alpha=.8),
+        geom_line  (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
+        geom_line  (aes(x=X,y=Y,color=Legend),alpha=.8),
       scatter = if (input$colBW == "B&W") 
-        geom_point   (aes(x=X,y=Y,shape=Legend,color=Legend),size=size) else
-        geom_point   (aes(x=X,y=Y,shape=Legend,color=Legend),
+        geom_point (aes(x=X,y=Y,shape=Legend,color=Legend),size=size) else
+        geom_point (aes(x=X,y=Y,shape=Legend,color=Legend),
                           alpha=alpha,size=size),
-      bar     = if (input$colBW == "B&W") 
-        geom_bar     (aes(x=X,y=Y,color=Legend,fill=Legend),
+      bar     = if (input$colBW == "B&W")
+        geom_bar (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,fill=Legend),
            position="dodge",stat="identity") else
-        geom_bar     (aes(x=X,y=Y,color=Legend,fill=Legend),alpha=.8,
+        geom_bar (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,fill=Legend),alpha=.8,
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
-        geom_boxplot (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
-        geom_boxplot (aes(x=X,y=Y,color=Legend),alpha=alpha)
-      )
+        geom_boxplot (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,linetype=Legend)) else
+        geom_boxplot (aes(x=reorder(X,1:length(X)),y=Y,color=Legend),alpha=alpha)
+      )  
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
     p = p + theme(text=element_text(size=9))

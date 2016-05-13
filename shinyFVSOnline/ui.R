@@ -129,7 +129,7 @@ shinyUI(fixedPage(
     	  selectInput("stdtitle", "Select run titles", 
 	          choices  = list("None loaded"), 
 	          selected = NULL, multiple = TRUE, selectize=FALSE),
-    	  selectInput("stdid", "Select stand", 
+    	  selectInput("stdid", "Select stand", size=8,
 	          choices  = list("None loaded"), 
 	          selected = NULL, multiple = TRUE, selectize=FALSE),
         fixedRow(
@@ -152,7 +152,24 @@ shinyUI(fixedPage(
 	            selected = NULL, multiple = TRUE, selectize=FALSE))),
 	      checkboxGroupInput("browsevars","Select variables",
 	          choices = list("None"),selected = NULL,inline=TRUE)
-      ) 
+      ),
+      tabPanel("Custom Query",
+        h5("Enter SQL on FVSOut.db"),
+        tags$style(type="text/css", 
+              "#sqlQuery{font-family:monospace;font-size:90%;width:95%;}"), 
+        tags$textarea(id="sqlQuery",rows=15,""),
+        h6(""),
+        actionButton("btnSQL","Submit query"),
+        h5("Output from query"),
+        tags$style(type="text/css", 
+              "#sqlOutput{font-family:monospace;font-size:90%;width:95%;}"), 
+        tags$textarea(id="sqlOutput",rows=5,""),
+        tags$p(id="sqlInstructions", 
+            HTML(paste0('Use "<b>;</b>" to separate SQL statements.<br>',
+              'The last statement that results in a table being returned ',
+              'defines the end of the sequence. That table is ',
+              'used in <b>Tables</b> and <b>Graphs</b>')))
+      )
     )                    
   ),
 

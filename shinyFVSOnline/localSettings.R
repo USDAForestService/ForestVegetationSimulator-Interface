@@ -1,4 +1,4 @@
-fvsBinDir="../../trunk/bin/"
+fvsBinDir="../../trunk/bin"
 rFVSDir  ="../R/"
 
 pgmList= list(

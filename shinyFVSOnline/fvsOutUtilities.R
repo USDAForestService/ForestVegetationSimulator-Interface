@@ -14,6 +14,12 @@ pivot <- function(dat,pvar,dvar)
   if (! dvar %in% colnames(dat)) return(data.frame())
   for (v in facts) dat[[v]] = droplevels(dat[[v]])
   facts = setdiff(facts,c(dvar,pvar))
+  if (length(facts) == 0) 
+  {
+    d = t(dat[,dvar,drop=FALSE])
+    colnames(d) = dat[,pvar]
+    return(as.data.frame(d))
+  }
   grps = by(dat,as.list(dat[,facts]),
     function(x,allc,facts,pvar,dvar) 
     {
