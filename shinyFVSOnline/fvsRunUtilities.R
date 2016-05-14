@@ -38,7 +38,7 @@ mkglobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    autoPanNav = "logical", customQuery = "character"))
+    customQuery = "character"))
 
 # load (and/or build) the prms.RData object
 mtrd <-  if (file.exists("prms.RData")) 
