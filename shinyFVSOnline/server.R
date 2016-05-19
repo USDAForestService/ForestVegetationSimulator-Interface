@@ -128,15 +128,15 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
 
   ## Process Output
 ##  observe({
-##    if (input$topPan == "Process Outputs" && isolate(input$leftPan == "Explore Output"))
-##      updateTabsetPanel(session=session, inputId="leftPan", selected="Load Output")
+##    if (input$topPan == "Process Outputs" && isolate(input$leftPan == "Explore"))
+##      updateTabsetPanel(session=session, inputId="leftPan", selected="Load")
 ##  })
 
-  ## Load Output
+  ## Load
   observe({
-    if (input$leftPan == "Load Output")
+    if (input$topPan == "Process Outputs" && input$leftPan == "Load")
     {
-cat ("Load Output\n")
+cat ("Process Outputs & Load\n")
       fvsOutData$runs = character(0)
       fvsOutData$dbVars = character(0)
       fvsOutData$browseVars = character(0)
@@ -144,6 +144,7 @@ cat ("Load Output\n")
       fvsOutData$browseSelVars = character(0)
 
       tbs <- dbListTables(dbcon)
+cat ("wtf1\n")
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
@@ -156,6 +157,7 @@ cat ("Load Output\n")
           times = c(times,fvsOutData$dbCases$RunDateTime[indx])
           titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
         }
+cat("wft2\n")
         srt = order(times,decreasing = TRUE)
         fvsOutData$runs = fvsOutData$runs[srt]
         names(fvsOutData$runs) = titles[srt]
@@ -178,7 +180,7 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
 
   ## output run selection
   observe({
-    if (input$leftPan != "Load Output") return()
+    if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
@@ -374,6 +376,7 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
                 res[[col]] = as.factor(res[[col]])
               if (!is.null(res$Year)) res$Year = as.factor(res$Year)
               fvsOutData$dbData = res
+              fvsOutData$render = res
               fvsOutData$runs = character(0)
               fvsOutData$dbVars = colnames(res)
               fvsOutData$browseVars = colnames(res)
@@ -393,6 +396,7 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
               updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
               if (input$outputRightPan != "Tables")
                 updateSelectInput(session,"outputRightPan",selected="Tables")
+              renderTable(fvsOutData$render)
             }
           }
         }
@@ -401,11 +405,11 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
   })
     
 
-  ## Explore Output
+  ## Explore
   observe({ 
-    if (input$leftPan == "Explore Output")
+    if (input$leftPan == "Explore")
     { 
-cat ("Explore Output\n")      
+cat ("Explore\n")      
       if (length(fvsOutData$dbSelVars) == 0) return()
     withProgress(session, 
     {  
@@ -597,12 +601,18 @@ cat ("Explore, len(dat)=",length(dat),"\n")
   })
   
   ## renderTable
-  output$table <- renderRHandsontable(
+  renderTable <- function (dat)
   {
-cat("renderTable\n")
+cat ("renderTable, is.null=",is.null(dat),"\n")
+    output$table <- renderRHandsontable(rhandsontable(
+      if (is.null(dat)) data.frame() else dat,
+        readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE))
+  }
+         
+  observe({
     if (input$leftPan == "Custom Query" || input$btnSQL > 1)
     {
-cat("renderTable continued, custom query, input$btnSQL=",input$btnSQL,"\n")
+cat("custom query\n")
       dat = if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
                 !is.null(input$dispVar) && input$dispVar != "None") 
         pivot(fvsOutData$dbData,input$pivVar,input$dispVar) else
@@ -611,13 +621,13 @@ cat("renderTable continued, custom query, input$btnSQL=",input$btnSQL,"\n")
       if (nrow(dat) > 3000) dat = dat[1:3000,,drop=FALSE]
       if (nrow(dat) == 0) dat=NULL
     } else {
-      if (input$leftPan == "Load Output") return(rhandsontable(data.frame())) 
-      if (length(input$selectdbvars) == 0) return(rhandsontable(data.frame())) 
-cat("renderTable continued, not custom query\n")
+cat("table or graph\n")
+      if (input$leftPan == "Load") return(renderTable(NULL)) 
+      if (length(input$selectdbvars) == 0) return(renderTable(NULL)) 
       if (length(input$browsevars) == 0)
       {
         fvsOutData$browseSelVars <- character(0)
-        return (rhandsontable(data.frame()))
+        return (renderTable(NULL))
       }
       fvsOutData$browseSelVars <- input$browsevars
       dat = if (length(fvsOutData$browseSelVars) > 0) 
@@ -634,8 +644,7 @@ cat("renderTable continued, not custom query\n")
         if (nrow(dat) > 3000) dat[1:3000,,drop=FALSE] else dat
       } else NULL
     }
-    if (is.null(dat)) rhandsontable(data.frame()) else
-      rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE)
+    if (input$outputRightPan == "Tables") renderTable(fvsOutData$render)
   })
 
   
@@ -689,8 +698,9 @@ cat ("browsevars\n")
         selected=sel) 
       sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
       updateSelectInput(session, "pltby",choices=as.list(c("None",cats)),
-        selected=sel) 
+        selected=sel)
     }
+    if (input$outputRightPan == "Table") renderTable(fvsOutData$render)
   })
   
   ## selectdbvars
@@ -715,7 +725,7 @@ cat ("renderPlot\n")
       list(src = outfile)
     }
 
-    if (input$leftPan == "Load Output"  || (length(input$xaxis) == 0 && 
+    if (input$leftPan == "Load"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
 
     vf = if (input$vfacet == "None") NULL else input$vfacet
@@ -1021,7 +1031,6 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
           if (input$rightPan != "Stands")
           {
-            globals$autoPanNav = TRUE
             updateTabsetPanel(session=session, inputId="rightPan", 
                selected="Stands")
           }
@@ -1083,13 +1092,11 @@ cat ("fvsRun$uiCustomRunOps is empty\n")
         {
           if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
           {
-            globals$autoPanNav = TRUE
             updateTabsetPanel(session=session, inputId="rightPan", 
                selected="Components")
           }
           if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
           {
-            globals$autoPanNav = TRUE
             updateTabsetPanel(session=session, inputId="rightPan", 
                selected="Stands")
           }
@@ -2209,7 +2216,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
           write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
           cat (file=tf,'"No data"\n')
       }, contentType="text")
-  ## Download output
+  ## DownLoad
   output$dlFVSRunout <- downloadHandler(filename=function ()
       paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())

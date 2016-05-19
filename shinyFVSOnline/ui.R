@@ -195,7 +195,7 @@ shinyUI(fixedPage(
           h6(),
           tags$style(type="text/css","#leftPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="leftPan", 
-            tabPanel("Load Output", 
+            tabPanel("Load", 
           	  selectInput("runs", "Runs to consider", 
       	        choices  = list(), size=5,
       	        selected = NULL, multiple = TRUE, selectize=FALSE),
@@ -215,7 +215,7 @@ shinyUI(fixedPage(
                 choices  = list(), size=20,
                 selected = NULL, multiple = TRUE, selectize=FALSE)
       	    ),
-            tabPanel("Explore Output", 
+            tabPanel("Explore", 
           	  selectInput("stdtitle", "Select run titles", 
       	          choices  = list("None loaded"), 
       	          selected = NULL, multiple = TRUE, selectize=FALSE),
