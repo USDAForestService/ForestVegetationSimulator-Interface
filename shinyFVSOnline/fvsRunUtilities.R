@@ -61,11 +61,14 @@ loadVarData <- function(globals,prms,dbIcon)
   {
     dbQ = dbSendQuery(dbIcon,'select distinct variant from FVS_StandInit')
     vars = dbFetch(dbQ,n=-1)
-    selVars = unique(tolower(unlist(lapply(vars[,1],
-      function (x) strsplit(x," ")))))
-    globals$selVarList <- lapply(selVars,function (x,pk) 
-        paste(x,":",getPstring(pk,x)),prms$variants)
-    names(globals$selVarList) <- selVars
+    if (!is.na(vars))
+    {
+      selVars = unique(tolower(unlist(lapply(vars[,1],
+        function (x) strsplit(x," ")))))
+        globals$selVarList <- lapply(selVars,function (x,pk) 
+          paste(x,":",getPstring(pk,x)),prms$variants)
+      names(globals$selVarList) <- selVars
+    }
   }
   itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
   if (length(itab)) 
