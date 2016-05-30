@@ -125,26 +125,44 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
       write(file="projectId.txt",prjid)
     }                                          
   })
-
-  ## Process Output
-##  observe({
-##    if (input$topPan == "Process Outputs" && isolate(input$leftPan == "Explore"))
-##      updateTabsetPanel(session=session, inputId="leftPan", selected="Load")
-##  })
+  
+  initTableGraphTools <- function ()
+  {
+cat ("initTableGraphTools\n")    
+    fvsOutData$dbData = data.frame()
+    fvsOutData$runs = character(0)
+    fvsOutData$dbVars = character(0)
+    fvsOutData$browseVars = character(0)
+    fvsOutData$dbSelVars = character(0)
+    fvsOutData$browseSelVars = character(0)
+    choices = list()               
+    updateSelectInput(session,"pivVar",choices=choices,select="")              
+    updateSelectInput(session,"hfacet",choices=choices,select="") 
+    updateSelectInput(session,"vfacet",choices=choices,select="") 
+    updateSelectInput(session,"pltby", choices=choices,select="") 
+    updateSelectInput(session,"dispVar",choices=choices,select="")       
+    updateSelectInput(session,"xaxis",choices=choices,select="") 
+    updateSelectInput(session,"yaxis",choices=choices,select="")
+    updateCheckboxGroupInput(session, "browsevars", choices=choices) 
+    updateTextInput(session=session, inputId="sqlOutput", label="", value="")
+    choices = list("None loaded")
+    updateSelectInput(session,"stdtitle",choices=choices,select=NULL)
+    updateSelectInput(session,"stdgroups",choices=choices,select=NULL)
+    updateSelectInput(session,"stdid",choices=choices,select=NULL)
+    updateSelectInput(session,"mgmid",choices=choices,select=NULL)
+    updateSelectInput(session,"year",choices=choices,select=NULL)
+    updateSelectInput(session,"species",choices=choices,select=NULL)
+    updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
+    output$table <- renderTable(NULL)
+  }
 
   ## Load
   observe({
     if (input$topPan == "Process Outputs" && input$leftPan == "Load")
     {
 cat ("Process Outputs & Load\n")
-      fvsOutData$runs = character(0)
-      fvsOutData$dbVars = character(0)
-      fvsOutData$browseVars = character(0)
-      fvsOutData$dbSelVars = character(0)
-      fvsOutData$browseSelVars = character(0)
-
+      initTableGraphTools()
       tbs <- dbListTables(dbcon)
-cat ("wtf1\n")
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
@@ -157,7 +175,6 @@ cat ("wtf1\n")
           times = c(times,fvsOutData$dbCases$RunDateTime[indx])
           titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
         }
-cat("wft2\n")
         srt = order(times,decreasing = TRUE)
         fvsOutData$runs = fvsOutData$runs[srt]
         names(fvsOutData$runs) = titles[srt]
@@ -258,7 +275,7 @@ cat ("tbs2=",tbs,"\n")
           }
           tbs = c(tbs,"StdStk")
         }
-        
+cat ("tbs3=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbCommit(dbcon)
@@ -322,23 +339,10 @@ cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")
     if (input$leftPan == "Custom Query")
     { 
 cat("Custom Query\n")        
+      initTableGraphTools()
       updateTextInput(session=session, inputId="sqlQuery", label="", 
                       value=globals$customQuery)
-      fvsOutData$dbData = data.frame()
-      fvsOutData$runs = character(0)
-      fvsOutData$dbVars = character(0)
-      fvsOutData$browseVars = character(0)
-      fvsOutData$dbSelVars = character(0)
-      fvsOutData$browseSelVars = character(0)
-      choices = list()               
-      updateSelectInput(session,"pivVar",choices=choices)              
-      updateSelectInput(session,"hfacet",choices=choices) 
-      updateSelectInput(session,"vfacet",choices=choices) 
-      updateSelectInput(session,"pltby", choices=choices) 
-      updateSelectInput(session,"dispVar",choices=choices)       
-      updateSelectInput(session,"xaxis",choices=choices) 
-      updateSelectInput(session,"yaxis",choices=choices)
-      updateCheckboxGroupInput(session, "browsevars", choices=choices)
+      updateTextInput(session=session, inputId="sqlOutput", label="", value="")
     }
   })
 
@@ -396,7 +400,9 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
               updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
               if (input$outputRightPan != "Tables")
                 updateSelectInput(session,"outputRightPan",selected="Tables")
-              renderTable(fvsOutData$render)
+              if (nrow(res) > 10000) res = res[1:10000,,drop=FALSE]
+              output$table <- renderTable(res)
+              return()
             }
           }
         }
@@ -409,246 +415,241 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
   observe({ 
     if (input$leftPan == "Explore")
     { 
-cat ("Explore\n")      
-      if (length(fvsOutData$dbSelVars) == 0) return()
-    withProgress(session, 
-    {  
-      iprg = 1
-      setProgress(message = "Processing variable names", detail="",
-                  value = iprg)
-      tbs = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
-            function (x) x[1])))
-      if (length(tbs) == 0) return()
-      cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
-            function (x) x[2])))
-      if (length(cols) == 0) return()
-      dat = list()
-      for (tb in tbs)       
+cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
+      if (length(fvsOutData$dbSelVars) == 0) 
       {
-        iprg = iprg+1
-        setProgress(message = "Processing tables", detail=tb,value = iprg)
-        if (tb == "Composite" || tb == "Composite_East") 
-        {
-          dtab = dbReadTable(dbcon,tb)
-          dtab = by(dtab,as.factor(dtab$MgmtID),FUN=function (x) 
-                 setupSummary(x,composite=TRUE))
-          dtab = do.call("rbind",dtab)
-          dtab$Year=as.factor(dtab$Year) 
-          dtab$MgmtID=as.factor(dtab$MgmtID) 
-          dat = list(Composite = dtab)
-        } else {
-          dtab = if ("CaseID" %in% dbListFields(dbcon,tb))
-            dbGetQuery(dbcon,paste0("select * from ",tb,
-                 " where CaseID in (select CaseID from m.Cases)")) else
-            dbGetQuery(dbcon,paste0("select * from ",tb))       
-          if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
-          { 
-            dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
-                      setupSummary(x))
-            dtab = do.call("rbind",dtab)
-            dtab$ForTyp =as.factor(dtab$ForTyp)
-            dtab$SizeCls=as.factor(dtab$SizeCls)
-            dtab$StkCls =as.factor(dtab$StkCls)
-          } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
-          cls = intersect(c(cols,"srtOrd"),colnames(dtab))
-          if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
-          for (col in colnames(dtab)) if (is.character(dtab[,col])) 
-              dtab[,col] = as.factor(dtab[,col])
-          if (!is.null(dtab$Year))    dtab$Year    =as.factor(dtab$Year)        
-          if (!is.null(dtab$TreeVal)) dtab$TreeVal =as.factor(dtab$TreeVal)        
-          if (!is.null(dtab$PtIndex)) dtab$PtIndex =as.factor(dtab$PtIndex)        
-          if (!is.null(dtab$SSCD))    dtab$SSCD    =as.factor(dtab$SSCD) 
-          rownames(dtab) = 1:nrow(dtab)
-          dat[[tb]] = dtab
-        }
+       initTableGraphTools()
+       return()
       }
-cat ("Explore, len(dat)=",length(dat),"\n") 
-      mdat = dat$FVS_Cases
-      dat$FVS_Cases = NULL
-      if (is.null(mdat))  mdat = dat[[1]]
-      if (is.null(mdat))
-      {
-        updateSelectInput(session, "stdtitle",choices = list("None loaded"), 
-          selected = NULL)
-        updateSelectInput(session, "stdid",   choices = list("None loaded"), 
-          selected = NULL)
-        updateSelectInput(session, "mgmid",   choices = list("None loaded"),
-          selected = NULL)
-        updateSelectInput(session, "year",    choices = list("None loaded"),
-          selected = NULL)
-        updateSelectInput(session, "species", choices = list("None loaded"),
-          selected = NULL)
-        updateSelectInput(session, "dbhclass",choices = list("None loaded"),
-          selected = NULL)
-        return()
-      }
-      # this merges the data on all columns      
-      iprg = iprg+1
-      setProgress(message = "Merging selected tables", detail  = "", value = iprg)
-      if (length(dat) > 0)
-      {
-        for (tb in names(dat))
+      withProgress(session, 
+      {  
+        iprg = 1
+        setProgress(message = "Processing variable names", detail="",
+                    value = iprg)
+        tbs = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
+              function (x) x[1])))
+        if (length(tbs) == 0) return()
+        cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
+              function (x) x[2])))
+        if (length(cols) == 0) return()
+        dat = list()
+        for (tb in tbs)       
         {
-          setProgress(message = "Merging selected tables", 
-                      detail  = tb, value = iprg)
-          mdat = merge(mdat,dat[[tb]],all=TRUE)
-        }
-        fvsOutData$dbData = mdat
-      } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
-      iprg = iprg+1
-      setProgress(message = "Processing variables", detail=tb,value = iprg)
-      mdat = fvsOutData$dbData
-      vars = colnames(mdat)
-      sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-                "TreeIndex","Species","DBHClass","RunDateTime"),vars)
-      sby = if (length(sby)) 
-      {
-        cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
-             if("srtOrd" %in% vars) ",mdat$srtOrd)" else ")")
-        sby = try(eval(parse(text=cmd)))
-        if (class(sby) == "try-error") NULL else sby
-      } else NULL
-      vars = intersect(c("MgmtID","Stand_CN","StandID","Year",
-                         "Species","DBHClass"),colnames(mdat))
-      vars = c(vars,setdiff(colnames(mdat),vars))
-      endvars = intersect(c("SamplingWt","Variant","RunTitle",
-                       "Groups","RunDateTime","KeywordFile","CaseID"),vars)
-      vars = union(setdiff(vars,endvars),endvars)
-      if (!is.null(sby)) mdat = mdat[sby,vars,drop=FALSE]
-      mdat$srtOrd = NULL
-      vars = colnames(mdat)     
-      if (length(vars) == 0) 
-      {
-        setProgress(value = NULL)  
-        return()
-      }
-      iprg = iprg+1
-      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
-      if (is.null(mdat$RunTitle)) 
-        updateSelectInput(session, "stdtitle", choices  = list("None loaded"), 
-          selected = NULL) else 
-        updateSelectInput(session, "stdtitle", 
-          choices=as.list(levels(mdat$RunTitle)), selected=levels(mdat$RunTitle))      
-      iprg = iprg+1
-      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
-      if (is.null(mdat$StandID)) 
-        updateSelectInput(session, "stdid", choices  = list("None loaded"), 
-          selected = NULL) else 
-        updateSelectInput(session, "stdid", 
-          choices=as.list(levels(mdat$StandID)), selected=levels(mdat$StandID))
-      if (is.null(mdat$MgmtID)) updateSelectInput(session, "mgmid", 
-          choices  = list("None loaded"), selected = NULL) else 
-        updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
-          selected=levels(mdat$MgmtID))
-      if ("FVS_TreeList" %in% names(dat))
-        updateSelectInput(session, "plotType",selected="scatter") else 
-        if ("StdStk" %in% names(dat)) 
-          updateSelectInput(session, "plotType",selected="bar") else
-            updateSelectInput(session, "plotType",selected="line")
-      iprg = iprg+1
-      setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
-      if (is.null(mdat$Year)) updateSelectInput(session, "year", 
-          choices  = list("None loaded"), selected = NULL) else 
-        {
-          sel  = levels(mdat$Year)
-          isel = max(1,length(sel) %/% 2)
-          sel =  if (length(intersect(c("FVS_TreeList","StdStk"),names(dat)))) 
-                 sel[isel] else sel 
-          updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
-            selected=sel)
-        }
-      if (is.null(mdat$Species)) updateSelectInput(session, "species", 
-          choices  = list("None loaded"), selected = NULL) else
-        {
-          sel = names(sort(table(mdat$Species),decreasing=TRUE))
-          sel = setdiff(sel,"All")
-          sel = sel[1:min(length(sel),5)]
-          updateSelectInput(session, "species",
-            choices=as.list(levels(mdat$Species)), selected=sel)
-        }
-      if (is.null(mdat$DBHClass)) updateSelectInput(session, "dbhclass", 
-          choices  = list("None loaded"), selected = NULL) else
-        {
-          sel = if ("All" %in% levels(mdat$DBHClass)) "All" else 
-            { 
-              top = names(sort(table(mdat$DBHClass),decreasing=TRUE))
-              top[1:min(length(top),5)]
-            }
-          updateSelectInput(session, "dbhclass", 
-            choices=as.list(levels(mdat$DBHClass)), selected=sel)
-        }           
-      iprg = iprg+1
-      setProgress(message = "Finishing", detail  = "", value = iprg)
-      selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
-        "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
-        function (x,vs) 
+          iprg = iprg+1
+          setProgress(message = "Processing tables", detail=tb,value = iprg)
+          if (tb == "Composite" || tb == "Composite_East") 
           {
-            hits = unlist(grep(x,vs,ignore.case = TRUE))
-            hits = hits[hits>0]
-            vs[hits]
-          },vars))
-      keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
-      selVars = selVars[keep]
-      if (length(vars) < 7) selVars = vars
-      updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
-                               selected=selVars,inline=TRUE)
-      fvsOutData$dbData        <- mdat
-      fvsOutData$browseVars    <- vars
-      fvsOutData$browseSelVars <- selVars
-      setProgress(value = NULL)          
-    }, min=1, max=10)
+            dtab = dbReadTable(dbcon,tb)
+            dtab = by(dtab,as.factor(dtab$MgmtID),FUN=function (x) 
+                   setupSummary(x,composite=TRUE))
+            dtab = do.call("rbind",dtab)
+            dtab$Year=as.factor(dtab$Year) 
+            dtab$MgmtID=as.factor(dtab$MgmtID) 
+            dat = list(Composite = dtab)
+          } else {
+            dtab = if ("CaseID" %in% dbListFields(dbcon,tb))
+              dbGetQuery(dbcon,paste0("select * from ",tb,
+                   " where CaseID in (select CaseID from m.Cases)")) else
+              dbGetQuery(dbcon,paste0("select * from ",tb))       
+            if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
+            { 
+              dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
+                        setupSummary(x))
+              dtab = do.call("rbind",dtab)
+              dtab$ForTyp =as.factor(dtab$ForTyp)
+              dtab$SizeCls=as.factor(dtab$SizeCls)
+              dtab$StkCls =as.factor(dtab$StkCls)
+            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
+            cls = intersect(c(cols,"srtOrd"),colnames(dtab))
+            if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
+            for (col in colnames(dtab)) if (is.character(dtab[,col])) 
+                dtab[,col] = as.factor(dtab[,col])
+            if (!is.null(dtab$Year))    dtab$Year    =as.factor(dtab$Year)        
+            if (!is.null(dtab$TreeVal)) dtab$TreeVal =as.factor(dtab$TreeVal)        
+            if (!is.null(dtab$PtIndex)) dtab$PtIndex =as.factor(dtab$PtIndex)        
+            if (!is.null(dtab$SSCD))    dtab$SSCD    =as.factor(dtab$SSCD) 
+            rownames(dtab) = 1:nrow(dtab)
+            dat[[tb]] = dtab
+          }
+        }
+cat ("Explore, len(dat)=",length(dat),"\n") 
+        mdat = dat$FVS_Cases
+        dat$FVS_Cases = NULL
+        if (is.null(mdat))  mdat = dat[[1]]
+        if (is.null(mdat))
+        {
+          initTableGraphTools()
+          return()
+        }
+        # this merges the data on all columns      
+        iprg = iprg+1
+        setProgress(message = "Merging selected tables", detail  = "", value = iprg)
+        if (length(dat) > 0)
+        {
+          for (tb in names(dat))
+          {
+            setProgress(message = "Merging selected tables", 
+                        detail  = tb, value = iprg)
+            mdat = merge(mdat,dat[[tb]],all=TRUE)
+          }
+          fvsOutData$dbData = mdat
+        } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
+        iprg = iprg+1
+        setProgress(message = "Processing variables", detail=tb,value = iprg)
+        mdat = fvsOutData$dbData
+        vars = colnames(mdat)
+        sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
+                  "TreeIndex","Species","DBHClass","RunDateTime"),vars)
+        sby = if (length(sby)) 
+        {
+          cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
+               if("srtOrd" %in% vars) ",mdat$srtOrd)" else ")")
+          sby = try(eval(parse(text=cmd)))
+          if (class(sby) == "try-error") NULL else sby
+        } else NULL
+        vars = intersect(c("MgmtID","Stand_CN","StandID","Year",
+                           "Species","DBHClass"),colnames(mdat))
+        vars = c(vars,setdiff(colnames(mdat),vars))
+        endvars = intersect(c("SamplingWt","Variant","RunTitle",
+                         "Groups","RunDateTime","KeywordFile","CaseID"),vars)
+        vars = union(setdiff(vars,endvars),endvars)
+        if (!is.null(sby)) mdat = mdat[sby,vars,drop=FALSE]
+        mdat$srtOrd = NULL
+        vars = colnames(mdat)     
+        if (length(vars) == 0) 
+        {
+          setProgress(value = NULL)  
+          return()
+        }
+        iprg = iprg+1
+        setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
+        if (is.null(mdat$RunTitle)) 
+          updateSelectInput(session, "stdtitle", choices  = list("None loaded"), 
+            selected = NULL) else 
+          updateSelectInput(session, "stdtitle", 
+            choices=as.list(levels(mdat$RunTitle)), selected=levels(mdat$RunTitle))      
+        iprg = iprg+1
+        setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
+        if (is.null(mdat$StandID)) 
+          updateSelectInput(session, "stdid", choices  = list("None loaded"), 
+            selected = NULL) else 
+          {
+            if (length(levels(mdat$StandID)) > 500) 
+              updateSelectInput(session, "stdid", 
+                choices=as.list(paste0("None loaded, too many stands (",
+                length(levels(mdat$StandID)),")")), selected=NULL) else
+              updateSelectInput(session, "stdid", 
+                choices=as.list(levels(mdat$StandID)), selected=levels(mdat$StandID))
+          }
+        if (is.null(mdat$Groups)) updateSelectInput(session, "stdgroups", 
+            choices  = list("None loaded"), selected = NULL) else
+          {
+            grps = sort(unique(unlist(lapply(levels(mdat$Groups), function (x)
+              trim(scan(text=x,what="character",sep=",",quiet=TRUE))))))           
+            updateSelectInput(session, "stdgroups",choices=as.list(grps), 
+              selected=grps)
+          }
+        if (is.null(mdat$MgmtID)) updateSelectInput(session, "mgmid", 
+            choices  = list("None loaded"), selected = NULL) else 
+          updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
+            selected=levels(mdat$MgmtID))
+        if ("FVS_TreeList" %in% names(dat))
+          updateSelectInput(session, "plotType",selected="scatter") else 
+          if ("StdStk" %in% names(dat)) 
+            updateSelectInput(session, "plotType",selected="bar") else
+              updateSelectInput(session, "plotType",selected="line")
+        iprg = iprg+1
+        setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
+        if (is.null(mdat$Year)) updateSelectInput(session, "year", 
+            choices  = list("None loaded"), selected = NULL) else 
+          {
+            sel  = levels(mdat$Year)
+            isel = max(1,length(sel) %/% 2)
+            sel =  if (length(intersect(c("FVS_TreeList","StdStk"),names(dat)))) 
+                   sel[isel] else sel 
+            updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
+              selected=sel)
+          }
+        if (is.null(mdat$Species)) updateSelectInput(session, "species", 
+            choices  = list("None loaded"), selected = NULL) else
+          {
+            sel = names(sort(table(mdat$Species),decreasing=TRUE))
+            sel = setdiff(sel,"All")
+            sel = sel[1:min(length(sel),5)]
+            updateSelectInput(session, "species",
+              choices=as.list(levels(mdat$Species)), selected=sel)
+          }
+        if (is.null(mdat$DBHClass)) updateSelectInput(session, "dbhclass", 
+            choices  = list("None loaded"), selected = NULL) else
+          {
+            sel = if ("All" %in% levels(mdat$DBHClass)) "All" else 
+              { 
+                top = names(sort(table(mdat$DBHClass),decreasing=TRUE))
+                top[1:min(length(top),5)]
+              }
+            updateSelectInput(session, "dbhclass", 
+              choices=as.list(levels(mdat$DBHClass)), selected=sel)
+          }           
+        iprg = iprg+1
+        setProgress(message = "Finishing", detail  = "", value = iprg)
+        selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
+          "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
+          function (x,vs) 
+            {
+              hits = unlist(grep(x,vs,ignore.case = TRUE))
+              hits = hits[hits>0]
+              vs[hits]
+            },vars))
+        keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
+        selVars = selVars[keep]
+        if (length(vars) < 7) selVars = vars
+        updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
+                                 selected=selVars,inline=TRUE)                               
+        fvsOutData$dbData        <- mdat
+        fvsOutData$browseVars    <- vars
+        fvsOutData$browseSelVars <- selVars
+        setProgress(value = NULL)          
+      }, min=1, max=10)
     } 
   })
   
   ## renderTable
   renderTable <- function (dat)
   {
-cat ("renderTable, is.null=",is.null(dat),"\n")
-    output$table <- renderRHandsontable(rhandsontable(
-      if (is.null(dat)) data.frame() else dat,
-        readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE))
+cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
+    if (!is.null(dat) && nrow(dat) > 0)
+    {
+      dat = lapply(dat,function (x) 
+        if (is.factor(x)) levels(x)[as.numeric(x)] else x)
+      dat = as.data.frame(dat)
+    }
+    renderRHandsontable(if (is.null(dat) || nrow(dat)==0) NULL else 
+              rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE,
+              width="100%",height=700))
   }
          
   observe({
-    if (input$leftPan == "Custom Query" || input$btnSQL > 1)
-    {
-cat("custom query\n")
-      dat = if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
-                !is.null(input$dispVar) && input$dispVar != "None") 
-        pivot(fvsOutData$dbData,input$pivVar,input$dispVar) else
-        fvsOutData$dbData
-        fvsOutData$render = dat
-      if (nrow(dat) > 3000) dat = dat[1:3000,,drop=FALSE]
-      if (nrow(dat) == 0) dat=NULL
-    } else {
-cat("table or graph\n")
-      if (input$leftPan == "Load") return(renderTable(NULL)) 
-      if (length(input$selectdbvars) == 0) return(renderTable(NULL)) 
-      if (length(input$browsevars) == 0)
-      {
-        fvsOutData$browseSelVars <- character(0)
-        return (renderTable(NULL))
-      }
-      fvsOutData$browseSelVars <- input$browsevars
-      dat = if (length(fvsOutData$browseSelVars) > 0) 
-      {
-        dat = fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
-            input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
-            ,,drop=FALSE]
-        sel=match(input$browsevars,colnames(dat))
-        dat = dat[,sel,drop=FALSE]
-        if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
-            !is.null(input$dispVar) && input$dispVar != "None") dat = 
-              pivot(dat,input$pivVar,input$dispVar)
-        fvsOutData$render = dat
-        if (nrow(dat) > 3000) dat[1:3000,,drop=FALSE] else dat
-      } else NULL
-    }
-    if (input$outputRightPan == "Tables") renderTable(fvsOutData$render)
+cat("filterRows and/or pivot\n")
+    if (is.null(input$browsevars)) return()
+    fvsOutData$browseSelVars <- input$browsevars
+    dat = if (length(input$stdtitle) || length(input$stdgroups) ||   
+              length(input$stdid)    || length(input$mgmid)     || 
+              length(input$year)     || length(input$species)   || 
+              length(input$dbhclass))                       
+      fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, input$stdgroups,
+          input$stdid, input$mgmid, input$year, input$species, input$dbhclass)
+          ,fvsOutData$browseSelVars,drop=FALSE] else 
+      fvsOutData$dbData[,fvsOutData$browseSelVars,drop=FALSE]  
+    if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
+        !is.null(input$dispVar) && input$dispVar != "None")  
+          dat = pivot(dat,input$pivVar,input$dispVar)
+    fvsOutData$render = dat
+    if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]
+    output$table <- renderTable(dat) 
   })
-
+           
   
-  ##browsevars
+  ##browsevars 
   observe({
     if (!is.null(input$browsevars)) 
     {
@@ -659,7 +660,7 @@ cat ("browsevars\n")
       cats = intersect(cats,input$browsevars)
       cont = union("Year",setdiff(input$browsevars,cats))
       
-      spiv  = if (length(input$dispVar) && 
+      spiv  = if (length(input$pivVar) && 
                   input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
                   input$dispVar %in% input$browsevars) 
@@ -698,9 +699,8 @@ cat ("browsevars\n")
         selected=sel) 
       sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
       updateSelectInput(session, "pltby",choices=as.list(c("None",cats)),
-        selected=sel)
+        selected=sel)                                                                   
     }
-    if (input$outputRightPan == "Table") renderTable(fvsOutData$render)
   })
   
   ## selectdbvars
@@ -734,7 +734,8 @@ cat ("renderPlot\n")
 
     dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
-          input$stdid, input$mgmid, input$year, input$species, input$dbhclass),])
+          input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
+          input$dbhclass),])
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
     if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
     {
@@ -2611,7 +2612,7 @@ cat ("backup=",backup,"\n")
   
   #dataEditor  
   observe({
-    if(input$topPan == "Load Input Data") 
+    if(input$topPan == "Input Database") 
     {
 cat ("dataEditor\n")
       source("editDataUtilities.R")
@@ -2686,7 +2687,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
                                nrow=dataEditGlobals$disprows))
           colnames(tbl) <- input$editSelDBvars
           output$tbl <- renderRHandsontable(rhandsontable(tbl,
-            readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+            readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE,width="100%"))
           output$stdSel <- output$navRows <- renderUI(NULL)
           dataEditGlobals$rowSelOn <- dataEditGlobals$navsOn <- FALSE
         },

@@ -54,23 +54,45 @@ ggplotColours <- function(n=6, h=c(0, 360) +15, alpha=.7)
 }
 
 
-filterRows <- function (dat, title, stdid, mgtid, year, species, dbhclass)
-  {
-    rows = rep (TRUE,nrow(dat))
-    rows = if (!is.null(title)    & !is.null(dat$RunTitle)) rows &  
-           dat$RunTitle %in% title   else rows
-    rows = if (!is.null(stdid)    & !is.null(dat$StandID))  rows &  
-           dat$StandID %in% stdid    else rows
-    rows = if (!is.null(mgtid)    & !is.null(dat$MgmtID))   rows &   
-           dat$MgmtID  %in% mgtid    else rows
-    rows = if (!is.null(year)     & !is.null(dat$Year))     rows &     
-           dat$Year %in% year     else rows
-    rows = if (!is.null(species)  & !is.null(dat$Species))  rows & 
-           dat$Species %in% species  else rows
-    rows = if (!is.null(dbhclass) & !is.null(dat$DBHClass)) rows & 
-           dat$DBHClass %in% dbhclass else rows
-    rows
-  }
+filterRows <- function (dat, title, groups, stdid, mgtid, year, species, dbhclass)
+{
+  rows = rep (TRUE,nrow(dat))
+  if (!is.null(title) && length(title) == 1 && 
+      substring(title[[1]],1,11) == "None loaded") title = NULL
+  if (!is.null(stdid) && length(stdid) == 1 && 
+      substring(stdid[[1]],1,11) == "None loaded") stdid = NULL
+  if (!is.null(groups) && length(groups) == 1 && 
+      substring(groups[[1]],1,11) == "None loaded") groups = NULL
+  if (!is.null(mgtid) && length(mgtid) == 1 && 
+      substring(mgtid[[1]],1,11) == "None loaded") mgtid = NULL
+  if (!is.null(year) && length(year) == 1 && 
+      substring(year[[1]],1,11) == "None loaded") year = NULL
+  if (!is.null(species) && length(species) == 1 && 
+      substring(species[[1]],1,11) == "None loaded") species = NULL
+  if (!is.null(dbhclass) && length(dbhclass) == 1 && 
+      substring(dbhclass[[1]],1,11) == "None loaded") dbhclass = NULL
+  rows = if (!is.null(title)    & !is.null(dat$RunTitle)) rows &  
+         dat$RunTitle %in% title   else rows
+  rows = if (!is.null(stdid)    & !is.null(dat$StandID))  rows &  
+         dat$StandID %in% stdid    else rows     
+  rows = if (!is.null(groups)   & !is.null(dat$Groups))   rows &
+         {
+           hits = unique(unlist(lapply(groups,function (x,dgrps)  
+                         grep (x,dgrps,fixed=TRUE), dat$Groups)))
+           yeses = rep(FALSE,length(rows))
+           yeses[hits] = TRUE
+           yeses
+         } else rows
+  rows = if (!is.null(mgtid)    & !is.null(dat$MgmtID))   rows &   
+         dat$MgmtID  %in% mgtid    else rows
+  rows = if (!is.null(year)     & !is.null(dat$Year))     rows &     
+         dat$Year %in% year     else rows
+  rows = if (!is.null(species)  & !is.null(dat$Species))  rows & 
+         dat$Species %in% species  else rows
+  rows = if (!is.null(dbhclass) & !is.null(dat$DBHClass)) rows & 
+         dat$DBHClass %in% dbhclass else rows
+  rows
+}
 
 
 setupSummary <- function(asum,composite=FALSE)
