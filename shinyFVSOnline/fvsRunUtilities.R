@@ -38,7 +38,7 @@ mkglobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQuery = "character"))
+    customQueries = "list"))
 
 # load (and/or build) the prms.RData object
 mtrd <-  if (file.exists("prms.RData")) 
@@ -56,20 +56,16 @@ if (mtrd < mtpm)
 loadVarData <- function(globals,prms,dbIcon)
 {
   tbs <- dbListTables(dbIcon)
-  itab <- grep (tolower("FVS_StandInit"),tolower(tbs))
+  itab <- grep (tolower("FVS_StandInit"),tolower(tbs)) 
   if (length(itab)) 
   {
-    dbQ = dbSendQuery(dbIcon,'select distinct variant from FVS_StandInit')
-    vars = dbFetch(dbQ,n=-1)
-    if (!is.na(vars))
-    {
-      selVars = unique(tolower(unlist(lapply(vars[,1],
-        function (x) strsplit(x," ")))))
-        globals$selVarList <- lapply(selVars,function (x,pk) 
-          paste(x,":",getPstring(pk,x)),prms$variants)
-      names(globals$selVarList) <- selVars
-    }
-  }
+    vars = dbGetQuery(dbIcon,'select distinct variant from FVS_StandInit')
+    selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+      function (x) strsplit(x," "))))))
+    globals$selVarList <- lapply(selVars,function (x,pk) 
+        paste(x,":",getPstring(pk,x)),prms$variants)
+    names(globals$selVarList) <- selVars
+  } else globals$selVarList = list()
   itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
   if (length(itab)) 
   {

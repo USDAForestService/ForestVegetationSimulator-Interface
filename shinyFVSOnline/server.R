@@ -23,14 +23,14 @@ shinyServer(function(input, output, session) {
   
   load("prms.RData") 
   globals <- mkglobals(saveOnExit=TRUE,oldInAdd=0)
-  dataEditGlobals <- new.env()
-  dataEditGlobals$tbl <- NULL
-  dataEditGlobals$navsOn <- FALSE            
-  dataEditGlobals$rowSelOn <- FALSE
-  dataEditGlobals$disprows <- 20
+  dbGlb <- new.env()
+  dbGlb$tbl <- NULL
+  dbGlb$navsOn <- FALSE            
+  dbGlb$rowSelOn <- FALSE
+  dbGlb$disprows <- 20
 
   resetGlobals(globals,NULL,prms)
-
+ 
   ##load existing runs
   fvsRun <- mkfvsRun()
   trys = 1
@@ -41,7 +41,6 @@ shinyServer(function(input, output, session) {
 cat ("FVS_Runs.RData exists, trys =",trys,"\n")      
       load("FVS_Runs.RData")
       globals$FVS_Runs = FVS_Runs
-      globals$customQuery = if (exists("cqury")) cqury else character(0)
       rm (FVS_Runs)
       trycall <- try(loadFromList(fvsRun,globals$FVS_Runs[[1]]))
       if (class(trycall)=="try-error")
@@ -51,7 +50,6 @@ cat ("FVS_Runs try error...deleting one\n")
         if (length(globals$FVS_Runs)) 
         {
           FVS_Runs = globals$FVS_Runs
-          cqury = globals$customQuery
           save (FVS_Runs,cqury,file="FVS_Runs.RData")
         } else file.remove("FVS_Runs.RData")
         resetfvsRun(fvsRun,globals$FVS_Runs)
@@ -97,28 +95,27 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
   if (exists("fvsOutData")) rm (fvsOutData) 
   fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
   dbDrv <- dbDriver("SQLite")
-  dbcon <- dbConnect(dbDrv,"FVSOut.db")    
-  dbSendQuery(dbcon,'attach ":memory:" as m')
+  dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
+  dbSendQuery(dbGlb$dbOcon,'attach ":memory:" as m')
   if (!file.exists("FVS_Data.db"))
   {
     if (file.exists("FVS_Data.db.backup")) 
         file.rename("FVS_Data.db.backup","FVS_Data.db") else
         file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
   }
-  dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-  dbSendQuery(dbIcon,'attach ":memory:" as m')
-  loadVarData(globals,prms,dbIcon)                                              
+  dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+  dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
+  loadVarData(globals,prms,dbGlb$dbIcon)                                              
   
   session$onSessionEnded(function ()
   {                                                
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
-    if (exists("dbcon"))  try(dbDisconnect(dbcon))
-    if (exists("dbIcon")) try(dbDisconnect(dbIcon))
+    if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
+    if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
     if (!globals$saveOnExit) return()
     saveRun()
     FVS_Runs = globals$FVS_Runs
-    cqury = globals$customQuery
-    save (FVS_Runs,cqury,file="FVS_Runs.RData")
+    save (FVS_Runs,file="FVS_Runs.RData")
     if (file.exists("projectId.txt"))
     {
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
@@ -162,10 +159,10 @@ cat ("initTableGraphTools\n")
     {
 cat ("Process Outputs & Load\n")
       initTableGraphTools()
-      tbs <- dbListTables(dbcon)
+      tbs <- dbListTables(dbGlb$dbOcon)
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
-        fvsOutData$dbCases = dbReadTable(dbcon,"FVS_Cases")
+        fvsOutData$dbCases = dbReadTable(dbGlb$dbOcon,"FVS_Cases")
         fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
         times = NULL
         titles = NULL
@@ -201,7 +198,7 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
-      tbs <- dbListTables(dbcon)
+      tbs <- dbListTables(dbGlb$dbOcon)
 cat ("runs, tbs=",tbs,"\n")
       withProgress(session, {  
         i = 1
@@ -210,26 +207,26 @@ cat ("runs, tbs=",tbs,"\n")
         # create a m.Cases table that is a list of CaseIDs and MgmtIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        dbSendQuery(dbcon,"drop table if exists m.Cases")
+        dbSendQuery(dbGlb$dbOcon,"drop table if exists m.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
-        dbSendQuery(dbcon,paste0("create table m.Cases as select CaseID ",
+        dbSendQuery(dbGlb$dbOcon,paste0("create table m.Cases as select CaseID ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))        
-        dbBegin(dbcon)      
+        dbBegin(dbGlb$dbOcon)      
         for (tb in tbs) 
         {
 cat ("tb=",tb,"\n")
           cnt = 0
           if (tb == "FVS_Cases") next
           else if (tb == "Composite")
-            dbSendQuery(dbcon,"drop table Composite")
+            dbSendQuery(dbGlb$dbOcon,"drop table Composite")
           else if (tb == "Composite_East")
-            dbSendQuery(dbcon,"drop table Composite_East")
+            dbSendQuery(dbGlb$dbOcon,"drop table Composite_East")
           else if (tb == "StdStk")
-            dbSendQuery(dbcon,"drop table StdStk")
+            dbSendQuery(dbGlb$dbOcon,"drop table StdStk")
           else 
           {
-            cnt = if ("CaseID" %in% dbListFields(dbcon,tb))  
-              dbGetQuery(dbcon,paste0("select count(*) from ",
+            cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
+              dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",
                    "(select distinct CaseID from ",tb," where CaseID in ",
                    "(select CaseID from m.Cases))")) else 1
           }
@@ -242,7 +239,7 @@ cat ("tb=",tb,"\n")
         {
           setProgress(message = "Output query", 
             detail  = "Building composites", value = i); i = i+1
-          exqury(dbcon,Create_Composite)
+          exqury(dbGlb$dbOcon,Create_Composite)
           tbs = c(tbs,"Composite")
 cat ("tbs1=",tbs,"\n")
         }
@@ -250,7 +247,7 @@ cat ("tbs1=",tbs,"\n")
         {
           setProgress(message = "Output query", 
             detail  = "Building composites", value = i); i = i+1
-          exqury(dbcon,Create_Composite_East)
+          exqury(dbGlb$dbOcon,Create_Composite_East)
           tbs = c(tbs,"Composite_East")
 cat ("tbs2=",tbs,"\n")
         }
@@ -259,27 +256,27 @@ cat ("tbs2=",tbs,"\n")
         {
           setProgress(message = "Output query", 
             detail  = "Building StdStk from Treelists", value = i); i = i+1
-          exqury(dbcon,Create_m.StdStk,dbhclassexp)
+          exqury(dbGlb$dbOcon,Create_m.StdStk,dbhclassexp)
           if ("FVS_CutList" %in% tbs)
           {
             setProgress(message = "Output query", 
               detail  = "Building StdStk from Cutlists", value = i); i = i+1
-            exqury(dbcon,Create_m.HrvStdStk,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_m.HrvStdStk,dbhclassexp)
             setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+1
-            exqury(dbcon,Create_StdStk,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStk,dbhclassexp)
           } else {
              setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+2
-            exqury(dbcon,Create_StdStkNoHrv,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStkNoHrv,dbhclassexp)
           }
           tbs = c(tbs,"StdStk")
         }
 cat ("tbs3=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
-        dbCommit(dbcon)
-        dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbcon)
+        dbCommit(dbGlb$dbOcon)
+        dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
         if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
@@ -333,30 +330,64 @@ cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")
       fvsOutData$dbSelVars <- input$selectdbvars
     }
   })
-  
+    
   ## Custom Query
   observe({  
     if (input$leftPan == "Custom Query")
     { 
 cat("Custom Query\n")        
       initTableGraphTools()
-      updateTextInput(session=session, inputId="sqlQuery", label="", 
-                      value=globals$customQuery)
+      if (length(globals$customQueries) == 0) 
+      {
+        if (file.exists("customQueries.RData"))
+        {
+          load("customQueries.RData")
+          globals$customQueries = customQueries
+        }
+      }
+      if (length(globals$customQueries) == 0) 
+      {
+        updateSelectInput(session=session, inputId="sqlSel", 
+                          choices=list(),selected=0)
+      } else {
+        sels = as.list(as.character(1:length(globals$customQueries)))
+        names(sels) = names(globals$customQueries)
+        updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
+           selected = 0)
+      }
+      updateTextInput(session=session, inputId="sqlTitle", value="")
+      updateTextInput(session=session, inputId="sqlQuery", value="")
       updateTextInput(session=session, inputId="sqlOutput", label="", value="")
+      output$table <- renderTable(NULL)
     }
   })
-
-      
-  ## btnSQL
+     
+  ## sqlSaveSubmit
   observe({ 
-    if (input$btnSQL > 0)
+    if (input$sqlSaveSubmit > 0)
     {
-cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")      
+cat ("sqlSaveSubmit\n")      
       isolate({
-        globals$customQuery = input$sqlQuery
         msgtxt = character(0)
+        if (is.null(input$sqlTitle) || input$sqlTitle == "")
+        {
+          newTit = paste0("Query ",length(globals$customQueries)+1) 
+          updateTextInput(session=session, inputId="sqlTitle", value=newTit)
+        } else newTit = input$sqlTitle
+cat ("sqlSaveSubmit, newTit=",newTit,"\n")       
+        globals$customQueries[[newTit]] = input$sqlQuery
+        customQueries = globals$customQueries
+        save(file="customQueries.RData",customQueries)
+
         qrys = trim(scan(text=gsub("\n"," ",input$sqlQuery),
                     sep=";",what="",quote="",quiet=TRUE))
+
+        sels = as.list(as.character(1:length(globals$customQueries)))
+        names(sels) = names(globals$customQueries)
+        updateSelectInput(session=session, inputId="sqlSel", choices=sels,
+           selected = as.character(match(newTit,names(sels))))
+        output$table <- renderTable(NULL)
+        
         iq = 0
         dfrtn = NULL
         for (qry in qrys) 
@@ -364,7 +395,7 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
           if (nchar(qry))
           {
             iq = iq+1
-            res = try (dbGetQuery(dbcon,qry))
+            res = try (dbGetQuery(dbGlb$dbOcon,qry))
             msgtxt = if (class(res) == "data.frame") paste0(msgtxt,
               "query ",iq," returned a data frame with ",nrow(res)," rows and ",
               ncol(res)," cols\n") else  
@@ -410,7 +441,64 @@ cat ("btnSQL, input$btnSQL=",input$btnSQL,"\n")
     }
   })
     
+  ## sqlSel
+  observe({  
+cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
+ is.null(input$sqlSel),"\n")
+    updateTextInput(session=session, inputId="sqlTitle", value="") 
+    updateTextInput(session=session, inputId="sqlOutput", value="")
+    updateTextInput(session=session, inputId="sqlQuery", value="")
+    output$table <- renderTable(NULL)
+    if (!is.null(input$sqlSel))
+    {
+      sel = as.numeric(input$sqlSel)
+cat ("sqlSel sel=",sel,"\n")
+      if (length(globals$customQueries) >= sel) 
+      {
+        updateTextInput(session=session, inputId="sqlTitle", 
+          value=names(globals$customQueries)[sel])
+        updateTextInput(session=session, inputId="sqlQuery",
+          value=globals$customQueries[[sel]])
+      }
+    }
+  })
 
+  ## sqlDelete
+  observe({  
+    if (input$sqlDelete > 0)
+    {
+      isolate ({
+cat ("sqlDelete is.null(input$sqlTitle)=",is.null(input$sqlTitle),"\n")
+        if (is.null(input$sqlTitle)) return()
+        globals$customQueries[[input$sqlTitle]] = NULL
+        customQueries = globals$customQueries
+        save(file="customQueries.RData",customQueries)
+        if (length(customQueries) > 0)
+        {
+          sels = as.list(as.character(1:length(globals$customQueries)))
+          names(sels) = names(globals$customQueries)
+        } else sels=list()
+        updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
+           selected = 0)
+        updateTextInput(session=session, inputId="sqlTitle", value="")
+        updateTextInput(session=session, inputId="sqlQuery", value="")
+        updateTextInput(session=session, inputId="sqlOutput", value="")
+      })
+    }
+  })
+
+  ## sqlNew
+  observe({  
+    if (input$sqlNew > 0)
+    {
+cat ("sqlNew\n")
+        updateSelectInput(session=session, inputId="sqlSel", selected = 0)
+        updateTextInput(session=session, inputId="sqlQuery", value="")
+        updateTextInput(session=session, inputId="sqlOutput", value="")
+    }
+  })
+
+  
   ## Explore
   observe({ 
     if (input$leftPan == "Explore")
@@ -439,7 +527,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           setProgress(message = "Processing tables", detail=tb,value = iprg)
           if (tb == "Composite" || tb == "Composite_East") 
           {
-            dtab = dbReadTable(dbcon,tb)
+            dtab = dbReadTable(dbGlb$dbOcon,tb)
             dtab = by(dtab,as.factor(dtab$MgmtID),FUN=function (x) 
                    setupSummary(x,composite=TRUE))
             dtab = do.call("rbind",dtab)
@@ -447,10 +535,10 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
             dtab$MgmtID=as.factor(dtab$MgmtID) 
             dat = list(Composite = dtab)
           } else {
-            dtab = if ("CaseID" %in% dbListFields(dbcon,tb))
-              dbGetQuery(dbcon,paste0("select * from ",tb,
+            dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
+              dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
                    " where CaseID in (select CaseID from m.Cases)")) else
-              dbGetQuery(dbcon,paste0("select * from ",tb))       
+              dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))       
             if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
               dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
@@ -883,8 +971,9 @@ cat ("vfacet test hit\n")
     
   ## Stands tab 
   observe({    
-    if (input$rightPan == "Stands") 
+    if (input$topPan == "Runs" || input$rightPan == "Stands") 
     {
+cat ("Stands\n")
       if (length(fvsRun$FVSpgm) == 0) 
       {
         selVarListUse <- intersect(names(globals$selVarList),
@@ -905,70 +994,77 @@ cat ("vfacet test hit\n")
   })
   
   ## inVars has changed
-  observe({    
-    if (input$rightPan != "Stands") return()
+  observe({
     if (is.null(input$inVars)) return()
-    dbQ = try(dbSendQuery(dbIcon,paste0('select Stand_ID,Groups from ',
+cat ("inVars\n")    
+    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
      'FVS_StandInit where lower(variant) like "%',input$inVars,'%"')))
-    if (class(dbQ) == "try-error") return()
-    grps = dbFetch(dbQ,n=-1)
-    if (nrow(grps) == 0) return()
-    dd = apply(grps,1,function (x)
-      { 
-        gr=unlist(strsplit(x[2]," "))
-        st=rep(x[1],length(gr))
-        attributes(st) = NULL
-        attributes(gr) = NULL
-        list(st,gr)    
-      })
-    dd = lapply(dd,function(x) matrix(unlist(x),ncol=2))
-    dd = do.call(rbind,dd)
-    colnames(dd) = c("Stand_ID","Grp")
-    dd = as.data.frame(dd)
-    dbSendQuery(dbIcon,'drop table if exists m.Grps') 
-    dbWriteTable(dbIcon,"m.Grps",dd)
-    dbQ = dbSendQuery(dbIcon,'select distinct Grp from m.Grps order by Grp')
-    selGrp <- dbFetch(dbQ,n=-1)[,1]
-    updateSelectInput(session=session, inputId="inGrps", 
-            choices=as.list(selGrp))
-    updateSelectInput(session=session, inputId="inStds", 
-         choices=list())
-    output$stdSelMsg <- renderUI(NULL)
+    if (class(grps) == "try-error" || nrow(grps) == 0)
+    {
+      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
+      dbWriteTable(dbGlb$dbIcon,"m.Grps",data.frame(Stand_ID="",Grp=""))
+      updateSelectInput(session=session, inputId="inGrps",choices=list())
+      updateSelectInput(session=session, inputId="inStds",list())
+    } else {
+      dd = apply(grps,1,function (x)
+        { 
+          gr=unlist(strsplit(x[2]," "))
+          st=rep(x[1],length(gr))
+          attributes(st) = NULL
+          attributes(gr) = NULL
+          list(st,gr)    
+        })
+      dd = lapply(dd,function(x) matrix(unlist(x),ncol=2))
+      dd = do.call(rbind,dd)
+      colnames(dd) = c("Stand_ID","Grp")
+      dd = as.data.frame(dd)
+      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
+      dbWriteTable(dbGlb$dbIcon,"m.Grps",dd)
+      selGrp = dbGetQuery(dbGlb$dbIcon,
+        'select distinct Grp from m.Grps order by Grp')[,1]
+      updateSelectInput(session=session, inputId="inGrps", 
+              choices=as.list(selGrp))
+      updateSelectInput(session=session, inputId="inStds", 
+           choices=list())
+      output$stdSelMsg <- renderUI(NULL)
+    }
   })
 
   ## inGrps has changed
   observe({
-    if (input$rightPan != "Stands") return()
-    
-    if (is.null(input$inGrps))
+    if (input$topPan == "Runs" || input$rightPan == "Stands")
     {
-      output$stdSelMsg <- renderUI(NULL)
-      updateSelectInput(session=session, inputId="inStds", 
-         choices=list())
-      return()
+cat ("inGrps\n")      
+      if (is.null(input$inGrps))          
+      {
+        output$stdSelMsg <- renderUI(NULL)
+        updateSelectInput(session=session, inputId="inStds", 
+           choices=list())
+      } else {
+        dbSendQuery(dbGlb$dbIcon,'drop table if exists m.SGrps') 
+        dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
+        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
+             'where Grp in (select SelGrps from m.SGrps)')))
+        if (class(stds) == "try-error") return()
+        stds = stds[,1]
+        msg = paste0(length(stds)," Stands in ",length(input$inGrps)," Group(s)<br>")
+        output$stdSelMsg <- renderUI(HTML(msg))
+        if (length(stds) > 120)  stds = c(stds[1:100],
+          paste0("<< Display 101 to ",min(200,length(stds))," of ",length(stds)," >>"))
+        updateSelectInput(session=session, inputId="inStds", 
+             choices=as.list(stds)) 
+      }
     }
-    dbSendQuery(dbIcon,'drop table if exists m.SGrps') 
-    dbWriteTable(dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
-    dbQ = try(dbSendQuery(dbIcon,paste0('select distinct Stand_ID from m.Grps ',
-         'where Grp in (select SelGrps from m.SGrps)')))
-    if (class(dbQ) == "try-error") return()
-    stds = dbFetch(dbQ,n=-1)[,1]
-    msg = paste0(length(stds)," Stands in ",length(input$inGrps)," Group(s)<br>")
-    output$stdSelMsg <- renderUI(HTML(msg))
-    if (length(stds) > 120)  stds = c(stds[1:100],
-      paste0("<< Display 101 to ",min(200,length(stds))," of ",length(stds)," >>"))
-    updateSelectInput(session=session, inputId="inStds", 
-         choices=as.list(stds))   
   })
   ## inStds has changed
   observe({
     if (length(input$inStds) != 1) return()
     prts = unlist(strsplit(input$inStds[1]," "))
     if (prts[1] != "<<") return()
-    dbQ = try(dbSendQuery(dbIcon,paste0('select distinct Stand_ID from m.Grps ',
+    stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
          'where Grp in (select SelGrps from m.SGrps)')))
-    if (class(dbQ) == "try-error") return()
-    stds = dbFetch(dbQ,n=-1)[,1]
+    if (class(stds) == "try-error") return()
+    stds = stds[,1]
     if (length(stds) < 120) return() 
     nprts = as.numeric(prts[c(3,5,7)])
 cat ("nprts=",nprts,"\n")
@@ -996,7 +1092,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       resetfvsRun(fvsRun,globals$FVS_Runs)
       fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
-      loadVarData(globals,prms,dbIcon)
+      loadVarData(globals,prms,dbGlb$dbIcon)
       updateTextInput(session=session, inputId="title", label="", 
                       value=fvsRun$title) 
       updateTextInput(session=session, inputId="defMgmtID",
@@ -1182,7 +1278,7 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         fvsRun$startyr <- format(Sys.time(), "%Y")
         curstartyr = as.numeric(fvsRun$startyr)
 
-        fields = dbListFields(dbIcon,"FVS_StandInit")
+        fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
         
         fields = intersect(toupper(fields),toupper(c("Stand_ID","Stand_CN","Groups",
                  "Inv_Year","FVSKeywords")))        
@@ -1190,17 +1286,17 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         dbQ = NULL
         if (input$inAdd > globals$oldInAdd)
         {
-          dbSendQuery(dbIcon,'drop table if exists m.Stds') 
+          dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
           if (length(input$inStds))
           {
-            dbWriteTable(dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
-            dbQ = try(dbSendQuery(dbIcon,
+            dbWriteTable(dbGlb$dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
+            dbQ = try(dbSendQuery(dbGlb$dbIcon,
               paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
                 'where Stand_ID in (select SelStds from m.Stds)')))
           } 
         } else {
           # use if inAddGrp
-          dbQ = try(dbSendQuery(dbIcon,
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
             paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
               'where Stand_ID in (select distinct Stand_ID from m.Grps ',
                   'where Grp in (select SelGrps from m.SGrps))')))
@@ -1972,7 +2068,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 2)
-        writeKeyFile(fvsRun,dbIcon,prms)
+        writeKeyFile(fvsRun,dbGlb$dbIcon,prms)
         dir.create(fvsRun$uuid)
         if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
@@ -2020,16 +2116,16 @@ cat ("runwaitback=",input$runwaitback,"\n")
           cat (cmd,"\n",file=rs)
           cat ('source("fvsRunUtilities.R")\n',file=rs)
           cmd = paste0('dbDrv = dbDriver("SQLite")\n',
-                       'dbcon = dbConnect(dbDrv,"FVSOut.db")')
+                       'dbGlb$dbOcon = dbConnect(dbDrv,"FVSOut.db")')
           cat (cmd,"\n",file=rs)
           cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n")')
           cat (cmd,"\n",file=rs)
           cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n",file="',pidfile,
                        '")')
           cat (cmd,"\n",file=rs)
-          cmd = paste0('addNewRun2DB("',fvsRun$uuid,'",dbcon)')
+          cmd = paste0('addNewRun2DB("',fvsRun$uuid,'",dbGlb$dbOcon)')
           cat (cmd,"\n",file=rs)
-          cat ("dbDisconnect(dbcon)\n",file=rs)
+          cat ("dbDisconnect(dbGlb$dbOcon)\n",file=rs)
           cmd = paste0("unlink('",pidfile,"')")
           cat (cmd,"\n",file=rs)
           progress$set(message = "Run starting in background", 
@@ -2131,7 +2227,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         progress$set(message = "FVS finished",  
                      detail = "Merging output to master database",
                      value = length(fvsRun$stands)+5)
-        res = addNewRun2DB(fvsRun$uuid,dbcon)
+        res = addNewRun2DB(fvsRun$uuid,dbGlb$dbOcon)
 cat ("addNewRun2DB res=",res,"\n")
         unlink(paste0(fvsRun$uuid,".db"))
         X = vector("numeric",0)
@@ -2271,6 +2367,8 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
                                     to=paste0(tempDir,"/FVS_Data.db")),
                FVS_Runs = file.copy(from="FVS_Runs.RData",
                                     to=paste0(tempDir,"/FVS_Runs.RData")),
+               customSQL = file.copy(from="customQueries.RData",
+                                    to=paste0(tempDir,"/customQueries.RData")),
                FVS_kcps = file.copy(from="FVS_kcps.RData",
                                     to=paste0(tempDir,"/FVS_kcps.RData"))
            )}
@@ -2489,7 +2587,7 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
         globals$FVS_Runs[[input$runSel]] = NULL
         killIfRunning(input$runSel)
         removeFVSRunFiles(input$runSel)
-        deleteRelatedDBRows(input$runSel,dbcon)
+        deleteRelatedDBRows(input$runSel,dbGlb$dbOcon)
         FVS_Runs = globals$FVS_Runs
         save (FVS_Runs,file="FVS_Runs.RData")
         if (file.exists("projectId.txt"))
@@ -2610,365 +2708,71 @@ cat ("backup=",backup,"\n")
     }
   })
   
-  #dataEditor  
+  ##### dataEditor upload code  
   observe({
-    if(input$topPan == "Input Database") 
+    if(input$topPan == "Input Database")
     {
-cat ("dataEditor\n")
-      source("editDataUtilities.R")
-      tbs <- dbListTables(dbIcon)
-      dataEditGlobals$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
-        {
-          tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
-          tbtypes = toupper(tb[,"type"])
-          res = vector("logical",length(tbtypes))
-          res[grep ("INT",tbtypes)] = TRUE
-          res[grep ("FLOAT",tbtypes)] = TRUE
-          res[grep ("REAL",tbtypes)] = TRUE
-          names(res) = tb[,"name"]                                               
-          res[] = !res
-        }, dbIcon)     
-      names(dataEditGlobals$tbsCTypes) = tbs
-        
-      idx <- grep ("StandInit",tbs)
-      if (length(idx) == 0) idx=1     
-      updateSelectInput(session=session, inputId="editSelDBtabs", choices=tbs, 
-        selected=tbs[idx]) 
-
+      updateTabsetPanel(session=session, inputId="inputDBPan", 
+        selected="Replace existing database")
+      output$replaceActionMsg <- renderText("")
     }
-  })                                                                                 
-
-  observe({                      
-cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
-     " input$mode=",input$mode,"\n")
-    if (length(input$editSelDBtabs)) 
-    {         
-      dataEditGlobals$tblName <- input$editSelDBtabs
-      fixEmptyTable(dbIcon,dataEditGlobals)                                
-      checkMinColumnDefs(dbIcon)
-      dataEditGlobals$tbl <- NULL                                           
-      dataEditGlobals$tblCols <- names(dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]])
-      if (length(grep("Stand_ID",dataEditGlobals$tblCols,ignore.case=TRUE))) 
-      {
-        res = dbSendQuery(dbIcon,paste0("select distinct Stand_ID from ",
-                          dataEditGlobals$tblName))
-        dataEditGlobals$sids = dbFetch(res,n=-1)$Stand_ID
-        dbClearResult(dbIcon)
-        if (any(is.na(dataEditGlobals$sids))) dataEditGlobals$sids[is.na(dataEditGlobals$sids)] = ""
-        if (length(dataEditGlobals$sids) > 0)                                           
-        {
-          if (dataEditGlobals$rowSelOn) updateSelectInput(session=session, 
-            inputId="rowSelector",choices  = dataEditGlobals$sids) else 
-          output$stdSel <- mkStdSel(dataEditGlobals)
-        } 
-      } else {
-        dataEditGlobals$sids <- NULL                                                  
-        output$stdSel <- renderUI(NULL)                                         
-        dataEditGlobals$rowSelOn <- FALSE
-      }   
-      updateSelectInput(session=session, inputId="editSelDBvars", 
-        choices=as.list(dataEditGlobals$tblCols),selected=dataEditGlobals$tblCols)  
+  })
+  observe({
+    if(input$inputDBPan == "Replace existing database") 
+    {
+cat ("Replace existing database\n")
+      output$replaceActionMsg <- renderText("")
     }
-  })              
+  })
   
-
-  observe({              
-    if (length(input$editSelDBvars)) 
-    {
-cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")       
-      ndr = suppressWarnings(as.numeric(input$disprows))
-      if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) ndr = 20 
-      dataEditGlobals$disprows <- ndr
-      switch(input$mode,                    
-        "New rows"= 
-        {
-          dataEditGlobals$rows <- NULL
-          tbl <- as.data.frame(matrix("",ncol=length(input$editSelDBvars),
-                               nrow=dataEditGlobals$disprows))
-          colnames(tbl) <- input$editSelDBvars
-          output$tbl <- renderRHandsontable(rhandsontable(tbl,
-            readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE,width="100%"))
-          output$stdSel <- output$navRows <- renderUI(NULL)
-          dataEditGlobals$rowSelOn <- dataEditGlobals$navsOn <- FALSE
-        },
-        Edit = 
-        {
-          qry <- paste0("select _ROWID_,* from ",dataEditGlobals$tblName)
-          qry <- if (length(intersect("Stand_ID",dataEditGlobals$tblCols)) && 
-                     length(input$rowSelector))
-            paste0(qry," where Stand_ID in (",
-                  paste0("'",input$rowSelector,"'",collapse=","),");") else
-            paste0(qry,";")                             
-          res <- dbSendQuery(dbIcon,qry)
-          dataEditGlobals$tbl <- dbFetch(res,n=-1)
-          rownames(dataEditGlobals$tbl) = dataEditGlobals$tbl$rowid
-          dbClearResult(dbIcon)
-          for (col in 2:ncol(dataEditGlobals$tbl))
-            if (class(dataEditGlobals$tbl[[col]]) != "character") 
-               dataEditGlobals$tbl[[col]] = as.character(dataEditGlobals$tbl[[col]])
-          if (nrow(dataEditGlobals$tbl) == 0) dataEditGlobals$rows = NULL else
-          {
-            dataEditGlobals$tbl$Delete = FALSE
-            dataEditGlobals$rows <- c(1,min(nrow(dataEditGlobals$tbl),dataEditGlobals$disprows))
-            output$tbl <- renderRHandsontable(
-              rhandsontable(dataEditGlobals$tbl[1:min(nrow(dataEditGlobals$tbl),dataEditGlobals$disprows),
-                union(c("Delete"),input$editSelDBvars),drop=FALSE],
-                 readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-            if (!dataEditGlobals$navsOn) 
-            {
-              dataEditGlobals$navsOn <- TRUE
-              output$navRows <- renderUI(list(
-                actionButton("previousRows","<< previous rows"),
-                actionButton("nextRows","next rows >>"),
-                textOutput("rowRng",inline=TRUE)))
-            }
-            output$rowRng <- renderText(paste0(dataEditGlobals$rows[1]," to ",
-                  dataEditGlobals$rows[2]," of ",nrow(dataEditGlobals$tbl)))            
-            if (!dataEditGlobals$rowSelOn && length(dataEditGlobals$sids))
-              output$stdSel <- mkStdSel(dataEditGlobals)
-          }
-        }
-      )
-    }
-  })
-
-  observe({
-    if (length(input$nextRows) && input$nextRows > 0) 
-    {
-      if (is.null(dataEditGlobals$tbl)) return()
-      input$disprows
-      newBot <- min(dataEditGlobals$rows[2]+dataEditGlobals$disprows,nrow(dataEditGlobals$tbl))
-      newTop <- max(newBot-dataEditGlobals$disprows-1,1)
-      dataEditGlobals$rows <- c(newTop,newBot)
-      output$tbl <- renderRHandsontable(rhandsontable(dataEditGlobals$tbl[newTop:newBot,
-        union(c("Delete"),isolate(input$editSelDBvars)),
-          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-      output$rowRng <- renderText(paste0(newTop," to ",
-          newBot," of ",nrow(dataEditGlobals$tbl)))
-    }
-  })
-  observe({
-    if (length(input$previousRows) && input$previousRows > 0) 
-    {
-      if (is.null(dataEditGlobals$tbl)) return()
-      input$disprows
-      newTop <- max(dataEditGlobals$rows[1]-dataEditGlobals$disprows,1)
-      newBot <- min(newTop+dataEditGlobals$disprows-1,nrow(dataEditGlobals$tbl))
-      dataEditGlobals$rows <- c(newTop,newBot)
-      output$tbl <- renderRHandsontable(rhandsontable(dataEditGlobals$tbl[newTop:newBot,
-        union(c("Delete"),isolate(input$editSelDBvars)),
-          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-      output$rowRng <- renderText(paste0(newTop," to ",
-          newBot," of ",nrow(dataEditGlobals$tbl)))
-    }
-  })
-      
-  
-  observe({
-    if (input$commitChanges > 0) 
-    {             
-      isolate({
-cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
-        inputTbl = matrix(unlist(input$tbl$params$data),
-                   ncol=length(input$tbl$params$columns),byrow=TRUE)
-        inputTbl[inputTbl=="NA"] = NA
-        colnames(inputTbl) = unlist(input$tbl$params$colHeaders)
-        rownames(inputTbl) = unlist(input$tbl$params$rowHeaders)
-        switch(input$mode,
-          "New rows"= 
-          {
-            inserts <- mkInserts(inputTbl,dataEditGlobals$tblName,
-                                 dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]])
-lapply(inserts,function (x) cat("ins=",x,"\n"))                             
-            if (length(inserts)) 
-            {
-              dbBegin(dbIcon)
-              err = FALSE
-              for (ins in inserts) 
-              {
-                res = try(dbSendQuery(dbIcon,ins))
-                if (class(res) == "try-error") {err=TRUE; break}
-              }
-              if (err) 
-              {
-                dbRollback(dbIcon) 
-                output$actionMsg = renderText(paste0("Error processing: ",ins))
-                return()
-              } else {
-                dbCommit(dbIcon)
-                output$actionMsg = renderText(paste0(length(inserts)," insert(s) processed."))
-              }
-              tbl <- as.data.frame(matrix("",
-                     ncol=length(input$editSelDBvars),nrow=dataEditGlobals$disprows))
-              colnames(tbl) <- input$editSelDBvars
-              output$tbl <- renderRHandsontable(rhandsontable(tbl,
-                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-            }
-          },
-          Edit = 
-          {
-            err=FALSE
-            nrows = nrow(inputTbl)
-            nprocess = 0
-            dbBegin(dbIcon)
-            if (nrows) for (rn in 1:nrows)
-            {
-              row = inputTbl[rn,]
-              id = rownames(inputTbl)[rn]
-              if (row["Delete"] == "TRUE") 
-              {
-                qry = paste0("delete from ",dataEditGlobals$tblName," where _ROWID_ = ",
-                             id)
-cat ("edit del, qry=",qry,"\n")                     
-                res = try(dbSendQuery(dbIcon,qry))
-                if (class(res) == "try-error") {err=TRUE; break}
-                nprocess = nprocess+1
-                if (!is.null(dataEditGlobals$sids)) dataEditGlobals$sids = NULL
-              } else {              
-                row = inputTbl[rn,]              
-                if (length(row) < 2) next
-                row = row[-1]
-                row[is.na(row)] = ""
-                row[row == "NA"] = ""
-                org = subset(dataEditGlobals$tbl,rowid == id)
-                org = as.character(org[,names(row),drop=TRUE])
-                org[is.na(org)] = ""
-                org[org=="character(0)"] = ""
-                org[org == "NA"] = ""
-                names(org)=names(row)
-                neq = vector("logical",length(row))
-                for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])              
-                if (sum(neq) == 0) next
-                update = row[neq]
-                toquote = dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]][names(update)]
-                if (!is.null(dataEditGlobals$sids) && 
-                    !is.na(toquote["Stand_ID"])) dataEditGlobals$sids = NULL
-                if (any(toquote))
-                {
-                  for (toq in names(toquote[toquote]))
-                  {
-                    update[toq] = if (update[toq]=="") "NULL" else
-                      paste0("'",gsub("'","''",update[toq]),"'")
-                  }
-                }
-                update[update==""] = "NULL"
-                qry = paste0("update ",dataEditGlobals$tblName," set ",
-                  paste(paste0(names(update)," = ",update),collapse=", "),
-                    " where _ROWID_ = ",id)
-cat ("edit upd, qry=",qry,"\n")
-                res = try(dbSendQuery(dbIcon,qry))              
-                if (class(res) == "try-error") {err=TRUE; break}
-                nprocess = nprocess+1
-              }
-            }
-            if (err) 
-            {
-              dbRollback(dbIcon) 
-              output$actionMsg = renderText(paste0("Error processing: ",qry))
-              return()
-            } else {
-              dbCommit(dbIcon)
-              output$actionMsg = renderText(paste0(nprocess," change(s) processed."))
-            }
-            fixEmptyTable(dbIcon,dataEditGlobals)
-cat ("after commit, is.null(dataEditGlobals$sids)=",is.null(dataEditGlobals$sids),
-     " dataEditGlobals$tblName=",dataEditGlobals$tblName,
-     " Stand_ID yes=",length(intersect("Stand_ID",dataEditGlobals$tblCols)),"\n")
-            if (is.null(dataEditGlobals$sids) && 
-                length(intersect("Stand_ID",dataEditGlobals$tblCols)))
-            {
-              res = dbSendQuery(dbIcon,paste0("select distinct Stand_ID from ",
-                                dataEditGlobals$tblName))
-              dataEditGlobals$sids = dbFetch(res,n=-1)$Stand_ID
-              dbClearResult(dbIcon)
-              if (any(is.na(dataEditGlobals$sids))) dataEditGlobals$sids[is.na(dataEditGlobals$sids)] = ""
-              if (dataEditGlobals$rowSelOn && length(dataEditGlobals$sids)) 
-                updateSelectInput(session=session, inputId="rowSelector",
-                  choices  = dataEditGlobals$sids) else 
-                output$stdSel <- mkStdSel(dataEditGlobals)
-            }  
-
-            qry <- paste0("select _ROWID_,* from ",dataEditGlobals$tblName)
-            qry <- if (length(intersect("Stand_ID",dataEditGlobals$tblCols)) && 
-                       length(input$rowSelector))
-              paste0(qry," where Stand_ID in (",
-                    paste0("'",input$rowSelector,"'",collapse=","),");") else
-              paste0(qry,";") 
-            res <- dbSendQuery(dbIcon,qry)
-            dataEditGlobals$tbl <- dbFetch(res,n=-1)
-            rownames(dataEditGlobals$tbl) = dataEditGlobals$tbl$rowid
-            dbClearResult(dbIcon)
-            for (col in 2:ncol(dataEditGlobals$tbl))
-              if (class(dataEditGlobals$tbl[[col]]) != "character") 
-                 dataEditGlobals$tbl[[col]] = as.character(dataEditGlobals$tbl[[col]])
-            if (nrow(dataEditGlobals$tbl) == 0) dataEditGlobals$rows = NULL else 
-            {
-              dataEditGlobals$tbl$Delete = FALSE
-              dataEditGlobals$rows <- c(dataEditGlobals$rows[1],
-                              min(nrow(dataEditGlobals$tbl),dataEditGlobals$rows[2]))
-              output$tbl <- renderRHandsontable(rhandsontable(
-                dataEditGlobals$tbl[dataEditGlobals$rows[1]:dataEditGlobals$rows[2],
-                union(c("Delete"),input$editSelDBvars),drop=FALSE],
-                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-            }
-          }
-        )
-      })
-    }
-  })
-
-  ## recoverdb
-  observe({  
-    if (input$recoverdb == 0) return()
-    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
-    if (file.exists("FVS_Data.db.backup")) 
-        file.rename("FVS_Data.db.backup","FVS_Data.db") else
-        file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$locReload<-renderUI(tags$script("location.reload();"))
-  }) 
-
-  
-  observe(if (input$clearTable > 0) 
+  initNewInputDB <- function ()
   {
-cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
-    dbSendQuery(dbIcon,paste0("delete from ",dataEditGlobals$tblName))
-    dataEditGlobals$navsOn <- FALSE            
-    dataEditGlobals$rowSelOn <- FALSE
-    dataEditGlobals$sids <- NULL
-    output$stdSel <- renderUI(NULL)
-    tmp = as.data.frame(lapply(dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]],
-      function (x) vector(if (x) "character" else "numeric",1)),
-      stringsAsFactors=FALSE)
-    tmp[1,] = NA
-    dbWriteTable(dbIcon,dataEditGlobals$tblName,tmp,overwrite=TRUE)
-    qry <- paste0("select _ROWID_,* from ",dataEditGlobals$tblName)
-    dataEditGlobals$tbl <- dbGetQuery(dbIcon,qry)
-    rownames(dataEditGlobals$tbl) = dataEditGlobals$tbl$rowid
-    dataEditGlobals$tbl$Delete = FALSE
-    output$tbl <- renderRHandsontable(rhandsontable(
-       dataEditGlobals$tbl[,union(c("Delete"),input$selectdbvars),drop=FALSE],
-                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-    output$rowRng <- renderText("1 to 1 of 1")
-    isolate(if (input$mode=="New rows") updateRadioButtons(session=session, 
-      inputId="mode",selected="Edit"))
-  })
+    updateSelectInput(session=session, inputId="editSelDBtabs", choices=list()) 
+    updateSelectInput(session=session, inputId="editSelDBvars", choices=list()) 
+    updateSelectInput(session=session, inputId="inVars", choices=list()) 
+    updateSelectInput(session=session, inputId="Groups", choices=list()) 
+    updateSelectInput(session=session, inputId="Stands", choices=list()) 
+    output$tbl <- renderRHandsontable(NULL)
+    output$stdSel <- output$navRows <- renderUI(NULL)
+    dbGlb$rows <- NULL
+    dbGlb$rowSelOn <- dbGlb$navsOn <- FALSE
+  }
   
-  ## Upload
+  ## installTrainDB
   observe({  
-    if (is.null(input$upload)) return()
+    if (input$installTrainDB == 0) return()
+    dbDisconnect(dbGlb$dbIcon)
+    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
+    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+    output$replaceActionMsg <- renderText("Training database installed")
+    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
+    initNewInputDB()
+    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+  }) 
+  ## installEmptyDB
+  observe({  
+    if (input$installEmptyDB == 0) return()
+    dbDisconnect(dbGlb$dbIcon)
+    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
+    file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
+    output$replaceActionMsg <- renderText("Empty database installed")
+    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
+    initNewInputDB()
+    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+  }) 
+  ## Upload new database
+  observe({  
+    if (is.null(input$uploadNewDB)) return()
     if (regexpr("\\.accdb$",input$upload$name) == 0 && 
         regexpr("\\.mdb$",input$upload$name)   == 0 &&
         regexpr("\\.db$",input$upload$name)    == 0) return()
-    dbDisconnect(dbIcon)
-    if (file.exists("FVS_Data.db"))
-    {
-      if (file.exists("FVS_Data.db.backup")) file.remove("FVS_Data.db.backup")
-      file.rename("FVS_Data.db","FVS_Data.db.backup")
-    }
+    dbDisconnect(dbGlb$dbIcon)
+    unlink ("FVS_Data.db")
     if (regexpr("\\.db$",input$upload$name) > 1) 
     {
       file.copy(input$upload$datapath,"FVS_Data.db",overwrite = TRUE)
-      output$actionMsg = renderText("New FVS_Data.db installed.")
     } else {   
       Sys.sleep (.1)        
       withProgress(session, 
@@ -3050,13 +2854,54 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
       }, min=1, max=12)
     }
     unlink(input$upload$datapath)
-    dbIcon <- dbIconnect(dbDrv,"FVS_Data.db")
-    fixFVSKeywords(dbIcon) 
-    checkMinColumnDefs(dbIcon)
-    dbDisconnect(dbIcon)
-    output$locReload<-renderUI(tags$script("location.reload();"))
+    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
+    withProgress(session, 
+    {  
+      setProgress(message = "Checking database query keywords", value = 1)
+      fixFVSKeywords(dbGlb) 
+      setProgress(message = "Checking minimum column definitions and values", value = 2)
+      checkMinColumnDefs(dbGlb)
+      Sys.sleep (.5) 
+      setProgress(value = NULL)  
+    }, min=1, max=2)
+    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+    output$replaceActionMsg <- renderText("Uploaded database installed")
+    initNewInputDB()
   }) 
-
+  observe({
+    if(input$inputDBPan == "Upload and insert new rows (.csv)") 
+    {
+cat ("Upload new rows\n")
+      source("editDataUtilities.R")
+      tbs <- dbListTables(dbGlb$dbIcon)
+      dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
+        {
+          tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
+          tbtypes = toupper(tb[,"type"])
+          res = vector("logical",length(tbtypes))
+          res[grep ("INT",tbtypes)] = TRUE
+          res[grep ("FLOAT",tbtypes)] = TRUE
+          res[grep ("REAL",tbtypes)] = TRUE
+          names(res) = tb[,"name"]                                               
+          res[] = !res
+        }, dbGlb$dbIcon)     
+      names(dbGlb$tbsCTypes) = tbs 
+      if (length(tbs))
+      {
+        idx <- grep ("FVS_Climattrs",tbs)
+        if (length(idx)) tbs = tbs[-ids]
+        idx <- grep ("StandInit",tbs)
+        if (length(idx) == 0) idx=1     
+        updateSelectInput(session=session, inputId="uploadSelDBtabs", choices=tbs, 
+          selected=tbs[idx])
+      } else updateSelectInput(session=session, inputId="uploadSelDBtabs",  
+               choices=list())
+      output$uploadActionMsg <- renderText(if (length(tbs)) "" else 
+        "No tables in existing database. Use 'Replace existing' to install a new one.")        
+      initNewInputDB()
+    }
+  })
   ## uploadStdTree
   observe({  
     if (is.null(input$uploadStdTree)) return()
@@ -3066,7 +2911,7 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
                unlink(input$uploadStdTree$datapath)
       if (class(indat) == "try-error" || nrow(indat)==0)
       {
-        output$actionMsg = renderText("Input empty, no data loaded.")
+        output$uploadActionMsg = renderText("Input empty, no data loaded.")
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
@@ -3080,33 +2925,33 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
       indat = indat[!del,,drop=FALSE]
       if (nrow(indat)==0)
       {
-        output$actionMsg = renderText("All rows were empty,  no data loaded.")
+        output$uploadActionMsg = renderText("All rows were empty,  no data loaded.")
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
       cols = na.omit(pmatch(tolower(colnames(indat)),
-               tolower(names(dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]]))))
+               tolower(names(dbGlb$tbsCTypes[[dbGlb$tblName]]))))
       if (length(cols) == 0) 
       {
-        output$actionMsg = renderText(paste0("No columns match what is defined for ",
-               dataEditGlobals$tblName,", no data loaded."))
+        output$uploadActionMsg = renderText(paste0("No columns match what is defined for ",
+               dbGlb$tblName,", no data loaded."))
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
       kill = attr(cols,"na.action")
       if (length(kill)) indat = indat[,-kill,drop=FALSE]
-      types = dataEditGlobals$tbsCTypes[[dataEditGlobals$tblName]][cols]
-      req = switch(dataEditGlobals$tblName,
+      types = dbGlb$tbsCTypes[[dbGlb$tblName]][cols]
+      req = switch(dbGlb$tblName,
          FVS_StandInit = c("Stand_ID","Variant","Inv_Year"),
          FVS_TreeInit  = c("Stand_ID","Species","DBH"),
          FVS_GroupAddFilesAndKeywords = c("Groups"),
          NULL)
       if (!is.null(req) && !all(req %in% names(types)))
       {
-        output$actionMsg = renderText(paste0("Required columns were missing for ",
-               dataEditGlobals$tblName,", no data loaded."))
+        output$uploadActionMsg = renderText(paste0("Required columns were missing for ",
+               dbGlb$tblName,", no data loaded."))
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
@@ -3115,61 +2960,60 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
       quote = types[types]
       if (length(quote)) for (cn in names(quote)) 
         indat[,cn] = paste0("'",indat[,cn],"'")
-      dbBegin(dbIcon)
+      dbBegin(dbGlb$dbIcon)
       err = FALSE
       for (i in 1:nrow(indat))
       {
         row = indat[i,,drop=FALSE]
         row = row[,!is.na(row),drop=FALSE]
-        qry = paste0("insert into ",dataEditGlobals$tblName," (",
+        qry = paste0("insert into ",dbGlb$tblName," (",
                 paste0(colnames(row),collapse=","),
                   ") values (",paste0(row,collapse=","),");")
-        res = try(dbSendQuery(dbIcon,qry))
+        res = try(dbSendQuery(dbGlb$dbIcon,qry))
         if (class(res) == "try-error") {err=TRUE; break}
       }
       if (err) 
       {
-        dbRollback(dbIcon) 
-        output$actionMsg = renderText(paste0("Error processing: ",qry))
+        dbRollback(dbGlb$dbIcon) 
+        output$uploadActionMsg = renderText(paste0("Error processing: ",qry))
         return()
       } else {
-        dbCommit(dbIcon)
-        output$actionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
-               dataEditGlobals$tblName))
+        dbCommit(dbGlb$dbIcon)
+        output$uploadActionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
+               dbGlb$tblName))
+        loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
       Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
-      dbSendQuery(dbIcon,paste0("delete from ",dataEditGlobals$tblName,
+      dbSendQuery(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName,
         " where Stand_ID = ''"))      
-      res = dbSendQuery(dbIcon,paste0("select distinct Stand_ID from ",
-                        dataEditGlobals$tblName))
-      dataEditGlobals$sids = dbFetch(res,n=-1)$Stand_ID
-      dbClearResult(dbIcon)
-      if (any(is.na(dataEditGlobals$sids))) dataEditGlobals$sids[is.na(dataEditGlobals$sids)] = ""
-      if (dataEditGlobals$rowSelOn && length(dataEditGlobals$sids)) 
+      res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
+                        dbGlb$tblName))
+      dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
+      dbClearResult(dbGlb$dbIcon)
+      if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
+      if (dbGlb$rowSelOn && length(dbGlb$sids)) 
         updateSelectInput(session=session, inputId="rowSelector",
-          choices  = as.list(dataEditGlobals$sids), selected=unique(indat[,"Stand_ID"])) else 
-        output$stdSel <- mkStdSel(dataEditGlobals)
+          choices  = as.list(dbGlb$sids), selected=unique(indat[,"Stand_ID"])) else 
+        output$stdSel <- mkStdSel(dbGlb)
       
-      qry <- paste0("select _ROWID_,* from ",dataEditGlobals$tblName)
+      qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
       qry <- if (length(input$rowSelector))
         paste0(qry," where Stand_ID in (",
               paste0("'",input$rowSelector,"'",collapse=","),");") else
         paste0(qry,";") 
-      res <- dbSendQuery(dbIcon,qry)
-      dataEditGlobals$tbl <- dbFetch(res,n=-1)
-      rownames(dataEditGlobals$tbl) = dataEditGlobals$tbl$rowid
-      dbClearResult(dbIcon)
-      for (col in 2:ncol(dataEditGlobals$tbl))
-        if (class(dataEditGlobals$tbl[[col]]) != "character") 
-           dataEditGlobals$tbl[[col]] = as.character(dataEditGlobals$tbl[[col]])
-      if (nrow(dataEditGlobals$tbl) == 0) dataEditGlobals$rows = NULL else 
+      dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+      rownames(dbGlb$tbl) = dbGlb$tbl$rowid
+      for (col in 2:ncol(dbGlb$tbl))
+        if (class(dbGlb$tbl[[col]]) != "character") 
+           dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+      if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
       {
-        dataEditGlobals$tbl$Delete = FALSE
-        dataEditGlobals$rows <- c(dataEditGlobals$rows[1],
-                        min(nrow(dataEditGlobals$tbl),dataEditGlobals$rows[2]))
+        dbGlb$tbl$Delete = FALSE
+        dbGlb$rows <- c(dbGlb$rows[1],
+                        min(nrow(dbGlb$tbl),dbGlb$rows[2]))
         output$tbl <- renderRHandsontable(rhandsontable(
-          dataEditGlobals$tbl[dataEditGlobals$rows[1]:dataEditGlobals$rows[2],
+          dbGlb$tbl[dbGlb$rows[1]:dbGlb$rows[2],
           union(c("Delete"),input$selectdbvars),drop=FALSE],
           readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
       } 
@@ -3177,8 +3021,6 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
     })
   }) 
-
-
   ## climateFVSUpload
   observe({  
     if (is.null(input$climateFVSUpload)) return()
@@ -3196,7 +3038,7 @@ cat ("clearTable, tbl=",dataEditGlobals$tblName,"\n")
     if (!file.exists("FVSClimAttrs.csv")) 
     {
 cat ("no FVSClimAttrs.csv file\n")
-      output$actionMsg = renderText("FVSClimAttrs.csv not found.")
+      output$uploadActionMsg = renderText("FVSClimAttrs.csv not found.")
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
@@ -3210,17 +3052,17 @@ cat ("processing FVSClimAttrs.csv\n")
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
     unlink("FVSClimAttrs.csv")
-    climTab <- dbListTables(dbIcon)
+    climTab <- dbListTables(dbGlb$dbIcon)
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
-      dbWriteTable(dbIcon,"FVS_ClimAttrs",climd)
+      dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
       output$actionMsg = renderText("FVSClimAttrs created.")
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
-      dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
-      dbSendQuery(dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
+      dbSendQuery(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
       progress$set(message = "Done", value = 9)
       Sys.sleep (.5)
       progress$close()
@@ -3236,34 +3078,34 @@ cat ("current FVS_ClimAttrs\n")
     distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")
     dbDisconnect(dbclim)
     progress$set(message = "Cleaning previous climate data as needed",value = 6)    
-    dbBegin(dbIcon)
+    dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
     {
       dbSendQuery(dbIcon,paste0('delete from FVS_ClimAttrs where Stand_ID = "',
          x[1],'" and Scenario = "',x[2],'"'))
-    }, dbIcon)
-    dbCommit(dbIcon)
-    dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
+    }, dbGlb$dbIcon)
+    dbCommit(dbGlb$dbIcon)
+    dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     
-    dbSendQuery(dbIcon,'attach database "FVSClimAttrs.db" as new')
+    dbSendQuery(dbGlb$dbIcon,'attach database "FVSClimAttrs.db" as new')
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
-    qur = dbSendQuery(dbIcon,'select * from FVS_ClimAttrs')
+    qur = dbSendQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs')
     oldAttrs = dbFetch(qur,n=1)
     dbClearResult(qur)
     if (nrow(oldAttrs) == 0) 
     {
 cat ("simple copy from new, all rows were deleted\n")
-      dbSendQuery(dbIcon,'drop table FVS_ClimAttrs')
-      dbSendQuery(dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+      dbSendQuery(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
+      dbSendQuery(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
     } else {
-      qur = dbSendQuery(dbIcon,'select * from new.FVS_ClimAttrs')
+      qur = dbSendQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs')
       newAttrs = dbFetch(qur,n=1)
       dbClearResult(qur)
       if (identical(colnames(oldAttrs),colnames(newAttrs)))
       {
 cat ("simple insert from new, all cols are identical\n")
-        dbSendQuery(dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+        dbSendQuery(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
       } else {  
 cat ("need to match columns, cols are not identical\n")
         oldAttrs=colnames(oldAttrs)[-(1:3)]
@@ -3287,39 +3129,366 @@ cat ("need to match columns, cols are not identical\n")
 cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         if (length(newmiss) > 0)  
         {
-          dbBegin(dbIcon)
-          for (mis in newmiss) dbSendQuery(dbIcon,
+          dbBegin(dbGlb$dbIcon)
+          for (mis in newmiss) dbSendQuery(dbGlb$dbIcon,
             paste0('alter table new.FVS_ClimAttrs add "',mis,'" real'))
-          dbCommit(dbIcon)
+          dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
         if (length(oldmiss) > 0)
         {
-          dbSendQuery(dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
-          dbBegin(dbIcon)
-          for (mis in oldmiss) dbSendQuery(dbIcon,
+          dbSendQuery(dbGlb$dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
+          dbBegin(dbGlb$dbIcon)
+          for (mis in oldmiss) dbSendQuery(dbGlb$dbIcon,
             paste0('alter table oldClimAttrs add "',mis,'" real'))
-          dbCommit(dbIcon)
-          dbSendQuery(dbIcon,
+          dbCommit(dbGlb$dbIcon)
+          dbSendQuery(dbGlb$dbIcon,
             paste0('create table FVS_ClimAttrs as select ',selnew,' from oldClimAttrs'))
-          dbSendQuery(dbIcon,'drop table oldClimAttrs')
+          dbSendQuery(dbGlb$dbIcon,'drop table oldClimAttrs')
         }     
-        dbSendQuery(dbIcon,
+        dbSendQuery(dbGlb$dbIcon,
           paste0('insert into FVS_ClimAttrs select ',selnew,' from new.FVS_ClimAttrs'))
       }
     }
-    dbSendQuery(dbIcon,'detach database new')   
+    dbSendQuery(dbGlb$dbIcon,'detach database new')   
     unlink("FVSClimAttrs.db")
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
-    dbSendQuery(dbIcon,'drop index if exists StdScnIndex')
-    dbSendQuery(dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+    dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
+    dbSendQuery(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
     progress$set(message = "Done", value = 10)
-    output$actionMsg = renderText("FVSClimAttrs updated.")
+    output$uploadActionMsg = renderText("FVSClimAttrs updated.")
     Sys.sleep (2)
     session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
     progress$close()
   })  
   
+  observe({
+    if(input$inputDBPan == "View and edit existing tables") 
+    {
+cat ("dataEditor\n")
+      source("editDataUtilities.R")
+      tbs <- dbListTables(dbGlb$dbIcon)
+      dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
+        {
+          tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
+          tbtypes = toupper(tb[,"type"])
+          res = vector("logical",length(tbtypes))
+          res[grep ("INT",tbtypes)] = TRUE
+          res[grep ("FLOAT",tbtypes)] = TRUE
+          res[grep ("REAL",tbtypes)] = TRUE
+          names(res) = tb[,"name"]                                               
+          res[] = !res
+        }, dbGlb$dbIcon)     
+      names(dbGlb$tbsCTypes) = tbs       
+      idx <- grep ("StandInit",tbs)
+      if (length(idx) == 0) idx=1     
+      updateSelectInput(session=session, inputId="editSelDBtabs", choices=tbs, 
+        selected=tbs[idx]) 
+    }
+  })                                                                                 
+
+  observe({                      
+cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
+     " input$mode=",input$mode,"\n")
+    if (length(input$editSelDBtabs)) 
+    {         
+      dbGlb$tblName <- input$editSelDBtabs
+      fixEmptyTable(dbGlb)                                
+      checkMinColumnDefs(dbGlb)
+      dbGlb$tbl <- NULL                                           
+      dbGlb$tblCols <- names(dbGlb$tbsCTypes[[dbGlb$tblName]])
+      if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
+      {
+        dbGlb$sids = dbGetQuery(dbGlb$dbIcon,
+          paste0("select distinct Stand_ID from ",dbGlb$tblName))$Stand_ID
+        if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
+        if (length(dbGlb$sids) > 0)                                           
+        {
+          if (dbGlb$rowSelOn) updateSelectInput(session=session, 
+            inputId="rowSelector",choices  = dbGlb$sids) else 
+          output$stdSel <- mkStdSel(dbGlb)
+        } 
+      } else {
+        dbGlb$sids <- NULL                                                  
+        output$stdSel <- renderUI(NULL)                                         
+        dbGlb$rowSelOn <- FALSE
+      }   
+      updateSelectInput(session=session, inputId="editSelDBvars", 
+        choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)  
+    }
+  })              
+  
+  observe({              
+    if (length(input$editSelDBvars)) 
+    {
+cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")       
+      ndr = suppressWarnings(as.numeric(input$disprows))
+      if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) ndr = 20 
+      dbGlb$disprows <- ndr
+      switch(input$mode,                    
+        "New rows"= 
+        {
+          dbGlb$rows <- NULL
+          tbl <- as.data.frame(matrix("",ncol=length(input$editSelDBvars),
+                               nrow=dbGlb$disprows))
+          colnames(tbl) <- input$editSelDBvars
+          output$tbl <- renderRHandsontable(rhandsontable(tbl,
+            readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE,width="100%"))
+          output$stdSel <- output$navRows <- renderUI(NULL)
+          dbGlb$rowSelOn <- dbGlb$navsOn <- FALSE
+        },
+        Edit = 
+        {
+          qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+          qry <- if (length(intersect("Stand_ID",dbGlb$tblCols)) && 
+                     length(input$rowSelector))
+            paste0(qry," where Stand_ID in (",
+                  paste0("'",input$rowSelector,"'",collapse=","),");") else
+            paste0(qry,";")                             
+          dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          rownames(dbGlb$tbl) = dbGlb$tbl$rowid
+          for (col in 2:ncol(dbGlb$tbl))
+            if (class(dbGlb$tbl[[col]]) != "character") 
+               dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+          if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else
+          {
+            dbGlb$tbl$Delete = FALSE
+            dbGlb$rows <- c(1,min(nrow(dbGlb$tbl),dbGlb$disprows))
+            output$tbl <- renderRHandsontable(
+              rhandsontable(dbGlb$tbl[1:min(nrow(dbGlb$tbl),dbGlb$disprows),
+                union(c("Delete"),input$editSelDBvars),drop=FALSE],
+                 readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+            if (!dbGlb$navsOn) 
+            {
+              dbGlb$navsOn <- TRUE
+              output$navRows <- renderUI(list(
+                actionButton("previousRows","<< previous rows"),
+                actionButton("nextRows","next rows >>"),
+                textOutput("rowRng",inline=TRUE)))
+            }
+            output$rowRng <- renderText(paste0(dbGlb$rows[1]," to ",
+                  dbGlb$rows[2]," of ",nrow(dbGlb$tbl)))            
+            if (!dbGlb$rowSelOn && length(dbGlb$sids))
+              output$stdSel <- mkStdSel(dbGlb)
+          }
+        }
+      )
+    }
+  })
+  observe({
+    if (length(input$nextRows) && input$nextRows > 0) 
+    {
+      if (is.null(dbGlb$tbl)) return()
+      input$disprows
+      newBot <- min(dbGlb$rows[2]+dbGlb$disprows,nrow(dbGlb$tbl))
+      newTop <- max(newBot-dbGlb$disprows-1,1)
+      dbGlb$rows <- c(newTop,newBot)
+      output$tbl <- renderRHandsontable(rhandsontable(dbGlb$tbl[newTop:newBot,
+        union(c("Delete"),isolate(input$editSelDBvars)),
+          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+      output$rowRng <- renderText(paste0(newTop," to ",
+          newBot," of ",nrow(dbGlb$tbl)))
+    }
+  })
+  observe({
+    if (length(input$previousRows) && input$previousRows > 0) 
+    {
+      if (is.null(dbGlb$tbl)) return()
+      input$disprows
+      newTop <- max(dbGlb$rows[1]-dbGlb$disprows,1)
+      newBot <- min(newTop+dbGlb$disprows-1,nrow(dbGlb$tbl))
+      dbGlb$rows <- c(newTop,newBot)
+      output$tbl <- renderRHandsontable(rhandsontable(dbGlb$tbl[newTop:newBot,
+        union(c("Delete"),isolate(input$editSelDBvars)),
+          drop=FALSE],readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+      output$rowRng <- renderText(paste0(newTop," to ",
+          newBot," of ",nrow(dbGlb$tbl)))
+    }
+  })
+
+  # commitChanges
+  observe({
+    if (input$commitChanges > 0) 
+    {             
+      isolate({
+cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
+        inputTbl = matrix(unlist(input$tbl$params$data),
+                   ncol=length(input$tbl$params$columns),byrow=TRUE)
+        inputTbl[inputTbl=="NA"] = NA
+        colnames(inputTbl) = unlist(input$tbl$params$colHeaders)
+        rownames(inputTbl) = unlist(input$tbl$params$rowHeaders)
+        switch(input$mode,
+          "New rows"= 
+          {
+            inserts <- mkInserts(inputTbl,dbGlb$tblName,
+                                 dbGlb$tbsCTypes[[dbGlb$tblName]])
+lapply(inserts,function (x) cat("ins=",x,"\n"))                             
+            if (length(inserts)) 
+            {
+              dbBegin(dbGlb$dbIcon)
+              err = FALSE
+              for (ins in inserts) 
+              {
+                res = try(dbSendQuery(dbGlb$dbIcon,ins))
+                if (class(res) == "try-error") {err=TRUE; break}
+              }
+              if (err) 
+              {
+                dbRollback(dbGlb$dbIcon) 
+                output$actionMsg = renderText(paste0("Error processing: ",ins))
+                return()
+              } else {
+                dbCommit(dbGlb$dbIcon)
+                output$actionMsg = renderText(paste0(length(inserts)," insert(s) processed."))
+              }
+              tbl <- as.data.frame(matrix("",
+                     ncol=length(input$editSelDBvars),nrow=dbGlb$disprows))
+              colnames(tbl) <- input$editSelDBvars
+              output$tbl <- renderRHandsontable(rhandsontable(tbl,
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+            }
+          },
+          Edit = 
+          {
+            err=FALSE
+            nrows = nrow(inputTbl)
+            nprocess = 0
+            dbBegin(dbGlb$dbIcon)
+            if (nrows) for (rn in 1:nrows)
+            {
+              row = inputTbl[rn,]
+              id = rownames(inputTbl)[rn]
+              if (row["Delete"] == "TRUE") 
+              {
+                qry = paste0("delete from ",dbGlb$tblName," where _ROWID_ = ",
+                             id)
+cat ("edit del, qry=",qry,"\n")                     
+                res = try(dbSendQuery(dbGlb$dbIcon,qry))
+                if (class(res) == "try-error") {err=TRUE; break}
+                nprocess = nprocess+1
+                if (!is.null(dbGlb$sids)) dbGlb$sids = NULL
+              } else {              
+                row = inputTbl[rn,]              
+                if (length(row) < 2) next
+                row = row[-1]
+                row[is.na(row)] = ""
+                row[row == "NA"] = ""
+                org = subset(dbGlb$tbl,rowid == id)
+                org = as.character(org[,names(row),drop=TRUE])
+                org[is.na(org)] = ""
+                org[org=="character(0)"] = ""
+                org[org == "NA"] = ""
+                names(org)=names(row)
+                neq = vector("logical",length(row))
+                for (i in 1:length(row)) neq[i]=!identical(row[i],org[i])              
+                if (sum(neq) == 0) next
+                update = row[neq]
+                toquote = dbGlb$tbsCTypes[[dbGlb$tblName]][names(update)]
+                if (!is.null(dbGlb$sids) && 
+                    !is.na(toquote["Stand_ID"])) dbGlb$sids = NULL
+                if (any(toquote))
+                {
+                  for (toq in names(toquote[toquote]))
+                  {
+                    update[toq] = if (update[toq]=="") "NULL" else
+                      paste0("'",gsub("'","''",update[toq]),"'")
+                  }
+                }
+                update[update==""] = "NULL"
+                qry = paste0("update ",dbGlb$tblName," set ",
+                  paste(paste0(names(update)," = ",update),collapse=", "),
+                    " where _ROWID_ = ",id)
+cat ("edit upd, qry=",qry,"\n")
+                res = try(dbSendQuery(dbGlb$dbIcon,qry))              
+                if (class(res) == "try-error") {err=TRUE; break}
+                nprocess = nprocess+1
+              }
+            }
+            if (err) 
+            {
+              dbRollback(dbGlb$dbIcon) 
+              output$actionMsg = renderText(paste0("Error processing: ",qry))
+              return()
+            } else {
+              dbCommit(dbGlb$dbIcon)
+              output$actionMsg = renderText(paste0(nprocess," change(s) processed."))
+            }
+            fixEmptyTable(dbGlb)
+cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
+     " dbGlb$tblName=",dbGlb$tblName,
+     " Stand_ID yes=",length(intersect("Stand_ID",dbGlb$tblCols)),"\n")
+            if (is.null(dbGlb$sids) && 
+                length(intersect("Stand_ID",dbGlb$tblCols)))
+            {
+              res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
+                                dbGlb$tblName))
+              dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
+              dbClearResult(dbGlb$dbIcon)
+              if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
+              if (dbGlb$rowSelOn && length(dbGlb$sids)) 
+                updateSelectInput(session=session, inputId="rowSelector",
+                  choices  = dbGlb$sids) else 
+                output$stdSel <- mkStdSel(dbGlb)
+            }  
+
+            qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+            qry <- if (length(intersect("Stand_ID",dbGlb$tblCols)) && 
+                       length(input$rowSelector))
+              paste0(qry," where Stand_ID in (",
+                    paste0("'",input$rowSelector,"'",collapse=","),");") else
+              paste0(qry,";") 
+            res <- dbSendQuery(dbGlb$dbIcon,qry)
+            dbGlb$tbl <- dbFetch(res,n=-1)
+            rownames(dbGlb$tbl) = dbGlb$tbl$rowid
+            dbClearResult(dbGlb$dbIcon)
+            for (col in 2:ncol(dbGlb$tbl))
+              if (class(dbGlb$tbl[[col]]) != "character") 
+                 dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+            if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
+            {
+              dbGlb$tbl$Delete = FALSE
+              dbGlb$rows <- c(dbGlb$rows[1],
+                              min(nrow(dbGlb$tbl),dbGlb$rows[2]))
+              output$tbl <- renderRHandsontable(rhandsontable(
+                dbGlb$tbl[dbGlb$rows[1]:dbGlb$rows[2],
+                union(c("Delete"),input$editSelDBvars),drop=FALSE],
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+            }
+          }
+        )
+      })
+    }
+  })
+
+
+
+  
+  observe(if (input$clearTable > 0) 
+  {
+cat ("clearTable, tbl=",dbGlb$tblName,"\n")
+    dbSendQuery(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName))
+    dbGlb$navsOn <- FALSE            
+    dbGlb$rowSelOn <- FALSE
+    dbGlb$sids <- NULL
+    output$stdSel <- renderUI(NULL)
+    tmp = as.data.frame(lapply(dbGlb$tbsCTypes[[dbGlb$tblName]],
+      function (x) vector(if (x) "character" else "numeric",1)),
+      stringsAsFactors=FALSE)
+    tmp[1,] = NA
+    dbWriteTable(dbGlb$dbIcon,dbGlb$tblName,tmp,overwrite=TRUE)
+    qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+    dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+    rownames(dbGlb$tbl) = dbGlb$tbl$rowid
+    dbGlb$tbl$Delete = FALSE
+    output$tbl <- renderRHandsontable(rhandsontable(
+       dbGlb$tbl[,union(c("Delete"),input$selectdbvars),drop=FALSE],
+                readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+    output$rowRng <- renderText("1 to 1 of 1")
+    isolate(if (input$mode=="New rows") updateRadioButtons(session=session, 
+      inputId="mode",selected="Edit"))
+  })
+  
+
   #runScript selection
   observe({
     if (length(input$runScript)) customRunOps()

@@ -43,6 +43,7 @@ FVSOnlineNeeded = c(
 "dbNamesAndTypes.R",
 "editDataUtilities.R",
 "FVS_Data.db.default",
+"FVS_Data.db.empty",
 "fvsOutUtilities.R",
 "fvsRunUtilities.R",
 "mkInputElements.R",

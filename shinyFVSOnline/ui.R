@@ -248,15 +248,22 @@ shinyUI(fixedPage(
       	          choices = list("None"),selected = NULL,inline=TRUE)
             ),
             tabPanel("Custom Query",
-              h5("Enter SQL on FVSOut.db (SQLite3)"),
+              selectInput("sqlSel","SQL queries (run on FVSOut.db (SQLite3))", 
+                NULL, NULL, multiple=FALSE,selectize=FALSE,width="100%"),
+              textInput("sqlTitle", "Query name: ", value = "", width="100%"),
+              h6(),
               tags$style(type="text/css", 
-                    "#sqlQuery{font-family:monospace;font-size:90%;width:95%;}"), 
+                    "#sqlQuery{font-family:monospace;font-size:90%;width:100%;}"), 
               tags$textarea(id="sqlQuery",rows=15,""),
-              h6(""),
-              actionButton("btnSQL","Submit query"),
-              h5("Output from query"),
+              h6(),
+              tags$style(type="text/css", "#sqlSaveSubmit { color: green; }"),
+              actionButton("sqlSaveSubmit","Save and Submit"),
+              actionButton("sqlNew","New"),
+              tags$style(type="text/css", "#sqlDelete { color: red; }"),
+              actionButton("sqlDelete","Delete"),
+              h6("Output from query"),
               tags$style(type="text/css", 
-                    "#sqlOutput{font-family:monospace;font-size:90%;width:95%;}"), 
+                    "#sqlOutput{font-family:monospace;font-size:90%;width:100%;}"), 
               tags$textarea(id="sqlOutput",rows=5,""),
               tags$p(id="sqlInstructions", 
                   HTML(paste0('Use "<b>;</b>" to separate SQL statements.<br>',
@@ -337,41 +344,63 @@ shinyUI(fixedPage(
            Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
                var el = $("#" + x);
                el.replaceWith(el = el.clone(true));
-               var id = "#" + x + "_progress";     
-               $(id).css("visibility", "hidden");
-        });'),
-        h6(),
+               var idƒ = "#" + x + "_progress";     
+               $(id).css("visibility", "hidden");});'
+        ),
+        h6(),        
         fixedRow(
-          column(width=3,offset=0,
-            myRadioGroup("mode", "Mode ", c("Edit","New rows")),
-            myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
-        	  selectInput("editSelDBtabs", label="Table to process",
-      	          choices  = list(), 
-      	          selected = NULL, multiple = FALSE, selectize=FALSE),
-        	  selectInput("editSelDBvars", "Variables to consider", 
-                choices  = list(), size=10,
-                selected = NULL, multiple = TRUE, selectize=FALSE),
-            uiOutput("stdSel"),h5(),
-            actionButton("recoverdb","Recover backup or default database"),h5(),
-            actionButton("clearTable","Remove all rows and commit"),h5(),
-            actionButton("commitChanges","Commit edits or new rows")
-          ),
-          column(width=9,offset=0,
-            uiOutput("navRows"),
-            h5(),
-            rHandsontableOutput("tbl"),
-            h4(" "),
-            tags$style(type="text/css","#actionMsg{color:darkred;}"), 
-            textOutput("actionMsg"),
-            fileInput("upload","Upload and commit FVS-Ready database (.accdb, .mdb, or .db (SQLite3))",
-                      width="90%"), 
-            fileInput("uploadStdTree",
-                     'Upload and commit to "Table to process" (.csv, data will be appended)',
-                      width="90%"), 
-            fileInput("climateFVSUpload",
-                      "Upload and commit Climate-FVS data (append and replace; FVSClimAttrs.csv or answers.zip).",
-                      width="90%")
-        ) )
+        column(width=12,offset=0,
+          tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
+          tabsetPanel(id="inputDBPan", 
+            tabPanel("Replace existing database", 
+              h6(),
+              fileInput("uploadNewDB","Upload and install FVS-Ready database (.accdb, .mdb, or .db (SQLite3))",
+                      width="90%"), h6(), 
+              actionButton("installTrainDB","Install training database"),h6(),
+              actionButton("installEmptyDB","Install empty database"),h6(),
+              tags$style(type="text/css","#replaceActionMsg{color:darkred;}"), 
+              textOutput("replaceActionMsg")     
+      	    ),
+            tabPanel("Upload and insert new rows (.csv)", 
+              h4(" "),             
+           	  selectInput("uploadSelDBtabs", label="Table to process",
+      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+              fileInput("uploadStdTree",
+                       'Upload and commit to "Table to process" (.csv, data will be appended)',
+                        width="90%"), 
+              fileInput("climateFVSUpload",
+                        "Upload and commit Climate-FVS data (append and replace; FVSClimAttrs.csv or answers.zip).",
+                        width="90%"),
+              tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
+              textOutput("uploadActionMsg")     
+            ),
+            tabPanel("View and edit existing tables",        
+              fixedRow(
+                column(width=3,offset=0,
+                  h6(" "),
+                  myRadioGroup("mode", "Mode ", c("Edit","New rows")),
+                  myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
+              	  selectInput("editSelDBtabs", label="Table to process",
+      	                choices  = list(), 
+      	                selected = NULL, multiple = FALSE, selectize=FALSE),
+              	  selectInput("editSelDBvars", "Variables to consider", 
+                      choices  = list(), size=10,
+                      selected = NULL, multiple = TRUE, selectize=FALSE),
+                  uiOutput("stdSel"),h6(),
+                  actionButton("clearTable","Remove all rows and commit"),h6(),
+                  actionButton("commitChanges","Commit edits or new rows")
+                ),
+                column(width=9,offset=0,
+                  h6(" "),
+                  uiOutput("navRows"),
+                  h6(" "),
+                  rHandsontableOutput("tbl"),
+                  textOutput("actionMsg")
+                )
+              )
+            ) #END tabPanel
+          ) #END tabsetPanel
+        ) ) #END column and fixed row   
       ),
       tabPanel("Tools",       
         h4(" "),
@@ -387,6 +416,8 @@ shinyUI(fixedPage(
               "SVS output files for current run" = "subdir",	
               "Input data base FVS_Data.db" = "FVS_Data",	
               "FVS-Online runs archive (FVS_Runs.RData)" = "FVS_Runs",	
+              "Custom SQL query archive (customQueries.RData)" =	
+                                                       "customSQL",	
               "FVS-Online keyword component archive (FVS_kcps.RData)" =	
                                                        "FVS_kcps"),	
               selected=unlist(zipList[1:4]),inline=FALSE),	
