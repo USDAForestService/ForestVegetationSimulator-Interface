@@ -79,25 +79,9 @@ cat ("FVS_Runs does not exist, resetting\n")
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=selChoices[[1]])
-    updateTextInput(session=session, inputId="title",
-        value=if (fvsRun$title == "") fvsRun$uuid else fvsRun$title)
-    updateTextInput(session=session, inputId="defMgmtID",value=fvsRun$defMgmtID)
-    updateSelectInput(session=session, inputId="simCont", choices=fvsRun$simcnts, 
-        selected=fvsRun$selsim)      
-    updateTabsetPanel(session=session, inputId="rightPan", 
-      selected=if (length(fvsRun$simcnts)) "Components" else "Stands")
     extns <-  prms$extensions
     extnslist <-  as.list(unlist(lapply(extns,function (x,extns) 
                       getPstring(extns,x), extns)))
-    extn <- extnslist[globals$activeExtens]
-    if (length(fvsRun$stands) > 0) updateSelectInput(session=session,
-        inputId="addCategories","Extension",choices=paste0(names(extn),": ",extn),
-         selected=extn[["base"]]) 
-    updateTextInput(session=session, inputId="startyr",  value=fvsRun$startyr)
-    updateTextInput(session=session, inputId="endyr",    value=fvsRun$endyr)
-    updateTextInput(session=session, inputId="cyclelen", value=fvsRun$cyclelen)
-    updateTextInput(session=session, inputId="cycleat",  value=fvsRun$cycleat)
-
     if (exists("fvsOutData")) rm (fvsOutData) 
     fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
     dbDrv <- dbDriver("SQLite")
@@ -985,7 +969,7 @@ cat ("Stands\n")
                                    globals$activeVariants)
         selVarListUse <- globals$selVarList[selVarListUse]                                   
         vlst <- as.list (names(selVarListUse))
-        names(vlst) = selVarListUse
+        names(vlst) = selVarListUse        
       } else {
         if (is.null(globals$activeFVS[[fvsRun$FVSpgm]])) vlst <- list() else
         {
@@ -1124,11 +1108,15 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       isolate ({
         if (!is.null(input$inVars)) 
         {
-          selVarListUse <- globals$selVarList[globals$activeVariants]
-          vlst <- as.list (names(selVarListUse))
-          names(vlst) = selVarListUse
-          updateSelectInput(session=session, inputId="inVars", NULL, 
-                            vlst, vlst[[1]])
+          selVarListUse <- intersect(globals$activeVariants,names(globals$selVarList))
+          if (length(selVarListUse)) 
+          {
+            selVarListUse <- globals$selVarList[selVarListUse]
+            vlst <- as.list (names(selVarListUse))
+            names(vlst) = selVarListUse
+            updateSelectInput(session=session, inputId="inVars", NULL, 
+                          vlst, vlst[[1]])
+          } else updateSelectInput(session=session, inputId="inVars", NULL, list())
           updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
           if (input$rightPan != "Stands")
@@ -2777,107 +2765,104 @@ cat ("Replace existing database\n")
   }) 
   ## Upload new database
   observe({  
-    if (is.null(input$uploadNewDB)) return()
-    if (regexpr("\\.accdb$",input$upload$name) == 0 && 
-        regexpr("\\.mdb$",input$upload$name)   == 0 &&
-        regexpr("\\.db$",input$upload$name)    == 0) return()
+    if (is.null(input$uploadNewDB)) return()   
+    if (regexpr("\\.accdb$",input$uploadNewDB$name) == 0 && 
+        regexpr("\\.mdb$",input$uploadNewDB$name)   == 0 &&
+        regexpr("\\.db$",input$uploadNewDB$name)    == 0) return()
     dbDisconnect(dbGlb$dbIcon)
     unlink ("FVS_Data.db")
-    if (regexpr("\\.db$",input$upload$name) > 1) 
+    if (regexpr("\\.db$",input$uploadNewDB$name) > 1) 
     {
-      file.copy(input$upload$datapath,"FVS_Data.db",overwrite = TRUE)
+      file.copy(input$uploadNewDB$datapath,"FVS_Data.db",overwrite = TRUE)
     } else {   
-      Sys.sleep (.1)        
-      withProgress(session, 
-      {  
-        setProgress(message = "Create schema", value = 1)
-        source("dbNamesAndTypes.R")
-        curDir=getwd()
-        setwd(dirname(input$upload$datapath))
-        system (paste0("java -jar '",curDir,"/access2csv.jar' ",
-                input$upload$datapath," --schema > schema"))
-        setProgress(message = "Process schema", value = 2)
-        if (!file.exists("schema") || file.size("schema") == 0) 
+      progress <- shiny::Progress$new(session,min=1,max=12)
+      progress$set(message = "Create schema", value = 1)
+      source("dbNamesAndTypes.R")
+      curDir=getwd()
+      setwd(dirname(input$uploadNewDB$datapath))
+      system (paste0("java -jar '",curDir,"/access2csv.jar' ",
+              input$uploadNewDB$datapath," --schema > schema"))
+      progress$set(message = "Process schema", value = 2)
+      if (!file.exists("schema") || file.size("schema") == 0) 
+      {
+        setwd(curDir) 
+        progress$close()     
+        output$actionMsg = renderText("'schema' not created, no data loaded.")
+        Sys.sleep (2)
+        session$sendCustomMessage(type = "resetFileInputHandler","upload")
+        return()
+      }
+      schema = scan("schema",what="character",sep="\n",quiet=TRUE)
+      fix = grep (")",schema)        
+      schema[fix] = sub (")",");",schema[fix])
+      fix = fix - 1
+      schema[fix] = sub (",","",schema[fix])       
+      for (i in 1:length(schema))
+      {
+        if (substring(schema[i],1,12) == "CREATE TABLE") 
         {
-          setwd(curDir)      
-          setProgress(value = NULL)
-          output$actionMsg = renderText("'schema' not created, no data loaded.")
-          Sys.sleep (2)
-          session$sendCustomMessage(type = "resetFileInputHandler","upload")
-          return()
+          tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
+          cknt = switch(toupper(tblName),
+            "FVS_STANDINIT" = standNT,
+            "FVS_TREEINIT"  = treeNT,
+            NULL)
+          next
         }
-        schema = scan("schema",what="character",sep="\n",quiet=TRUE)
-        fix = grep (")",schema)        
-        schema[fix] = sub (")",");",schema[fix])
-        fix = fix - 1
-        schema[fix] = sub (",","",schema[fix])       
-        for (i in 1:length(schema))
+        if (substring(schema[i],1,2)  == ");") next
+        items = unlist(strsplit(schema[i]," "))
+        items = items[nchar(items)>0]
+        ckntrow = match(toupper(items[1]),toupper(cknt[,1]))
+        if (!is.na(ckntrow)) 
         {
-          if (substring(schema[i],1,12) == "CREATE TABLE") 
-          {
-            tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
-            cknt = switch(toupper(tblName),
-              "FVS_STANDINIT" = standNT,
-              "FVS_TREEINIT"  = treeNT,
-              NULL)
-            next
-          }
-          if (substring(schema[i],1,2)  == ");") next
-          items = unlist(strsplit(schema[i]," "))
-          items = items[nchar(items)>0]
-          ckntrow = match(toupper(items[1]),toupper(cknt[,1]))
-          if (!is.na(ckntrow)) 
-          {
-            items[1] = cknt[ckntrow,1]
-            comma = nchar(items[2])
-            comma = substring(items[2],comma,comma)
-            items[2] = cknt[ckntrow,2] 
-            if (comma == ",") items[2] = paste0(items[2],",")
-          }
-          schema[i] = paste0(' "',items[1],'" ',items[2])
-        }        
-        schema = gsub(" LONG,"," INTEGER,",schema)
-        schema = gsub(" DOUBLE,"," REAL,",schema)
-        schema = gsub(" MEMO,"," TEXT,",schema)
-        cat (paste0(schema,"\n"),file="schema")
-        setProgress(message = "Extract data", value = 3) 
-        system (paste0("java -jar '",curDir,"/access2csv.jar' ",
-                 input$upload$datapath))  
-        setProgress(message = "Import schema to Sqlite3", value = 4) 
-        system (paste0 ("sqlite3 ","FVS_Data.db"," < schema"))
-        fix = grep ("CREATE TABLE",schema)
-        schema = sub ("CREATE TABLE ","",schema[fix])
-        schema = sub (" [(]",".csv",schema)
-        i = 5
-        for (s in schema)
-        {
-          cat (".separator ,\n",file="schema")
-          cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
-          setProgress(message = paste0("Import ",s), value = i) 
-          i = i+1;
-          system (paste0("sqlite3 ","FVS_Data.db"," < schema"))
+          items[1] = cknt[ckntrow,1]
+          comma = nchar(items[2])
+          comma = substring(items[2],comma,comma)
+          items[2] = cknt[ckntrow,2] 
+          if (comma == ",") items[2] = paste0(items[2],",")
         }
-        setProgress(message = "Copy tables", value = i+1) 
-        lapply(schema,unlink) 
-        file.copy("FVS_Data.db",paste0(curDir),overwrite=TRUE)
-        unlink("schema") 
-        setwd(curDir)      
-        Sys.sleep (.5) 
-        setProgress(value = NULL)  
-      }, min=1, max=12)
+        schema[i] = paste0(' "',items[1],'" ',items[2])
+      }        
+      schema = gsub(" LONG,"," INTEGER,",schema)
+      schema = gsub(" DOUBLE,"," REAL,",schema)
+      schema = gsub(" MEMO,"," TEXT,",schema)
+      cat (paste0(schema,"\n"),file="schema")
+      progress$set(message = "Extract data", value = 3) 
+      system (paste0("java -jar '",curDir,"/access2csv.jar' ",
+               input$uploadNewDB$datapath))  
+      progress$set(message = "Import schema to Sqlite3", value = 4) 
+      system (paste0 ("sqlite3 ","FVS_Data.db"," < schema"))
+      fix = grep ("CREATE TABLE",schema)
+      schema = sub ("CREATE TABLE ","",schema[fix])
+      schema = sub (" [(]",".csv",schema)
+      i = 5
+      for (s in schema)
+      {
+        cat (".separator ,\n",file="schema")
+        cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
+        progress$set(message = paste0("Import ",s), value = i) 
+        i = i+1;
+        system (paste0("sqlite3 ","FVS_Data.db"," < schema"))
+      }
+      progress$set(message = "Copy tables", value = i+1) 
+      lapply(schema,unlink) 
+      file.copy("FVS_Data.db",paste0(curDir),overwrite=TRUE)
+      unlink("schema") 
+      setwd(curDir)      
+      Sys.sleep (.5) 
+      progress$close()  
+
     }
-    unlink(input$upload$datapath)
+    unlink(input$uploadNewDB$datapath)
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
-    withProgress(session, 
-    {  
-      setProgress(message = "Checking database query keywords", value = 1)
-      fixFVSKeywords(dbGlb) 
-      setProgress(message = "Checking minimum column definitions and values", value = 2)
-      checkMinColumnDefs(dbGlb)
-      Sys.sleep (.5) 
-      setProgress(value = NULL)  
-    }, min=1, max=2)
+    progress <- shiny::Progress$new(session,min=1,max=3)
+    progress$set(message = "Checking database query keywords", value = 1)
+    source("editDataUtilities.R")
+    fixFVSKeywords(dbGlb,progress) 
+    checkMinColumnDefs(dbGlb,progress)
+    Sys.sleep (.5) 
+    progress$close() 
+    
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     output$replaceActionMsg <- renderText("Uploaded database installed")
     initNewInputDB()

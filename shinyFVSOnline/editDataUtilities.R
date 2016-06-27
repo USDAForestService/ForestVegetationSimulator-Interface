@@ -23,7 +23,7 @@ cat("in fixEmptyTable, dbGlb$tblName=",dbGlb$tblName,"\n")
 }
 
     
-checkMinColumnDefs <- function(dbGlb)
+checkMinColumnDefs <- function(dbGlb,progress=NULL)
 {
   #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
   # in the TreeInit table. That is not checked in this code.
@@ -33,15 +33,7 @@ cat ("in checkMinColumnDefs\n")
   # where the standard fixup in this case is to try recovery of the database.
   if (class(fields) == "try-error")
   {
-    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
-    if (file.exists("FVS_Data.db.backup"))
-    {
-      file.rename("FVS_Data.db.backup","FVS_Data.db")
-      checkMinColumnDefs(dbGlb$dbOcon)
-    } else {
-      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-      unlink("FVS_Data.db.backup")
-    }
+    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
     return()
   }
   modStarted = FALSE
@@ -49,6 +41,8 @@ cat ("in checkMinColumnDefs\n")
   sCN = FALSE
   grp = FALSE
   # make sure groups are defined, if missing set one to "All"
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    value = 2, detail = "Groups")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
@@ -57,6 +51,8 @@ cat ("in checkMinColumnDefs\n")
     grp = TRUE
   }
   # make sure Stand_ID is defined
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    value = 3, detail = "Stand_ID")
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
@@ -65,6 +61,8 @@ cat ("in checkMinColumnDefs\n")
     sID = TRUE
   }
   # make sure Stand_CN is defined
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    value = 4, detail = "Stand_CN")
   if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
@@ -73,6 +71,8 @@ cat ("in checkMinColumnDefs\n")
     sCN = TRUE
   }
   # make sure Inv_Year is defined
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    value = 5, detail = "Inv_Year ")
   if (length(grep("Inv_Year",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
@@ -81,6 +81,8 @@ cat ("in checkMinColumnDefs\n")
       "alter table FVS_StandInit add column Inv_Year integer not null default ",year))      
   }
   # make sure FVSKeywords is defined
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    value = 6, detail = "FVSKeywords ")
   if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
@@ -96,6 +98,8 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     if (sID || sCN) 
     {
       fvsInit = dbReadTable(dbGlb$dbIcon,"FVS_StandInit")
+      if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+        value = 7, detail = "Stand_ID and Stand_CN consistent")
       if (nrow(fvsInit))
       {
         if (sID) fvsInit$Stand_ID = 
@@ -108,6 +112,8 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   # check groups
   if (!grp)
   {
+    if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+        value = 8, detail = "Groups content")
     grps = dbGetQuery(dbGlb$dbIcon,"select Groups from FVS_StandInit")
     names(grps) = toupper(names(grps))
     if (is.null(grps$GROUPS) || any(is.na(grps$GROUPS)) || any(grps$GROUPS == "")) 
@@ -115,6 +121,8 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
+  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+      value = 9, detail = "FVS_GroupAddFilesAndKeywords")
   gtab = try(dbReadTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords"))
   need = class(gtab) == "try-error"
   if (!need) need = nrow(gtab) == 0
@@ -134,7 +142,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
 }
 
 
-fixFVSKeywords <- function(dbGlb)
+fixFVSKeywords <- function(dbGlb,progress=NULL)
 {
   tbs <- dbListTables(dbGlb$dbIcon)
   for (tb in tbs)
@@ -144,14 +152,14 @@ cat ("in fixFVSKeywords, tb=",tb,"\n")
     kwdsIdxs <- grep ("keywords",flds,ignore.case = TRUE)
     if (length(kwdsIdxs) == 0) next
     for (kwdname in flds[kwdsIdxs])
-    {    
+    {
       qry = paste0("select _ROWID_,",kwdname," from ",tb,
         " where ",kwdname," is not null and ",kwdname," != '';")
 cat ("qry=",qry,"\n")              
-      res <- dbSendQuery(dbGlb$dbIcon,qry)
-      kwdf <- dbFetch(res, n=-1)
+      kwdf <- dbGetQuery(dbGlb$dbIcon,qry)
 cat ("result nrow=",nrow(kwdf),"\n")      
-      dbClearResult(dbGlb$dbIcon)
+      if (!is.null(progress)) progress$set(detail = 
+        paste0("Table=",tb," Field=",kwdname," Rows to process=",nrow(kwdf)))
       if (nrow(kwdf))
       {
         for (row in 1:nrow(kwdf))
