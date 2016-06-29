@@ -91,9 +91,10 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
   mklist = if (valpair) 
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
     as.list(as.character(1:length(choices)))
-  names(mklist) = choices
-  if (length(sel) == 0) sel = 1
-  selected = mklist[[as.numeric(sel)]]
+  names(mklist) = choices 
+  sel = match(sel,mklist)
+  if (is.na(sel) || sel == 0) sel = 1
+  selected = mklist[[sel]]
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=selected), 
     "radiogroup"=myRadioGroup(inputId,label,
