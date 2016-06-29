@@ -2516,8 +2516,9 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
 
   ## Tools, related to FVSRefresh
   observe({    
-    if (input$rightPan == "Tools") 
+    if (input$topPan == "Tools") 
     {
+cat ("Tools hit\n")       
       if (!exists("fvsBinDir")) return()
       if (!file.exists(fvsBinDir)) return()
       if (!exists("pgmList")) return()
@@ -2528,6 +2529,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       haveFVSp <- sub(shlibsufx,"",haveFVS)
       avalFVS <- dir(fvsBinDir,pattern=shlibsufx)
       avalFVSp <- sub(shlibsufx,"",avalFVS)
+cat ("avalFVSp=",avalFVSp,"\n")       
       updateSelectInput(session=session, inputId="FVSprograms", 
         choices=pgmFlip,selected=haveFVSp)
     } 
@@ -2788,8 +2790,7 @@ cat ("Replace existing database\n")
         setwd(curDir) 
         progress$close()     
         output$actionMsg = renderText("'schema' not created, no data loaded.")
-        Sys.sleep (2)
-        session$sendCustomMessage(type = "resetFileInputHandler","upload")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
       schema = scan("schema",what="character",sep="\n",quiet=TRUE)
@@ -2850,7 +2851,6 @@ cat ("Replace existing database\n")
       setwd(curDir)      
       Sys.sleep (.5) 
       progress$close()  
-
     }
     unlink(input$uploadNewDB$datapath)
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
@@ -2861,10 +2861,10 @@ cat ("Replace existing database\n")
     fixFVSKeywords(dbGlb,progress) 
     checkMinColumnDefs(dbGlb,progress)
     Sys.sleep (.5) 
-    progress$close() 
-    
+    progress$close()    
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     output$replaceActionMsg <- renderText("Uploaded database installed")
+    session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
     initNewInputDB()
   }) 
   observe({
