@@ -40,19 +40,6 @@ mkglobals <<- setRefClass("globals",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     customQueries = "list"))
 
-# load (and/or build) the prms.RData object
-mtrd <-  if (file.exists("prms.RData")) 
-  as.integer(file.info("prms.RData")["mtime"]) else 0
-mtpm <-  as.integer(file.info("suppose.prm")["mtime"])
-if (mtrd < mtpm) 
-{
-  source("mkpkeys.R")
-  prms <-  rdparms()
-  prms <-  lapply(prms,mkpkeys)
-  save(prms,file="prms.RData")
-  rm (prms)
-}
-
 loadVarData <- function(globals,prms,dbIcon)
 {
   tbs <- dbListTables(dbIcon)
@@ -651,13 +638,14 @@ getPstring = function (pkeys,pkey,atag = NULL)
 
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {
-cat("mkKeyWrd, ansFrm=",ansFrm," input=",input,"\n")
+cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
 #cat("mkKeyWrd, c=",c," state=",state,"\n")
+#cat("mkKeyWrd, out='",out,"'\n")
     if (state==0) # looking for first !
     {
       if (c != "!") out = paste0(out,c) else
@@ -670,7 +658,7 @@ cat("mkKeyWrd, ansFrm=",ansFrm," input=",input,"\n")
       next
     }
     if (state==1) # looking for the end of the field number
-    {
+    {   
       if (c == "," || c == "!") fld = as.numeric(substr(ansFrm,fs,i-1))
       if (c == "!") 
       {

@@ -1,19 +1,30 @@
-rdparms <- function(file="suppose.prm") 
+rdparms <- function(pdir="parms") 
 {
+#  options(warn=2)
   prms = list()
-  raw  = scan(file=file,sep="\n",what="character",
-              blank.lines.skip = FALSE,quiet=TRUE)
-  strs = grep("^//start",raw)
-  for (i in 1:length(strs))
+  files = dir(pdir)
+  for (fn in files)
   {
-    p = strs[i]
-    n = scan(text=raw[p],what="character",quiet=TRUE)[2]
-    p = p+1
-    e = if (i == length(strs)) length(raw) else strs[i+1]-1
-    sec = raw[p:e]
-    e = grep("^//end",sec)
-    if (!is.na(e)) sec=sec[1:(e-1)]
-    prms[[n]] = paste(sec,collapse="\n")
+    if (fn %in% c("mods.txt","mkprm","ppekeys.kwd","tutorial.prm")) next
+    file = paste0(pdir,"/",fn)
+    cat ("processing file=",file,"\n")    
+    raw  = scan(file=file,sep="\n",what="character",
+                blank.lines.skip = FALSE,quiet=TRUE)
+    strs = grep("^//start",raw)
+    if (length(strs))
+    {
+      for (i in 1:length(strs))
+      {
+        p = strs[i]
+        n = scan(text=raw[p],what="character",quiet=TRUE)[2]
+        p = p+1
+        e = if (i == length(strs)) length(raw) else strs[i+1]-1
+        sec = raw[p:e]
+        e = grep("^//end",sec)
+        if (!is.na(e)) sec=sec[1:(e-1)]
+        prms[[n]] = paste(sec,collapse="\n")
+      }
+    }
   }
   prms
 }
