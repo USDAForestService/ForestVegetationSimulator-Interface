@@ -33,7 +33,7 @@ mkpkeys = function (mstext)
 {
   # maybe this one is already parsed!
   if (class(mstext)=="list") return(mstext)
-    
+  cat("mstext=",names(get("X",envir=parent.frame()))[get("i",envir=parent.frame())],"\n") 
   pkeys = list()
   pkeqs  = list() # pkeys that are "equal" other pkeys.
   state = 1
@@ -313,6 +313,10 @@ mkpkeys = function (mstext)
   pkeys
 }
  
+prms = rdparms(pdir="~/open-suppose/trunk/parms")
+prms = lapply(prms,mkpkeys)
+save(file="prms.RData",prms)
+
 
 
 
