@@ -34,48 +34,45 @@ shinyServer(function(input, output, session) {
     dbGlb$disprows <- 20
     resetGlobals(globals,NULL,prms)
 
-    setProgress(message = "Start up", 
-                detail  = "Loading existing runs", value = 2)
+    setProgress(message = "Start up",value = 2)
     ##load existing runs
-    fvsRun <- mkfvsRun()
-    trys = 1
-    repeat
+
+    globals$fvsRun <- mkfvsRun()
+    if (file.exists("FVS_Runs.RData"))
     {
-      if (file.exists("FVS_Runs.RData"))
+      load("FVS_Runs.RData")
+      
+      # old style, convert to new.
+      if (!is.null(names(FVS_Runs[[1]])))
       {
-cat ("FVS_Runs.RData exists, trys =",trys,"\n")      
-        load("FVS_Runs.RData")
-        globals$FVS_Runs = FVS_Runs
-        rm (FVS_Runs)
-        trycall <- try(loadFromList(fvsRun,globals$FVS_Runs[[1]]))
-        if (class(trycall)=="try-error")
+        newlist = list()
+        for (i in 1:length(FVS_Runs))
         {
-cat ("FVS_Runs try error...deleting one\n")      
-          globals$FVS_Runs[[1]] = NULL
-          if (length(globals$FVS_Runs)) 
+          setProgress(message="Converting runs to newest format",detail="",value = i+1)
+          rtn = try(loadFromList(globals$fvsRun,FVS_Runs[[i]]))
+          if (class(rtn) != "try-error")
           {
-            FVS_Runs = globals$FVS_Runs
-            save (FVS_Runs,file="FVS_Runs.RData")
-          } else file.remove("FVS_Runs.RData")
-          resetfvsRun(fvsRun,globals$FVS_Runs)
-          trys = trys+1
-          if (trys > 10) file.remove("FVS_Runs.RData")
-          next
-        } else break
-      } else {
-cat ("FVS_Runs does not exist, resetting\n")      
-        globals$FVS_Runs = list()
-        resetfvsRun(fvsRun,globals$FVS_Runs)
-        globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
-        break
+            newlist[[globals$fvsRun$uuid]] = globals$fvsRun$title
+            attr(newlist[[globals$fvsRun$uuid]],"time") = attr(FVS_Runs[[i]],"time")
+            saveFvsRun = globals$fvsRun
+            save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+          }
+        }
+        FVS_Runs = reorderFVSRuns(newlist)    
+        save (file="FVS_Runs.RData",FVS_Runs)
       }
+      globals$FVS_Runs = FVS_Runs
+      rm (FVS_Runs)      
+    } else {
+      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
     } 
-    setProgress(message = "Start up",                           
+    setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    mkSimCnts(fvsRun,fvsRun$selsim)
-    resetGlobals(globals,fvsRun,prms)
-    selChoices = names(globals$FVS_Runs) 
-    names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
+    mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
+    resetGlobals(globals,globals$fvsRun,prms)
+    selChoices = names(globals$FVS_Runs)
+    names(selChoices) = globals$FVS_Runs
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=selChoices[[1]])
@@ -104,12 +101,13 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
     if (!globals$saveOnExit) return()
     saveRun()
     FVS_Runs = globals$FVS_Runs
-    save (FVS_Runs,file="FVS_Runs.RData")
+    save (file="FVS_Runs.RData",FVS_Runs)
     if (file.exists("projectId.txt"))
     {
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
       write(file="projectId.txt",prjid)
-    }                                          
+    }
+    if (!interactive()) q(save="no")
   })
   
   initTableGraphTools <- function ()
@@ -223,7 +221,7 @@ cat ("tb=",tb,"\n")
         }
         source("sqlQueries.R")
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$stdskreb # force this section to be reactive to this input
+        input$bldstdsk # force this section to be reactive to this input
         if ("FVS_Summary" %in% tbs)
         {
           setProgress(message = "Output query", 
@@ -963,7 +961,7 @@ cat ("vfacet test hit\n")
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
     {
 cat ("Stands\n")
-      if (length(fvsRun$FVSpgm) == 0) 
+      if (length(globals$fvsRun$FVSpgm) == 0) 
       {
         selVarListUse <- intersect(names(globals$selVarList),
                                    globals$activeVariants)
@@ -971,9 +969,9 @@ cat ("Stands\n")
         vlst <- as.list (names(selVarListUse))
         names(vlst) = selVarListUse        
       } else {
-        if (is.null(globals$activeFVS[[fvsRun$FVSpgm]])) vlst <- list() else
+        if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) vlst <- list() else
         {
-          vlst <- as.list(globals$activeFVS[fvsRun$FVSpgm][[1]][[1]][1])
+          vlst <- as.list(globals$activeFVS[globals$fvsRun$FVSpgm][[1]][[1]][1])
           names(vlst) <- globals$selVarList[[vlst[[1]]]]
         }
       }
@@ -1078,14 +1076,14 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
   observe({
     if (input$newRun > 0)
     {
-      resetfvsRun(fvsRun,globals$FVS_Runs)
-      fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
+      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+      globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
       loadVarData(globals,prms,dbGlb$dbIcon)
       updateTextInput(session=session, inputId="title", label="", 
-                      value=fvsRun$title) 
+                      value=globals$fvsRun$title) 
       updateTextInput(session=session, inputId="defMgmtID",
-                     value=fvsRun$defMgmtID)
+                     value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont", 
           choices=list(), selected=NULL)
       updateSelectInput(session=session, inputId="addCategories", 
@@ -1093,13 +1091,13 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       updateSelectInput(session=session, inputId="addComponents", 
           choices=list(), selected=NULL)
       updateTextInput(session=session, inputId="startyr", 
-                      value=fvsRun$startyr)
+                      value=globals$fvsRun$startyr)
       updateTextInput(session=session, inputId="endyr", 
-                      value=fvsRun$endyr)
+                      value=globals$fvsRun$endyr)
       updateTextInput(session=session, inputId="cyclelen", 
-                      value=fvsRun$cyclelen)
+                      value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat", 
-                      value=fvsRun$cycleat)
+                      value=globals$fvsRun$cycleat)
       output$runProgress <- renderUI(NULL)
       updateSelectInput(session=session, inputId="cmdSet", 
                         selected="Management")
@@ -1135,18 +1133,18 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
     if (input$dupRun > 0)
     {
       if (length(globals$FVS_Runs) == 0) return()
-      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
-      fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
-      fvsRun$uuid  <- uuidgen()
-      fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
-      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
+      saveRun()
+      globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
+      globals$fvsRun$uuid  <- uuidgen()
+      globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       FVS_Runs = globals$FVS_Runs
-      save (FVS_Runs,file="FVS_Runs.RData")
+      save (file="FVS_Runs.RData",FVS_Runs)
       resetGlobals(globals,NULL,prms)
       updateTextInput(session=session, inputId="title", label="", 
-                      value=fvsRun$title) 
+                      value=globals$fvsRun$title) 
       updateTextInput(session=session, inputId="defMgmtID",
-                      value=fvsRun$defMgmtID)
+                      value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="cmdSet", 
                         selected="Management")
     }
@@ -1158,7 +1156,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
     if (input$reload > 0 || !is.null(input$runSel))
     {
 cat ("reload or run selection, runSel=",input$runSel," lensim=",
-length(fvsRun$simcnts)," globals$currentQuickPlot=",globals$currentQuickPlot,"\n")      
+length(globals$fvsRun$simcnts)," globals$currentQuickPlot=",globals$currentQuickPlot,"\n")      
       if (length(globals$currentQuickPlot) &&
           globals$currentQuickPlot != input$runSel)
       {
@@ -1169,66 +1167,73 @@ cat("setting uiRunPlot to NULL\n")
       progress <- shiny::Progress$new(session,min=1,max=5)
       progress$set(message = "Loading selected run",value = 1)
       resetGlobals(globals,NULL,prms)
-      loadFromList(fvsRun,globals$FVS_Runs[[input$runSel]])
-      resetGlobals(globals,fvsRun,prms)
-      mkSimCnts(fvsRun,fvsRun$selsim)
+      sel = match (input$runSel,names(globals$FVS_Runs)) 
+      if (is.na(sel)) sel = 1
+      fn=paste0(names(globals$FVS_Runs)[sel],".RData")
+      if (file.exists(fn)) 
+      {
+        load(file=fn)
+        globals$fvsRun = saveFvsRun
+      }
+      resetGlobals(globals,globals$fvsRun,prms)
+      mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
-cat ("reloaded fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")      
-cat ("reloaded fvsRun$runScript=",fvsRun$runScript,"\n")
-      if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
-cat ("fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),fvsRun$uiCustomRunOps) else
-cat ("fvsRun$uiCustomRunOps is empty\n")
+cat ("reloaded globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")      
+cat ("reloaded globals$fvsRun$runScript=",globals$fvsRun$runScript,"\n")
+      if (length(globals$fvsRun$uiCustomRunOps)) lapply(names(globals$fvsRun$uiCustomRunOps), function (x,y)
+cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$uiCustomRunOps) else
+cat ("globals$fvsRun$uiCustomRunOps is empty\n")
 
       isolate({
-        if (input$rightPan != "Run" && length(fvsRun$simcnts)>0)
+        if (input$rightPan != "Run" && length(globals$fvsRun$simcnts)>0)
         {
-          if (input$rightPan != "Components" && length(fvsRun$simcnts)>0)
+          if (input$rightPan != "Components" && length(globals$fvsRun$simcnts)>0)
           {
             updateTabsetPanel(session=session, inputId="rightPan", 
                selected="Components")
           }
-          if (input$rightPan != "Stands" && length(fvsRun$simcnts)==0)
+          if (input$rightPan != "Stands" && length(globals$fvsRun$simcnts)==0)
           {
             updateTabsetPanel(session=session, inputId="rightPan", 
                selected="Stands")
           }
         }
       })
-      progress$set(message = paste0("Setting values for run ", fvsRun$title),
+      progress$set(message = paste0("Setting values for run ", globals$fvsRun$title),
             value = 2)
       updateCheckboxGroupInput(session=session, inputId="autoOut",
-        selected=fvsRun$autoOut)
-      updateTextInput(session=session, inputId="title", value=fvsRun$title)
+        selected=globals$fvsRun$autoOut)
+      updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
-                      value=fvsRun$defMgmtID)
+                      value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="addComponents", 
           choices=list(" "), selected=NULL)
       updateTextInput(session=session, inputId="startyr",  
-                      value=fvsRun$startyr)
+                      value=globals$fvsRun$startyr)
       updateTextInput(session=session, inputId="endyr",    
-                      value=fvsRun$endyr)
+                      value=globals$fvsRun$endyr)
       updateTextInput(session=session, inputId="cyclelen", 
-                      value=fvsRun$cyclelen)
+                      value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat",  
-                      value=fvsRun$cycleat)
+                      value=globals$fvsRun$cycleat)
       progress$set(message = paste0("Setting simulation contents for run ", 
-        fvsRun$title),value = 3)
+        globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
-        choices=fvsRun$simcnts, selected=fvsRun$selsim)
+        choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
       progress$set(message = "Setting custom run options ",value = 4)
-      isolate ({callCustom = fvsRun$runScript == input$runScript})
+      isolate ({callCustom = globals$fvsRun$runScript == input$runScript})
       updateSelectInput(session=session, inputId="runScript", 
-          selected=fvsRun$runScript)
+          selected=globals$fvsRun$runScript)
       if (callCustom) customRunOps()
       progress$close()
     }
   })
 
   ##autoOut
-  observe(fvsRun$autoOut<-as.list(input$autoOut))
+  observe(globals$fvsRun$autoOut<-as.list(input$autoOut))
   
   ## Save saveRun  
   observe({
@@ -1237,7 +1242,7 @@ cat ("fvsRun$uiCustomRunOps is empty\n")
 cat ("saveRun\n")
       saveRun()
       selChoices = names(globals$FVS_Runs) 
-      names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
+      names(selChoices) = globals$FVS_Runs
       updateSelectInput(session=session, inputId="runSel", 
           choices=selChoices,selected=selChoices[[1]])
       FVS_Runs = globals$FVS_Runs
@@ -1260,11 +1265,11 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         {
           if (globals$activeFVS[[i]][1] == v) 
           {
-            fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
+            globals$fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
             break
           }
         }            
-        resetGlobals(globals,fvsRun,prms) 
+        resetGlobals(globals,globals$fvsRun,prms) 
         extn <- extnslist[globals$activeExtens]
         updateSelectInput(session,"addCategories","Extension",
                 paste0(names(extn),": ",extn),
@@ -1274,8 +1279,8 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         names(vlst) = selVarListUse
         updateSelectInput(session=session, inputId="inVars", NULL, 
                           vlst, vlst[[1]])
-        fvsRun$startyr <- format(Sys.time(), "%Y")
-        curstartyr = as.numeric(fvsRun$startyr)
+        globals$fvsRun$startyr <- format(Sys.time(), "%Y")
+        curstartyr = as.numeric(globals$fvsRun$startyr)
 
         fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
         
@@ -1329,7 +1334,7 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
                   what=" ",quiet=TRUE) else c("All All_Stands")
           requ <- unlist(grps[grep("^All",grps)])
           grps <- sort(union(intersect(input$inGrps,grps),requ))
-          have <- unlist(lapply(fvsRun$grps,function(x) 
+          have <- unlist(lapply(globals$fvsRun$grps,function(x) 
                   if (x$grp != "") x$grp else NULL))
           need <- setdiff(grps, have)
           for (grp in need) 
@@ -1347,35 +1352,35 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
                           kwdName="From: FVS_GroupAddFilesAndKeywords",
                             title="From: FVS_GroupAddFilesAndKeywords")
             }
-            fvsRun$grps <- append(fvsRun$grps,newgrp)
+            globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
           }
           invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
           if (invyr > curstartyr) 
           {
             curstartyr <- invyr
-            fvsRun$startyr <- as.character(curstartyr)
+            globals$fvsRun$startyr <- as.character(curstartyr)
           }
           newstd$invyr <- as.character(invyr)
-          have <- unlist(lapply(fvsRun$grps,function(x) 
+          have <- unlist(lapply(globals$fvsRun$grps,function(x) 
                   if (x$grp != "") x$grp else NULL))
-          newstd$grps <- fvsRun$grps[sort(match(grps,have))]
-          fvsRun$stands <- append(fvsRun$stands,newstd)
+          newstd$grps <- globals$fvsRun$grps[sort(match(grps,have))]
+          globals$fvsRun$stands <- append(globals$fvsRun$stands,newstd)
         }
-        fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) +
+        globals$fvsRun$endyr <- as.character(as.numeric(globals$fvsRun$startyr) +
                           as.numeric(getPstring(prms$timing,"simLength",
                                      globals$activeVariants[1])))
-        fvsRun$cyclelen <- as.character(getPstring(
+        globals$fvsRun$cyclelen <- as.character(getPstring(
                                      prms$timing,"cycleLength",
                                      globals$activeVariants[1]))
         updateTextInput(session=session, inputId="startyr",  
-                        value=fvsRun$startyr)
+                        value=globals$fvsRun$startyr)
         updateTextInput(session=session, inputId="endyr",    
-                        value=fvsRun$endyr)
+                        value=globals$fvsRun$endyr)
         updateTextInput(session=session, inputId="cyclelen", 
-                        value=fvsRun$cyclelen)
+                        value=globals$fvsRun$cyclelen)
         msgVal = msgVal+1
         progress$set(detail="Updating reps tags",value = msgVal)
-        stds <- unlist(lapply(fvsRun$stands,function(x) x$sid))
+        stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
         cnts <- table(stds)
         for (cn in 1:length(cnts)) 
         {
@@ -1386,16 +1391,16 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
             i <- 1
             for (r in reps) 
             {
-              fvsRun$stands[[r]]$rep <- i
+              globals$fvsRun$stands[[r]]$rep <- i
               i <- i+1
             }
           }
         }
         msgVal = msgVal+1
         progress$set(detail="Loading contents listbox",value = msgVal)
-        mkSimCnts(fvsRun)
+        mkSimCnts(globals$fvsRun)
         updateSelectInput(session=session, inputId="simCont", 
-          choices=fvsRun$simcnts, selected=fvsRun$selsim)
+          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         progress$close()
       })
     }
@@ -1405,10 +1410,10 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
   observe({
     if (length(input$simCont) == 0) return()
 cat ("run element selection\n")
-    if (all(input$simCont == fvsRun$selsim)) return()
-    mkSimCnts(fvsRun,input$simCont[[1]])
+    if (all(input$simCont == globals$fvsRun$selsim)) return()
+    mkSimCnts(globals$fvsRun,input$simCont[[1]])
     updateSelectInput(session=session, inputId="simCont", 
-         choices=fvsRun$simcnts, selected=fvsRun$selsim)
+         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
   })
 
   ## Edit  
@@ -1420,14 +1425,14 @@ cat ("run element selection\n")
       if (length(input$simCont) == 0) return()
       toed = input$simCont[1]
       # find component
-      cmp = findCmp(fvsRun,toed)
+      cmp = findCmp(globals$fvsRun,toed)
       if (is.null(cmp)) return()
       globals$currentEditCmp = cmp
 cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (exists(cmp$kwdName)) #if a function exists, use it.
       {
         eltList <- eval(parse(text=paste0(cmp$kwdName,
-          "(globals$currentEditCmp$title,prms,fvsRun,globals)")))
+          "(globals$currentEditCmp$title,prms,globals$fvsRun,globals)")))
         if (is.null(eltList)) return(NULL)
         eltList <- eltList[[1]]
       } else {
@@ -1449,7 +1454,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
           )
         } else {        # Launch general purpose builder when pk matches a parms.        
           pkeys <- prms[[pk]]
-          eltList <- mkeltList(pkeys,prms,globals,fvsRun)     
+          eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun)     
           eltList <- append(eltList,list(
             myInlineTextInput("cmdTitle","Component title: ", 
                       value=globals$currentEditCmp$title,size=40)),after=0)          
@@ -1473,11 +1478,11 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
     if (input$cutCmp == 0) return()
     isolate ({
       if (length(input$simCont) == 0) return
-      if (moveToPaste(input$simCont[1],globals,fvsRun))
+      if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       { 
-        mkSimCnts(fvsRun) 
+        mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
-          choices=fvsRun$simcnts, selected=fvsRun$selsim)
+          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
           selected=if (length(globals$pastelistShadow)) 
@@ -1491,7 +1496,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
   observe({
     if (input$copyCmp == 0) return()
     isolate ({
-      toCpy = findCmp(fvsRun,input$simCont[1])
+      toCpy = findCmp(globals$fvsRun,input$simCont[1])
       if (is.null(toCpy)) return()
       toCpy = mkfvsCmp(kwds=toCpy$kwds,kwdName=toCpy$kwdName,
               exten=toCpy$exten,variant=toCpy$variant,uuid=uuidgen(),
@@ -1522,12 +1527,12 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
               exten=topaste$exten,variant=topaste$variant,uuid=uuidgen(),
               atag=topaste$atag,title=topaste$title,reopn=topaste$reopn)
-      idx = pasteComponent(fvsRun,input$simCont[1],topaste)
+      idx = pasteComponent(globals$fvsRun,input$simCont[1],topaste)
       if (!is.null(idx))
       { 
-        mkSimCnts(fvsRun)   
+        mkSimCnts(globals$fvsRun)   
         updateSelectInput(session=session, inputId="simCont", 
-           choices=fvsRun$simcnts, selected=fvsRun$selsim)
+           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       }
     })
   })
@@ -1542,7 +1547,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (length(input$simCont) == 0) return
       toed = input$simCont[1]
       # find component
-      cmp = findCmp(fvsRun,toed)
+      cmp = findCmp(globals$fvsRun,toed)
       if (is.null(cmp)) return()
       if (substring(cmp$kwdName,1,10) == "Freeform: ") return()
       if (substring(cmp$kwdName,1,6) != "From: ")
@@ -1557,9 +1562,9 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
         cmp$title = paste0("Freeform: ",cmp$title)
         cmp$reopn = character(0)
-        mkSimCnts(fvsRun,toed)   
+        mkSimCnts(globals$fvsRun,toed)   
         updateSelectInput(session=session, inputId="simCont", 
-             choices=fvsRun$simcnts, selected=fvsRun$selsim)
+             choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       }
     })
@@ -1729,14 +1734,14 @@ cat ("title=",title," titIndx=",titIndx,"\n")
         globals$currentCmdPkey <- character(0)
 cat ("function name=",globals$winBuildFunction,"\n")
         ans = eval(parse(text=paste0(globals$winBuildFunction,
-          "(title,prms,fvsRun,globals)")))
+          "(title,prms,globals$fvsRun,globals)")))
         if (is.null(ans)) return(NULL)
         output$cmdBuild     <- renderUI (if (length(ans[[1]])) ans[[1]] else NULL)
         output$cmdBuildDesc <- renderUI (if (length(ans[[2]])) ans[[2]] else NULL)
       } else {
         globals$winBuildFunction <- character(0)
         pkeys <- prms[[indx]]
-        eltList <- mkeltList(pkeys,prms,globals,fvsRun)
+        eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun)
         if (!is.null(title)) eltList <- 
           append(eltList,list(
             tags$style(type="text/css", "#cmdTitle{display: inline;}"),
@@ -1801,7 +1806,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
         ui = if (globals$currentCndPkey == "0") NULL else
         {
           eltList <- mkeltList(prms[[as.numeric(globals$currentCndPkey)]],prms,
-                              globals,fvsRun,cndflag=TRUE)
+                              globals,globals$fvsRun,cndflag=TRUE)
           if (length(eltList) == 0) NULL else eltList
         }
         if (!is.null(ui))
@@ -1839,12 +1844,12 @@ cat ("input$freeEdit=",input$freeEdit,"\n")
         globals$currentEditCmp$kwds = input$freeEdit
         if (!is.null(input$cmdTitle) && nchar(input$cmdTitle)) 
           globals$currentEditCmp$title = input$cmdTitle
-        idx = pasteComponent(fvsRun,input$simCont[1],globals$currentEditCmp)
+        idx = pasteComponent(globals$fvsRun,input$simCont[1],globals$currentEditCmp)
         if (!is.null(idx))
         { 
-          mkSimCnts(fvsRun)   
+          mkSimCnts(globals$fvsRun)   
           updateSelectInput(session=session, inputId="simCont", 
-             choices=fvsRun$simcnts, selected=fvsRun$selsim)
+             choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         }
         globals$currentEditCmp <- globals$NULLfvsCmp
         output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -1901,9 +1906,9 @@ cat ("Save with if/then, kwds=",kwds,"\n")
         {
           globals$currentEditCmp$kwds = input$freeEdit
           globals$currentEditCmp$title = input$cmdTitle
-          mkSimCnts(fvsRun,input$simCont[[1]])
+          mkSimCnts(globals$fvsRun,input$simCont[[1]])
           updateSelectInput(session=session, inputId="simCont", 
-             choices=fvsRun$simcnts, selected=fvsRun$selsim)
+             choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
           updateSelectInput(session=session,inputId="addComponents",selected = 0)
           output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
           return()
@@ -1955,20 +1960,20 @@ cat ("Save, kwds=",kwds,"\n")
         # find the attachment point. 
         sel = if (length(globals$schedBoxPkey) &&
               input$schedbox == 3) input$condList else input$simCont[[1]]
-        grp = findIdx(fvsRun$grps,sel)
-        std = if (is.null(grp)) findIdx(fvsRun$stands,sel) else NULL
+        grp = findIdx(globals$fvsRun$grps,sel)
+        std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
         cmp = NULL
         if (is.null(grp) && is.null(std)) 
         {
-          for (grp in 1:length(fvsRun$grps))
+          for (grp in 1:length(globals$fvsRun$grps))
           {
-            cmp = findIdx(fvsRun$grps[[grp]]$cmps,sel)
+            cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
             if (!is.null(cmp)) break
           }
           if (is.null(cmp)) grp = NULL
-          if (is.null(grp)) for (std in 1:length(fvsRun$stands))
+          if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands))
           {
-            cmp = findIdx(fvsRun$stands[[std]]$cmps,sel)
+            cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
             if (!is.null(cmp)) break
           }
         }
@@ -1977,14 +1982,14 @@ cat ("Save, kwds=",kwds,"\n")
           #tag the component as being linked to the condition.
           newcmp$atag = sel
           #adjust insert point.
-          if (is.null(std)) for (i in (cmp+1):length(fvsRun$grps[[grp]]$cmps))
+          if (is.null(std)) for (i in (cmp+1):length(globals$fvsRun$grps[[grp]]$cmps))
           {
-            if (i > length(fvsRun$grps[[grp]]$cmps)) break
-            if (fvsRun$grps[[grp]]$cmps[[i]]$atag == sel) cmp = i
-          } else for (i in (cmp+1):length(fvsRun$stands[[std]]$cmps))
+            if (i > length(globals$fvsRun$grps[[grp]]$cmps)) break
+            if (globals$fvsRun$grps[[grp]]$cmps[[i]]$atag == sel) cmp = i
+          } else for (i in (cmp+1):length(globals$fvsRun$stands[[std]]$cmps))
           {
-            if (i > length(fvsRun$stands[[std]]$cmps)) break
-            if (fvsRun$stands[[std]]$cmps[[i]]$atag == sel) cmp = i
+            if (i > length(globals$fvsRun$stands[[std]]$cmps)) break
+            if (globals$fvsRun$stands[[std]]$cmps[[i]]$atag == sel) cmp = i
           }
         }
         # save schedBoxYrLastUsed
@@ -1997,27 +2002,27 @@ cat ("Save, kwds=",kwds,"\n")
           newcmp$atag = newcnd$uuid
           if (is.null(grp)) 
           { 
-            fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-                append(fvsRun$stands[[std]]$cmps, newcnd) else
-                append(fvsRun$stands[[std]]$cmps, newcnd, after=cmp)
+            globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+                append(globals$fvsRun$stands[[std]]$cmps, newcnd) else
+                append(globals$fvsRun$stands[[std]]$cmps, newcnd, after=cmp)
           } else
           { 
-            fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-                append(fvsRun$grps[[grp]]$cmps, newcnd) else
-                append(fvsRun$grps[[grp]]$cmps, newcnd, after=cmp)
+            globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+                append(globals$fvsRun$grps[[grp]]$cmps, newcnd) else
+                append(globals$fvsRun$grps[[grp]]$cmps, newcnd, after=cmp)
           }
           if (!is.null(cmp)) cmp <- cmp+1
         } 
         # attach the new component
         if (is.null(grp)) 
         {
-          fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-              append(fvsRun$stands[[std]]$cmps, newcmp) else
-              append(fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
+          globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+              append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+              append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
         } else { 
-          fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-              append(fvsRun$grps[[grp]]$cmps, newcmp) else
-              append(fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+          globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+              append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+              append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
         }
       } else {
         globals$currentEditCmp$kwds=kwds
@@ -2026,9 +2031,9 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
         globals$currentEditCmp$reopn=if (is.null(reopn)) character(0) else reopn
         globals$currentEditCmp=globals$NULLfvsCmp
       }
-      mkSimCnts(fvsRun,input$simCont[[1]])
+      mkSimCnts(globals$fvsRun,input$simCont[[1]])
       updateSelectInput(session=session, inputId="simCont", 
-         choices=fvsRun$simcnts, selected=fvsRun$selsim)
+         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       updateSelectInput(session=session, inputId="addComponents", selected = 0)
       output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       globals$schedBoxPkey <- character(0)
@@ -2036,41 +2041,42 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   })
 
   ## time
-  observe(fvsRun$startyr  <- input$startyr)
-  observe(fvsRun$endyr    <- input$endyr)
-  observe(fvsRun$cyclelen <- input$cyclelen)
-  observe(fvsRun$cycleat  <- input$cycleat)
+  observe(globals$fvsRun$startyr  <- input$startyr)
+  observe(globals$fvsRun$endyr    <- input$endyr)
+  observe(globals$fvsRun$cyclelen <- input$cyclelen)
+  observe(globals$fvsRun$cycleat  <- input$cycleat)
 
   ## Save and Run
   observe({  
     if (input$saveandrun == 0) return()
+      
     isolate ({
-      if (exists("fvsRun")) if (length(fvsRun$stands) > 0) 
+      if (length(globals$fvsRun$stands) > 0) 
       {
         progress <- shiny::Progress$new(session,min=1,
-                           max=length(fvsRun$stands)+10)
+                           max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
           detail = "Saving FVS Runs", value = 1)         
         saveRun()
 cat("Nulling uiRunPlot at Save and Run\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)
-        selChoices = names(globals$FVS_Runs) 
-        names(selChoices) = unlist(lapply(globals$FVS_Runs,function (x) x$title))
+        selChoices = names(globals$FVS_Runs)
+        names(selChoices) = globals$FVS_Runs
         updateSelectInput(session=session, inputId="runSel", 
             choices=selChoices,selected=selChoices[[1]])
         FVS_Runs = globals$FVS_Runs
         save (FVS_Runs,file="FVS_Runs.RData")
-        killIfRunning(fvsRun$uuid)
+        killIfRunning(globals$fvsRun$uuid)
         progress$set(message = "Run preparation: ", 
           detail = "Deleting old ouputs", value = 2)         
-        removeFVSRunFiles(fvsRun$uuid)
+        removeFVSRunFiles(globals$fvsRun$uuid)
         updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
-        writeKeyFile(fvsRun,dbGlb$dbIcon,prms)
-        dir.create(fvsRun$uuid)
+        writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms)
+        dir.create(globals$fvsRun$uuid)
         if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
         if (!file.exists(rFVSDir)) return()
@@ -2078,33 +2084,33 @@ cat("Nulling uiRunPlot at Save and Run\n")
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
-          runScript = paste0(fvsRun$uuid,".rscript")
+          runScript = paste0(globals$fvsRun$uuid,".rscript")
           rs = file(runScript,open="wt")
           cat ('options(echo=TRUE)\nlibrary(methods)\nlibrary(RSQLite)\n',file=rs)
           cat ('pid = Sys.getpid()\n',file=rs)
-          cmd = paste0('unlink("',fvsRun$uuid,'.db")')
+          cmd = paste0('unlink("',globals$fvsRun$uuid,'.db")')
           cat (cmd,"\n",file=rs)
-          cmd = paste0("title = '",fvsRun$title,"'")
+          cmd = paste0("title = '",globals$fvsRun$title,"'")
           cat (cmd,"\n",file=rs)                   
-          cmd = paste0("nstands = ",length(fvsRun$stands))
+          cmd = paste0("nstands = ",length(globals$fvsRun$stands))
           cat (cmd,"\n",file=rs)          
           cmd = paste0("for (rf in dir('",rFVSDir,
              "')) source(paste0('",rFVSDir,"',rf))")
           cat (cmd,"\n",file=rs)
           cmd = paste0("fvsLoad('",
-             fvsRun$FVSpgm,"',bin='",binDir,"')")
+             globals$fvsRun$FVSpgm,"',bin='",binDir,"')")
           cat (cmd,"\n",file=rs)
-          if (fvsRun$runScript != "fvsRun")
+          if (globals$fvsRun$runScript != "fvsRun")
           {
-            cmd = paste0("source('customRun_",fvsRun$runScript,".R')")
+            cmd = paste0("source('customRun_",globals$fvsRun$runScript,".R')")
             cat (cmd,"\n",file=rs)
-            cat ("runOps = ",deparse(fvsRun$uiCustomRunOps),"\n",file=rs)        
+            cat ("runOps = ",deparse(globals$fvsRun$uiCustomRunOps),"\n",file=rs)        
           }
-          cmd = paste0('fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key")')
+          cmd = paste0('fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key")')
           cat (cmd,"\n",file=rs)
-          runCmd = if (fvsRun$runScript == "fvsRun") "fvsRun()" else
-               paste0(fvsRun$runScript,"(runOps)")
-          pidfile = paste0(fvsRun$uuid,".pidStatus")
+          runCmd = if (globals$fvsRun$runScript == "fvsRun") "fvsRun()" else
+               paste0(globals$fvsRun$runScript,"(runOps)")
+          pidfile = paste0(globals$fvsRun$uuid,".pidStatus")
           cmd = 'cat (pid,"Starting title=",title,"\n")'
           cat (cmd,"\n",file=rs)       
           cmd = paste0('cat (pid,"Starting title=",title,file="',pidfile,'")')
@@ -2124,14 +2130,14 @@ cat ("runwaitback=",input$runwaitback,"\n")
           cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n",file="',pidfile,
                        '")')
           cat (cmd,"\n",file=rs)
-          cmd = paste0('addNewRun2DB("',fvsRun$uuid,'",dbOcon)')
+          cmd = paste0('addNewRun2DB("',globals$fvsRun$uuid,'",dbOcon)')
           cat (cmd,"\n",file=rs)
           cat ("dbDisconnect(dbOcon)\n",file=rs)
           cmd = paste0("unlink('",pidfile,"')")
           cat (cmd,"\n",file=rs)
           progress$set(message = "Run starting in background", 
               detail = "", value = 4)
-          unlink(paste0(fvsRun$uuid,".db"))
+          unlink(paste0(globals$fvsRun$uuid,".db"))
           close (rs)
           cmd = paste0("Rscript --no-restore --no-save --no-init-file ",runScript,
                        " > ",runScript,".Rout")
@@ -2151,26 +2157,26 @@ cat ("load rFVS cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()
         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
-             fvsRun$FVSpgm,"',bin='",binDir,"'))")
+             globals$fvsRun$FVSpgm,"',bin='",binDir,"'))")
 cat ("load FVSpgm cmd=",cmd,"\n")          
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()          
         # if not using the default run script, load the one requested.
     
-        if (fvsRun$runScript != "fvsRun")
+        if (globals$fvsRun$runScript != "fvsRun")
         {
           cmd = paste0("clusterEvalQ(fvschild,",
-               "source('customRun_",fvsRun$runScript,".R'))")
+               "source('customRun_",globals$fvsRun$runScript,".R'))")
 cat ("run script load cmd=",cmd,"\n")
           rtn = try(eval(parse(text=cmd)))
           if (class(rtn) == "try-error") return()        
-          runOps <<- if (is.null(fvsRun$uiCustomRunOps)) list() else 
-            fvsRun$uiCustomRunOps
+          runOps <<- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
+            globals$fvsRun$uiCustomRunOps
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
         cmd = paste0("clusterEvalQ(fvschild,",
-              'fvsSetCmdLine("--keywordfile=',fvsRun$uuid,'.key"))')
+              'fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key"))')
 cat ("load run cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd))) 
         if (class(rtn) == "try-error") return()
@@ -2183,13 +2189,13 @@ cat ("exiting, stop fvschild\n")
         #####
 cat ("at for start\n") 
         allSum = list()
-        for (i in 1:length(fvsRun$stands))
+        for (i in 1:length(globals$fvsRun$stands))
         {
-          detail = paste0("Stand ",i," StandId=",fvsRun$stands[[i]][["sid"]])          
+          detail = paste0("Stand ",i," StandId=",globals$fvsRun$stands[[i]][["sid"]])          
           progress$set(message = "FVS running", detail = detail, value = i+4) 
-          rtn = if (fvsRun$runScript != "fvsRun")
+          rtn = if (globals$fvsRun$runScript != "fvsRun")
             {
-              cmd = paste0("clusterEvalQ(fvschild,",fvsRun$runScript,"(runOps))")
+              cmd = paste0("clusterEvalQ(fvschild,",globals$fvsRun$runScript,"(runOps))")
 cat ("custom run cmd=",cmd,"\n")              
               try(eval(parse(text=cmd)))
             } else try(clusterEvalQ(fvschild,fvsRun()))
@@ -2208,8 +2214,8 @@ cat ("rn=",rn,"\n")
         if (rtn == 0) clusterEvalQ(fvschild,fvsRun())        
         stopCluster(fvschild)
         progress$set(message = "Scanning output for errors", detail = "", 
-                    value = length(fvsRun$stands)+4)
-        errScan = try(errorScan(paste0(fvsRun$uuid,".out")))
+                    value = length(globals$fvsRun$stands)+4)
+        errScan = try(errorScan(paste0(globals$fvsRun$uuid,".out")))
         if (class(errScan) == "try-error") errScan = 
           "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
@@ -2217,26 +2223,26 @@ cat ("rn=",rn,"\n")
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(paste(errScan,"<br>"))))
-        if (length(dir(fvsRun$uuid)) == 0) file.remove(fvsRun$uuid)
-        progress$set(message = if (length(allSum) == length(fvsRun$stands))
+        if (length(dir(globals$fvsRun$uuid)) == 0) file.remove(globals$fvsRun$uuid)
+        progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
                     "FVS finished" else
                     "FVS run failed", detail = "", 
-                    value = length(fvsRun$stands)+5)
+                    value = length(globals$fvsRun$stands)+5)
         Sys.sleep(.1)       
 cat ("length(allSum)=",length(allSum),"\n")
         if (length(allSum) == 0) {Sys.sleep(.4); return()}
         progress$set(message = "FVS finished",  
                      detail = "Merging output to master database",
-                     value = length(fvsRun$stands)+6)
-        res = addNewRun2DB(fvsRun$uuid,dbGlb$dbOcon)
+                     value = length(globals$fvsRun$stands)+6)
+        res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
 cat ("addNewRun2DB res=",res,"\n")
-        unlink(paste0(fvsRun$uuid,".db"))
+        unlink(paste0(globals$fvsRun$uuid,".db"))
         X = vector("numeric",0)
         hfacet = vector("character",0)
         Y = vector("numeric",0)
         Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
-                     value = length(fvsRun$stands)+6)
+                     value = length(globals$fvsRun$stands)+6)
         for (i in 1:length(allSum)) 
         {
           X = c(X,rep(allSum[[i]][,"Year"],2))
@@ -2274,7 +2280,7 @@ cat ("addNewRun2DB res=",res,"\n")
         output$runPlot <- renderImage(list(src="quick.png", width=(width+1)*144, 
                 height=(height+1)*144), deleteFile=TRUE)
 cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
-        globals$currentQuickPlot = fvsRun$uuid
+        globals$currentQuickPlot = globals$fvsRun$uuid
       }
     })
   })
@@ -2569,13 +2575,12 @@ cat ("FVSRefresh\n")
   observe({
     if(input$deleteRun > 0)
     {
-      if (is.null(input$runSel) || 
-          is.null(globals$FVS_Runs[[input$runSel]])) return()
       isolate({
-        tit = globals$FVS_Runs[[input$runSel]]$title
+        tit = globals$fvsRun$title
         session$sendCustomMessage(type = "dialogContentUpdate",
           message = list(id = "deleteRunDlg", 
-            message = paste0('Delete run: "',tit,'." Are you sure?')))
+            message = paste0('Delete run "',
+            globals$fvsRun$title,'" (and all related outputs)?')))
       })
     }
   })
@@ -2583,23 +2588,24 @@ cat ("FVSRefresh\n")
     if (input$deleteRunDlgBtn > 0)
     {
       isolate({
-cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
- "lenRuns=",length(globals$FVS_Runs),"\n")                           
-        if (is.null(input$runSel) || length(globals$FVS_Runs) == 0 || 
-            is.null(globals$FVS_Runs[[input$runSel]])) return() 
-        globals$FVS_Runs[[input$runSel]] = NULL
-        killIfRunning(input$runSel)
-        removeFVSRunFiles(input$runSel)
-        deleteRelatedDBRows(input$runSel,dbGlb$dbOcon)
-        FVS_Runs = globals$FVS_Runs
-        save (FVS_Runs,file="FVS_Runs.RData")
+cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid," runSel=",input$runSel,
+ "lenRuns=",length(globals$FVS_Runs),"\n")
+        globals$FVS_Runs[[globals$fvsRun$uuid]] = NULL
+        killIfRunning(globals$fvsRun$uuid)
+        removeFVSRunFiles(globals$fvsRun$uuid,all=TRUE)
+        deleteRelatedDBRows(globals$fvsRun$uuid,dbGlb$dbOcon)
+        if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
+        {
+          FVS_Runs = globals$FVS_Runs
+          save (file="FVS_Runs.RData",FVS_Runs)
+        }
         if (file.exists("projectId.txt"))
         {
           prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
           write(file="projectId.txt",prjid)
         } 
         globals$saveOnExit = FALSE
-            output$locReload<-renderUI(tags$script("location.reload();"))
+        output$locReload<-renderUI(tags$script("location.reload();"))
       })
     }
   })
@@ -2611,7 +2617,7 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
     {
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "deleteAllRunsDlg",
-                  message = "Delete all runs! Are you sure?"))
+                  message = "Delete all runs and outputs?"))
     }
   })
   observe({  
@@ -2620,14 +2626,9 @@ cat ("delete run",fvsRun$title," uuid=",fvsRun$uuid," runSel=",input$runSel,
 cat ("delete all runs\n")
       rmfiles=dir(pattern="[.]pidStatus$")      
       for (tokill in rmfiles) killIfRunning(sub(".pidStatus","",tokill))
-      file.remove("FVSOut.db")
-      file.remove("FVS_Runs.RData")
-      rmfiles=dir(pattern="[.]key$")      
-      rmfiles=gsub ("[.]key$","*",rmfiles)
-      if (length(rmfiles)) unlink(rmfiles,recursive=TRUE)
-      rmfiles=dir(pattern="[.]out$")      
-      rmfiles=gsub ("[.]out$","*",rmfiles)                                  
-      if (length(rmfiles)) unlink(rmfiles,recursive=TRUE)
+      unlink("FVSOut.db")
+      unlink("FVS_Runs.RData")
+      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       globals$saveOnExit = FALSE
       output$locReload<-renderUI(tags$script("location.reload();"))
     })  
@@ -3501,21 +3502,21 @@ cat ("in customRunOps runScript is empty\n")
         return()
       }  
 cat ("in customRunOps runScript: ",input$runScript,"\n")
-      fvsRun$runScript = input$runScript
+      globals$fvsRun$runScript = input$runScript
       output$uiCustomRunOps = renderUI(NULL)    
       if (input$runScript != "fvsRun")
       {
-        rtn = try(source(paste0("customRun_",fvsRun$runScript,".R")))
+        rtn = try(source(paste0("customRun_",globals$fvsRun$runScript,".R")))
         if (class(rtn) == "try-error") return()
-        uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",fvsRun$runScript)))))
+        uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",globals$fvsRun$runScript)))))
         if (class(uiF) != "function") return()
         output$uiCustomRunOps = renderUI(uiF(fvsRun))
       } else {
-        fvsRun$uiCustomRunOps = list()
+        globals$fvsRun$uiCustomRunOps = list()
       }
-if (length(fvsRun$uiCustomRunOps)) lapply(names(fvsRun$uiCustomRunOps), function (x,y)
-cat ("fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),fvsRun$uiCustomRunOps) else
-cat ("fvsRun$uiCustomRunOps is empty\n")
+if (length(globals$fvsRun$uiCustomRunOps)) lapply(names(globals$fvsRun$uiCustomRunOps), function (x,y)
+cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$uiCustomRunOps) else
+cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     })
   }
 
@@ -3523,24 +3524,24 @@ cat ("fvsRun$uiCustomRunOps is empty\n")
   saveRun <- function() 
   {
     isolate({
-cat ("in saveRun\n")    
+cat ("in saveRun\n") 
       if (input$title == "")
       {
-        fvsRun$title = fvsRun$uuid
-        updateTextInput(session=session, inputId="title", value=fvsRun$title)
-      } else fvsRun$title = input$title
-      fvsRun$title = input$title
-      fvsRun$defMgmtID = input$defMgmtID
-      fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
-      if (fvsRun$runScript == "fvsRun") fvsRun$uiCustomRunOps = list() else
+        if (globals$fvsRun$title == "") globals$fvsRun$title = paste("Run",length(globals$FVS_Runs))
+        updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
+      } 
+      globals$fvsRun$title = input$title
+      globals$fvsRun$defMgmtID = input$defMgmtID
+      globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
+      if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
       {
-        for (item in names(fvsRun$uiCustomRunOps))
-        {
-          fvsRun$uiCustomRunOps[[item]] = input[[item]]
-cat("during saveRun, item=",item," val=",fvsRun$uiCustomRunOps[[item]],"\n")    
-        }
+        for (item in names(globals$fvsRun$uiCustomRunOps))
+          globals$fvsRun$uiCustomRunOps[[item]] = input[[item]]
       }
-      globals$FVS_Runs[[fvsRun$uuid]] = asList(fvsRun)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+      saveFvsRun = globals$fvsRun
+      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)    
     }) 
   }

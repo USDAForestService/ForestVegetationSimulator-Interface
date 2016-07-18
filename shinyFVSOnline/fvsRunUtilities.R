@@ -38,7 +38,7 @@ mkglobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list"))
+    customQueries = "list", fvsRun = "fvsRun"))
 
 loadVarData <- function(globals,prms,dbIcon)
 {
@@ -62,46 +62,6 @@ loadVarData <- function(globals,prms,dbIcon)
   } 
 }
 
-
-asList <- function(rc)
-{
-  cpcmp <- function (incmp)
-  {
-    cmpnames <- names(mkfvsCmp$fields())
-    cmp <- vector("list",length(cmpnames))
-    names(cmp) = cmpnames
-    for (name in cmpnames) cmp[[name]] = incmp[[name]]
-    cmp
-  }
-  onames   <- names(mkfvsRun$fields())
-  stdnames <- names(mkfvsStd$fields())
-  grpnames <- names(mkfvsGrp$fields())
-  out <- vector("list",length(onames))
-  names(out) = onames
-  for (name in onames) out[[name]] = rc[[name]]
-  if (length(rc$stands)) for (i in 1:length(rc$stands))
-  {
-    std <- vector("list",length(stdnames))
-    names(std) = stdnames
-    for (name in stdnames) std[[name]] = rc$stands[[i]][[name]]
-    if (length(std$cmps)) for (cp in 1:length(std$cmps))
-      std$cmps[[cp]] = cpcmp(std$cmps[[cp]])
-    if (length(std$grps)) for (gr in 1:length(std$grps))
-      std$grps[[gr]] = std$grps[[gr]]$uuid
-    out$stands[[i]] = std
-  }
-  if (length(rc$grps)) for (i in 1:length(rc$grps))
-  {
-    grp <- vector("list",length(grpnames))
-    names(grp) = grpnames
-    for (name in grpnames) grp[[name]] = rc$grps[[i]][[name]]
-    if (length(grp$cmps)) for (cp in 1:length(grp$cmps))
-      grp$cmps[[cp]] = cpcmp(grp$cmps[[cp]])
-    out$grps[[i]] = grp
-  }
-  attr(out,"time") = as.integer(Sys.time())
-  out  
-}
 
 reorderFVSRuns <- function(FVS_Runs)
 {
@@ -224,14 +184,16 @@ cat ("kill cmd =",cmd,"\n")
 }
     
    
-removeFVSRunFiles = function (uuid)
+removeFVSRunFiles = function (uuid,all=FALSE)
 {
   if (file.exists(uuid)) 
   {
     file.remove(paste0(uuid,"/",dir(uuid)))
     file.remove(uuid)
   }
-  file.remove(dir(pattern=uuid))
+  fls = dir(pattern=uuid)
+  if (!all) fls = setdiff(fls,paste0(uuid,".RData"))
+  file.remove(fls)
 }
 
 
