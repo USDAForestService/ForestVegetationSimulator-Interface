@@ -44,6 +44,7 @@ FVSOnlineNeeded = c(
 "editDataUtilities.R",
 "FVS_Data.db.default",
 "FVS_Data.db.empty",
+"fvsOnlineHelp.html",
 "fvsOutUtilities.R",
 "fvsRunUtilities.R",
 "mkInputElements.R",
@@ -53,7 +54,6 @@ FVSOnlineNeeded = c(
 "runScripts.R",
 "server.R", 
 "sqlQueries.R",
-"topHelp.R",
 "ui.R",
 "www")
 

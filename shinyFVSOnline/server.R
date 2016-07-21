@@ -2706,9 +2706,10 @@ cat ("backup=",backup,"\n")
   ##topHelp
   observe({
     if (input$topPan == "Help")
-    { 
-      source("topHelp.R")     
-      output$uiHelpText <- renderUI(HTML(topHelp))
+    {
+      fn = "fvsOnlineHelp.html"
+      help = readChar(fn, file.info(fn)$size)     
+      output$uiHelpText <- renderUI(HTML(help))
     }
   })
   
