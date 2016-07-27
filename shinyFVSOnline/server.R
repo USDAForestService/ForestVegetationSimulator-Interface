@@ -349,32 +349,16 @@ cat("Custom Query\n")
     }
   })
      
-  ## sqlSaveSubmit
+  ## sqlRunQuery
   observe({ 
-    if (input$sqlSaveSubmit > 0)
+    if (input$sqlRunQuery > 0)
     {
-cat ("sqlSaveSubmit\n")      
+cat ("sqlRunQuery\n")      
       isolate({
         msgtxt = character(0)
-        if (is.null(input$sqlTitle) || input$sqlTitle == "")
-        {
-          newTit = paste0("Query ",length(globals$customQueries)+1) 
-          updateTextInput(session=session, inputId="sqlTitle", value=newTit)
-        } else newTit = input$sqlTitle
-cat ("sqlSaveSubmit, newTit=",newTit,"\n")       
-        globals$customQueries[[newTit]] = input$sqlQuery
-        customQueries = globals$customQueries
-        save(file="customQueries.RData",customQueries)
-
         qrys = trim(scan(text=gsub("\n"," ",input$sqlQuery),
                     sep=";",what="",quote="",quiet=TRUE))
-
-        sels = as.list(as.character(1:length(globals$customQueries)))
-        names(sels) = names(globals$customQueries)
-        updateSelectInput(session=session, inputId="sqlSel", choices=sels,
-           selected = as.character(match(newTit,names(sels))))
-        output$table <- renderTable(NULL)
-        
+        output$table <- renderTable(NULL)        
         iq = 0
         dfrtn = NULL
         for (qry in qrys) 
@@ -427,6 +411,35 @@ cat ("sqlSaveSubmit, newTit=",newTit,"\n")
       })
     }
   })
+
+## sqlSave      
+  observe({ 
+    if (input$sqlSave > 0)
+    {
+cat ("sqlSave\n")      
+      isolate({
+        if (is.null(input$sqlTitle) || input$sqlTitle == "")
+        {
+          newTit = paste0("Query ",length(globals$customQueries)+1) 
+          updateTextInput(session=session, inputId="sqlTitle", value=newTit)
+        } else newTit = input$sqlTitle  
+       globals$customQueries[[newTit]] = input$sqlQuery
+        customQueries = globals$customQueries
+        save(file="customQueries.RData",customQueries)
+        if (length(globals$customQueries) == 0) 
+        {
+          updateSelectInput(session=session, inputId="sqlSel", 
+                            choices=list(),selected=0)
+        } else {
+          sels = as.list(as.character(1:length(globals$customQueries)))
+          names(sels) = names(globals$customQueries)
+          updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
+             selected = 0)
+        }
+      })
+    }
+  })
+
     
   ## sqlSel
   observe({  
