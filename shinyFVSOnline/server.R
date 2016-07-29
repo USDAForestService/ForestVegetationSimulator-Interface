@@ -439,8 +439,7 @@ cat ("sqlSave\n")
       })
     }
   })
-
-    
+   
   ## sqlSel
   observe({  
 cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
@@ -1099,6 +1098,9 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
                      value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont", 
           choices=list(), selected=NULL)
+      output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
+        length(globals$fvsRun$stands)," stand(s)<br>",
+        length(globals$fvsRun$grps)," group(s)")))
       updateSelectInput(session=session, inputId="addCategories", 
           choices=list(), selected=NULL)
       updateSelectInput(session=session, inputId="addComponents", 
@@ -1233,6 +1235,9 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
+        length(globals$fvsRun$stands)," stand(s)<br>",
+        length(globals$fvsRun$grps)," group(s)")))
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
@@ -1414,6 +1419,9 @@ cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
         mkSimCnts(globals$fvsRun)
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
+          length(globals$fvsRun$stands)," stand(s)<br>",
+          length(globals$fvsRun$grps)," group(s)")))        
         progress$close()
       })
     }
@@ -1496,6 +1504,9 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
+          length(globals$fvsRun$stands)," stand(s)<br>",
+          length(globals$fvsRun$grps)," group(s)")))
         updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
           selected=if (length(globals$pastelistShadow)) 
@@ -1546,6 +1557,9 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         mkSimCnts(globals$fvsRun)   
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
+          length(globals$fvsRun$stands)," stand(s)<br>",
+          length(globals$fvsRun$grps)," group(s)")))
       }
     })
   })

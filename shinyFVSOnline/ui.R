@@ -56,13 +56,13 @@ shinyUI(fixedPage(
              '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator ',headstr,'</h3>'))),
     column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
-    # created a column just to add these invisible elements
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
       uiOutput("locReload"),
+      uiOutput("contCnts"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
   ) ),
   fixedRow(column(width=12,offset=0,
