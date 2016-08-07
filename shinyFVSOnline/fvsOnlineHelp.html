@@ -1,63 +1,57 @@
 <h4><a name="contents"></a>Contents</h4>
 <ul>
-	<li>
-<p style="margin-bottom: 0in"><a href="#intro">Introduction</a>
+	<li><p style="margin-bottom: 0in"><a href="#intro">Introduction</a>
 		</p>
-	<li>
-<p style="margin-bottom: 0in"><a href="#topmenu">Top menu
+	<li><p style="margin-bottom: 0in"><a href="#topmenu">Top menu
 	items</a> 
 	</p>
 	<ul>
-		<li>
-<p style="margin-bottom: 0in"><a href="#tmruns">Runs</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmruns">Runs</a> 
 		</p>
-		<li>
-<p style="margin-bottom: 0in"><a href="#tmout">Process
+		<li><p style="margin-bottom: 0in"><a href="#tmout">Process
 		Outputs</a> 
 		</p>
-		<li>
-<p style="margin-bottom: 0in"><a href="#tmin">Input Database</a>
+		<li><p style="margin-bottom: 0in"><a href="#tmin">Input Database</a>
 				</p>
-		<li>
-<p><a href="#tmtool">Tools</a> 
+		<li><p><a href="#tmtool">Tools</a> 
 		</p>
 	</ul>
 </ul>
 <h4><a name="intro"></a>Introduction</h4>
-<p><b>FVSOnline</b> is an interface to the <a href="http://www.fs.fed.us/fmsc/fvs/" target="_blank">Forest
-Vegetation Simulator (FVS)</a>. FVS takes a file of commands and
+<p><b>FVSOnline</b> is an interface to the <a href="http://www.fs.fed.us/fmsc/fvs/" target="_blank">
+Forest Vegetation Simulator (FVS)</a>. FVS takes a file of commands and
 input data and produces predictions of forest conditions in the
 future. This interface is used to set up the file of commands, run
 FVS, and then explore the outputs. The input data are measurements of
 trees stored in an input database. Tools for installing and editing
 that database are included.</p>
-<p>These instructions assume that you are <a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf">already
-familiar with FVS</a>. 
+<p>These instructions assume that you are 
+<a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf" target="_blank">
+already familiar with FVS</a>. 
 </p>
 <p>The interface was designed to run in a true client/server
 configuration, whereby the data and software are stored on a server
 and the user interaction is through a web browser. However, the
-software can also be installed on personal computer or in a <a href="https://www.citrix.com/" target="_blank">Citrix</a>
+software can also be installed on personal computer or in a 
+<a href="https://www.citrix.com/" target="_blank">Citrix</a>
 (or similar) system. The interaction is still through a web browser,
 but the software, inputs and outputs, are all stored on the "personal computer".
 This configuration is called FVSOnlocal. For more information on the
-software and supporting software requirements see the <a href="https://sourceforge.net/p/open-fvs/wiki/FVSOnline/" target="_blank">wiki
-on FVSOnline</a>.</p>
+software and supporting software requirements see the 
+<a href="https://sourceforge.net/p/open-fvs/wiki/FVSOnline/" target="_blank">
+wiki on FVSOnline</a>.</p>
 <p><i>Hints</i> for first time users:</p>
 <ul>
-	<li>
-<p style="margin-bottom: 0in">Use the default input database
+	<li><p style="margin-bottom: 0in">Use the default input database
 	while learning, load your own data once you're comfortable using the
 	interface. Note that there is a command under the <b>Tools</b> menu
 	that lets you delete all runs and related outputs so you can easily
 	start fresh with your own data. 
 	</p>
-	<li>
-<p style="margin-bottom: 0in">Use default settings and options
+	<li><p style="margin-bottom: 0in">Use default settings and options
 	until you need to change them. 
 	</p>
-	<li>
-<p>Exploring the system is the best way to learn while reading
+	<li><p>Exploring the system is the best way to learn while reading
 	this documentation might be helpful after you have some experience. 
 	</p>
 </ul>
@@ -65,44 +59,41 @@ on FVSOnline</a>.</p>
 </p>
 <h4><a name="topmenu"></a>Top menu items</h4>
 <ul>
-	<li>
-<p style="margin-bottom: 0in"><b>Runs: </b>Set up and make FVS
+	<li><p style="margin-bottom: 0in"><b>Runs: </b>Set up and make FVS
 	simulations; the outputs go to an output database. 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Process Outputs: </b>Make
+	<li><p style="margin-bottom: 0in"><b>Process Outputs: </b>Make
 	tables, graphs and reports using the outputs stored in the output
 	database. 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Input Database: </b>Load (or
+	<li><p style="margin-bottom: 0in"><b>Input Database: </b>Load (or
 	edit) the input database. 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Tools: </b>Access commands to
+	<li><p style="margin-bottom: 0in"><b>Tools: </b>Access commands to
 	download data, update software, and delete all runs. 
 	</p>
-	<li>
-<p><b>Help: </b>Display this help. 
+	<li><p><b>Help: </b>Display this help. 
 	</p>
 </ul>
 <h4><a name="tmruns"></a>Runs</h4>
-<p>When the <span style="font-style: normal"><b>Runs</b></span><span style="font-style: normal"><span style="font-weight: normal">
+<p>When the <b>Runs</b>
 menu is selected the screen is divided into two regions, left and
-right. The left side contains the </span></span><span style="font-style: normal"><b>Selected
-run</b></span><span style="font-style: normal"><span style="font-weight: normal">
-list and buttons to create new runs, reload a selected run, save it, duplicate it (more on that later), or
-delete it. The title of the selected run is displayed in a text box
-(you can change it to whatever you wish) and the run’s </span></span><span style="font-style: normal"><b>Contents</b></span><span style="font-style: normal"><span style="font-weight: normal">
+right. The left side contains the <b>Selected
+run</b>
+list and buttons to create new runs, reload a selected run, save it, duplicate it 
+(more on that later), or delete it. The title of the selected run is displayed in a text box
+(you can change it to whatever you wish) and the run’s <b>Contents</b>
 are listed below. There are buttons and other tools below the
-</span></span><span style="font-style: normal"><b>Contents</b></span><span style="font-style: normal"><span style="font-weight: normal">
-that are <a href="#leftSideRun">described below</a>.</span></span></p>
-<p><span style="font-style: normal"><span style="font-weight: normal">The
-right side contains a secondary menu, used to </span></span>select
+<b>Contents</b>
+that are <a href="#leftSideRun">described below</a>.</p>
+<p>The
+right side contains a secondary menu, used to select
 <b>Stands</b> and add <b>Components</b>. Stands are the simulation
-units defined in the <a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf">input
-database</a> and components are sets of <a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf">FVS
-keywords</a> (also called commands) that that instruct FVS to invoke
+units defined in the 
+<a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
+input database</a> and components are sets of 
+<a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf" target="_blank">
+FVS keywords</a> (also called commands) that that instruct FVS to invoke
 options or to simulate management activities. The stands and
 components will be added to the <b>Contents</b> list on the left. 
 </p>
@@ -119,24 +110,19 @@ repetition.
 associated form, and then saving them. Components are accessed by
 first selecting component type:</p>
 <ul>
-	<li>
-<p style="margin-bottom: 0in"><b>Management</b> for specifying
+	<li><p style="margin-bottom: 0in"><b>Management</b> for specifying
 	management actions 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Modifiers</b> for specify
+	<li><p style="margin-bottom: 0in"><b>Modifiers</b> for specify
 	changes in the FVS predictions 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Outputs</b> for FVS output
+	<li><p style="margin-bottom: 0in"><b>Outputs</b> for FVS output
 	controls 
 	</p>
-	<li>
-<p style="margin-bottom: 0in"><b>Keywords</b> for direct
+	<li><p style="margin-bottom: 0in"><b>Keywords</b> for direct
 	access to all FVS keywords 
 	</p>
-	<li>
-<p><b>Your components</b> to access components you build or
+	<li><p><b>Your components</b> to access components you build or
 	load (using Build Components). 
 	</p>
 </ul>
@@ -152,26 +138,21 @@ alternative run scripts; these are used to implement alternative
 models within the FVS framework. Note that when you rerun a run, the
 interface clears the output from the previous time you made the run
 so that the output database contains the most recently generated
-output. If you use the <i>Wait for run</i><span style="font-variant: normal">
-</span><span style="font-variant: normal"><span style="font-style: normal">option,
+output. If you use the <i>Wait for run</i>option,
 the interface will scan the FVS output file for error messages and
-display any it finds in the interface. The </span></span><i>Run in
-background</i><span style="font-variant: normal"> </span><span style="font-variant: normal"><span style="font-style: normal">option
-does not provide that service. However, there is a download button
-useful for downloading the FVS “.out” file.</span></span></p>
+display any it finds in the interface. The <i>Run in
+background</i> option does not provide that service. However, there is a download button
+useful for downloading the FVS “.out” file.</p>
 <p><b>Build Components</b> is used to build or upload FVS keyword
 sets (sometimes called .kcp files). You name them and you can add
-them to simulations using the <i>Your components</i><span style="font-variant: normal">
-</span><span style="font-variant: normal"><span style="font-style: normal">component
-type. </span></span><span style="font-variant: normal"><span style="font-style: normal">Note
-that building components using this tool does not automatically add
+them to simulations using the <i>Your components</i>component
+type. Notethat building components using this tool does not automatically add
 them to the current simulation. They are saved in the system and can
-be added to any of the runs. </span></span>
+be added to any of the runs. 
 </p>
-<p><span style="font-variant: normal"><span style="font-style: normal"><a href="#leftSideRun">Here
-are more details</a> on the left side elements when </span></span><span style="font-variant: normal"><span style="font-style: normal"><b>Runs</b></span></span><span style="font-variant: normal"><span style="font-style: normal"><span style="font-weight: normal">
-is selected in the main manu</span></span></span><span style="font-variant: normal"><span style="font-style: normal">.
- </span></span>
+<p id="leftSideRun">Here
+are more details on the left side elements when <b>Runs</b>
+is selected in the main manu.
 </p>
 <p>The Duplicate command found near the top of the left side deserves
 some explanation. Lets say you have made a simulation for a
@@ -179,13 +160,11 @@ collection of stands using set of components and you wish to make
 another run with different components or different settings in
 existing components (for example, setting different residual
 densities on thinning options). Your idea is that you want to compare
-the results. In this case you should <i>duplicate</i><span style="font-variant: normal">
-</span><span style="font-variant: normal"><span style="font-style: normal">the
-first run, giving the duplicate a new name and then edit the
+the results. In this case you should <i>duplicate</i>
+the first run, giving the duplicate a new name and then edit the
 duplicate. You can run and rerun any of the runs as often as you wish
-</span></span><span style="font-variant: normal"><span style="font-style: normal">and
-you can compare the outputs after the simulations are run.</span></span></p>
-<p><span style="font-variant: normal"><span style="font-style: normal">The
+and you can compare the outputs after the simulations are run.</p>
+<p>The
 buttons found below the Contents list can be used to remove a stand,
 group, or component. If a component is removed it is added to a paste
 list. To paste one of these components into the run, first select the
@@ -195,18 +174,18 @@ the selected stand or group, or directly after the selected
 component. You can also edit existing components or convert
 components from there formatted state that allows them to be edited
 using the same form used to create them or they can be converted to
-</span></span><span style="font-variant: normal"><i>freeform</i></span><span style="font-variant: normal"><span style="font-style: normal">
+<i>freeform</i>
 that allows them to be directly modified (most useful for experts who
-know the <a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/keyword.pdf">FVS
-keywords</a>). Sometimes components are in the </span></span><span style="font-variant: normal"><i>freeform</i></span><span style="font-variant: normal"><span style="font-style: normal">
-state from the beginning.  </span></span>
+know the <a href="http://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/keyword.pdf" target="_blank">FVS
+keywords</a>). Sometimes components are in the <i>freeform</i>
+state from the beginning.  
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a name="tmout"></a>Process Outputs</h4>
 <p>Left and right secondary menus occupy the left and right side of
-the screen when the <b>Process Outputs</b><span style="font-style: normal"><span style="font-weight: normal">
-menu is selected. Using the left menu, </span></span><b>Load</b>
+the screen when the <b>Process Outputs</b>
+menu is selected. Using the left menu, <b>Load</b>
 output to select the runs you want to explore. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
@@ -216,8 +195,8 @@ stand and stock tables (table name StdStk) are also created. If you
 wish, you can limit the database columns you want to explore but the
 default is to select all the columns from selected tables. The system
 automatically merges (joins) the data from the selected tables so you
-can explore variables from different tables when you <b>Explore </b><span style="font-weight: normal">the
-data you selected</span>. The data can be displayed as <b>Tables</b>
+can explore variables from different tables when you <b>Explore</b> the
+data you selected. The data can be displayed as <b>Tables</b>
 or <b>Graphs</b> depending on the selections on the right-hand
 secondary menu.</p>
 <p><b>Explore Data </b>menu item is used to further control which
@@ -228,16 +207,16 @@ years, species and DBHClasses. You can also turn variables on or off
 limiting the columns being displayed in tables and those available
 for graphing. 
 </p>
-<p>When <b>Tables</b><span style="font-weight: normal"> are
+<p>When <b>Tables</b> are
 displayed, you can use tools to change a categorical variable (such
 as stand or management identifications) into a column and display a
 variable’s value under that column. Tables can be download as .csv
 files (easily opened using Excel or other spreadsheet programs). Note
 that the number of lines displayed in the table is limited, however,
-when the table is downloaded, all lines are included. </span>
+when the table is downloaded, all lines are included. 
 </p>
-<p><span style="font-weight: normal">The</span> <b>Graphs</b> <span style="font-weight: normal">menu
-item </span><span style="font-weight: normal">on the right </span><span style="font-weight: normal">provides
+<p>The <b>Graphs</b> menu
+item on the right provides
 access to graphing tools that operate on the data displayed in the
 table. FVSOnline contains limited logic to preselect settings
 depending on the data being analyzed. Your changes are kept until you
@@ -245,21 +224,21 @@ go back are reselect the data you want to analyze. The best way to
 learn how the graphing tool works it to experiment. Note that making
 some selections sometimes changes others. For example, if you change
 the vertical facet to the same setting as the horizontal facet, your
-selection will be automatically adjusted to </span><i><span style="font-weight: normal">None</span></i><span style="font-variant: normal"><span style="font-style: normal"><span style="font-weight: normal">.
+selection will be automatically adjusted to <i>None</i>.
 Also note that when there are too many levels for a variable—such
 as too many stands—then the system blocks the use of the variable
 for faceting. Similar limits control the size of the legend that is
-created when you select a </span></span></span><span style="font-variant: normal"><i><span style="font-weight: normal">Plot
-by</span></i></span><span style="font-variant: normal"> </span><span style="font-variant: normal"><span style="font-style: normal"><span style="font-weight: normal">variable.
+created when you select a <i>Plot
+by</i> variable.
 If you want to keep a graph you can cut-and-paste it from your
 browser to some other software, or add it to a custom report,
-described next.</span></span></span></p>
-<p style="font-variant: normal; font-style: normal"><span style="font-weight: normal">The
-</span><b>Reports</b> <span style="font-weight: normal">menu item </span><span style="font-weight: normal">on
-the right </span><span style="font-weight: normal">provides access to
-a report building feature of the system. You start (or restart)</span>
-<span style="font-weight: normal">a new report using the </span><i><span style="font-weight: normal">Restart
-custom report</span></i> <span style="font-weight: normal">button.
+described next.</p>
+<p style="font-variant: normal; font-style: normal">The
+<b>Reports</b> menu item on
+the right provides access to
+a report building feature of the system. You start (or restart)
+a new report using the <i>Restart
+custom report</i> button.
 There are buttons in the Tables and Graphs ares where you can add
 tables and graphs to the report (they are added in the order
 specified). The report is converted to a .docx file and downloaded
@@ -267,16 +246,16 @@ for you to further edit. A future feature of the interface could
 provide for automatic generation of reports useful for specific
 purposes whereby builtin tools would generated tables, graphs, or
 both along with a narrative that you could then edit to meet your
-specific needs.</span></p>
+specific needs.</p>
 <p><b>Custom Query</b> provides to build and run SQL queries that run
 on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
 database. The tabular output from those queries is displayed as a
 table and that data can be graphed. Note that SQLite3 allows the
 attachment additional databases. For example, the input database can
 be attached and tables from the input can then be joined to tables in
-the output. A <i>query</i><span style="font-variant: normal"> </span><span style="font-variant: normal"><span style="font-style: normal">can
+the output. A <i>query</i> can
 actually be several queries each separated by a semicolon. They can
-be stored and recovered for later use. </span></span>
+be stored and recovered for later use. 
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
@@ -304,10 +283,10 @@ given null values.</p>
 <p><a href="#contents">Back to contents</a></p>
 <h4><a name="tmtool"></a>Tools</h4>
 <p>Tools are provided that provide the ability to download the input
-or output databases. The <i>Keyword file </i><span style="font-variant: normal"><span style="font-style: normal">for
+or output databases. The <i>Keyword file </i>for
 the current run can also be downloaded. Thre is also a facility for
 setting up and downloading a .zip file that contains sevaral optional
-elements. </span></span>
+elements. 
 </p>
 <p style="font-variant: normal; font-style: normal">The FVS programs
 (variants) that are available to choice from can be selected for
