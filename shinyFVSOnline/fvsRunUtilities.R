@@ -821,11 +821,10 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
       {
         for(toRm in fvsRun$stands[[i]]$cmps)
         { 
-          globals$pastelist <- append(globals$pastelist,toRm)
+          globals$pastelist <- append(globals$pastelist,toRm,after=0)
           globals$pastelistShadow <- append(globals$pastelistShadow,
-            toRm$uuid)
-          names(globals$pastelistShadow)[length(globals$pastelistShadow)] = 
-            toRm$kwdName
+            toRm$uuid,after=0)
+          names(globals$pastelistShadow)[1] = toRm$title
         }
       }
       fvsRun$stands[[i]] = NULL
@@ -842,11 +841,10 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
       {
         for(toRm in fvsRun$grps[[i]]$cmps)
         { 
-          globals$pastelist <- append(globals$pastelist,toRm)
+          globals$pastelist <- append(globals$pastelist,toRm,after=0)
           globals$pastelistShadow <- append(globals$pastelistShadow,
-            toRm$uuid)
-          names(globals$pastelistShadow)[length(globals$pastelistShadow)] = 
-            toRm$kwdName
+            toRm$uuid,after=0)
+          names(globals$pastelistShadow)[1] = toRm$title
         }
       }
       fvsRun$grps[[i]] = NULL
@@ -871,10 +869,9 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
             (!is.null(atag) && fvsRun$grps[[i]]$cmps[[j]]$atag == atag))
         {
           toRm = fvsRun$grps[[i]]$cmps[[j]]
-          globals$pastelist <- append(globals$pastelist,toRm)
-          globals$pastelistShadow <- append(globals$pastelistShadow,toRm$uuid)
-          names(globals$pastelistShadow)[length(globals$pastelistShadow)] = 
-            toRm$kwdName
+          globals$pastelist <- append(globals$pastelist,toRm,after=0)
+          globals$pastelistShadow <- append(globals$pastelistShadow,toRm$uuid,after=0)
+          names(globals$pastelistShadow)[1] = toRm$title
           fvsRun$grps[[i]]$cmps[[j]] = NULL
           if (toRm$atag == "c") repeat 
             if (!moveToPaste(NULL,globals,fvsRun,atag=toRm$uuid)) break
@@ -893,11 +890,9 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
             (!is.null(atag) && fvsRun$stands[[i]]$cmps[[j]]$atag == atag))
         {
           toRm = fvsRun$stands[[i]]$cmps[[j]]
-          globals$pastelist <- append(globals$pastelist,toRm)
-          globals$pastelistShadow <- append(globals$pastelistShadow,
-            toRm$uuid)
-          names(globals$pastelistShadow)[length(globals$pastelistShadow)] = 
-            toRm$kwdName
+          globals$pastelist <- append(globals$pastelist,toRm,after=0)
+          globals$pastelistShadow <- append(globals$pastelistShadow,toRm$uuid,after=0)
+          names(globals$pastelistShadow)[1] = toRm$title
           fvsRun$stands[[i]]$cmps[[j]] = NULL
           if (toRm$atag == "c") repeat 
             if (!moveToPaste(NULL,globals,fvsRun,atag=toRm$uuid)) break

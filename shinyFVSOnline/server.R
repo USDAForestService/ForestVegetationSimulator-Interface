@@ -1525,7 +1525,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
           selected=if (length(globals$pastelistShadow)) 
-              globals$pastelistShadow[[length(globals$pastelistShadow)]] else 0)
+              globals$pastelistShadow[[1]] else 0)
       }
     })
   })
@@ -1540,14 +1540,13 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       toCpy = mkfvsCmp(kwds=toCpy$kwds,kwdName=toCpy$kwdName,
               exten=toCpy$exten,variant=toCpy$variant,uuid=uuidgen(),
               atag=toCpy$atag,title=toCpy$title,reopn=toCpy$reopn)
-      globals$pastelist <- append(globals$pastelist,toCpy)
-      globals$pastelistShadow <- append(globals$pastelistShadow,toCpy$uuid)
-      names(globals$pastelistShadow)[length(globals$pastelistShadow)] =  
-          toCpy$kwdName
+      globals$pastelist <- append(globals$pastelist,toCpy,after=0)     
+      globals$pastelistShadow <- append(globals$pastelistShadow,toCpy$uuid,after=0)
+      names(globals$pastelistShadow)[1] = toCpy$title
       updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
           selected=if (length(globals$pastelistShadow)) 
-            globals$pastelistShadow[[length(globals$pastelistShadow)]] else 0)
+            globals$pastelistShadow[[1]] else 0)
     })
   })
 
