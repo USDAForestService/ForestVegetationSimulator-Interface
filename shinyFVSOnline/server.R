@@ -1436,6 +1436,20 @@ cat ("run element selection\n")
     updateSelectInput(session=session, inputId="simCont", 
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
   })
+  
+  ## findStand (set run element to item if found.
+  observe({
+    if (input$searchNext== 0) return()      
+    isolate ({
+cat ("searchNext: string=",input$searchString,"\n")
+      if (nchar(input$searchString) == 0) return()
+    elt = findStand(globals,search=input$searchString)
+cat ("elt=",elt,"\n")
+    if (is.null(elt)) return()
+    mkSimCnts(globals$fvsRun,elt,globals$foundStand)
+    updateSelectInput(session=session, inputId="simCont", 
+         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+  })})
 
   ## Edit  
   observe({
@@ -1500,7 +1514,8 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
     isolate ({
       if (length(input$simCont) == 0) return
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
-      { 
+      {   
+        globals$foundStand=0L  
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -1561,6 +1576,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
           length(globals$fvsRun$stands)," stand(s)<br>",
           length(globals$fvsRun$grps)," group(s)")))
       }
+      globals$foundStand=0L 
     })
   })
 
@@ -1941,7 +1957,7 @@ cat ("Save with if/then, kwds=",kwds,"\n")
           return()
         }  
       }
-      # building/editing a keyword from a custom window. 
+      # building/editing a keyword from a custom window.     
       if (length(pkeys) == 0 && nchar(kwPname))   
       {
         # try to find a function that can make the keywords
@@ -1956,7 +1972,8 @@ cat ("Save with if/then, kwds=",kwds,"\n")
         if (is.null(ansFrm)) ansFrm = 
           getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         if (is.null(ansFrm)) 
-        {
+        { 
+cat ("kwPname=",kwPname,"\n")          
           kw = unlist(strsplit(kwPname,".",fixed=TRUE))[3]
           ansFrm = substr(paste0(kw,"         "),1,10)
           ansFrm = paste0(ansFrm,
@@ -2349,7 +2366,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       }, contentType="text")
   ## DownLoad
   output$dlFVSRunout <- downloadHandler(filename=function ()
-      paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSoutput.txt"),
+      paste0(globals$fvsRun$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
@@ -2358,7 +2375,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       }, contentType="text")
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
-      paste0(globals$FVS_Runs[[isolate(input$runSel)]]$title,"_FVSkeywords.txt"),
+      paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".key")

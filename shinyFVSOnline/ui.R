@@ -101,7 +101,9 @@ shinyUI(fixedPage(
             h6(" "),
             actionButton("paste","Paste item selected below"),
             selectInput("selpaste","Items to paste", NULL, 
-                        NULL, multiple=FALSE, selectize=FALSE) 
+                        NULL, multiple=FALSE, selectize=FALSE), 
+            myInlineTextInput("searchString", "Find stand:", value = "", size="25%"),
+            actionButton("searchNext","Find")
           ),
           column(width=8,offset=.2,
             tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),

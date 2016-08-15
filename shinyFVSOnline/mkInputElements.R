@@ -18,7 +18,7 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
       elt = fps
       pmt = NULL
     }
-    title = getPstring(pkeys,paste0(pkey,"title"),globals$activeVariants[1])    
+    title = getPstring(pkeys,paste0(pkey,"title"),globals$activeVariants[1]) 
     if (!is.null(title)) eltList <- append(eltList,
         list(HTML(paste0("<p><b>",gsub("\n","<br/>",title),"<b/><p/>"))))
     fpvs <- if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) NULL else
@@ -27,7 +27,7 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
     if (cndflag) pkey = paste0("cnd.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
  "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,
- "\nchoices=",choices,"\n")
+ "\nchoices=",choices,"\n") 
     elt = switch(elt,
       listButton     = mkSelectInput (pkey, pmt, choices, fpvs),
       longListButton = mkSelectInput (pkey, pmt, choices, fpvs),
@@ -237,6 +237,7 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL)
   }
   inputs = if (is.null(inputs)) '<option value=" "></option>' else 
                                  paste0(inputs,collapse="")
+  if (length(label)== 0) label=""
   if (nchar(label) > 15)
     HTML(paste0('<div id="',inputId,' " style="width:100%;" class="shiny-input-container">',
       '<label for="',inputId,'" style="max-width:50%;" ><b>',label,'&nbsp;&nbsp;</b></label>',

@@ -38,7 +38,7 @@ mkglobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list", fvsRun = "fvsRun"))
+    customQueries = "list", fvsRun = "fvsRun", foundStand="integer"))
 
 loadVarData <- function(globals,prms,dbIcon)
 {
@@ -357,7 +357,7 @@ cat("writeKeyFile, num stds=",length(stds),
 }
 
 
-mkSimCnts <- function (fvsRun,sels=NULL)
+mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
 {
   tmpcnts = list()
   tmptags = list()                         
@@ -374,9 +374,24 @@ mkSimCnts <- function (fvsRun,sels=NULL)
       if(start<1) start=1
     }     
   }
-  fvsRun$startDisp = as.character(start)
   end = min(start+length(fvsRun$stands)-1,start+19)
-cat("mkSimCnts, start=",start," end=",end," is.null(sels)=",is.null(sels))
+  if (foundStand > 0L) 
+  {
+    if (foundStand < start || foundStand > end) 
+    {
+      start = foundStand
+      end = min(start+length(fvsRun$stands)-1,start+19)
+      if (end > length(fvsRun$stands))
+      {
+        start = max(length(fvsRun$stands)-20,1)
+        end = length(fvsRun$stands)
+      }
+    }
+  } 
+  fvsRun$startDisp = as.character(start)
+cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
+" sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
+paste0("list n=",length(list)) else sels,"\n")
   if (length(fvsRun$stands)) for (i in start:end)
   {
     tmpcnts<-append(tmpcnts, 
@@ -460,6 +475,37 @@ cat("mkSimCnts, start=",start," end=",end," is.null(sels)=",is.null(sels))
   cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
 }
 
+findStand <- function(globals,search=NULL)
+{
+cat ("findStand, search=",search,"\n")
+  if (is.null(search) || search=="") 
+  {
+    globals$foundStand=0L
+    return(NULL)
+  }
+  first=if (globals$foundStand) globals$foundStand+1 else 1
+  if (first>length(globals$fvsRun$stands)) first=1
+  for (i in first:length(globals$fvsRun$stands))
+  {
+    if (length(grep(search,globals$fvsRun$stands[[i]]$sid)))
+    {
+      globals$foundStand=as.integer(i)
+      return(globals$fvsRun$stands[[i]]$uuid)
+    }
+  }
+  if (first==1) return(NULL) else first=1
+  for (i in first:globals$foundStand)
+  {
+    if (length(grep(search,globals$fvsRun$stands[i]$sid)))
+    {
+      globals$foundStand=as.integer(i)
+      return(globals$fvsRun$stands[[i]]$uuid)
+    }      
+  } 
+  globals$foundStand=0L
+  return(NULL)
+}
+
 
 resetGlobals <- function(globals,fvsRun,prms)
 {
@@ -510,6 +556,7 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$currentCmdPkey <- "0"
   globals$currentCndPkey <- "0"
   globals$winBuildFunction <- character(0)
+  globals$foundStand=0L  
 }
 
 
@@ -1034,4 +1081,11 @@ cat ("qry=",qry,"\n")
   }    
   dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
   "data inserted"
+}
+
+
+ncmps <- function(fvsRun)
+{
+  sum(unlist(lapply(fvsRun$stands,function(x) length(x$cmps)))) +
+  sum(unlist(lapply(fvsRun$grps,  function(x) length(x$cmps))))
 }
