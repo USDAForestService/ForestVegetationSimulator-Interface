@@ -190,7 +190,8 @@ shinyUI(fixedPage(
                 tags$style(type="text/css", 
                    "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                 tags$textarea(id="kcpEdit", rows=15),                                             
-                h4(" "),
+                h6(" "),
+                actionButton("kcpAppend","Append selected component"),h6(),
                 fileInput("kcpUpload",
                           "Upload and append Component (keyword) file (.kcp).",
                           width="90%")

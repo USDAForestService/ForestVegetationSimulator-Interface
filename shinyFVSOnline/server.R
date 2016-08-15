@@ -2561,6 +2561,20 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
                   input$kcpUpload$name,"\n"),paste(data,collapse="\n")))
     })
   })
+
+  ## kcpAppend
+  observe({  
+    if (input$kcpAppend > 0)
+    {
+      isolate ({
+        topaste = findCmp(globals$fvsRun,input$simCont[1])
+        if (is.null(topaste)) return()
+        updateTextInput(session=session, inputId="kcpEdit", value=
+          paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
+      })
+    }
+  })
+      
   
 
   ## Tools, related to FVSRefresh
