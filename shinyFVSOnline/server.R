@@ -1489,7 +1489,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
           )
         } else {        # Launch general purpose builder when pk matches a parms.        
           pkeys <- prms[[pk]]
-          eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun)     
+          eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,cmp$atag=="c")     
           eltList <- append(eltList,list(
             myInlineTextInput("cmdTitle","Component title: ", 
                       value=globals$currentEditCmp$title,size=40)),after=0)          
@@ -1593,13 +1593,15 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (is.null(cmp)) return()
       if (substring(cmp$kwdName,1,10) == "Freeform: ") return()
       if (substring(cmp$kwdName,1,6) != "From: ")
-      { 
+      {
         kwPname = cmp$kwdName
         pkeys = prms[[kwPname]]
         if (!is.null(pkeys))
         {
           ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
-          cmp$kwds = mkKeyWrd(ansFrm,cmp$reopn,pkeys,globals$activeVariants[1])
+          if (is.null(ansFrm)) ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+          if (is.null(ansFrm)) return()
+          if (cmp$atag != "c") cmp$kwds = mkKeyWrd(ansFrm,cmp$reopn,pkeys,globals$activeVariants[1])
         }
         cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
         cmp$title = paste0("Freeform: ",cmp$title)
@@ -1875,13 +1877,12 @@ cat("make condElts, input$condList=",input$condList,"\n")
   observe({  
     # command Save 
     if (input$cmdSave == 0) return()
-    isolate ({
+    isolate ({      
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
          globals$currentCndPkey == "0" && globals$currentCmdPkey == "0") return()
       if (length(globals$currentEditCmp$reopn) && 
                  globals$currentEditCmp$reopn == "pasteOnSave") 
       {
-cat ("input$freeEdit=",input$freeEdit,"\n")        
         globals$currentEditCmp$reopn = character(0)
         globals$currentEditCmp$kwds = input$freeEdit
         if (!is.null(input$cmdTitle) && nchar(input$cmdTitle)) 
@@ -1903,28 +1904,29 @@ cat ("input$freeEdit=",input$freeEdit,"\n")
       {
         kwPname = names(prms)[as.numeric(globals$currentCndPkey)]
         pkeys = prms[[as.numeric(globals$currentCndPkey)]]
-        waityrs = getPstring(pkeys,"waitYears",globals$activeVariants[1])
         ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
         if (is.null(ansFrm)) ansFrm = 
           getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         reopn = NULL
-        f = 0
+        fn = 0
         repeat
         {
-          f = f+1
-          pkey = paste0("f",f)
+          fn = fn+1
+          pkey = paste0("f",fn)
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
           instr = input[[paste0("cnd.",pkey)]]
           reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-          names(reopn)[f] = pkey
+          names(reopn)[fn] = pkey
         } 
-        kwds = if (is.null(waityrs)) "If\n" else 
-               paste0("If           ",waityrs,"\n")
+        instr = input[["waitYears"]]
+        reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+        names(reopn)[length(names(reopn))] = "waitYears"
+        kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
         kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
                "\nThen")
-cat ("Save with if/then, kwds=",kwds,"\n") 
-        newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
+cat ("Save with if/then, kwds=",kwds," reopn=",reopn,"\n") 
+         newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
                    kwdName=kwPname,title=input$cndTitle,kwds=kwds,reopn=reopn)
       } else newcnd = NULL
       # make or edit a keyword. This section is used for both 
@@ -1941,12 +1943,18 @@ cat ("Save with if/then, kwds=",kwds,"\n")
           kwPname = names(prms)[as.numeric(globals$currentCmdPkey)]
           pkeys = prms[[as.numeric(globals$currentCmdPkey)]]
         }
+        oReopn  = character(0) 
+cat ("Building a component: kwPname=",kwPname,"\n")
       } else { # we are editing the component
         kwPname = globals$currentEditCmp$kwdName
+        oReopn  = globals$currentEditCmp$reopn
+cat ("Editing a component: kwPname=",kwPname," oReopn=",oReopn,"\n")
         pkeys = prms[[kwPname]]
-        if (is.null(pkeys) && !is.null(input$freeEdit)) #this is freeform...
+        if (is.null(pkeys) && length(oReopn) == 0) #this is freeform...
         {
+cat ("Editing as freeform\n")
           globals$currentEditCmp$kwds = input$freeEdit
+          globals$currentEditCmp$reopn = character(0)
           globals$currentEditCmp$title = input$cmdTitle
           mkSimCnts(globals$fvsRun,input$simCont[[1]])
           updateSelectInput(session=session, inputId="simCont", 
@@ -1957,7 +1965,7 @@ cat ("Save with if/then, kwds=",kwds,"\n")
         }  
       }
       # building/editing a keyword from a custom window.     
-      if (length(pkeys) == 0 && nchar(kwPname))   
+      if (length(pkeys) == 0 && nchar(kwPname) && nchar(oReopn))   
       {
         # try to find a function that can make the keywords
         fn = paste0(kwPname,".mkKeyWrd")
@@ -1972,31 +1980,43 @@ cat ("Save with if/then, kwds=",kwds,"\n")
           getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         if (is.null(ansFrm)) 
         { 
-cat ("kwPname=",kwPname,"\n")          
-          kw = unlist(strsplit(kwPname,".",fixed=TRUE))[3]
-          ansFrm = substr(paste0(kw,"         "),1,10)
-          ansFrm = paste0(ansFrm,
+cat ("kwPname=",kwPname,"\n")
+          kw = unlist(strsplit(kwPname,".",fixed=TRUE))
+          kw = kw[length(kw)]
+          ansFrm = paste0(substr(paste0(kw,"         "),1,10),
                    "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
         }
         reopn = NULL
-        f = 0
+        fn = 0
         repeat
         {
-          f = f+1
-          pkey = paste0("f",f)
+          fn = fn+1
+          pkey = paste0("f",fn)
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
           instr = input[[pkey]]
           reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-          names(reopn)[f] = pkey
+          names(reopn)[fn] = pkey
         }
-        ex = if (input$cmdSet != "Keywords") "base" else
-               unlist(strsplit(input$addCategories,":"))[1] 
-        kwds = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]) 
+        if ("waitYears" %in% names(oReopn))
+        {
+          instr = input[["waitYears"]]
+          if (!is.null(instr))
+          {
+            reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+            names(reopn)[length(names(reopn))] = "waitYears"
+            kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
+            kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
+                   "\nThen")
+          }
+        } else kwds = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]) 
       }
 cat ("Save, kwds=",kwds,"\n")      
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
+cat ("class(input$addCategories)=",class(input$addCategories)," and=",input$addCategories,"\n")
+        ex = if (input$cmdSet != "Keywords") "base" else
+               unlist(strsplit(input$addCategories,":",fixed=TRUE))[1] 
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=kwds,exten=ex,
              variant=globals$activeVariants[1],kwdName=kwPname,
              title=input$cmdTitle,reopn=reopn)

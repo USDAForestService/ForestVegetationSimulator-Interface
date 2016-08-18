@@ -222,12 +222,11 @@ errorScan <- function (outfile)
   fout<-file(outfile,"rt")
   on.exit(close(fout))
   errs<-list()
-  sid<-line<-l0<-l1<-""
+  sid<-line<-l1<-""
   foundSum = FALSE  
   ln = 0
   repeat
   {
-    l0<-l1
     l1<-line
     line=scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
          blank.lines.skip = FALSE)
@@ -241,22 +240,23 @@ errorScan <- function (outfile)
       sid = scan(text=line,what="character",quiet=TRUE)[3]
       next
     }
-    hit=grep("ERROR",toupper(line),fixed=TRUE)
+    hit=grep("ERROR",toupper(line),fixed=TRUE)    
     if (length(hit)) 
     {
       if (length(grep("STANDARD ERRORS",toupper(line),fixed=TRUE))) next
       if (length(grep("SAMPLING",toupper(line),fixed=TRUE))) next
-      err <- c(l0,l1,line)
-      names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-2,ln-1,ln)))
+      err <- c(l1,line)
+      names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-1,ln)))
       errs<-append(errs,err)
     }
   }
-  errs <- append(errs,if (length(errs)) 
-    {
+  outerrs <- list()
+  outerrs <- append(outerrs,if (length(errs)) 
+    {    
       errs[unlist(lapply(errs,nchar)) == 0] <- NULL
       paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
     } else "No errors found")
-  if (!foundSum) errs <- append(errs,"No summary found, likely run failure")
-  errs
+  if (!foundSum) outerrs <- append(errs,"No summary found, likely run failure")
+  outerrs
 }
 
