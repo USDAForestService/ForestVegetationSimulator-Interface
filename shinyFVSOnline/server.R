@@ -221,7 +221,7 @@ cat ("tb=",tb,"\n")
         }
         source("sqlQueries.R")
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$bldstdsk # force this section to be reactive to this input
+        input$bldstdsk # force this section to be reactive to this input     
         if ("FVS_Summary" %in% tbs)
         {
           setProgress(message = "Output query", 
@@ -257,7 +257,7 @@ cat ("tbs2=",tbs,"\n")
               detail  = "Joining tables", value = i); i = i+2
             exqury(dbGlb$dbOcon,Create_StdStkNoHrv,dbhclassexp)
           }
-          tbs = c(tbs,"StdStk")
+          tbs = c(tbs,"StdStk")     
         }
 cat ("tbs3=",tbs,"\n")       
         setProgress(message = "Output query", 
@@ -374,7 +374,7 @@ cat ("sqlRunQuery\n")
                 " returned\n",attr(res,"condition"),"\n") else
               paste0(msgtxt,"query ",iq," ran\n")         
             updateTextInput(session=session, inputId="sqlOutput", label="", 
-                            value=msgtxt)
+                            value=msgtxt)                          
             if (class(res) == "try-error") break
             if (class(res) == "data.frame")
             {
@@ -537,7 +537,13 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
                    " where CaseID in (select CaseID from m.Cases)")) else
-              dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))       
+              dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))
+            # fix the stand and stock table.
+            if (tb == "StdStk") 
+            {
+              fix = grep ("Hrv",colnames(dtab))
+              if (length(fix)) for (ifx in fix) dtab[[ifx]] = as.numeric(dtab[[ifx]])
+            }
             if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
               dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
@@ -680,7 +686,8 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         iprg = iprg+1
         setProgress(message = "Finishing", detail  = "", value = iprg)
         selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
-          "QMD","TopHt","^BA$","TPA","Species","^Ht$","^HtG$","CuFt$","Total"),
+          "AGE","CCF","SDI","QMD","TopHt","^BA$","TPA","Species","^Ht$",
+          "^HtG$","CuFt$","BdFt$","Total","HrvPA"),
           function (x,vs) 
             {
               hits = unlist(grep(x,vs,ignore.case = TRUE))
@@ -741,7 +748,7 @@ cat("filterRows and/or pivot\n")
     if (!is.null(input$browsevars)) 
     {
 cat ("browsevars\n")
-      fvsOutData$browseSelVars <- input$browsevars
+      fvsOutData$browseSelVars <- input$browsevars  
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
@@ -893,6 +900,7 @@ cat ("vfacet test hit\n")
     }
     nd = na.omit(nd)
     if (length(nd) == 0) return(nullPlot())
+    rownames(nd)=1:nrow(nd)
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
     if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet"      
@@ -900,7 +908,7 @@ cat ("vfacet test hit\n")
     {
       alv = nlevels(as.factor(nd$Legend))
       nd$Legend = if (alv == 1) paste(pb,nd[,pb],sep=":") else
-                                   paste(nd$Legend,pb,nd[,pb],sep=":")
+                                paste(nd$Legend,pb,nd[,pb],sep=":")
     }      
     if (!is.null(nd$vfacet)) nd$vfacet = as.factor(nd$vfacet)
     if (!is.null(nd$hfacet)) nd$hfacet = as.factor(nd$hfacet)
@@ -920,7 +928,9 @@ cat ("vfacet test hit\n")
       nd$Y    = nd$temp
       nd$temp = NULL
     } else flip = FALSE
-    p = ggplot(data = nd) + fg + labs(x=input$xlabel, y=input$ylabel, 
+    p = ggplot(data = nd) + fg + labs(
+          x=if (nchar(input$xlabel)) input$xlable else input$xaxis, 
+          y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
           title=input$ptitle)  + 
           theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
@@ -933,6 +943,9 @@ cat ("vfacet test hit\n")
       scale_shape_manual(values=1:nlevels(nd$Legend))
     alpha = approxfun(c(50,100,1000),c(1,.7,.4),rule=2)(nrow(nd))    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
+#browser()
+    if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
+    if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     plt = switch(input$plotType,
       line    = if (input$colBW == "B&W") 
         geom_line  (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
@@ -942,13 +955,13 @@ cat ("vfacet test hit\n")
         geom_point (aes(x=X,y=Y,shape=Legend,color=Legend),
                           alpha=alpha,size=size),
       bar     = if (input$colBW == "B&W")
-        geom_bar (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,fill=Legend),
+        geom_bar (aes(x=X,y=Y,color=Legend,fill=Legend),
            position="dodge",stat="identity") else
-        geom_bar (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,fill=Legend),alpha=.8,
+        geom_bar (aes(x=X,y=Y,color=Legend,fill=Legend),alpha=.8,
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
-        geom_boxplot (aes(x=reorder(X,1:length(X)),y=Y,color=Legend,linetype=Legend)) else
-        geom_boxplot (aes(x=reorder(X,1:length(X)),y=Y,color=Legend),alpha=alpha)
+        geom_boxplot (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
+        geom_boxplot (aes(x=X,y=Y,color=Legend),alpha=alpha)
       )  
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)

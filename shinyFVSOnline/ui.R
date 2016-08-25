@@ -119,7 +119,7 @@ shinyUI(fixedPage(
                           multiple=TRUE, selectize=FALSE),
                 uiOutput("stdSelMsg"),
                 actionButton("inAdd",   "Add selected stands"),
-                actionButton("inAddGrp","Add all stands in selected groups")
+                actionButton("inAddGrp","Add stands in selected groups")
               ),
               tabPanel("Components",
                 radioButtons("cmdSet", NULL, c("Management","Modifiers",
