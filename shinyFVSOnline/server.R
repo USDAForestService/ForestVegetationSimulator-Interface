@@ -2195,7 +2195,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
                        '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n")\n',
                        '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n",file="',pidfile,
                        '")\n',
-                       '  rtn = ',runCmd,'\n}')
+                       '  rtn = ',runCmd,'\nfvsRun()\n}')
           cat (cmd,"\n",file=rs)
           cat ('source("fvsRunUtilities.R")\n',file=rs)
           cmd = paste0('dbDrv = dbDriver("SQLite")\n',
@@ -3601,7 +3601,7 @@ cat ("in customRunOps runScript: ",input$runScript,"\n")
         if (class(rtn) == "try-error") return()
         uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",globals$fvsRun$runScript)))))
         if (class(uiF) != "function") return()
-        output$uiCustomRunOps = renderUI(uiF(fvsRun))
+        output$uiCustomRunOps = renderUI(uiF(globals$fvsRun))
       } else {
         globals$fvsRun$uiCustomRunOps = list()
       }

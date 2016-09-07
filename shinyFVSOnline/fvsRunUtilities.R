@@ -1075,6 +1075,7 @@ cat ("qry=",qry,"\n")
     }
   }    
   dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
+  unlink(fn)
   "data inserted"
 }
 
