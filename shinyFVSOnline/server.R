@@ -9,7 +9,7 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE)
 
 shinyServer(function(input, output, session) {
 
-  #sink("FVSOnline.log")
+  if (!interactive()) sink("FVSOnline.log")
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -943,7 +943,6 @@ cat ("vfacet test hit\n")
       scale_shape_manual(values=1:nlevels(nd$Legend))
     alpha = approxfun(c(50,100,1000),c(1,.7,.4),rule=2)(nrow(nd))    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
-#browser()
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     plt = switch(input$plotType,
@@ -1046,7 +1045,7 @@ cat ("inVars\n")
   observe({
     if (input$topPan == "Runs" || input$rightPan == "Stands")
     {
-cat ("inGrps\n")      
+cat ("inGrps\n")     
       if (is.null(input$inGrps))          
       {
         output$stdSelMsg <- renderUI(NULL)
@@ -1057,6 +1056,7 @@ cat ("inGrps\n")
         dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
              'where Grp in (select SelGrps from m.SGrps)')))
+       cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         if (class(stds) == "try-error") return()
         stds = stds[,1]
         msg = paste0(length(stds)," Stands in ",length(input$inGrps)," Group(s)<br>")
@@ -1077,6 +1077,7 @@ cat ("inGrps\n")
          'where Grp in (select SelGrps from m.SGrps)')))
     if (class(stds) == "try-error") return()
     stds = stds[,1]
+    cat ("inStds, nrow(stds)=",nrow(stds),"\n")
     if (length(stds) < 120) return() 
     nprts = as.numeric(prts[c(3,5,7)])
 cat ("nprts=",nprts,"\n")
@@ -1888,8 +1889,8 @@ cat("make condElts, input$condList=",input$condList,"\n")
   })
 
   observe({  
-    # command Save 
-    if (input$cmdSave == 0) return()
+    # command Save in run 
+    if (input$cmdSaveInRun == 0) return()
     isolate ({      
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
          globals$currentCndPkey == "0" && globals$currentCmdPkey == "0") return()
@@ -1977,8 +1978,8 @@ cat ("Editing as freeform\n")
           return()
         }  
       }
-      # building/editing a keyword from a custom window.     
-      if (length(pkeys) == 0 && nchar(kwPname) && nchar(oReopn))   
+      # building/editing a keyword from a custom window.    
+      if (length(pkeys) == 0 && nchar(kwPname)) 
       {
         # try to find a function that can make the keywords
         fn = paste0(kwPname,".mkKeyWrd")
@@ -2516,12 +2517,12 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel," isnull=",
     is.null(input$kcpSel),"\n")
   })
 
-  ## kcpSave
+  ## kcpSaveCmps
   observe({  
-    if (input$kcpSave > 0)
+    if (input$kcpSaveCmps > 0)
     {
       isolate ({
-cat ("kcpSave called, kcpTitle=",input$kcpTitle," isnull=",
+cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
      is.null(input$kcpTitle),"\n")
         if (is.null(input$kcpTitle) || input$kcpTitle == "")
         {
