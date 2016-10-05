@@ -27,7 +27,7 @@ shinyServer(function(input, output, session) {
              source("../../FVSOnline/settings.R",local=TRUE)
     
     load("prms.RData") 
-    globals <- mkglobals(saveOnExit=TRUE,oldInAdd=0)
+    globals <- mkglobals(saveOnExit=TRUE)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
@@ -1057,20 +1057,20 @@ cat ("inGrps\n")
         if (class(stds) == "try-error") return()
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         stds = stds[,1]
+        nstds = length(stds)
         msg = paste0(length(stds)," Stand(s) in ",length(input$inGrps)," Group(s)<br>")
         output$stdSelMsg <- renderUI(HTML(msg))
         if (length(stds) > 120)  stds = c(stds[1:100],
           paste0("<< Display 101 to ",min(200,length(stds))," of ",length(stds)," >>"))
         updateSelectInput(session=session, inputId="inStds", 
              choices=as.list(stds))
-### UI elements for future sampling from the stand selection logic.              
-#        output$stdSampTools <- if (length(stds)) 
-#        {         
-#          output$stdSampTools <- renderUI(list(
-#            myInlineTextInput("smpSize", "Sample size ", max(1,floor(.5*length(stds)))),
-#            myRadioGroup("smpWithReplace","Sample with replacement",c("No","Yes")),
-#            actionButton("inAddSample","Select a sample of stands from selected groups")))
-#        } else renderUI(NULL)
+        output$stdSampTools <- if (length(stds)) 
+        {         
+          output$stdSampTools <- renderUI(list(
+            myInlineTextInput("smpSize", "Sample size ", max(1,floor(.5*nstds))),
+            myRadioGroup("smpWithReplace","Sample with replacement",c("No","Yes")),
+            actionButton("inAddSample","Select a sample of stands from selected groups")))
+        } else renderUI(NULL)
       }
     }
   })
@@ -1289,163 +1289,29 @@ cat ("saveRun\n")
   })
 
   ## inAdd:    Add Selected Stands
+  observe({
+    if (input$inAdd > 0) 
+    {
+cat ("input$inAdd=",input$inAdd,"\n")
+      addStandsToRun(session,input,output,selType="inAdd",globals,dbGlb)
+    }
+  })  
   ## inAddGrp: Add all stands in selected groups
   observe({
-    if (input$inAdd > 0 || input$inAddGrp > 0) 
+    if (input$inAddGrp > 0) 
     {
-cat ("input$inAdd=",input$inAdd," input$inAddGrp=",input$inAddGrp,
-     " globals$oldInAdd=",globals$oldInAdd,"\n")
-      isolate ({
-        if (length(input$inStds)+length(input$inGrps) == 0) return()
-          
-        v <- scan(text=input$inVars,what=" ",sep=" ",quiet=TRUE)
-        for (i in 1:length(globals$activeFVS))
-        {
-          if (globals$activeFVS[[i]][1] == v) 
-          {
-            globals$fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
-            break
-          }
-        }            
-        resetGlobals(globals,globals$fvsRun,prms) 
-        extn <- extnslist[globals$activeExtens]
-        updateSelectInput(session,"addCategories","Extension",
-                paste0(names(extn),": ",extn),
-                selected=extn[["base"]]) 
-        selVarListUse <- globals$selVarList[globals$activeVariants]
-        vlst <- as.list (names(selVarListUse))
-        names(vlst) = selVarListUse
-        updateSelectInput(session=session, inputId="inVars", NULL, 
-                          vlst, vlst[[1]])
-        globals$fvsRun$startyr <- format(Sys.time(), "%Y")
-        curstartyr = as.numeric(globals$fvsRun$startyr)
-
-        fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
-        
-        fields = intersect(toupper(fields),toupper(c("Stand_ID","Stand_CN","Groups",
-                 "Inv_Year","FVSKeywords")))        
-        # use if inAdd was hit (test on old value of oldInAdd)
-        dbQ = NULL
-        if (input$inAdd > globals$oldInAdd)
-        {
-          dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
-          if (length(input$inStds))
-          {
-            dbWriteTable(dbGlb$dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
-            dbQ = try(dbSendQuery(dbGlb$dbIcon,
-              paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-                'where Stand_ID in (select SelStds from m.Stds)')))
-          } 
-        } else {
-          # use if inAddGrp
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-            paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-              'where Stand_ID in (select distinct Stand_ID from m.Grps ',
-                  'where Grp in (select SelGrps from m.SGrps))')))
-        }
-        globals$oldInAdd=as.numeric(input$inAdd)
-        if (is.null(dbQ) || class(dbQ) == "try-error") return()
-        fvsInit = dbFetch(dbQ,n=-1)
-        if (nrow(fvsInit) == 0) return()
-        names(fvsInit) = toupper(names(fvsInit))
-        maxMsgs = (nrow(fvsInit) %/% 10) + 2
-        progress <- shiny::Progress$new(session,min=1,max=maxMsgs)
-        msgVal = 1
-        progress$set(message = paste0("Loading ",nrow(fvsInit)," stands "), 
-            value = msgVal)
-        for (row in 1:nrow(fvsInit))  # the selectInput list
-        {
-          if (row %% 10 == 0) 
-          {
-            msgVal = msgVal+1
-            progress$set(value = msgVal)
-          }
-          sid = fvsInit[row,"STAND_ID"]
-          newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
-          addkeys <- fvsInit[row,"FVSKEYWORDS"]
-          if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
-            newstd$cmps[[1]] <- mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                     exten="base", atag="k",kwdName="From: FVS_StandInit",
-                     title="From: FVS_StandInit")
-          grps <- if (!is.null(fvsInit$GROUPS))
-             scan(text=fvsInit[row,"GROUPS"],
-                  what=" ",quiet=TRUE) else c("All All_Stands")
-          requ <- unlist(grps[grep("^All",grps)])
-          grps <- sort(union(intersect(input$inGrps,grps),requ))
-          have <- unlist(lapply(globals$fvsRun$grps,function(x) 
-                  if (x$grp != "") x$grp else NULL))
-          need <- setdiff(grps, have)
-          for (grp in need) 
-          {
-            newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
-            grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
-              grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
-                   fixed=TRUE) else c()   
-            if (length(grprow) > 0) 
-            {
-              addkeys <- globals$inData$
-                         FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
-              if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
-                 mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
-                          kwdName="From: FVS_GroupAddFilesAndKeywords",
-                            title="From: FVS_GroupAddFilesAndKeywords")
-            }
-            globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
-          }
-          invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
-          if (invyr > curstartyr) 
-          {
-            curstartyr <- invyr
-            globals$fvsRun$startyr <- as.character(curstartyr)
-          }
-          newstd$invyr <- as.character(invyr)
-          have <- unlist(lapply(globals$fvsRun$grps,function(x) 
-                  if (x$grp != "") x$grp else NULL))
-          newstd$grps <- globals$fvsRun$grps[sort(match(grps,have))]
-          globals$fvsRun$stands <- append(globals$fvsRun$stands,newstd)
-        }
-        globals$fvsRun$endyr <- as.character(as.numeric(globals$fvsRun$startyr) +
-                          as.numeric(getPstring(prms$timing,"simLength",
-                                     globals$activeVariants[1])))
-        globals$fvsRun$cyclelen <- as.character(getPstring(
-                                     prms$timing,"cycleLength",
-                                     globals$activeVariants[1]))
-        updateTextInput(session=session, inputId="startyr",  
-                        value=globals$fvsRun$startyr)
-        updateTextInput(session=session, inputId="endyr",    
-                        value=globals$fvsRun$endyr)
-        updateTextInput(session=session, inputId="cyclelen", 
-                        value=globals$fvsRun$cyclelen)
-        msgVal = msgVal+1
-        progress$set(detail="Updating reps tags",value = msgVal)
-        stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
-        cnts <- table(stds)
-        for (cn in 1:length(cnts)) 
-        {
-          cnt <- cnts[cn]
-          reps <- grep(names(cnt),stds,fixed=TRUE)
-          if (length(reps) > 1)
-          {
-            i <- 1
-            for (r in reps) 
-            {
-              globals$fvsRun$stands[[r]]$rep <- i
-              i <- i+1
-            }
-          }
-        }
-        msgVal = msgVal+1
-        progress$set(detail="Loading contents listbox",value = msgVal)
-        mkSimCnts(globals$fvsRun)
-        updateSelectInput(session=session, inputId="simCont", 
-          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-          length(globals$fvsRun$stands)," stand(s)<br>",
-          length(globals$fvsRun$grps)," group(s)")))        
-        progress$close()
-      })
+cat (" input$inAddGrp=",input$inAddGrp,"\n")
+      addStandsToRun(session,input,output,selType="inAddGrp",globals,dbGlb)
     }
-  })
+  })  
+  ## inAddGrp: Add all stands in selected groups
+  observe({
+    if (length(input$inAddSample) &&  input$inAddSample > 0) 
+    {
+cat (" input$inAddGrp=",input$inAddGrp,"\n")
+      addStandsToRun(session,input,output,selType="inAddSample",globals,dbGlb)
+    }
+  })  
   
   ## run element selection
   observe({

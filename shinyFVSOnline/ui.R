@@ -119,8 +119,7 @@ shinyUI(fixedPage(
                           multiple=TRUE, selectize=FALSE),
                 uiOutput("stdSelMsg"),
                 actionButton("inAdd",   "Add selected stands"),
-                actionButton("inAddGrp","Add stands in selected groups"),h6(),
-### UI elements for future sampling from the stand selection logic.              
+                actionButton("inAddGrp","Add stands in selected groups"),h6(),        
                 uiOutput("stdSampTools")               
                 ),
               tabPanel("Components",
