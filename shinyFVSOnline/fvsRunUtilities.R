@@ -1151,6 +1151,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       {
         wts = as.numeric(fvsInit$SAM_WT)
         if (any(is.na(wts))) wts = NULL
+        if (!is.null(wts) && any(wts < 0)) wts=NULL
+        if (!is.null(wts)) wts = wts/sum(wts)
       }    
       smpSize = as.numeric(input$smpSize)
       if (is.na(smpSize) || smpSize < 1) smpSize = 1
