@@ -3,6 +3,7 @@ library(rhandsontable)
 library(ggplot2)
 library(parallel)
 library(RSQLite)
+library(plyr)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
@@ -527,9 +528,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           if (tb == "Composite" || tb == "Composite_East") 
           {
             dtab = dbReadTable(dbGlb$dbOcon,tb)
-            dtab = by(dtab,as.factor(dtab$MgmtID),FUN=function (x) 
+            dtab <- ddply(dtab,.(MgmtID),.fun=function (x) 
                    setupSummary(x,composite=TRUE))
-            dtab = do.call("rbind",dtab)
             dtab$Year=as.factor(dtab$Year) 
             dtab$MgmtID=as.factor(dtab$MgmtID) 
             dat = list(Composite = dtab)
@@ -546,9 +546,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
             }
             if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
-              dtab = by(dtab,as.factor(dtab$CaseID),FUN=function (x) 
-                        setupSummary(x))
-              dtab = do.call("rbind",dtab)
+              dtab <- ddply(dtab,.(CaseID),.fun=setupSummary)
               dtab$ForTyp =as.factor(dtab$ForTyp)
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
@@ -1037,7 +1035,7 @@ cat ("inVars\n")
               choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="inStds", 
            choices=list())
-      output$stdSelMsg <- renderUI(NULL)
+      output$stdSelMsg <- output$stdSampTools <- renderUI(NULL)
     }
   })
 
@@ -1048,7 +1046,7 @@ cat ("inVars\n")
 cat ("inGrps\n")     
       if (is.null(input$inGrps))          
       {
-        output$stdSelMsg <- renderUI(NULL)
+        output$stdSelMsg <- output$stdSampTools <- renderUI(NULL)
         updateSelectInput(session=session, inputId="inStds", 
            choices=list())
       } else {
@@ -1056,15 +1054,23 @@ cat ("inGrps\n")
         dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
              'where Grp in (select SelGrps from m.SGrps)')))
-       cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         if (class(stds) == "try-error") return()
+cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         stds = stds[,1]
-        msg = paste0(length(stds)," Stands in ",length(input$inGrps)," Group(s)<br>")
+        msg = paste0(length(stds)," Stand(s) in ",length(input$inGrps)," Group(s)<br>")
         output$stdSelMsg <- renderUI(HTML(msg))
         if (length(stds) > 120)  stds = c(stds[1:100],
           paste0("<< Display 101 to ",min(200,length(stds))," of ",length(stds)," >>"))
         updateSelectInput(session=session, inputId="inStds", 
-             choices=as.list(stds)) 
+             choices=as.list(stds))
+### UI elements for future sampling from the stand selection logic.              
+#        output$stdSampTools <- if (length(stds)) 
+#        {         
+#          output$stdSampTools <- renderUI(list(
+#            myInlineTextInput("smpSize", "Sample size ", max(1,floor(.5*length(stds)))),
+#            myRadioGroup("smpWithReplace","Sample with replacement",c("No","Yes")),
+#            actionButton("inAddSample","Select a sample of stands from selected groups")))
+#        } else renderUI(NULL)
       }
     }
   })

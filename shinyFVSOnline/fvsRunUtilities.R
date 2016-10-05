@@ -259,6 +259,7 @@ cat("writeKeyFile, num stds=",length(stds),
     cat ("InvYear       ",std$invyr,"\n",file=fc,sep="")
     thiscyc = union(seq(ninvyr,cycleat[1],as.numeric(fvsRun$cyclelen)),cycleat)
     ints = diff(sort(thiscyc))
+    if (length(ints) > 40) ints = ints[1:40]
     if (length(ints)==0) ints = fvsRun$cyclelen
     mostint = names(which.max(table(ints)))
     ints = as.character(ints)

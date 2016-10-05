@@ -114,15 +114,15 @@ shinyUI(fixedPage(
                           multiple=FALSE, selectize=FALSE),
                 selectInput("inGrps","Groups", NULL, NULL, 
                           multiple=TRUE, selectize=FALSE, size=6),
-#                myRadioGroup("selStyle","Stands in", 
-#                  c("any selected group(s)","all selected group(s)")),
                 tags$style(type="text/css", "#inStds { height: 300px;}"),
                 selectInput("inStds", "Stands", NULL, NULL, 
                           multiple=TRUE, selectize=FALSE),
                 uiOutput("stdSelMsg"),
                 actionButton("inAdd",   "Add selected stands"),
-                actionButton("inAddGrp","Add stands in selected groups")
-              ),
+                actionButton("inAddGrp","Add stands in selected groups"),h6(),
+### UI elements for future sampling from the stand selection logic.              
+                uiOutput("stdSampTools")               
+                ),
               tabPanel("Components",
                 radioButtons("cmdSet", NULL, c("Management","Modifiers",
                   "Outputs","Keywords","Your components"),inline=TRUE),
