@@ -44,6 +44,20 @@ customRunElements = list(
 source("modalDialog.R")
 source("mkInputElements.R")
 
+# used in Tools, dlZipSet
+zipList <- list(	
+  "Output data base for for all runs"  = "outdb",	
+  "Keyword file for current run" = "key",	
+  "FVS output file for current run" = "out",	
+  "SVS output files for current run" = "subdir",	
+  "Input data base FVS_Data.db" = "FVS_Data",	
+  "FVS-Online runs archive (FVS_Runs.RData)" = "FVS_Runs",	
+  "Custom SQL query archive (customQueries.RData)" =	
+                                           "customSQL",	
+  "FVS-Online keyword component archive (FVS_kcps.RData)" =	
+                                           "FVS_kcps")	
+selZip <- unlist(zipList[1:4])	
+
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
     ".nav>li>a {padding:3px;}",
@@ -420,18 +434,7 @@ shinyUI(fixedPage(
         downloadButton("dlFVSRunkey","Keyword file"),
         h4(" "),        
         checkboxGroupInput("dlZipSet","Select contents of fvsRun.zip", 	
-          zipList <- list(	
-              "Output data base for for all runs"  = "outdb",	
-              "Keyword file for current run" = "key",	
-              "FVS output file for current run" = "out",	
-              "SVS output files for current run" = "subdir",	
-              "Input data base FVS_Data.db" = "FVS_Data",	
-              "FVS-Online runs archive (FVS_Runs.RData)" = "FVS_Runs",	
-              "Custom SQL query archive (customQueries.RData)" =	
-                                                       "customSQL",	
-              "FVS-Online keyword component archive (FVS_kcps.RData)" =	
-                                                       "FVS_kcps"),	
-              selected=unlist(zipList[1:4]),inline=FALSE),	
+          zipList,selZip,inline=FALSE),	
         downloadButton("dlFVSRunZip","Download fvsRun.zip"),	
         h6(" "),
         actionButton("FVSRefresh","Refresh or add selected FVS programs"),
