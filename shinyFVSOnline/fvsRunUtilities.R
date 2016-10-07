@@ -1131,14 +1131,26 @@ cat ("in addStandsToRun, selType=",selType,"\n")
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
             'where Stand_ID in (select SelStds from m.Stds)')))
-      } 
+      } else return()
     } else {
       # use if inAddGrp or inAddSample
+      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
+           'where Grp in (select SelGrps from m.SGrps)')))
+      if (class(stds) == "try-error") return()                                                             
+      if (nrow(stds) == 0) return()
+      stds = stds[,1]
+      stds = if (input$inAnyAll == "Any") unique(stds) else
+      {
+        stdCnts = table(stds) 
+        stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                           
+      } 
+      if (length(stds) == 0) return()  
+      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
+      dbWriteTable(dbGlb$dbIcon,"m.Stds",data.frame(SelStds = stds))
       dbQ = try(dbSendQuery(dbGlb$dbIcon,
-        paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-          'where Stand_ID in (select distinct Stand_ID from m.Grps ',
-              'where Grp in (select SelGrps from m.SGrps))')))
-    }
+          paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
+            'where Stand_ID in (select SelStds from m.Stds)')))
+    }       
     if (is.null(dbQ) || class(dbQ) == "try-error") return()
     fvsInit = dbFetch(dbQ,n=-1)
     if (nrow(fvsInit) == 0) return()

@@ -1039,7 +1039,7 @@ cat ("inVars\n")
     }
   })
 
-  ## inGrps has changed
+  ## inGrps or inAnyAll has changed
   observe({
     if (input$topPan == "Runs" || input$rightPan == "Stands")
     {
@@ -1052,11 +1052,16 @@ cat ("inGrps\n")
       } else {
         dbSendQuery(dbGlb$dbIcon,'drop table if exists m.SGrps') 
         dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
+        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
              'where Grp in (select SelGrps from m.SGrps)')))
-        if (class(stds) == "try-error") return()
+        if (class(stds) == "try-error") return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         stds = stds[,1]
+        stds = if (input$inAnyAll == "Any") unique(stds) else
+        {
+          stdCnts = table(stds) 
+          stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                       
+        }                                                                                                
         nstds = length(stds)
         msg = paste0(length(stds)," Stand(s) in ",length(input$inGrps)," Group(s)<br>")
         output$stdSelMsg <- renderUI(HTML(msg))
@@ -1079,11 +1084,16 @@ cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
     if (length(input$inStds) != 1) return()
     prts = unlist(strsplit(input$inStds[1]," "))
     if (prts[1] != "<<") return()
-    stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from m.Grps ',
+    stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
          'where Grp in (select SelGrps from m.SGrps)')))
     if (class(stds) == "try-error") return()
     stds = stds[,1]
-    cat ("inStds, nrow(stds)=",nrow(stds),"\n")
+    stds = if (isolate(input$inAnyAll) == "Any") unique(stds) else
+    {
+      stdCnts = table(stds) 
+      stds = stdCnts[stdCnts == length(input$inGrps)]                                                                                                                           
+    }                                                                                                
+cat ("inStds, length(stds)=",length(stds),"\n")
     if (length(stds) < 120) return() 
     nprts = as.numeric(prts[c(3,5,7)])
 cat ("nprts=",nprts,"\n")
