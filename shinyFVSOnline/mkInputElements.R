@@ -53,7 +53,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       fileBrowse     = {
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 
-      speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,globals$activeVariants[1]),
+      speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
       scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
       noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
       NULL)
@@ -115,19 +115,23 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
 }
       
 
-mkSelSpecies <- function (pkey,prms,pmt,fpvs,variant,addAll=TRUE)
+mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
 {
   spkeys <- prms[[paste0("species_",variant)]]
+  choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
+  addAll = grep ("^deleteAll",choices)
+  if (length(addAll))
+  {
+    choices = choices[-addAll]
+    if (length(choices)==0) choices=NULL
+    addAll = FALSE
+  } else addAll = TRUE
   sps = if (addAll) list("All species") else list ()
   for (sp in spkeys) sps <- append(sps,attr(sp,"pstring"))
   dsp = if (addAll) as.list(c("All",unlist(spkeys))) else spkeys
-  if (is.null(fpvs)) fpvs = " "
-  if (fpvs== " ") 
-  {
-    dsp = append(dsp," ",after=0)
-    names(dsp) = c(" ",sps)
-  } else names(dsp) = sps
-  myInlineListButton (pkey, pmt, dsp, selected = fpvs)
+  if (!is.null(fpvs)) choices = fpvs
+  names(dsp) = sps
+  myInlineListButton (pkey, pmt, dsp, selected = choices)
 }
       
 

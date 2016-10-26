@@ -114,8 +114,7 @@ cat ("in PlantNaturalFullWin code, defs=",defs,"\n")
           defs["pnYpn1"]),
         myRadioGroup("pnTr1", "Type of regeneration scheduled: ", 
           c("Plant"="1","Natural"="2"),selected=defs["pnTr1"]),
-        mkSelSpecies("pnSp1",prms,"Species",defs["pnSp1"],globals$activeVariants[1],
-          addAll=FALSE),
+        mkSelSpecies("pnSp1",prms,"Species",defs["pnSp1"],"deleteAll",globals$activeVariants[1]),
         fixedRow(
           column(width=5,       
             myInlineTextInput("pnTpa1","Trees/acre: ", value=defs["pnTpa1"], size=10),
@@ -133,8 +132,7 @@ cat ("in PlantNaturalFullWin code, defs=",defs,"\n")
           "Regen 2) Years following disturbance for regeneration: ", defs["pnYpn2"]),
         myRadioGroup("pnTr2", "Type of regeneration scheduled: ", 
           c("Plant"="1","Natural"="2"),selected=defs["pnTr2"]),
-        mkSelSpecies("pnSp2",prms,"Species",defs["pnSp2"],globals$activeVariants[1],
-          addAll=FALSE),
+        mkSelSpecies("pnSp2",prms,"Species",defs["pnSp2"],"deleteAll",globals$activeVariants[1]),
         fixedRow(
           column(width=5,       
             myInlineTextInput("pnTpa2","Trees/acre: ", value=defs["pnTpa2"], size=10),
@@ -183,6 +181,7 @@ cat ("in PlantNaturalFullWin.mkKeyWrd\n")
       input$pnSp2,input$pnTpa2,input$pnPsv2,input$pnAge2,input$pnHt2,
       input$pnShd2))
   }
+  kwds = paste0(kwds,"\nEnd")
   reopn=c(pnDOD  =input$pnDOD , pnYD   =input$pnYD  ,
           pnPBrn =input$pnPBrn, pnPMch =input$pnPMch,
           pnSprt =input$pnSprt,

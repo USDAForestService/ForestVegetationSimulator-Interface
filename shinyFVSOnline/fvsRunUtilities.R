@@ -1117,7 +1117,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     curstartyr = as.numeric(globals$fvsRun$startyr)
     
     fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
-    needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year","FVSKeywords"))
+    needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
+                       "AddFiles","FVSKeywords"))
     if (selType == "inAddSample") needFs = c(needFs,"Sam_Wt")    
     fields = intersect(toupper(fields),toupper(needFs)) 
 
@@ -1187,11 +1188,28 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       }
       sid = fvsInit[row,"STAND_ID"]
       newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
+      addfiles <- fvsInit[row,"ADDFILES"]
+      if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles))
+      {
+        fns=scan(text=addfiles,what="character",quiet=TRUE)
+        for (fn in fns)
+        {
+          if (file.exists(fn))
+          {
+            addkeys = paste0("Open        133.\n",fn,
+                           "\nAddFile     133.\nClose       133.\n")
+            newstd$cmps <- append(newstd$cmps,
+                 mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+                   exten="base", atag="k",kwdName=paste0("From AddFile: ",fn),
+                    title=paste0("From AddFile: ",fn)))                    
+          }
+        }
+      }
       addkeys <- fvsInit[row,"FVSKEYWORDS"]
       if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
-        newstd$cmps[[1]] <- mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+        newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
                  exten="base", atag="k",kwdName="From: FVS_StandInit",
-                 title="From: FVS_StandInit")
+                 title="From: FVS_StandInit"))
       grps <- if (!is.null(fvsInit$GROUPS))
          scan(text=fvsInit[row,"GROUPS"],
               what=" ",quiet=TRUE) else c("All All_Stands")

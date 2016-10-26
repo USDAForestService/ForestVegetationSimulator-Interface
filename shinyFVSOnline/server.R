@@ -685,7 +685,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         setProgress(message = "Finishing", detail  = "", value = iprg)
         selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
           "AGE","CCF","SDI","QMD","TopHt","^BA$","TPA","Species","^Ht$",
-          "^HtG$","CuFt$","BdFt$","Total","HrvPA"),
+          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle"),
           function (x,vs) 
             {
               hits = unlist(grep(x,vs,ignore.case = TRUE))
@@ -756,7 +756,7 @@ cat ("browsevars\n")
                   input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
                   input$dispVar %in% input$browsevars) 
-                                             input$dispVar else "None"
+                                          input$dispVar else "None"
       ccont = c("None",setdiff(input$browsevars,spiv))
       bb = intersect(ccont,cats) # put the factors at the end of the choices
       ccont = c(setdiff(ccont,bb),bb)
@@ -773,7 +773,7 @@ cat ("browsevars\n")
           sel = setdiff(cont,"Year")
           sel = if ("DBH" %in% cont) "DBH" else cont[1]
         }
-        updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel) 
+        updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
       } else {
         sel = if ("Species" %in% cats) "Species" else 
                if (length(cats) > 0) cats[1] else NULL       
@@ -847,9 +847,9 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     {
 cat ("pb test hit\n")
       if (input$pltby == input$xaxis)
-        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
+        updateSelectInput(session=session, inputId="pltby", selected="None")
       else if (input$pltby == input$yaxis)
-        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
+        updateSelectInput(session=session, inputId="pltby", selected="None")
       else if (input$pltby == vf)
         updateSelectInput(session=session, inputId="vfacet", selected="None")
       else if (input$pltby == hf)
@@ -2775,6 +2775,14 @@ cat ("Replace existing database\n")
       schema[fix] = sub (",","",schema[fix])       
       for (i in 1:length(schema))
       {
+        # add a "n" to identifiers that starts with a numeric char.
+        t1 = scan(text=schema[i],what="character",quiet=TRUE)
+        cn = if (toupper(t1[1]) == "CREATE" && toupper(t1[2]) == "TABLE") 3 else 1
+        t1 = t1[cn]
+        t1 = if (toupper(t1[1]) == "CREATE" && toupper(t1[2]) == "TABLE") t1[3] else t1[1]
+        c1 = substr(t1,1,1)
+        n1 = suppressWarnings(as.numeric(c1))
+        if (!is.na(n1)) schema[i] = sub(c1,paste0("n",c1),schema[i])      
         if (substring(schema[i],1,12) == "CREATE TABLE") 
         {
           tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
@@ -2801,6 +2809,9 @@ cat ("Replace existing database\n")
       schema = gsub(" LONG,"," INTEGER,",schema)
       schema = gsub(" DOUBLE,"," REAL,",schema)
       schema = gsub(" MEMO,"," TEXT,",schema)
+      schema = gsub(" FLOAT,"," REAL,",schema)
+      schema = gsub(" MEMO,"," TEXT,",schema)
+      schema = gsub(" SHORT_DATE_TIME,"," TEXT,",schema)
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3) 
       system (paste0("java -jar '",curDir,"/access2csv.jar' ",
@@ -2814,6 +2825,8 @@ cat ("Replace existing database\n")
       for (s in schema)
       {
         cat (".separator ,\n",file="schema")
+        # if file does not exist, then maybe a "n" was added to the name above.
+        if (!file.exists(s)) file.rename(from=substr(s,2,999),to=s)
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
