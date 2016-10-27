@@ -20,7 +20,7 @@ fvsRunAdirondack <- function(runOps)
   CutPoint=0
 
   cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
-    mortModel," volLogic=",volLogic,"\n",file="fromAdirondack.txt")            
+    mortModel," volLogic=",volLogic,"\n",file="AdirondackGY.log")            
   
   
   #load some handy conversion factors
@@ -77,7 +77,7 @@ fvsRunAdirondack <- function(runOps)
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
 
     cat ("fvsRunAdirondack: calling AdirondackGY, year=",stdInfo["year"],"\n",
-         file="fromAdirondack.txt",append=TRUE) 
+         file="AdirondackGY.log",append=TRUE) 
                        
     #compute the growth
     incr = AdirondackGY(incr$tree,CSI,cyclen=cyclen,
@@ -87,7 +87,7 @@ fvsRunAdirondack <- function(runOps)
                      mortModel=mortModel) 
 
     cat ("return from AdirondackGY, mkGraphs=",mkGraphs,"\n",
-          file="fromAdirondack.txt",append=TRUE) 
+          file="AdirondackGY.log",append=TRUE) 
                      
     #plot growth and ingrowth
 
@@ -166,14 +166,14 @@ fvsRunAdirondack <- function(runOps)
         fvsAddTrees(toadd)
       } else cat ("fvsRunAdirondack: Not enough room for new trees. Stand=",
                   fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
-                  file="fromAdirondack.txt",append=TRUE)
+                  file="AdirondackGY.log",append=TRUE)
     }  
 
     # modifying volume?
     if (volLogic == "Kozak")
     {
       cat ("fvsRunAdirondack: Applying Kozak volume logic\n",
-            file="fromAdirondack.txt",append=TRUE)            
+            file="AdirondackGY.log",append=TRUE)            
 
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             

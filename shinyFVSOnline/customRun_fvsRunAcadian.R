@@ -7,7 +7,11 @@ if (file.exists("Acadian.log")) file.remove("Acadian.log")
 # "runOps" exists if you want them to be used.
 fvsRunAcadian <- function(runOps,logfile="Acadian.log")
 { 
-  if (!is.null(logfile)) sink(logfile,append=TRUE)
+  if (!is.null(logfile) && !interactive()) 
+  {
+    sink()
+    sink(logfile,append=TRUE)
+  }
   cat ("*** in fvsRunAcadian",date()," AcadianVersionTag=",AcadianVersionTag,"\n")
   
   # process the ops.

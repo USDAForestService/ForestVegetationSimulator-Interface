@@ -5,7 +5,7 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
 
   cat ("in AdirondackGY nrow(tree)=",nrow(tree)," CSI=",CSI,"cyclen=",
      cyclen,"\nINGROWTH=",INGROWTH," MinDBH=",MinDBH," CutPoint=",CutPoint,
-     " mortModel=", mortModel,"\n",file="fromAdirondackGY.txt",append=TRUE) 
+     " mortModel=", mortModel,"\n",file="AdirondackGY.log",append=TRUE) 
 
   aa=sapply(tree$SP,SPP.func)
   tree$SPtype=t(aa)[,1]
@@ -62,7 +62,7 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     'pRS.ba','pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba'))
   Sum.temp=temp
   
-  cat ("at Sum.temp\n",file="fromAdirondackGY.txt",append=TRUE) 
+  cat ("at Sum.temp\n",file="AdirondackGY.log",append=TRUE) 
 
   temp$maxTREE = NULL
   tree=merge(tree,temp,by="PLOT")
@@ -120,7 +120,7 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
     tree$CR=ifelse(is.na(tree$CR),1-(tree$HCB/tree$HT),tree$CR)
   }
   
-  cat ("at growth\n",file="fromAdirondackGY.txt",append=TRUE) 
+  cat ("at growth\n",file="AdirondackGY.log",append=TRUE) 
 
   #Diameter increment model
   #tree$dDBH=mapply(SUNY.dDBH,SP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
@@ -149,7 +149,7 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
       tree$DBH+tree$dDBH,HT=tree$HT+tree$dHT,
       BAL=tree$BAL,CSI=CSI,BA=tree$BAPH)-tree$HCB
 
-  cat ("at Mortality\n",file="fromAdirondackGY.txt",append=TRUE) 
+  cat ("at Mortality\n",file="AdirondackGY.log",append=TRUE) 
   #Mortality
   if (mortModel == "Adirondack") 
   {
@@ -230,7 +230,7 @@ AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,
 
   cat ("at return, nrow(tree)=",nrow(tree)," ingrow=",
        if (is.null(ingrow)) "NULL" else nrow(ingrow),"\n",
-         file="fromAdirondackGY.txt",append=TRUE)
+         file="AdirondackGY.log",append=TRUE)
        
   # return the original trees and the ingrowth separately
   list(tree=tree,ingrow=ingrow)

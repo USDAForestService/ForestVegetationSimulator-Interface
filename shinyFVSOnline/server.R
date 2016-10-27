@@ -2103,7 +2103,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
           if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
 cat ("cmd=",cmd,"\n")
           system (cmd,wait=FALSE) 
-          Sys.sleep(2)
+          Sys.sleep(1)
           updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
           progress$close()
