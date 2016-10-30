@@ -1496,6 +1496,13 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         {
           ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
           if (is.null(ansFrm)) ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+          if (is.null(ansFrm)) 
+          {
+            kw = unlist(strsplit(kwPname,".",fixed=TRUE))
+            kw = kw[length(kw)]
+            ansFrm = paste0(substr(paste0(kw,"         "),1,10),
+                     "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
+          }
           if (is.null(ansFrm)) return()
           if (cmp$atag != "c") cmp$kwds = mkKeyWrd(ansFrm,cmp$reopn,pkeys,globals$activeVariants[1])
         }
@@ -1872,8 +1879,6 @@ cat ("Editing as freeform\n")
         reopn = ans$reopn
       } else {
         ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
-        if (is.null(ansFrm)) ansFrm = 
-          getPstring(pkeys,"parmsForm",globals$activeVariants[1])
         if (is.null(ansFrm)) 
         { 
 cat ("kwPname=",kwPname,"\n")
