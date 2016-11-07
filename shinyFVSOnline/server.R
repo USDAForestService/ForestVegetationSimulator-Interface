@@ -1065,8 +1065,8 @@ cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         nstds = length(stds)
         msg = paste0(length(stds)," Stand(s) in ",length(input$inGrps)," Group(s)<br>")
         output$stdSelMsg <- renderUI(HTML(msg))
-        if (length(stds) > 120)  stds = c(stds[1:100],
-          paste0("<< Display 101 to ",min(200,length(stds))," of ",length(stds)," >>"))
+        if (length(stds) > 220)  stds = c(stds[1:200],
+          paste0("<< Display 201 to ",min(400,length(stds))," of ",length(stds)," >>"))
         updateSelectInput(session=session, inputId="inStds", 
              choices=as.list(stds))
         output$stdSampTools <- if (length(stds)) 
@@ -1094,15 +1094,15 @@ cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
       stds = stdCnts[stdCnts == length(input$inGrps)]                                                                                                                           
     }                                                                                                
 cat ("inStds, length(stds)=",length(stds),"\n")
-    if (length(stds) < 120) return() 
+    if (length(stds) < 220) return() 
     nprts = as.numeric(prts[c(3,5,7)])
 cat ("nprts=",nprts,"\n")
-    up = nprts[c(1,2)] - 100
-    if (up[2]-up[1] < 100) up[2] = min(up[1]+100,length(stds))
+    up = nprts[c(1,2)] - 200
+    if (up[2]-up[1] < 200) up[2] = min(up[1]+200,length(stds))
     upM = if (up[1] > 0) paste0("<< Display ",up[1]," to ",
       min(up[2],length(stds))," of ",length(stds)," >>") else NULL
-    dn = nprts[c(1,2)] + 100
-    if (dn[2]-dn[1] < 100) dn[2] = min(dn[1]+100,length(stds))
+    dn = nprts[c(1,2)] + 200
+    if (dn[2]-dn[1] < 200) dn[2] = min(dn[1]+200,length(stds))
     dn[2] = min(dn[2],length(stds))
     dnM = if (dn[1] <= length(stds)) paste0("<< Display ",dn[1]," to ",
       dn[2]," of ",length(stds)," >>") else NULL
@@ -1217,7 +1217,19 @@ cat("setting uiRunPlot to NULL\n")
       fn=paste0(names(globals$FVS_Runs)[sel],".RData")
       if (file.exists(fn)) 
       {
-        load(file=fn)
+        ret = try (load(file=fn))  # maybe the file has been corrupted
+        if (class(ret) == "try-error")
+        {
+          cat ("error loading",fn,"\n")
+          unlink(fn)
+          globals$FVS_Runs = globals$FVS_Runs[-sel]
+          saveFvsRun=globals$fvsRun
+          if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
+          {
+            FVS_Runs = globals$FVS_Runs
+            save (file="FVS_Runs.RData",FVS_Runs)
+          }
+        } 
         globals$fvsRun = saveFvsRun
       }
       resetGlobals(globals,globals$fvsRun,prms)
@@ -1370,6 +1382,34 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         pk <- match (cmp$kwdName,names(prms))
         if (is.na(pk)) # FreeForm Edit, used if pk does not match a parms.
         {
+          varsDef  = " "
+          varsName = " "
+          for (elt in prms[["evmon.variables"]])
+          {
+            atl = attr(elt,"atlist")
+            # the appliesTo list will have two tokens if the extension is part of the list
+            if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
+            varsDef <- c(varsDef,paste0(elt,": ",attr(elt,"pstring")))
+            attributes(elt) <- NULL
+            varsName <- c(varsName,elt)
+          }
+          indx = sort(varsName,index.return=TRUE)$ix
+          varsName = as.list(varsName[indx])
+          names(varsName) = varsDef[indx]
+          funcDef  = " "
+          funcName = " "
+          for (elt in prms[["evmon.functions"]])
+          {
+            atl = attr(elt,"atlist")
+            # the appliesTo list will have two tokens if the extension is part of the list
+            if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
+            funcDef <- c(funcDef,paste0(elt,": ",attr(elt,"pstring")))
+            attributes(elt) <- NULL
+            funcName <- c(funcName,elt)
+          }
+          indx = sort(funcName,index.return=TRUE)$ix
+          funcName = as.list(funcName[indx])
+          names(funcName) = funcDef[indx]    
           eltList <- list(
             tags$style(type="label/css", "#cmdTitle{display: inline;}"),
             myInlineTextInput("cmdTitle","Component title", 
@@ -1380,8 +1420,45 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
                    HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
             tags$style(type="text/css", 
               "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-            tags$textarea(id="freeEdit", rows=15, 
-                          globals$currentEditCmp$kwds)
+            tags$textarea(id="freeEdit", rows=10, 
+                          globals$currentEditCmp$kwds),
+            myInlineListButton ("freeOps","Math:",list(
+               " "=" ",
+               "+ Simple addition"="+",
+               "- Subtraction or change sign"="-",
+               "* Multiplication"="*",
+               "/ Division"="/",
+               "** Exponentiate, X**Y is X raised to the power Y"="**",
+               "EQ Logical Equal"="EQ",
+               "NE Logical Not Equal"="NE",
+               "LT Logical Less than"="LT",
+               "LE Logical Less than or equal"="LE",
+               "GT Logical Greater than"="GT",
+               "GE Logical Greater than or equal"="GE",
+               "AND Logical AND"="AND",
+               "OR Logical OR"="OR",
+               "NOT Logical NOT"="NOT",
+               "ABS() Absolute value, ABS(-3) is 3."="ABS()",
+               "ALog() Natural logarithm (base e)"="ALog()",
+               "ALog10() Common logarithm (base 10)"="ALog10()",
+               "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
+               "ArcSin() Arc sine (argument in radians)"="ArcSin()",
+               "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
+               "Cos() Cosine (argument in radians)"="Cos()",
+               "Exp() e raised to power"="Exp()",
+               "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
+               "Int() Integer part of a number, Int(3.4) is 3"="Int()",
+               "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
+               "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
+               "Mod() Remainder of first argument divided by the second"="Mod()",
+               "Sin() Sine (argument in radians)"="Sin()",
+               "Sqrt() Square root"="Sqrt()",
+               "Tan() Tangent (argument in radians)"="Tan()"), 0),
+             myInlineListButton ("freeVars","Variables:",varsName),
+             mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+                  choices=NULL,globals$activeVariants[1]),
+             myInlineListButton ("freeFuncs","FVS Functions:",funcName),
+             uiOutput("fvsFuncRender")
           )
         } else {        # Launch general purpose builder when pk matches a parms.        
           pkeys <- prms[[pk]]
@@ -1390,12 +1467,11 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
             myInlineTextInput("cmdTitle","Component title: ", 
                       value=globals$currentEditCmp$title,size=40)),after=0)          
         }
-      }
-      
+      }      
       eltList <- append(eltList,list(
         h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)
       output$cmdBuild <- renderUI(eltList)
-
+      output$fvsFuncRender <- renderUI (NULL)
       if (input$rightPan != "Components")
       {
         updateTabsetPanel(session=session, inputId="rightPan", 
@@ -1404,6 +1480,106 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
     })
   })
 
+  # install callback functionality for the freeEdit text area to get start and end
+  # selection poistions.
+  #TODO: suppress the call once it's done the first time
+  observe({
+    if (length(input$freeEdit)) 
+    {
+#cat("call sendcustomMessage\n")          
+      session$sendCustomMessage(type="getStart", "freeEdit")
+    }
+  })
+  observe({
+    if (length(input$freeSpecies) && nchar(input$freeSpecies)) isolate({
+      if (length(input$freeEdit) == 0) return()
+      insertStrinIntoFreeEdit(input$freeSpecies)
+    })
+  })
+  observe({
+    if (length(input$freeVars) && nchar(input$freeVars)) isolate({
+      if (length(input$freeEdit) == 0) return()
+      insertStrinIntoFreeEdit(input$freeVars)
+    })
+  })
+  observe({
+    if (length(input$freeOps) && nchar(input$freeOps)) isolate({
+      if (length(input$freeEdit) == 0) return()
+      insertStrinIntoFreeEdit(input$freeOps)
+    })
+  })  
+  observe({
+    if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
+      if (length(input$freeEdit) == 0) return()
+      pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
+      if (is.null(pkeys)) return()
+      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun)
+      eltList <- append(eltList,list(
+        actionButton("fvsFuncInsert","Insert function"),
+        actionButton("fvsFuncCancel","Cancel function"),h6()))
+      output$fvsFuncRender <- renderUI(eltList)
+    })
+  })  
+  observe({  #fvsFuncCancel
+    if (length(input$fvsFuncCancel) && input$fvsFuncCancel) 
+    {
+      output$fvsFuncRender <- renderUI (NULL)
+      updateSelectInput(session=session, inputId="freeFuncs",selected=1)
+    }
+  })
+  observe({  #fvsFuncInsert
+    if (length(input$fvsFuncInsert) && input$fvsFuncInsert) 
+    isolate({
+      pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]]
+      ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+      reopn = NULL
+      fn = 0
+      repeat
+      {
+        fn = fn+1
+        pkey = paste0("f",fn)
+        fps = getPstring(pkeys,pkey,globals$activeVariants[1])
+        if (is.null(fps)) break
+        instr = input[[pkey]]
+        reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+        names(reopn)[fn] = pkey
+      }
+      string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])      
+      insertStrinIntoFreeEdit(string)
+    })
+  })   
+  insertStrinIntoFreeEdit <- function(string)
+  {
+    if (is.null(string) || nchar(string) == 0 || string == " ") return()
+    isolate({
+      if (length(input$selectionStart)) 
+      {
+        start = input$selectionStart
+        end   = input$selectionEnd
+      } else { start=0;end=0 } 
+      len   = nchar(input$freeEdit)
+cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=",len,"\n")
+      if (nchar(string) == 0) return()
+      if (start == end && end == len) {         # prepend 
+        updateTextInput(session, "freeEdit", value = paste0(input$freeEdit,string))
+      } else if (start == 0 && end == start) {  # append
+        updateTextInput(session, "freeEdit", value = paste0(string,input$freeEdit))
+      } else if (end >= start) {                # insert/replace
+        str = input$freeEdit
+        updateTextInput(session, "freeEdit", value = 
+          paste0(substring(input$freeEdit,1,max(1,start)),string,
+                 substring(input$freeEdit,min(end+1,len))))
+      }
+      updateSelectInput(session=session, inputId="freeOps", selected=1)
+      updateSelectInput(session=session, inputId="freeVars",selected=1)
+      updateSelectInput(session=session, inputId="freeSpecies",selected=1)
+      updateSelectInput(session=session, inputId="freeFuncs",selected=1)
+      output$fvsFuncRender <- renderUI (NULL)
+      session$sendCustomMessage(type="refocus", "freeEdit")
+    })
+  }
+
+ 
   ## Cut  
   observe({
     if (input$cutCmp == 0) return()
@@ -1521,9 +1697,9 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
   ## Command Set (radio button).
   observe({
 cat ("command set (radio), input$cmdSet=",input$cmdSet,
-  " input$simCont=",length(input$simCont),"\n")
-    if (length(input$simCont) == 0) return(NULL)
+     " input$simCont=",length(input$simCont),"\n")
     output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    if (length(input$simCont) == 0) return(NULL)
     switch (input$cmdSet,
       "Management" = 
       {
@@ -1593,13 +1769,14 @@ cat ("command set (radio), input$cmdSet=",input$cmdSet,
         nchar(input$addCategories) == 0 ||
         length(input$simCont) == 0) 
     { 
+cat ("Category selection direct return\n")
       updateSelectInput(session=session, inputId="addComponents", selected = 0)
       output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       return(NULL)
     }
-    cmd = input$cmdSet
     isolate ({ 
-    switch (cmd,
+cat ("Category selection input$cmdSet=",input$cmdSet," input$addCategories=",input$addCategories,"\n")
+    switch (input$cmdSet,
       "Management" =  updateSelectInput(session=session, inputId="addComponents", 
            label="Components", selected = 0, 
            choices=globals$mgmtsel[[as.numeric(input$addCategories)]]),
@@ -2041,10 +2218,10 @@ cat("Nulling uiRunPlot at Save and Run\n")
           detail = "Write .key file and prepare program", value = 3)
         writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms)
         dir.create(globals$fvsRun$uuid)
-        if (!exists("rFVSDir")) rFVSDir = "rFVS/R/"
-        if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R/"
+        if (!exists("rFVSDir")) rFVSDir = "rFVS/R"
+        if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R"
         if (!file.exists(rFVSDir)) return()
-        binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
+        binDir = if (file.exists("FVSbin")) "FVSbin" else fvsBinDir
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
@@ -2059,7 +2236,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
           cmd = paste0("nstands = ",length(globals$fvsRun$stands))
           cat (cmd,"\n",file=rs)          
           cmd = paste0("for (rf in dir('",rFVSDir,
-             "')) source(paste0('",rFVSDir,"',rf))")
+             "')) source(paste0('",rFVSDir,"','/',rf))")
           cat (cmd,"\n",file=rs)
           cmd = paste0("fvsLoad('",
              globals$fvsRun$FVSpgm,"',bin='",binDir,"')")
@@ -2116,7 +2293,7 @@ cat ("cmd=",cmd,"\n")
         }
         fvschild = makePSOCKcluster(1)
         cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
-          "')) source(paste0('",rFVSDir,"',rf)))")
+          "')) source(paste0('",rFVSDir,"','/',rf)))")
 cat ("load rFVS cmd=",cmd,"\n")          
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()
@@ -2374,7 +2551,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
            selected = 0)
       }
       updateTextInput(session=session, inputId="kcpTitle", value="")
-      updateTextInput(session=session, inputId="kcpEdit", value="")
+      updateTextInput(session=session, inputId="kcpEdit", value="") 
     }
   })
 
@@ -2492,11 +2669,10 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         if (is.null(topaste)) return()
         updateTextInput(session=session, inputId="kcpEdit", value=
           paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
+        session$sendCustomMessage(type="refocus", "kcpEdit")
       })
     }
   })
-      
-  
 
   ## Tools, related to FVSRefresh
   observe({    
@@ -2538,7 +2714,7 @@ cat ("FVSRefresh\n")
         i = 0
         for (pgm in input$FVSprograms)
         {
-          rtn=file.copy(from=paste0(fvsBinDir,pgm,shlibsufx),to="FVSbin")
+          rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin")
           if (rtn) i = i+1
         }
         session$sendCustomMessage(type="infomessage",
@@ -3534,7 +3710,8 @@ cat ("in saveRun\n")
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
       saveFvsRun = globals$fvsRun
       save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)    
+      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+cat ("leaving saveRun\n") 
     }) 
   }
    

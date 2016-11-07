@@ -34,7 +34,8 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
     if (!is.null(title)) eltList <- append(eltList,
         list(HTML(paste0("<p><b>",gsub("\n","<br/>",title),"<b/><p/>"))))
     fpvs <- if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) NULL else
-            globals$currentEditCmp$reopn[f]    
+            globals$currentEditCmp$reopn[f] 
+    if (!is.null(fpvs) && is.na(fpvs)) fpvs = NULL
     choices <- getPstring(pkeys,paste0(pkey,"v"),globals$activeVariants[1]) 
     if (cndflag) pkey = paste0("cnd.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
@@ -49,6 +50,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       radioGroup     = mkSelectInput (pkey, pmt, choices, fpvs, type="radiogroup"),
       sliderBox      = mkTextInput (pkey, pmt, choices, fpvs),  
       numberBox      = mkTextInput (pkey, pmt, choices, fpvs), 
+      intNumberBox   = mkTextInput (pkey, pmt, choices, fpvs), 
       textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
       fileBrowse     = {
               choices = gsub("xls$","db",choices)
@@ -93,8 +95,8 @@ mkSelectInput <- function (inputId, label, choices, fpvs,
 {
   choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
   sel = grep ("^>",choices)
-  if (length(sel)) choices[sel] = trim(substring(choices[sel],2)) else sel = 1
-  if (!is.null(fpvs))
+  if (length(sel)) choices[sel] = trim(substring(choices[sel],2)) else sel = 1 
+  if (! (is.null(fpvs) || is.na(fpvs)))
   {
     sel = if (is.na(suppressWarnings(as.numeric(fpvs)))) 
       grep (paste0("^",fpvs),choices) else fpvs
@@ -129,7 +131,14 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
   sps = if (addAll) list("All species") else list ()
   for (sp in spkeys) sps <- append(sps,attr(sp,"pstring"))
   dsp = if (addAll) as.list(c("All",unlist(spkeys))) else spkeys
-  if (!is.null(fpvs)) choices = fpvs
+  if (!is.null(fpvs)) 
+  {
+    if (fpvs == -1) 
+    {
+      sps <- append(sps," ",after=0)
+      dsp <- append(dsp," ",after=0)
+    }
+  } else choices = fpvs
   names(dsp) = sps
   myInlineListButton (pkey, pmt, dsp, selected = choices)
 }

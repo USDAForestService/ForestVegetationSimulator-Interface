@@ -133,9 +133,9 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   {
     dfin = data.frame(Groups = "All All_Stands",Addfiles = "",
       FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-        "SELECT * FROM FVS_StandInit\nWHERE Stand_CN= '%Stand_CN%'\n",
+        "SELECT * FROM FVS_StandInit\nWHERE Stand_ID= '%StandID%'\n",
         "EndSQL\nTreeSQL\nSELECT * FROM FVS_TreeInit\n", 
-        "WHERE Stand_CN= '%Stand_CN%'\nEndSQL\nEND")    
+        "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
     )
     dbWriteTable(dbGlb$dbIcon,name="FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
   }

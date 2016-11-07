@@ -12,5 +12,27 @@ Shiny.addCustomMessageHandler("infomessage",
   function(message) { alert(message); }
 );
 
+// Refocus "eltid"
+Shiny.addCustomMessageHandler("refocus",
+  function(eltid) { document.getElementById(eltid).focus(); }
+);
+
+
+// This gets the cursor postion from eltid
+Shiny.addCustomMessageHandler("getStart",
+  function(eltid) 
+  {
+    if (document.getElementById(eltid)) 
+    {
+      document.getElementById(eltid).onmouseout = function() 
+      { 
+        Shiny.onInputChange("selectionStart",  document.getElementById(eltid).selectionStart); 
+        Shiny.onInputChange("selectionEnd",  document.getElementById(eltid).selectionEnd); 
+      }
+    }
+  }
+);
 
 })();
+
+

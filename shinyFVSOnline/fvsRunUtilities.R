@@ -433,17 +433,17 @@ paste0("list n=",length(list)) else sels,"\n")
   if (start > 1) 
   {
     tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
-    newstart <- max(start-20,1) 
+    newstart <- max(start-50,1) 
     if(newstart<1) newstart=1
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+19)  
+    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
     tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
                " of ",length(fvsRun$stands)," stands >>"),after=0)
   }
   if (end < length(fvsRun$stands))
   {
     tmptags <- append(tmptags,paste0("+",as.character(start)))
-    newstart <- min(start+20,length(fvsRun$stands)-19)
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+19)  
+    newstart <- min(start+50,length(fvsRun$stands)-49)
+    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
     tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
                " of ",length(fvsRun$stands)," stands >>"))
   }       
@@ -726,8 +726,9 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
       }
     }
   }
+  out <- trim(out)
 cat ("mkKeyWrd, out=",out,"\n")
-  trim(out)
+  out
 }
   
 
