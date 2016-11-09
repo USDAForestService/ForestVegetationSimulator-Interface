@@ -1284,21 +1284,24 @@ cat ("in addStandsToRun, selType=",selType,"\n")
 updateRepsTags <- function(globals)
 { 
 cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n") 
-  stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
-  cnts <- table(stds)
-  for (cn in 1:length(cnts)) 
+  if (length(globals$fvsRun$stands))
   {
-    cnt <- cnts[cn]
-    reps <- grep(names(cnt),stds,fixed=TRUE)
-    if (length(reps) > 1)
-    {                                                                                             
-      i <- 1
-      for (r in reps) 
-      {
-        globals$fvsRun$stands[[r]]$rep <- i
-        i <- i+1
-      }     
-    } else globals$fvsRun$stands[[reps]]$rep <- integer(0)
-  } 
+    stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))  
+    cnts <- table(stds)  
+    for (cn in 1:length(cnts)) 
+    {
+      cnt <- cnts[cn]   
+      reps <- grep(names(cnt),stds,fixed=TRUE)
+      if (length(reps) > 1)
+      {                                                                                             
+        i <- 1
+        for (r in reps) 
+        {
+          globals$fvsRun$stands[[r]]$rep <- i
+          i <- i+1
+        }     
+      } else globals$fvsRun$stands[[reps]]$rep <- integer(0)
+    }
+  }
 }
 
