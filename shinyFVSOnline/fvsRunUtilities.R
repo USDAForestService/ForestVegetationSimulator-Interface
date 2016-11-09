@@ -368,23 +368,23 @@ mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
   {
     if (substr(sels[[1]],1,1) == "-") 
     {
-      start = max((-as.numeric(sels[[1]]))-20,1) 
+      start = max((-as.numeric(sels[[1]]))-50,1) 
     } else if (substr(sels[[1]],1,1)== "+") 
     {
-      start = min(as.numeric(sels[[1]])+20,length(fvsRun$stands)-19)
+      start = min(as.numeric(sels[[1]])+50,length(fvsRun$stands)-49)
       if(start<1) start=1
     }     
   }
-  end = min(start+length(fvsRun$stands)-1,start+19)
+  end = min(start+length(fvsRun$stands)-1,start+49)
   if (foundStand > 0L) 
   {
     if (foundStand < start || foundStand > end) 
     {
       start = foundStand
-      end = min(start+length(fvsRun$stands)-1,start+19)
+      end = min(start+length(fvsRun$stands)-1,start+49)
       if (end > length(fvsRun$stands))
       {
-        start = max(length(fvsRun$stands)-20,1)
+        start = max(length(fvsRun$stands)-50,1)
         end = length(fvsRun$stands)
       }
     }
@@ -459,11 +459,14 @@ paste0("list n=",length(list)) else sels,"\n")
   if (!is.null(sels) || length(fvsRun$selsim) == 0) 
   {
     selset <- NULL
-    tmpcnts <- unlist(tmpcnts)
+    tmpcnts <- unlist(tmpcnts) 
     if (!is.null(sels)) 
-    {    
-      selset=unlist(sels) == unlist(tmptags)
-      if (all(!selset)) selset=NULL
+    { 
+      if (length(unlist(sels)) == length(unlist(tmptags)))
+      {
+        selset=unlist(sels) == unlist(tmptags)
+        if (all(!selset)) selset=NULL
+      } else selset = match(sels,tmptags)      
     }
     if (length(selset) == 0) selset <- grep(" Grp: All_",tmpcnts)
     if (length(selset) == 0) selset <- grep(" Grp: All",tmpcnts)
@@ -1264,20 +1267,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     progress$set(detail="Updating reps tags",value = msgVal)
     stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
     cnts <- table(stds)
-    for (cn in 1:length(cnts)) 
-    {
-      cnt <- cnts[cn]
-      reps <- grep(names(cnt),stds,fixed=TRUE)
-      if (length(reps) > 1)
-      {
-        i <- 1
-        for (r in reps) 
-        {
-          globals$fvsRun$stands[[r]]$rep <- i
-          i <- i+1
-        }
-      }
-    }
+    updateRepsTags(globals)
     msgVal = msgVal+1
     progress$set(detail="Loading contents listbox",value = msgVal)
     mkSimCnts(globals$fvsRun)
@@ -1289,3 +1279,26 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     progress$close()
   })
 }
+
+
+updateRepsTags <- function(globals)
+{ 
+cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n") 
+  stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
+  cnts <- table(stds)
+  for (cn in 1:length(cnts)) 
+  {
+    cnt <- cnts[cn]
+    reps <- grep(names(cnt),stds,fixed=TRUE)
+    if (length(reps) > 1)
+    {                                                                                             
+      i <- 1
+      for (r in reps) 
+      {
+        globals$fvsRun$stands[[r]]$rep <- i
+        i <- i+1
+      }     
+    } else globals$fvsRun$stands[[reps]]$rep <- integer(0)
+  } 
+}
+

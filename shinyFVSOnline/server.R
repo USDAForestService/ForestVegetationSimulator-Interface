@@ -983,24 +983,30 @@ cat ("vfacet test hit\n")
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
     {
 cat ("Stands\n")
-      if (length(globals$fvsRun$FVSpgm) == 0) 
-      {
-        selVarListUse <- intersect(names(globals$selVarList),
-                                   globals$activeVariants)
-        selVarListUse <- globals$selVarList[selVarListUse]                                   
-        vlst <- as.list (names(selVarListUse))
-        names(vlst) = selVarListUse        
-      } else {
-        if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) vlst <- list() else
-        {
-          vlst <- as.list(globals$activeFVS[globals$fvsRun$FVSpgm][[1]][[1]][1])
-          names(vlst) <- globals$selVarList[[vlst[[1]]]]
-        }
-      }
-      updateSelectInput(session=session, inputId="inVars", choices=vlst,
-            selected=if (length(vlst)) vlst[[1]] else NULL)
-    } 
+      updateVarSelection()
+    }
   })
+  
+  updateVarSelection <- function ()
+  { 
+cat ("in updateVarSelection\n")   
+    if (length(globals$fvsRun$FVSpgm) == 0) 
+    {
+      selVarListUse <- intersect(names(globals$selVarList),
+                                 globals$activeVariants)
+      selVarListUse <- globals$selVarList[selVarListUse]                                   
+      vlst <- as.list (names(selVarListUse))                                
+      names(vlst) = selVarListUse        
+    } else {
+      if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) vlst <- list() else
+      {
+        vlst <- as.list(globals$activeFVS[globals$fvsRun$FVSpgm][[1]][[1]][1])
+        names(vlst) <- globals$selVarList[[vlst[[1]]]]
+      }
+    }
+    updateSelectInput(session=session, inputId="inVars", choices=vlst,
+          selected=if (length(vlst)) vlst[[1]] else NULL)
+  } 
   
   ## inVars has changed
   observe({
@@ -1111,8 +1117,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
     updateSelectInput(session=session, inputId="inStds", 
          choices=as.list(stds))   
   })
-      
-  
+        
 
   ## New run    
   observe({
@@ -1277,6 +1282,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      updateVarSelection()
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
         length(globals$fvsRun$grps)," group(s)")))
@@ -1584,10 +1590,12 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
   observe({
     if (input$cutCmp == 0) return()
     isolate ({
+cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")     
       if (length(input$simCont) == 0) return
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {   
-        globals$foundStand=0L  
+        globals$foundStand=0L 
+        updateRepsTags(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
