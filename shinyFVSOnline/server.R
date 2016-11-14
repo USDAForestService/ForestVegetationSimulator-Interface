@@ -572,16 +572,28 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           initTableGraphTools()
           return()
         }
-        # this merges the data on all columns      
+
+        
         iprg = iprg+1
         setProgress(message = "Merging selected tables", detail  = "", value = iprg)
         if (length(dat) > 0)
         {
-          for (tb in names(dat))
+          #avoid name conflicts with the TreeList table and others.
+          if (!is.null(dat[["FVS_TreeList"]]))
           {
+            toren = c("TCuFt", "MCuFt", "BdFt", "PrdLen")
+            cols = match(toren,names(dat[["FVS_TreeList"]]))
+            names(dat[["FVS_TreeList"]])[cols] = paste0("T.",toren)
+          } 
+          for (tb in names(dat))
+          { 
+            mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","Species"))
+            mrgVars = intersect(mrgVars,names(dat[[tb]]))
             setProgress(message = "Merging selected tables", 
                         detail  = tb, value = iprg)
-            mdat = merge(mdat,dat[[tb]],all=TRUE)
+cat ("mrgVars=",mrgVars,"\n")                        
+#browser() 
+            mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
         } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
@@ -735,7 +747,7 @@ cat("filterRows and/or pivot\n")
     if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
         !is.null(input$dispVar) && input$dispVar != "None")  
           dat = pivot(dat,input$pivVar,input$dispVar)
-    fvsOutData$render = dat
+    fvsOutData$render = dat    
     if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]
     output$table <- renderTable(dat) 
   })

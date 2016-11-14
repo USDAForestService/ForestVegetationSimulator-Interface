@@ -40,10 +40,10 @@ select CaseID,Year,Species,
     sum(TCuFt*Tpa)    as LiveTCuFt, 
     sum(MCuFt*Tpa)    as LiveMCuFt, 
     sum(BdFt*Tpa)     as LiveBdFt, 
-    sum(MortPA)       as MortPA, 
-    sum(TCuFt*MortPA) as MortTCuFt, 
-    sum(MCuFt*MortPA) as MortMCuFt,               
-    sum(BdFt*MortPA)  as MortBdFt 
+    sum(MortPA)       as MrtPA, 
+    sum(TCuFt*MortPA) as MrtTCuFt, 
+    sum(MCuFt*MortPA) as MrtMCuFt,               
+    sum(BdFt*MortPA)  as MrtBdFt 
   from FVS_TreeList 
   where CaseID in (select CaseID from m.Cases)
   group by CaseID,Year,DBHClass,Species
@@ -54,10 +54,10 @@ select CaseID,Year,Species,'All' as DBHClass,
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MortPA)       as MortPA, 
-    sum(MortTCuFt)    as MortTCuFt, 
-    sum(MortMCuFt)    as MortMCuFt, 
-    sum(MortBdFt)     as MortBdFt 
+    sum(MrtPA)        as MrtPA, 
+    sum(MrtTCuFt)     as MrtTCuFt, 
+    sum(MrtMCuFt)     as MrtMCuFt, 
+    sum(MrtBdFt)      as MrtBdFt 
   from m.StdStkDBHSp 
   group by CaseID,Year,Species
   order by CaseID,Year,Species,DBHClass;
@@ -67,10 +67,10 @@ select CaseID,Year,'All' as Species, DBHClass,
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MortPA)       as MortPA, 
-    sum(MortTCuFt)    as MortTCuFt, 
-    sum(MortMCuFt)    as MortMCuFt, 
-    sum(MortBdFt)     as MortBdFt 
+    sum(MrtPA)        as MrtPA, 
+    sum(MrtTCuFt)     as MrtTCuFt, 
+    sum(MrtMCuFt)     as MrtMCuFt, 
+    sum(MrtBdFt)      as MrtBdFt 
   from m.StdStkDBHSp 
   group by CaseID,Year,DBHClass
   order by CaseID,Year,Species,DBHClass;
@@ -80,10 +80,10 @@ select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MortPA)       as MortPA, 
-    sum(MortTCuFt)    as MortTCuFt, 
-    sum(MortMCuFt)    as MortMCuFt, 
-    sum(MortBdFt)     as MortBdFt 
+    sum(MrtPA)        as MrtPA, 
+    sum(MrtTCuFt)     as MrtTCuFt, 
+    sum(MrtMCuFt)     as MrtMCuFt, 
+    sum(MrtBdFt)      as MrtBdFt 
   from m.StdStkDBHSp 
   group by CaseID,Year
   order by CaseID,Year,Species,DBHClass;
@@ -144,9 +144,8 @@ create table StdStk as
 select Year,Species,DBHClass,
  LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
  HrvPA, HrvTCuFt, HrvMCuFt, HrvBdFt,
- MortPA, MortTCuFt, MortMCuFt, MortBdFt, CaseID
+ MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from m.StdStk1;"
-#order by MgmtID,StandID,CaseID,Year,Species,DBHClass;"
   
 Create_StdStkNoHrv = "
 drop table if exists StdStk;
@@ -154,9 +153,8 @@ create table StdStk as
 select Year,Species,DBHClass,
  LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
  0 as HrvPA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvBdFt,
- MortPA, MortTCuFt, MortMCuFt, MortBdFt, CaseID
+ MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from m.StdStkDBHSp;"
-#order by MgmtID,StandID,CaseID,Year,Species,DBHClass;"
 
 
 Create_ATRTStdStk = "
