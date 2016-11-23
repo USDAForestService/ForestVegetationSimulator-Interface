@@ -591,8 +591,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
             mrgVars = intersect(mrgVars,names(dat[[tb]]))
             setProgress(message = "Merging selected tables", 
                         detail  = tb, value = iprg)
-cat ("mrgVars=",mrgVars,"\n")                        
-#browser() 
+cat ("tb=",tb," mrgVars=",mrgVars,"\n")                        
             mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
@@ -2505,7 +2504,6 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
          {
            tempDir = paste0(dirname(tf),"/tozip")
            dir.create(tempDir)
-           opref = globals$FVS_Runs[[input$runSel]]$title
            for (ele in input$dlZipSet)
            {
              switch (ele,
@@ -2514,18 +2512,18 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
                key   = {
                  from=paste0(input$runSel,".key")
                  if (file.exists(from)) file.copy(from=from,
-                   to=paste0(tempDir,"/",opref,"_FVSkeywords.txt"))
+                   to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSkeywords.txt"))
                },
                out   = {
                  from=paste0(input$runSel,".out")
                  if (file.exists(from)) file.copy(from=from,
-                   to=paste0(tempDir,"/",opref,"_FVSoutput.txt"))
+                   to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt"))
                },
                subdir= {
                  from=input$runSel
                  if (dir.exists(from)) 
                  {
-                   to = paste0(tempDir,"/",opref,"_SVS/")
+                   to = paste0(tempDir,"/",globals$fvsRun$title,"_SVS/")
                    dir.create (to)
                    file.copy(from=from,to=to,recursive = TRUE)
                    file.copy(from=paste0(from,"_index.svs"),to=to)
