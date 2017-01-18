@@ -2956,8 +2956,11 @@ cat ("Replace existing database\n")
       source("dbNamesAndTypes.R")
       curDir=getwd()
       setwd(dirname(input$uploadNewDB$datapath))
-      system (paste0("java -jar '",curDir,"/access2csv.jar' ",
-              input$uploadNewDB$datapath," --schema > schema"))
+cat("curDir=",curDir," input dir=",getwd(),"\n") 
+      cmd = paste0("java -jar '",curDir,"/access2csv.jar' ",
+              basename(input$uploadNewDB$datapath)," --schema > schema")
+cat (" cmd=",cmd,"\n")
+      system (cmd)
       progress$set(message = "Process schema", value = 2)
       if (!file.exists("schema") || file.size("schema") == 0) 
       {
@@ -3029,7 +3032,9 @@ cat ("Replace existing database\n")
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
-        system (paste0("sqlite3 ","FVS_Data.db"," < schema"))
+        cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
+cat (" cmd=",cmd,"\n")
+        system (cmd)
       }
       progress$set(message = "Copy tables", value = i+1) 
       lapply(schema,unlink) 

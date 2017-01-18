@@ -1055,7 +1055,7 @@ tmort.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
 # PHW is percent hardwood basal area, 
 # MinDBH is the minimum threshold diameter (cm)
 # ClimateSI is the climate site index (m)
-Ingrowth.FUN=function(PARMS,CutPoint,BA,TPH,QMD,PHW,MinDBH,ClimateSI)
+Ingrowth.FUN=function(PARMS,CutPoint,BA,TPH,QMD,PHW,MinDBH,ClimateSI,cyclen)
 {
   if(PARMS=="GNLS"){
     a0=-0.2116   #-4.7867
@@ -1092,8 +1092,12 @@ Ingrowth.FUN=function(PARMS,CutPoint,BA,TPH,QMD,PHW,MinDBH,ClimateSI)
   link1 = a0+a1*BA+a2*PHW+a3*(TPH/1000)+a4*ClimateSI+a5*(MinDBH)+a6*QMD #+a6*log(BA+0.1)#+a6*QMD*BA
   PI  = (1/(1+exp(-link1)))
   eta   = b0+b1*BA+ b2*PHW+b3*(TPH/1000)+b4*ClimateSI+b5*(MinDBH)+b6*QMD #+b6*log(BA+0.1)#+b6*QMD*BA
-  IPH  = exp(eta)
-  IPH = ifelse(PI>=CutPoint,IPH,0)
+  if (cyclen>1) 
+  {
+    PI = 1-((1-PI)^(1/cyclen))
+    IPH = IPH*cyclen
+  }
+  IPH = if(CutPoint == 0) IPH*PI else ifelse(PI>=CutPoint,IPH,0)
   return(list(IPH=IPH))
 }
 
@@ -1154,8 +1158,9 @@ Ingrowth.Comp=function(SPP,BA,PBA,ClimateSI,MinDBH)
 }
 
 the.includer.func<-function(EXPF,cum.EXPF){
-  if(cum.EXPF<=100) tree.inc <-EXPF
-  else if((cum.EXPF+EXPF)>100 & 100-cum.EXPF>0) tree.inc <- 100-cum.EXPF
+  if((cum.EXPF)<=100) tree.inc <-EXPF
+  else if(cum.EXPF>100 & (cum.EXPF-EXPF)<=100 & ((100-(cum.EXPF-EXPF))+(cum.EXPF-EXPF))<=100){  
+    tree.inc<-100-(cum.EXPF-EXPF)} 
   else tree.inc <-0
   return(tree.inc)}
 
@@ -2572,6 +2577,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   MinDBH   = if (is.null(ops$MinDBH))    10         else ops$MinDBH
   CutPoint = if (is.null(ops$CutPoint))  0.5        else ops$CutPoint
   mortType = if (is.null(ops$mortType))  "discrete" else ops$mortType
+  cyclen   = if (is.null(ops$cyclen))    1          else ops$cyclen
   rtnVars  = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE",
      "SP","DBH","HT","HCB","EXPF",'pHT','pHCB')     else ops$rtnVars
   SBW      = ops$SBW      
@@ -2579,8 +2585,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   CSI      = if (is.null(stand$CSI))    12          else stand$CSI
   
   if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
-    " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           MinDBH=",MinDBH,
-    " mortType=",mortType," SBW=",SBW,"\n")
+    " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
+    " MinDBH=",MinDBH," mortType=",mortType," SBW=",SBW,"\n")
   if (exists("AcadianVersionTag") && verbose) 
     cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
@@ -2783,7 +2789,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
            avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=CDEF)
   if (verbose) cat ("mean tree$dDBH.thin.mod=",mean(tree$dDBH.thin.mod),"\n")          
   if (verbose) cat ("mean tree$dDBH.SBW.mod= ",mean(tree$dDBH.SBW.mod),"\n")
-  tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod
+  
+  tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod*cyclen
   
   #height increment
   tree$dHT=dHT(SPP=tree$SP,HT=tree$HT,CR=tree$CR,BAL.SW=tree$BAL.SW,
@@ -2799,7 +2806,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   
   if (verbose) cat ("mean tree$dHT.thin.mod=",mean(tree$dHT.thin.mod),"\n")
   if (verbose) cat ("mean tree$dHT.SBW.mod=", mean(tree$dHT.SBW.mod),"\n")
-  tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod
+  
+  tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod*cyclen
   
   # cap height growth
   dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
@@ -2814,8 +2822,9 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
     mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = pBArm, BApre=BApre,  
            QMDratio=QMDratio, YEAR_CT=YEAR_CT, YEAR=tree$YEAR)
   
-  tree$dHCB=tree$dHCB*tree$dHCB.thin.mod
   if (verbose) cat ("mean tree$dHCB.thin.mod=",mean(tree$dHCB.thin.mod),"\n")
+  
+  tree$dHCB=tree$dHCB*tree$dHCB.thin.mod*cyclen
   
   ## Mortality
   tree = ddply (tree,.(PLOT),
@@ -2829,7 +2838,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
                 x
               })              
                 
-  tmp = stand.mort.prob(region='ME',BA=tree$BAPH,BAG=tree$Sbag30,
+  tmp = stand.mort.prob(region='ME',BA=tree$BAPH,BAG=tree$Sbag30/cyclen,
                QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)                  
   tree$stand.pmort=tmp$prob    
   tree$stand.pmort.cut=tmp$cut    
@@ -2838,7 +2847,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   if (verbose) cat ("mean tree$stand.pmort.cut=",mean(tree$stand.pmort.cut),"\n")
 
   tree$stand.mort.BA=stand.mort.BA(region='ME',BA=tree$BAPH,
-         BAG=tree$Sbag30,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
+         BAG=tree$Sbag30/cyclen,QMD=tree$qmd,tree$qmd.BF,pBA.bf=tree$pBF.ba,
          pBA.ih=tree$pIHW.ba)
 
   tree$smort.thin.mod = if (is.null(YEAR_CT)) 1 else 
@@ -2859,9 +2868,14 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   tree$stand.mort.BA = if (mortType == "discrete") 
   {
     # original, discrete mortality
-    ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
-      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
-  } else {   
+    lamda = -0.1 
+    tree$stand.mort.BA = ifelse(
+      ((tree$stand.pmort)^(1/cyclen)) > (tree$stand.pmort.cut)^(1/cyclen), 
+      tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*(exp(lamda*(cyclen-1))), 0)   
+      # ifelse(tree$stand.pmort > tree$stand.pmort.cut, 
+      #   tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod, 0) 
+  } 
+  else {   
     # Crookston's alternative continuous 
     w=1
     pmort = qbeta(tree$stand.pmort.cut, 
@@ -2887,36 +2901,38 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
   tree$mortBA=((tree$DBH+tree$dDBH)^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
          
   tree = ddply (tree,.(PLOT),
-              function (x)
-              {
-                # sort the trees on the plot on increasing survivorship
-                #x = x[sort(x$tsurv,decreasing=FALSE,index.return=TRUE)$ix,]
-                x = sort.data.frame(x,~+tsurv+DBH)
-                x$Cum.mort<-cumsum(x$mortBA)
-                x$DmortBA = (x$stand.mort.BA-x$Cum.mort)
-                x$Cum.DmortBA=cumsum(x$DmortBA)
-                x$xDmortBA=x$Cum.DmortBA-(x$DmortBA)
-                x$xmortBA=x$Cum.mort-x$mortBA
-                x$vv=x$stand.mort.BA-(x$Cum.mort-x$mortBA)
-                x$xxmortBA=x$Cum.DmortBA-x$Cum.mort
-                x$TotBAmort=round(x$mortBA+x$xDmortBA,8)
-                x$pBAmort=x$vv/x$mortBA
-                x$dEXPF=ifelse(x$Cum.mort<=x$stand.mort.BA,
-                               x$EXPF-(x$EXPF*x$tsurv),ifelse(x$vv>=0,  #x$TotBAmort<=(x$stand.mort.BA),
-                               x$EXPF - x$EXPF*(1-x$pBAmort),0))
-                x$EXPF.ba=(((x$DBH+x$dDBH)^2*0.00007854)*x$dEXPF)
-                x$Dead=cumsum(x$EXPF.ba)
-                x
-              })
-  
+                function (x)
+                {
+                  # sort the trees on the plot on increasing survivorship
+                  #x = x[sort(x$tsurv,decreasing=FALSE,index.return=TRUE)$ix,]
+                  x = sort.data.frame(x,~+tsurv+DBH)
+                  x$Cum.mort<-cumsum(x$mortBA)
+                  x$DmortBA = (x$stand.mort.BA-x$Cum.mort)
+                  x$Cum.DmortBA=cumsum(x$DmortBA)
+                  x$xDmortBA=x$Cum.DmortBA-(x$DmortBA)
+                  x$xmortBA=x$Cum.mort-x$mortBA
+                  x$vv=x$stand.mort.BA-(x$Cum.mort-x$mortBA)
+                  x$xxmortBA=x$Cum.DmortBA-x$Cum.mort
+                  x$TotBAmort=round(x$mortBA+x$xDmortBA,8)
+                  x$pBAmort=x$vv/x$mortBA#(((x$DBH+(x$dDBH*cyclen))^2*0.00007854)*x$EXPF)
+                  x$ba.mort=0.00007854*(x$DBH+x$dDBH)^2
+                  x$zTPH=x$vv/x$ba.mort
+                  x$dEXPF=ifelse(x$Cum.mort<=x$stand.mort.BA,
+                                 x$EXPF-(x$EXPF*x$tsurv),ifelse(x$vv>=0,  #x$TotBAmort<=(x$stand.mort.BA),
+                                                                #x$EXPF - x$EXPF*(1-x$pBAmort),0))
+                                                                x$zTPH,0))
+                  x$EXPF.ba=(((x$DBH+(x$dDBH))^2*0.00007854)*x$dEXPF)
+                  x$Dead=cumsum(x$EXPF.ba)
+                  x
+                })
   ##INGROWTH
   ingrow = NULL
   if (toupper(substr(INGROWTH,1,1)) == "Y")
   {
 
-    Sum.temp$IPH=as.numeric(mapply(Ingrowth.FUN,PARMS='NLME',CutPoint=CutPoint,
+    Sum.temp$IPH=as.numeric(mapply(Ingrowth.FUN,PARMS='GNLS',CutPoint=CutPoint,
          BA=Sum.temp$BAPH,TPH=Sum.temp$tph,QMD=Sum.temp$qmd,PHW=Sum.temp$pHW.ba,
-         MinDBH=MinDBH,ClimateSI=CSI))
+         MinDBH=MinDBH,ClimateSI=CSI,cyclen=cyclen))
   
     Sum.temp$pBCH.ING=mapply(Ingrowth.Comp,SPP='BCH',BA=Sum.temp$BAPH,PBA=Sum.temp$pBRH.ba,ClimateSI=CSI,MinDBH=MinDBH)
     Sum.temp$pBF.ING=mapply(Ingrowth.Comp,SPP='BF',BA=Sum.temp$BAPH,PBA=Sum.temp$pBF.ba,ClimateSI=CSI,MinDBH=MinDBH)
@@ -2962,7 +2978,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops=list(verbose=TRUE))
     }
   }
 
-  tree$YEAR <- tree$YEAR+ 1
+  tree$YEAR <- tree$YEAR+cyclen
   tree$DBH  <- tree$DBH + tree$dDBH
   tree$HT   <- tree$HT  + tree$dHT
   tree$HCB  <- tree$HCB + tree$dHCB
