@@ -2818,6 +2818,8 @@ cat ("delete all runs\n")
   observe({  
     if (input$interfaceRefreshDlgBtn == 0) return()
 cat ("interfaceRefreshDlgBtn\n") 
+    if (.Platform$OS.type == "windows") return()
+## TODO: set this up so that it works "ONLocal" and with windows.
     if (file.exists("../../FVSOnline/settings.R")) 
              source("../../FVSOnline/settings.R") 
     if (!exists("fvsOnlineDir")) return()
@@ -2840,6 +2842,8 @@ cat ("interfaceRefreshDlgBtn\n")
     if (length(input$restoreYesterdayDlgBtn) && 
         input$restoreYesterdayDlgBtn == 0) return()
 cat ("restoreYesterdayDlgBtn\n")
+    if (.Platform$OS.type == "windows") return()
+## TODO: Set this up to work "Onlocal" and with windows      
     if (!exists("fvsWorkBackup")) return()
     # recover everything from backup
     cdir=getwd()
@@ -2955,14 +2959,18 @@ cat ("Replace existing database\n")
       progress$set(message = "Create schema", value = 1)
       source("dbNamesAndTypes.R")
       curDir=getwd()
+      progress$set(message = "Process schema", value = 2)
+
       setwd(dirname(input$uploadNewDB$datapath))
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
-      cmd = paste0("java -jar '",curDir,"/access2csv.jar' ",
-              basename(input$uploadNewDB$datapath)," --schema > schema")
-cat (" cmd=",cmd,"\n")
-      system (cmd)
-      progress$set(message = "Process schema", value = 2)
-      if (!file.exists("schema") || file.size("schema") == 0) 
+      cmd = if (.Platform$OS.type == "windows") 
+         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
+              basename(input$uploadNewDB$datapath)," --schema"),type="cmd2") else
+         paste0("java -jar '",curDir,"/access2csv.jar' ",
+              basename(input$uploadNewDB$datapath)," --schema")
+cat ("cmd=",cmd,"\n")
+      schema = system(cmd,intern = TRUE)
+      if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
         progress$close()     
@@ -2970,7 +2978,6 @@ cat (" cmd=",cmd,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      schema = scan("schema",what="character",sep="\n",quiet=TRUE)
       fix = grep (")",schema)        
       schema[fix] = sub (")",");",schema[fix])
       fix = fix - 1
@@ -3016,8 +3023,14 @@ cat (" cmd=",cmd,"\n")
       schema = gsub(" SHORT_DATE_TIME,"," TEXT,",schema)
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3) 
-      system (paste0("java -jar '",curDir,"/access2csv.jar' ",
-               input$uploadNewDB$datapath))  
+      
+      cmd = if (.Platform$OS.type == "windows") 
+         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
+              basename(input$uploadNewDB$datapath)),type="cmd2") else
+         paste0("java -jar '",curDir,"/access2csv.jar' ",
+               basename(input$uploadNewDB$datapath))
+cat ("cmd=",cmd,"\n")       
+      system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
       system (paste0 ("sqlite3 ","FVS_Data.db"," < schema"))
       fix = grep ("CREATE TABLE",schema)
@@ -3033,7 +3046,7 @@ cat (" cmd=",cmd,"\n")
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
         cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
-cat (" cmd=",cmd,"\n")
+cat ("cmd=",cmd,"\n")
         system (cmd)
       }
       progress$set(message = "Copy tables", value = i+1) 
