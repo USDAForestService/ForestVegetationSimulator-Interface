@@ -68,7 +68,7 @@ shinyUI(fixedPage(
     column(width=5,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
              '<h4><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator ',headstr,'</h3>'))),
+             '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
     column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
@@ -135,9 +135,10 @@ shinyUI(fixedPage(
                           multiple=TRUE, selectize=FALSE),
                 uiOutput("stdSelMsg"),
                 actionButton("inAdd",   "Add selected stands"),
-                actionButton("inAddGrp","Add stands in selected groups"),h6(),        
-                uiOutput("stdSampTools")               
-                ),
+                actionButton("inAddGrp","Add stands in selected groups"), 
+                myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
+                actionButton("inStdFindBut","Find")
+               ),
               tabPanel("Components",
                 radioButtons("cmdSet", NULL, c("Management","Modifiers",
                   "Outputs","Keywords","Your components"),inline=TRUE),

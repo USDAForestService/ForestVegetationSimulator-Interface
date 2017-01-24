@@ -1052,78 +1052,75 @@ cat ("inVars\n")
               choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="inStds", 
            choices=list())
-      output$stdSelMsg <- output$stdSampTools <- renderUI(NULL)
+      output$stdSelMsg <- renderUI(NULL)
     }
   })
 
-  ## inGrps or inAnyAll has changed
+  ## inGrps, inAnyAll, or inStdFindBut has changed
   observe({
     if (input$topPan == "Runs" || input$rightPan == "Stands")
     {
-cat ("inGrps\n")     
+cat ("inGrps inAnyAll inStdFindBut\n")
+      # insure reactivity to inStdFindBut
+      input$inStdFindBut    
       if (is.null(input$inGrps))          
       {
-        output$stdSelMsg <- output$stdSampTools <- renderUI(NULL)
+        output$stdSelMsg <- renderUI(NULL)
         updateSelectInput(session=session, inputId="inStds", 
            choices=list())
       } else {
         dbSendQuery(dbGlb$dbIcon,'drop table if exists m.SGrps') 
         dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
-             'where Grp in (select SelGrps from m.SGrps)')))
+        
+        stds = try(dbGetQuery(dbGlb$dbIcon,
+          paste0('select Stand_ID from m.Grps ',
+                 'where Grp in (select SelGrps from m.SGrps)')))
         if (class(stds) == "try-error") return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
-        stds = stds[,1]
-        stds = if (input$inAnyAll == "Any") unique(stds) else
+        globals$selStds = stds[,1]
+        globals$selStds = if (input$inAnyAll == "Any") unique(globals$selStds) else
         {
-          stdCnts = table(stds) 
-          stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                       
+          stdCnts = table(globals$selStds) 
+          names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                       
         }                                                                                                
-        nstds = length(stds)
-        msg = paste0(length(stds)," Stand(s) in ",length(input$inGrps)," Group(s)<br>")
+        isolate({
+cat ("input$inStdFind=",input$inStdFind,"\n")
+          srchStr = input$inStdFind 
+          if (length(globals$selStds) && nchar(srchStr)) globals$selStds = 
+            globals$selStds[grep(srchStr,globals$selStds)]
+        })          
+        nstds = length(globals$selStds)
+        msg = paste0(length(globals$selStds)," Stand(s) in ",length(input$inGrps)," Group(s)")
+        if (nchar(srchStr)) msg = paste0(msg," and matching search string ",srchStr)
+        msg = paste0(msg,"<br>")
         output$stdSelMsg <- renderUI(HTML(msg))
-        if (length(stds) > 220)  stds = c(stds[1:200],
-          paste0("<< Display 201 to ",min(400,length(stds))," of ",length(stds)," >>"))
+        stds = if (length(globals$selStds) <= 220)  globals$selStds else
+          c(globals$selStds[1:200],paste0("<< Display 201 to ",
+          min(400,length(globals$selStds ))," of ",length(globals$selStds )," >>"))
         updateSelectInput(session=session, inputId="inStds", 
              choices=as.list(stds))
-        output$stdSampTools <- if (length(stds)) 
-        {         
-          output$stdSampTools <- renderUI(list(
-            myInlineTextInput("smpSize", "Sample size ", max(1,floor(.5*nstds))),
-            myRadioGroup("smpWithReplace","Sample with replacement",c("No","Yes")),
-            actionButton("inAddSample","Select a sample of stands from selected groups")))
-        } else renderUI(NULL)
       }
     }
   })
   ## inStds has changed
   observe({
+cat ("inStds, length(input$inStds)=",length(input$inStds),"\n")
     if (length(input$inStds) != 1) return()
     prts = unlist(strsplit(input$inStds[1]," "))
     if (prts[1] != "<<") return()
-    stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
-         'where Grp in (select SelGrps from m.SGrps)')))
-    if (class(stds) == "try-error") return()
-    stds = stds[,1]
-    stds = if (isolate(input$inAnyAll) == "Any") unique(stds) else
-    {
-      stdCnts = table(stds) 
-      stds = stdCnts[stdCnts == length(input$inGrps)]                                                                                                                           
-    }                                                                                                
-cat ("inStds, length(stds)=",length(stds),"\n")
-    if (length(stds) < 220) return() 
     nprts = as.numeric(prts[c(3,5,7)])
-cat ("nprts=",nprts,"\n")
+cat ("inStds, nprts=",nprts,"\n")
     up = nprts[c(1,2)] - 200
-    if (up[2]-up[1] < 200) up[2] = min(up[1]+200,length(stds))
+    if (up[2]-up[1] < 200) up[2] = min(up[1]+200,length(globals$selStds))
     upM = if (up[1] > 0) paste0("<< Display ",up[1]," to ",
-      min(up[2],length(stds))," of ",length(stds)," >>") else NULL
+      min(up[2],length(globals$selStds))," of ",
+      length(globals$selStds)," >>") else NULL
     dn = nprts[c(1,2)] + 200
-    if (dn[2]-dn[1] < 200) dn[2] = min(dn[1]+200,length(stds))
-    dn[2] = min(dn[2],length(stds))
-    dnM = if (dn[1] <= length(stds)) paste0("<< Display ",dn[1]," to ",
-      dn[2]," of ",length(stds)," >>") else NULL
-    stds = c(upM,stds[nprts[1]:nprts[2]],dnM)
+    if (dn[2]-dn[1] < 200) dn[2] = min(dn[1]+200,length(globals$selStds))
+    dn[2] = min(dn[2],length(globals$selStds))
+    dnM = if (dn[1] <= length(globals$selStds)) paste0("<< Display ",dn[1]," to ",
+      dn[2]," of ",length(globals$selStds)," >>") else NULL
+    stds = c(upM,globals$selStds[nprts[1]:nprts[2]],dnM)
 cat ("inStds upM=",upM," dnM=",dnM,"\n")    
     updateSelectInput(session=session, inputId="inStds", 
          choices=as.list(stds))   
@@ -1343,12 +1340,12 @@ cat (" input$inAddGrp=",input$inAddGrp,"\n")
       addStandsToRun(session,input,output,selType="inAddGrp",globals,dbGlb)
     }
   })  
-  ## inAddGrp: Add all stands in selected groups
+  ## inStdFindBut: Find and select stands in the stand list that match the search string
   observe({
-    if (length(input$inAddSample) &&  input$inAddSample > 0) 
+    if (input$inStdFindBut > 0) 
     {
-cat (" input$inAddGrp=",input$inAddGrp,"\n")
-      addStandsToRun(session,input,output,selType="inAddSample",globals,dbGlb)
+cat ("input$inStdFindBut=",input$inStdFindBut,"\n")
+
     }
   })  
   

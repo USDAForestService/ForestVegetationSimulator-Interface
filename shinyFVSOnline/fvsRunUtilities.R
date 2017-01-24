@@ -33,7 +33,7 @@ mkglobals <<- setRefClass("globals",
     extnsel = "character", kwdsel = "list", mgmtsel = "list",
     moutsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
-    selVarList = "list", customCmps = "list",
+    selVarList = "list", customCmps = "list", selStds = "character",
     schedBoxPkey = "character", currentCmdPkey = "character",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
@@ -1123,7 +1123,6 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
     needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                        "AddFiles","FVSKeywords"))
-    if (selType == "inAddSample") needFs = c(needFs,"Sam_Wt")    
     fields = intersect(toupper(fields),toupper(needFs)) 
 
     dbQ = NULL
@@ -1138,7 +1137,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
             'where Stand_ID in (select SelStds from m.Stds)')))
       } else return()
     } else {
-      # use if inAddGrp or inAddSample
+      # use if inAddGrp 
       stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
            'where Grp in (select SelGrps from m.SGrps)')))
       if (class(stds) == "try-error") return()                                                             
@@ -1160,24 +1159,6 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     fvsInit = dbFetch(dbQ,n=-1)
     if (nrow(fvsInit) == 0) return()
     names(fvsInit) = toupper(names(fvsInit))
-    if (selType == "inAddSample") 
-    {
-      # get sampling probs, if any
-      wts = NULL
-      if (length(fvsInit$SAM_WT))
-      {
-        wts = as.numeric(fvsInit$SAM_WT)
-        if (any(is.na(wts))) wts = NULL
-        if (!is.null(wts) && any(wts < 0)) wts=NULL
-        if (!is.null(wts)) wts = wts/sum(wts)
-      }    
-      smpSize = as.numeric(input$smpSize)
-      if (is.na(smpSize) || smpSize < 1) smpSize = 1
-      if (input$smpWithReplace == "No" && smpSize > nrow(fvsInit)) smpSize=nrow(fvsInit)
-      smp = sample.int(n=nrow(fvsInit), size=smpSize, 
-            replace=input$smpWithReplace == "Yes", prob=wts)
-      fvsInit = fvsInit[smp,]
-    }
     maxMsgs = (nrow(fvsInit) %/% 10) + 2
     progress <- shiny::Progress$new(session,min=1,max=maxMsgs)
     msgVal = 1
