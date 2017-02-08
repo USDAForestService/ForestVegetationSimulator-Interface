@@ -58,7 +58,6 @@ cat ("in ClearcutWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$f2,
 
 PlantNaturalFullWin <- function(title, prms, fvsRun, globals, full=TRUE) 
 {
-c
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
   defs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",

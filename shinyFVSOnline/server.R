@@ -43,7 +43,7 @@ shinyServer(function(input, output, session) {
     {
       load("FVS_Runs.RData")
       
-      # old style, convert to new.
+      # old style, convert to new...someday delete down to ###### marks
       if (!is.null(names(FVS_Runs[[1]])))
       {
         newlist = list()
@@ -64,7 +64,7 @@ shinyServer(function(input, output, session) {
       }
       globals$FVS_Runs = FVS_Runs
       rm (FVS_Runs)      
-    } else {
+    } else {  ###### delete above (including this line).
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
     } 
@@ -2089,9 +2089,11 @@ cat ("kwPname=",kwPname,"\n")
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
           instr = input[[pkey]]
+          if (fps == "scheduleBox" && input$schedbox == "1" && 
+              !identical(newcnd,globals$NULLfvsCmp)) newcnd = NULL
           reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
           names(reopn)[fn] = pkey
-        }
+        }  
         if ("waitYears" %in% names(oReopn))
         {
           instr = input[["waitYears"]]
@@ -2615,6 +2617,9 @@ cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
         names(sels) = names(globals$customCmps)
         updateSelectInput(session=session, inputId="kcpSel", choices=sels,
            selected = as.character(match(newTit,names(sels))))
+        if (input$cmdSet == "Your components") 
+          updateSelectInput(session=session, inputId="addCategories", 
+            choices=sels,selected = as.character(match(newTit,names(sels))))
       })
     }
   })
