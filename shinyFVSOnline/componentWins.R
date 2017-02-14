@@ -205,5 +205,111 @@ PlantNaturalPartialWin <- function(title, prms, fvsRun, globals, full=FALSE)
 PlantNaturalPartialWin.mkKeyWrd <- function(input,output,full=FALSE)
   PlantNaturalFullWin.mkKeyWrd(input,output,full=full)
 
+ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session) 
+{
+  pknum = match("management.Thin",names(prms))
+  globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
+  defs <- c(f1=" ",f2="300",f3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  cat ("in ThinFromBelowWin code, defs=",defs,"\n")  
+  
+  ans <-list(
+    list(
+      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      myInlineTextInput("tbf2", "Specify residual density ",defs["f2"]),
+      radioButtons("tbf3","in terms of: ",choices=list("Trees per acre "="1","Basal area per acre "="2","Percent of trees per acre at year of thin"="3",
+                          "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
+      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
+      HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
+      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"],labelFollows = TRUE),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"],labelFollows = TRUE),
+      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"],labelFollows = TRUE),
+      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"],labelFollows = TRUE)
+    ),
+  list(br()))
+  ans
+} 
+
+observe({
+  if(length(input$tbf3)==0) return()
+  updateTextInput(session=session,inputId ="tbf2",value=
+    switch(input$tbf3,"1"="300","2"="250","3"="70","4"="50"))
+})
+  
 
 
+ThinFromBelowWin.mkKeyWrd <- function(input,output)
+{
+  cat ("in ThinFromBelowWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$tbf2,
+      f3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
+  list(ex="base",
+       kwds = if (input$tbf3 == "1") sprintf(
+         paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$tbf3 == "2")
+         sprintf(paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n"),
+         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$tbf3 == "3")
+         sprintf(paste0("ThinBTA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
+         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
+         sprintf(paste0("ThinBBA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
+         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
+       reopn = c(f1=input$f1,tbf2=input$tbf2,tbf3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+  )
+}
+
+ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session) 
+{
+  pknum = match("management.Thin",names(prms))
+  globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
+  defs <- c(f1=" ",f2="300",f3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  cat ("in ThinFromAboveWin code, defs=",defs,"\n")  
+  
+  ans <-list(
+    list(
+      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      myInlineTextInput("taf2", "Specify residual density ",defs["f2"]),
+      radioButtons("taf3","in terms of: ",choices=list("Trees per acre "="1","Basal area per acre "="2","Percent of trees per acre at year of thin"="3",
+                                                       "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
+      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
+      HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
+      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"],labelFollows = TRUE),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"],labelFollows = TRUE),
+      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"],labelFollows = TRUE),
+      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"],labelFollows = TRUE)
+    ),
+    list(br()))
+  ans
+} 
+
+
+observe({
+  if(length(input$taf3)==0) return()
+  updateTextInput(session=session,inputId ="taf2",value=
+                    switch(input$taf3,"1"="300","2"="250","3"="70","4"="50"))
+})
+
+
+
+ThinFromAboveWin.mkKeyWrd <- function(input,output)
+{
+  cat ("in ThinFromAboveWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$taf2,
+                                                f3=input$taf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
+  list(ex="base",
+       kwds = if (input$taf3 == "1") sprintf(
+         paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
+         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "2")
+         sprintf(paste0("ThinABA   %10s%10s%10s%10s%10s%10s%10s\n"),
+         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "3")
+         sprintf(paste0("ThinATA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
+         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
+         sprintf(paste0("ThinABA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
+         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
+       reopn = c(f1=input$f1,tbf2=input$taf2,taf3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+  )
+}
