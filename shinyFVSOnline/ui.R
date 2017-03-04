@@ -460,18 +460,21 @@ shinyUI(fixedPage(
           tags$button(type = "button", class = "btn btn-primary", 
             'data-dismiss' = "modal", "Cancel"))),
         h6(" "),
-        if (headstr == "Online")
-        {
-          list(
-            modalTriggerButton("restoreYesterday", "#restoreYesterdayDlg", 
-              "Restore all files from yesterday's backup"),
-            modalDialog(id="restoreYesterdayDlg", footer=list(
-              modalTriggerButton("restoreYesterdayDlgBtn", "#restoreYesterdayDlg", 
-                "Yes"),
-              tags$button(type = "button", class = "btn btn-primary", 
-                'data-dismiss' = "modal", "Cancel")))
-          )
-        } else list()
+        actionButton("mkZipBackup","Make a project backup zip file"),
+        h6(" "),
+        selectInput("pickBackup", "Select backup to process", multiple=FALSE,
+           choices = list(), selected="", selectize=FALSE),
+        actionButton("delZipBackup","Delete backup"),
+        downloadButton("dlPrjBackup","Download backup"),
+        list(
+          modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
+            "Restore from backup"),
+          modalDialog(id="restorePrjBackupDlg", footer=list(
+            modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
+              "Yes"),
+            tags$button(type = "button", class = "btn btn-primary", 
+              'data-dismiss' = "modal", "Cancel")))
+        )
       ), ## END Tools
       tabPanel("Help",       
         h5(" "),

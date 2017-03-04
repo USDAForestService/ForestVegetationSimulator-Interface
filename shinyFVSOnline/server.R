@@ -2479,6 +2479,17 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
           write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
           cat (file=tf,'"No data"\n')
       }, contentType="text")
+  ## dlPrjBackup
+  output$dlPrjBackup <- downloadHandler(filename=function ()
+      isolate({
+        if (file.exists(input$pickBackup)) input$pickBackup else "NoBackup.txt"
+      }),  
+      content=function (tf = tempfile())
+      {
+        sfile = input$pickBackup
+        if (file.exists(sfile)) file.copy(sfile,tf) else
+          cat (file=tf,"Backup does not exist.\n")
+      }, contentType="zip")
   ## DownLoad
   output$dlFVSRunout <- downloadHandler(filename=function ()
       paste0(globals$fvsRun$title,"_FVSoutput.txt"),
@@ -2698,20 +2709,32 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   observe({    
     if (input$topPan == "Tools") 
     {
-cat ("Tools hit\n")       
-      if (!exists("fvsBinDir")) return()
-      if (!file.exists(fvsBinDir)) return()
-      if (!exists("pgmList")) return()
-      pgmFlip = as.list(names(pgmList))
-      names(pgmFlip) = paste0(names(pgmList),": ",unlist(pgmList))
-      shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-      haveFVS <- dir("FVSbin",pattern=shlibsufx) 
-      haveFVSp <- sub(shlibsufx,"",haveFVS)
-      avalFVS <- dir(fvsBinDir,pattern=shlibsufx)
-      avalFVSp <- sub(shlibsufx,"",avalFVS)
-cat ("avalFVSp=",avalFVSp,"\n")       
+cat ("Tools hit\n") 
+      if (exists("fvsBinDir") && file.exists(fvsBinDir) &&
+          exists("pgmList")) 
+      {
+        pgmFlip = as.list(names(pgmList))
+        names(pgmFlip) = paste0(names(pgmList),": ",unlist(pgmList))
+        shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
+        haveFVS <- dir("FVSbin",pattern=shlibsufx) 
+        haveFVSp <- sub(shlibsufx,"",haveFVS)
+        avalFVS <- dir(fvsBinDir,pattern=shlibsufx)
+        avalFVSp <- sub(shlibsufx,"",avalFVS)
+cat ("avalFVSp=",avalFVSp,"\n")  
+      } else {
+        pgmFlip = list()
+        haveFVSp = NULL
+      }
       updateSelectInput(session=session, inputId="FVSprograms", 
         choices=pgmFlip,selected=haveFVSp)
+      backups = dir (pattern="ProjectBackup")
+      if (length(backups)) 
+      {
+        backups = sort(backups,decreasing=TRUE)
+        names(backups) = backups 
+      } else backups=list()
+      updateSelectInput(session=session, inputId="pickBackup", 
+        choices = backups, selected="")
     } 
   })
   
@@ -2783,7 +2806,6 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid," runSel=",i
       })
     }
   })
-
   
   ## deleteAllRuns
   observe({
@@ -2830,34 +2852,79 @@ cat ("interfaceRefreshDlgBtn\n")
     system (paste0("cp -R ",needed," ."))
     output$locReload<-renderUI(tags$script("location.reload();"))
   }) 
-  
-  ## restoreYesterday 
+
+  ## delZipBackup
   observe({
-    if(length(input$restoreYesterday) && input$restoreYesterday > 0)
+    if(input$delZipBackup > 0)
+    {
+      fl = isolate(input$pickBackup)
+      if (is.null(fl)) return()
+      if (file.exists(fl))
+      {
+        unlink(fl)
+        backups = dir (pattern="ProjectBackup")
+        if (length(backups)) 
+        {
+          backups = sort(backups,decreasing=TRUE)
+          names(backups) = backups 
+        } else backups=list()
+        updateSelectInput(session=session, inputId="pickBackup", 
+          choices = backups, selected="")
+      }
+    }
+  })    
+  
+  
+  ## mkZipBackup
+  observe({
+    if(input$mkZipBackup > 0)
+    {
+      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H:%M:%S"),".zip")
+      flst=dir()
+      del = grep("^ProjectBackup",flst)
+      if (length(del)) flst = flst[-del]
+      del = grep ("^FVSbin",flst)
+      if (length(del)) flst = flst[-del]
+      shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
+      fvsPgms = dir("FVSbin",pattern=shlibsufx)
+      fvsPgms = paste0("FVSbin/",fvsPgms)
+      flst = c(flst,fvsPgms)
+      zip(zfile,flst)
+      backups = dir (pattern="ProjectBackup")
+      if (length(backups)) 
+      {
+        backups = sort(backups,decreasing=TRUE)
+        names(backups) = backups 
+      } else backups=list()
+      updateSelectInput(session=session, inputId="pickBackup", 
+        choices = backups, selected="")
+    }
+  })    
+  
+  ## restorePrjBackup 
+  observe({
+    if(length(input$restorePrjBackup) && input$restorePrjBackup > 0)
     {
       session$sendCustomMessage(type = "dialogContentUpdate",
-        message = list(id = "restoreYesterdayDlg",
+        message = list(id = "restorePrjBackupDlg",
                   message = "Are you sure?"))
     }
   })
   observe({  
-    if (length(input$restoreYesterdayDlgBtn) && 
-        input$restoreYesterdayDlgBtn == 0) return()
-cat ("restoreYesterdayDlgBtn\n")
-    if (.Platform$OS.type == "windows") return()
-## TODO: Set this up to work "Onlocal" and with windows      
-    if (!exists("fvsWorkBackup")) return()
-    # recover everything from backup
-    cdir=getwd()
-    backup = sub(fvsWork,fvsWorkBackup,cdir)
-cat ("backup=",backup,"\n")    
-    if (file.exists(backup)) 
+    if (length(input$restorePrjBackupDlgBtn) && 
+        input$restorePrjBackupDlgBtn > 0) 
     {
-      system (paste0("rm -r ",cdir,"/*"))
-      system (paste0("cp -R -p ",backup,"/* ."))
-      globals$saveOnExit=FALSE
-    }   
-    output$locReload<-renderUI(tags$script("location.reload();"))
+      isolate({
+        fvsWorkBackup = input$pickBackup 
+cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
+        if (file.exists(fvsWorkBackup)) 
+        {
+          unzip (fvsWorkBackup)
+          globals$saveOnExit=FALSE
+          output$locReload<-renderUI(tags$script("location.reload();"))
+        }
+      })
+    }
   }) 
 
   ## rpRestart
