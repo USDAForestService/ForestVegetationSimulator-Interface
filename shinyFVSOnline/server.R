@@ -2879,7 +2879,7 @@ cat ("interfaceRefreshDlgBtn\n")
   observe({
     if(input$mkZipBackup > 0)
     {
-      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H:%M:%S"),".zip")
+      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
       flst=dir()
       del = grep("^ProjectBackup",flst)
       if (length(del)) flst = flst[-del]
@@ -2889,7 +2889,15 @@ cat ("interfaceRefreshDlgBtn\n")
       fvsPgms = dir("FVSbin",pattern=shlibsufx)
       fvsPgms = paste0("FVSbin/",fvsPgms)
       flst = c(flst,fvsPgms)
-      zip(zfile,flst)
+      progress <- shiny::Progress$new(session,min=1,max=length(flst))
+      for (i in 1:length(flst))
+      {
+        x = flst[i]
+        progress$set(message = paste0("Adding ",x," to ",zfile), value = i)
+        zip(zfile,x)
+      }
+      Sys.sleep(.2)
+      progress$close()
       backups = dir (pattern="ProjectBackup")
       if (length(backups)) 
       {
@@ -2920,7 +2928,6 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
         if (file.exists(fvsWorkBackup)) 
         {
           unzip (fvsWorkBackup)
-          globals$saveOnExit=FALSE
           output$locReload<-renderUI(tags$script("location.reload();"))
         }
       })
