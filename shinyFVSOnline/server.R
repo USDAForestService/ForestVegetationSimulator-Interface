@@ -34,42 +34,42 @@ shinyServer(function(input, output, session) {
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
     resetGlobals(globals,NULL,prms)
-
     setProgress(message = "Start up",value = 2)
-    ##load existing runs
-
     globals$fvsRun <- mkfvsRun()
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
-      
-      # old style, convert to new...someday delete down to ###### marks
-      if (!is.null(names(FVS_Runs[[1]])))
-      {
-        newlist = list()
-        for (i in 1:length(FVS_Runs))
-        {
-          setProgress(message="Converting runs to newest format",detail="",value = i+1)
-          rtn = try(loadFromList(globals$fvsRun,FVS_Runs[[i]]))
-          if (class(rtn) != "try-error")
-          {
-            newlist[[globals$fvsRun$uuid]] = globals$fvsRun$title
-            attr(newlist[[globals$fvsRun$uuid]],"time") = attr(FVS_Runs[[i]],"time")
-            saveFvsRun = globals$fvsRun
-            save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-          }
-        }
-        FVS_Runs = reorderFVSRuns(newlist)    
-        save (file="FVS_Runs.RData",FVS_Runs)
-      }
       globals$FVS_Runs = FVS_Runs
       rm (FVS_Runs)      
-    } else {  ###### delete above (including this line).
+    } else { 
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
     } 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
+    if (file.exists("projectId.txt"))
+    {
+      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+      tit=prjid[grep("^title",prjid)]
+      tit=scan(text=tit,what="",sep="=",quiet=TRUE)
+      tit=trim(tit[length(tit)])
+      email=prjid[grep("^email",prjid)]
+      email=scan(text=email,what="",sep="=",quiet=TRUE)
+      email=trim(email[length(email)])
+      tstring = paste0("Project title: <b>",tit,"</b>",
+             if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
+             "<br>Last accessed: <b>",
+             format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
+    } else {
+      tstring = paste0("Project working directory: <b>",getwd(),
+        "</b> Last accessed: <b>",
+        format(if (file.exists("FVS_Runs.RData")) 
+          file.info("FVS_Runs.RData")[1,"mtime"] else
+          file.info(getwd())         [1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
+    }
+    output$projectTitle = renderText(HTML(paste0("<p>",tstring,"<p/>")))            
+    updateTextInput(session=session, inputId="rpTitle", 
+      value=paste0("Custom report",if (nchar(tit)) " for project: ",tit)) 
     mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
@@ -141,6 +141,8 @@ cat ("initTableGraphTools\n")
     output$table <- renderTable(NULL)
   }
 
+cat ("getwd= ",getwd(),"\n")
+  
   ## Load
   observe({
     if (input$topPan == "Process Outputs" && input$leftPan == "Load")
@@ -2762,8 +2764,8 @@ cat ("FVSRefresh\n")
         }
         session$sendCustomMessage(type="infomessage",
           message=paste0(i," of ",length(input$FVSprograms),
-            " selected FVS programs refreshed."))
-        if (i) output$locReload<-renderUI(tags$script("location.reload();"))
+            " selected FVS programs refreshed."))            
+        if (i) session$reload()
       } 
     })
   })
@@ -2802,7 +2804,7 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid," runSel=",i
           write(file="projectId.txt",prjid)
         } 
         globals$saveOnExit = FALSE
-        output$locReload<-renderUI(tags$script("location.reload();"))
+        session$reload()       
       })
     }
   })
@@ -2826,7 +2828,7 @@ cat ("delete all runs\n")
       unlink("FVS_Runs.RData")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       globals$saveOnExit = FALSE
-      output$locReload<-renderUI(tags$script("location.reload();"))
+      session$reload()
     })  
   })
   
@@ -2850,7 +2852,7 @@ cat ("interfaceRefreshDlgBtn\n")
     # shiny code, etc
     needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ")  
     system (paste0("cp -R ",needed," ."))
-    output$locReload<-renderUI(tags$script("location.reload();"))
+    session$reload()
   }) 
 
   ## delZipBackup
@@ -2928,7 +2930,7 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
         if (file.exists(fvsWorkBackup)) 
         {
           unzip (fvsWorkBackup)
-          output$locReload<-renderUI(tags$script("location.reload();"))
+          session$reload()
         }
       })
     }
@@ -3800,6 +3802,88 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     })
   }
 
+  ## Projects hit
+  observe({    
+    if (input$toolsPan == "Manage projects") 
+    {
+cat ("Projects hit\n")
+    dirs = list.dirs("..",recursive=FALSE)
+    selChoices = list()
+    for (dir in dirs)
+    {
+      if (file.exists(paste0(dir,"/server.R")) && 
+          file.exists(paste0(dir,"/ui.R"))     &&
+          file.exists(paste0(dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
+    }
+    names(selChoices) = gsub("../","",selChoices)
+    sel = match(basename(getwd()),names(selChoices))
+    sel = if (is.na(sel)) NULL else selChoices[[sel]]
+    updateSelectInput(session=session, inputId="PrjSelect", 
+        choices=selChoices,selected=sel)
+    }
+  })
+
+  
+  
+  
+  ## PrjNew
+  observe(if (length(input$PrjNew) && input$PrjNew > 0) 
+  {
+    isolate({
+      saveRun()
+      curdir = getwd()
+      basedir = basename(curdir)
+      setwd("../")
+      fn = if (nchar(input$PrjNewTitle)) input$PrjNewTitle else basedir
+      fn = mkFileNameUnique(fn)
+      dir.create(fn)
+      if (!file.exists(fn)) 
+      {
+        setwd(curdir)
+        updateTextInput(inputId=PrjNewTitle,session=session,value="")
+        return()
+      }
+      filesToCopy = paste0(curdir,"/",dir(curdir))
+      del = grep(".log$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".db$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".pidStatus$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern="FVS_Runs.RData",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".key$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".out$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      file.copy(from=filesToCopy,to=fn,recursive=TRUE)
+      setwd(fn)     
+      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+      unlink("projectId.txt")
+      cat ("title= ",fn,"\n",file="projectId.txt")
+      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
+      if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
+      globals$saveOnExit = FALSE
+      session$reload()
+    })
+  })
+
+  observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
+  {
+    isolate({
+      if (dir.exists(input$PrjSelect))
+      {
+        saveRun()        
+        if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
+        if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
+        setwd(input$PrjSelect)
+        globals$saveOnExit = FALSE
+        session$reload()
+      }
+    })
+  })
+    
   
   saveRun <- function() 
   {

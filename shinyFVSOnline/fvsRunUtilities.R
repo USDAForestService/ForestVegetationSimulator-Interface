@@ -82,46 +82,6 @@ findIdx = function (list, uuid)
 }
 
 
-loadFromList <- function(refc,alist)
-{
-  for (name in names(mkfvsRun$fields()))
-    if (!is.null(alist[[name]])) refc[[name]] = alist[[name]]
-  if (length(alist$grps)) for (i in 1:length(alist$grps))
-  {
-    refc$grps[[i]] = mkfvsGrp()
-    for (name in names(mkfvsGrp$fields()))
-      if (!is.null(alist$grps[[i]][[name]])) refc$grps[[i]][[name]] = 
-         alist$grps[[i]][[name]]    
-    if (length(alist$grps[[i]]$cmps)) for (j in 1:length(alist$grps[[i]]$cmps))
-    {
-      refc$grps[[i]]$cmps[[j]] = mkfvsCmp()
-      for (name in names(mkfvsCmp$fields()))
-        if (!is.null(alist$grps[[i]]$cmps[[j]][[name]])) 
-          refc$grps[[i]]$cmps[[j]][[name]] = alist$grps[[i]]$cmps[[j]][[name]]
-    }
-  }  
-  if (length(alist$stands)) for (i in 1:length(alist$stands))
-  {
-    refc$stands[[i]] = mkfvsStd()
-    for (name in names(mkfvsStd$fields()))
-      if (!is.null(alist$stands[[i]][[name]])) refc$stands[[i]][[name]] = 
-         alist$stands[[i]][[name]]
-    if (length(alist$stands[[i]]$cmps)) for (j in 1:length(alist$stands[[i]]$cmps))
-    {
-      refc$stands[[i]]$cmps[[j]] = mkfvsCmp()
-      for (name in names(mkfvsCmp$fields()))
-        if (!is.null(alist$stands[[i]]$cmps[[j]][[name]])) 
-          refc$stands[[i]]$cmps[[j]][[name]] = alist$stands[[i]]$cmps[[j]][[name]]
-    }
-    if (length(alist$stands[[i]]$grps)) for (j in 1:length(alist$stands[[i]]$grps))
-    {
-      idx = findIdx(refc$grps,alist$stands[[i]]$grps[[j]])
-      if (!is.null(idx)) refc$stands[[i]]$grps[[j]] = refc$grps[[idx]]
-    }
-  }
-}
-  
-
 resetfvsRun <- function(fvsRun,FVS_Runs)
 {
 cat("resetfvsRun\n")
@@ -1284,5 +1244,21 @@ cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n")
       } else globals$fvsRun$stands[[reps]]$rep <- integer(0)
     }
   }
+}
+
+mkFileNameUnique <- function(fn)
+{  
+  if (!file.exists(fn)) return(fn)
+  ext = tools::file_ext(fn)
+  name = tools::file_path_sans_ext(fn)
+  name = gsub("^\\s+|\\s+$","",trim(unlist(strsplit(name,"(",fixed=TRUE))[1]))
+  i=0
+  repeat
+  {
+    if (!file.exists(fn)) return(fn)
+    i = i+1
+    fn = paste0(name," (",i,")")
+    if (nchar(ext)) fn = paste0(fn,".",ext)
+  } 
 }
 

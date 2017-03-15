@@ -2,29 +2,9 @@ library(shiny)
 library(rhandsontable)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
+isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
-if (file.exists("projectId.txt"))
-{
-  prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-  tit=prjid[grep("^title",prjid)]
-  tit=scan(text=tit,what="",sep="=",quiet=TRUE)
-  tit=trim(tit[length(tit)]) #tit variable is used to generate report headings
-  email=prjid[grep("^email",prjid)]
-  email=scan(text=email,what="",sep="=",quiet=TRUE)
-  email=trim(email[length(email)])
-  tstring = paste0("Project title: <b>",tit,"</b><br>Email: <b>",email,
-         "</b><br>Last accessed: <b>",
-         format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
-  headstr = "Online"
-} else {
-  tstring = paste0("Project working directory: <b>",getwd(),
-    "</b> Last accessed: <b>",
-    format(if (file.exists("FVS_Runs.RData")) 
-      file.info("FVS_Runs.RData")[1,"mtime"] else
-      file.info(getwd())         [1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
-  headstr = "Onlocal"
-  tit="" #tit variable is used to generate default report headings
-}
+headstr = if (isLocal()) "Onlocal" else "Online"
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -69,13 +49,12 @@ shinyUI(fixedPage(
       HTML(paste0('<title>FVS-',headstr,'</title>',
              '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
-    column(width=5,offset=.5,HTML(paste0("<p>",tstring,"<p/>"))),
+    column(width=5,offset=.5,uiOutput("projectTitle")),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-      uiOutput("locReload"),
       uiOutput("contCnts"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
   ) ),
@@ -99,12 +78,12 @@ shinyUI(fixedPage(
             modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
               tags$button(type = "button", class = "btn btn-primary", 
                'data-dismiss' = "modal", "Cancel"))),        
-            h6(" "),
+            h6(),
             tags$style(type="text/css", "#title { width: 90%; }"),
             textInput("title", "Run title", ""), 
             # all the select objects
             tags$style(type="text/css", "select { width: 100%; }"),
-            h6(" "),
+            h6(),
             tags$style(type="text/css", "#simCont { width: 100%; height: 400px;}"),
             selectInput("simCont","Contents", NULL, NULL, multiple=TRUE,
                         selectize=FALSE),
@@ -112,7 +91,7 @@ shinyUI(fixedPage(
             actionButton("mkfree","Change to freeform"),
             actionButton("cutCmp","Cut"),
             actionButton("copyCmp","Copy"),
-            h6(" "),
+            h6(),
             actionButton("paste","Paste item selected below"),
             selectInput("selpaste","Items to paste", NULL, 
                         NULL, multiple=FALSE, selectize=FALSE), 
@@ -168,9 +147,9 @@ shinyUI(fixedPage(
                     radioButtons("runwaitback", NULL, 
                       c("Wait for run","Run in background")),
                     actionButton("saveandrun","Save and Run"),
-                    h6(" "),
+                    h6(),
                     downloadButton("dlFVSRunout","FVS output"),
-                    h4(" ")
+                    h4()
                   ),
                   column(width=9,
                     checkboxGroupInput("autoOut",
@@ -360,11 +339,10 @@ shinyUI(fixedPage(
             fixedRow(column(width=12,plotOutput("outplot")))
           ),
           tabPanel("Reports",
-            h4(" "),
-            textInput("rpTitle", "Custom report title", 
-              paste0("Custom report",if (nchar(tit)) " for project: ",tit)), 
-              actionButton("rpRestart","Restart custom report"),
-              downloadButton("rpBldDwnLd","Build and download custom report")
+            h4(),
+            textInput("rpTitle", "Custom report title", ""),
+            actionButton("rpRestart","Restart custom report"),
+            downloadButton("rpBldDwnLd","Build and download custom report")
         ) )       
       ) ) ),
       tabPanel("Input Database",
@@ -390,7 +368,7 @@ shinyUI(fixedPage(
               textOutput("replaceActionMsg")     
       	    ),
             tabPanel("Upload and insert new rows (.csv)", 
-              h4(" "),             
+              h4(),             
            	  selectInput("uploadSelDBtabs", label="Table to process",
       	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               fileInput("uploadStdTree",
@@ -405,7 +383,7 @@ shinyUI(fixedPage(
             tabPanel("View and edit existing tables",        
               fixedRow(
                 column(width=3,offset=0,
-                  h6(" "),
+                  h6(),
                   myRadioGroup("mode", "Mode ", c("Edit","New rows")),
                   myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
               	  selectInput("editSelDBtabs", label="Table to process",
@@ -419,9 +397,9 @@ shinyUI(fixedPage(
                   actionButton("commitChanges","Commit edits or new rows")
                 ),
                 column(width=9,offset=0,
-                  h6(" "),
+                  h6(),
                   uiOutput("navRows"),
-                  h6(" "),
+                  h6(),
                   rHandsontableOutput("tbl"),
                   textOutput("actionMsg")
                 )
@@ -431,53 +409,75 @@ shinyUI(fixedPage(
         ) ) #END column and fixed row   
       ),
       tabPanel("Tools",       
-        h4(" "),
-        downloadButton("dlFVSDatadb","Input data base"),
-        downloadButton("dlFVSOutdb", "Output data base"),
-        downloadButton("dlFVSRunkey","Keyword file"),
-        h4(" "),        
-        checkboxGroupInput("dlZipSet","Select contents of fvsRun.zip", 	
-          zipList,selZip,inline=FALSE),	
-        downloadButton("dlFVSRunZip","Download fvsRun.zip"),	
-        h6(" "),
-        actionButton("FVSRefresh","Refresh or add selected FVS programs"),
-        selectInput("FVSprograms", "Pick programs to add or refresh", multiple=TRUE,
-           choices = list(), selected="", selectize=FALSE),
-        h6(" "),
-        modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
-          "Delete ALL runs and related outputs"),
-        modalDialog(id="deleteAllRunsDlg", footer=list(
-          modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
-            "Yes"),
-          tags$button(type = "button", class = "btn btn-primary", 
-            'data-dismiss' = "modal", "Cancel"))),        
-        h6(" "),
-        modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
-          "Refresh this Interface Software"),
-        modalDialog(id="interfaceRefreshDlg", footer=list(
-          modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
-            "Yes"),
-          tags$button(type = "button", class = "btn btn-primary", 
-            'data-dismiss' = "modal", "Cancel"))),
-        h6(" "),
-        actionButton("mkZipBackup","Make a project backup zip file"),
-        h6(" "),
-        selectInput("pickBackup", "Select backup to process", multiple=FALSE,
-           choices = list(), selected="", selectize=FALSE),
-        actionButton("delZipBackup","Delete backup"),
-        downloadButton("dlPrjBackup","Download backup"),
-        list(
-          modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
-            "Restore from backup"),
-          modalDialog(id="restorePrjBackupDlg", footer=list(
-            modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
-              "Yes"),
-            tags$button(type = "button", class = "btn btn-primary", 
-              'data-dismiss' = "modal", "Cancel")))
-        )
+        h6(),        
+        fixedRow(
+        column(width=12,offset=0,
+          tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
+          tabsetPanel(id="toolsPan", 
+            tabPanel("Downloads", 
+              h6(),
+              downloadButton("dlFVSDatadb","Input data base"),
+              downloadButton("dlFVSOutdb", "Output data base"),
+              downloadButton("dlFVSRunkey","Keyword file"),
+              h4(),        
+              checkboxGroupInput("dlZipSet","Select contents of fvsRun.zip", 	
+                zipList,selZip,inline=FALSE),	
+              downloadButton("dlFVSRunZip","Download fvsRun.zip")
+            ),
+            tabPanel("Refresh FVS", 
+              h4(),
+              selectInput("FVSprograms", "Pick programs to add or refresh", multiple=TRUE,
+                choices = list(), selected="", selectize=FALSE),
+              h6(),
+              actionButton("FVSRefresh","Refresh or add selected FVS programs"),
+              h6(),
+              modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
+                "Refresh this Interface Software"),
+              modalDialog(id="interfaceRefreshDlg", footer=list(
+              modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
+                  "Yes"),
+             tags$button(type = "button", class = "btn btn-primary", 
+                'data-dismiss' = "modal", "Cancel")))
+            ),                                           
+            tabPanel("Manage projects",        
+              h4(),h4("Process current project"),
+              modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
+                "Delete ALL runs and related outputs in current project"),
+              modalDialog(id="deleteAllRunsDlg", footer=list(
+                modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
+                  "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                  'data-dismiss' = "modal", "Cancel"))),        
+              h4(),
+              actionButton("mkZipBackup","Make a project backup zip file"),
+              h4(),h4("Manage current project backup files"),
+              selectInput("pickBackup", "Select backup to process", multiple=FALSE,
+                 choices = list(), selected="", selectize=FALSE),
+              actionButton("delZipBackup","Delete backup"),
+              downloadButton("dlPrjBackup","Download backup"),
+              list(
+                modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
+                  "Restore from backup"),
+                modalDialog(id="restorePrjBackupDlg", footer=list(
+                  modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
+                    "Yes"),
+                  tags$button(type = "button", class = "btn btn-primary", 
+                    'data-dismiss' = "modal", "Cancel")))
+              ),
+              if (isLocal()) list(
+                h4(),h4("Setup a new project"),
+                textInput("PrjNewTitle", "New project title", ""), 
+                actionButton("PrjNew","Make new project"),
+                h4(),h4("Switch to another project"), 
+                selectInput("PrjSelect", "Select project", multiple=FALSE,
+                   choices = list(), selected="", selectize=FALSE),       
+                actionButton("PrjSwitch","Switch to selected project")) 
+            ) #END tabPanel
+          ) #END tabsetPanel
+        ) ) #END column and fixed row   
       ), ## END Tools
       tabPanel("Help",       
-        h5(" "),
+        h5(),
         uiOutput("uiHelpText")
       )
 ) ) ) ) )
