@@ -1247,11 +1247,13 @@ cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n")
 }
 
 mkFileNameUnique <- function(fn)
-{  
+{ 
+  trim <- function (x) gsub("^\\s+|\\s+$","",x)
+  fn = trim(fn)
   if (!file.exists(fn)) return(fn)
   ext = tools::file_ext(fn)
   name = tools::file_path_sans_ext(fn)
-  name = gsub("^\\s+|\\s+$","",trim(unlist(strsplit(name,"(",fixed=TRUE))[1]))
+  name = trim(unlist(strsplit(name,"(",fixed=TRUE))[1])
   i=0
   repeat
   {
