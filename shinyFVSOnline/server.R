@@ -777,11 +777,11 @@ cat ("browsevars\n")
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
                       selected=sdisp)
-      if (input$plotType == "line" || input$plotType == "scatter")
+      if (isolate(input$plotType) == "line" || isolate(input$plotType) == "scatter")
       {
         sel = if ("Year" %in% cont) "Year" else 
                 if (length(cont) > 0) cont[1] else NULL
-        if (sel=="Year" && input$plotType == "scatter" && length(cont) > 1)
+        if (sel=="Year" && isolate(input$plotType) == "scatter" && length(cont) > 1)
         {
           sel = setdiff(cont,"Year")
           sel = if ("DBH" %in% cont) "DBH" else cont[1]
@@ -793,7 +793,7 @@ cat ("browsevars\n")
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
       }
       sel = setdiff(cont,c(sel,"Year"))
-      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else sel[1]
+      sel = if ("DG" %in% cont && isolate(input$plotType) == "scatter" ) "DG" else sel[1]
       updateSelectInput(session, "yaxis",choices=as.list(cont),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
