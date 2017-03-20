@@ -47,29 +47,23 @@ shinyServer(function(input, output, session) {
     } 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    if (file.exists("projectId.txt"))
-    {
-      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-      tit=prjid[grep("^title",prjid)]
-      tit=scan(text=tit,what="",sep="=",quiet=TRUE)
-      tit=trim(tit[length(tit)])
-      email=prjid[grep("^email",prjid)]
-      email=scan(text=email,what="",sep="=",quiet=TRUE)
-      email=trim(email[length(email)])
-      tstring = paste0("Project title: <b>",tit,"</b>",
-             if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
-             "<br>Last accessed: <b>",
-             format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
-    } else {
-      tstring = paste0("Project working directory: <b>",getwd(),
-        "</b> Last accessed: <b>",
-        format(if (file.exists("FVS_Runs.RData")) 
-          file.info("FVS_Runs.RData")[1,"mtime"] else
-          file.info(getwd())         [1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
-    }
+    tit=NULL
+    if (!file.exists("projectId.txt"))
+      cat("title= ",basename(getwd()),"\n",file="projectId.txt")
+    prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+    tit=prjid[grep("^title",prjid)]
+    tit=trim(unlist(strsplit(tit,split="=",fixed=TRUE))[2])
+    email=prjid[grep("^email",prjid)]
+    email=trim(unlist(strsplit(email,split="=",fixed=TRUE))[2])
+    tstring = paste0("Project title: <b>",tit,"</b>",
+           if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
+           "<br>Last accessed: <b>",
+           format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
+    cat ("tstring=",tstring,"\n")    
     output$projectTitle = renderText(HTML(paste0("<p>",tstring,"<p/>")))            
     updateTextInput(session=session, inputId="rpTitle", 
-      value=paste0("Custom report",if (nchar(tit)) " for project: ",tit)) 
+      value=paste0("Custom report",if (length(tit)) 
+            paste0(" for project: ",tit) else "")) 
     mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
