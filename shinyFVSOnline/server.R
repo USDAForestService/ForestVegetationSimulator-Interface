@@ -353,8 +353,9 @@ cat("Custom Query\n")
 cat ("sqlRunQuery\n")      
       isolate({
         msgtxt = character(0)
-        qrys = trim(scan(text=gsub("\n"," ",input$sqlQuery),
-                    sep=";",what="",quote="",quiet=TRUE))
+        # remove the /* */ comments and newline chars
+        qrys = trim(gsub("\n"," ",gsub("/\\*.*\\*/"," ",input$sqlQuery)))
+        qrys = scan(text=qrys,sep=";",what="",quote="",quiet=TRUE)
         output$table <- renderTable(NULL)        
         iq = 0
         dfrtn = NULL
@@ -420,7 +421,7 @@ cat ("sqlSave\n")
           newTit = paste0("Query ",length(globals$customQueries)+1) 
           updateTextInput(session=session, inputId="sqlTitle", value=newTit)
         } else newTit = input$sqlTitle  
-       globals$customQueries[[newTit]] = input$sqlQuery
+        globals$customQueries[[newTit]] = input$sqlQuery
         customQueries = globals$customQueries
         save(file="customQueries.RData",customQueries)
         if (length(globals$customQueries) == 0) 
@@ -431,7 +432,7 @@ cat ("sqlSave\n")
           sels = as.list(as.character(1:length(globals$customQueries)))
           names(sels) = names(globals$customQueries)
           updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
-             selected = 0)
+             selected = match(newTit,names(globals$customQueries)))
         }
       })
     }
@@ -2085,7 +2086,8 @@ cat ("kwPname=",kwPname,"\n")
           fps = getPstring(pkeys,pkey,globals$activeVariants[1])
           if (is.null(fps)) break
           instr = input[[pkey]]
-          if (fps == "scheduleBox" && input$schedbox == "1" && 
+          if (fps == "scheduleBox" && !is.null(input$schedbox) && 
+              input$schedbox == "1" && 
               !identical(newcnd,globals$NULLfvsCmp)) newcnd = NULL
           reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
           names(reopn)[fn] = pkey
@@ -2241,6 +2243,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
         {
           runScript = paste0(globals$fvsRun$uuid,".rscript")
           rs = file(runScript,open="wt")
+          cat (paste0('setwd("',getwd(),'")\n'),file=rs)
           cat ('options(echo=TRUE)\nlibrary(methods)\nlibrary(RSQLite)\n',file=rs)
           cat ('pid = Sys.getpid()\n',file=rs)
           cmd = paste0('unlink("',globals$fvsRun$uuid,'.db")')
@@ -2294,7 +2297,8 @@ cat ("runwaitback=",input$runwaitback,"\n")
               detail = "", value = 4)
           unlink(paste0(globals$fvsRun$uuid,".db"))
           close (rs)
-          cmd = paste0("Rscript --no-restore --no-save --no-init-file ",runScript,
+          rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+          cmd = paste0(rscript," --no-restore --no-save --no-init-file ",runScript,
                        " > ",runScript,".Rout")
           if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
 cat ("cmd=",cmd,"\n")
