@@ -272,7 +272,7 @@ cat("writeKeyFile, num stds=",length(stds),
           d = dbGetQuery(dbIcon,qur)
           ans = apply(d,2,function (x) !any(is.na(x)))
           d = d[,ans]          
-          if (nrow(d) == 0) cat (cmp$kwds,"\n",file=fc,sep="") else
+          if (nrow(d)) 
           {
             cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
             suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
