@@ -181,7 +181,7 @@ cat("writeKeyFile, num stds=",length(stds),
     " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
   if (length(stds)==0) return()
   dbSendQuery(dbIcon,'drop table if exists m.RunStds') 
-  dbWriteTable(dbIcon,"m.RunStds",data.frame(RunStds = stds))
+  dbWriteTable(dbIcon,DBI::SQL("m.RunStds"),data.frame(RunStds = stds))
   dbQ = dbSendQuery(dbIcon,
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from FVS_StandInit ',
       'where Stand_ID in (select RunStds from m.RunStds)'))
@@ -1091,7 +1091,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
       if (length(input$inStds))
       {
-        dbWriteTable(dbGlb$dbIcon,"m.Stds",data.frame(SelStds = input$inStds))
+        dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = input$inStds))
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
             'where Stand_ID in (select SelStds from m.Stds)')))
@@ -1110,7 +1110,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       } 
       if (length(stds) == 0) return()  
       dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
-      dbWriteTable(dbGlb$dbIcon,"m.Stds",data.frame(SelStds = stds))
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = stds))
       dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
             'where Stand_ID in (select SelStds from m.Stds)')))

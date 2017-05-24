@@ -1025,7 +1025,7 @@ cat ("inVars\n")
     if (class(grps) == "try-error" || nrow(grps) == 0)
     {
       dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
-      dbWriteTable(dbGlb$dbIcon,"m.Grps",data.frame(Stand_ID="",Grp=""))
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),data.frame(Stand_ID="",Grp=""))
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
     } else {
@@ -1042,7 +1042,7 @@ cat ("inVars\n")
       colnames(dd) = c("Stand_ID","Grp")
       dd = as.data.frame(dd)
       dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
-      dbWriteTable(dbGlb$dbIcon,"m.Grps",dd)
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),dd)
       selGrp = dbGetQuery(dbGlb$dbIcon,
         'select distinct Grp from m.Grps order by Grp')[,1]
       updateSelectInput(session=session, inputId="inGrps", 
@@ -1067,7 +1067,7 @@ cat ("inGrps inAnyAll inStdFindBut\n")
            choices=list())
       } else {
         dbSendQuery(dbGlb$dbIcon,'drop table if exists m.SGrps') 
-        dbWriteTable(dbGlb$dbIcon,"m.SGrps",data.frame(SelGrps = input$inGrps))
+        dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.SGrps"),data.frame(SelGrps = input$inGrps))
         
         stds = try(dbGetQuery(dbGlb$dbIcon,
           paste0('select Stand_ID from m.Grps ',
@@ -3336,7 +3336,7 @@ cat ("processing FVSClimAttrs.csv\n")
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
-      dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_ClimAttrs"),climd)
       output$actionMsg = renderText("FVSClimAttrs created.")
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
@@ -3351,7 +3351,7 @@ cat ("current FVS_ClimAttrs\n")
     if (file.exists("FVSClimAttrs.db")) unlink("FVSClimAttrs.db")
     dbclim <- nect(dbDrv,"FVSClimAttrs.db")
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
+    dbWriteTable(dbclim,DBI::SQL("FVS_ClimAttrs"),climd)
     rm (climd)  
     progress$set(message = "Query distinct stands and scenarios",value = 5) 
     distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")

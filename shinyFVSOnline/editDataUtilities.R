@@ -105,7 +105,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         if (sID) fvsInit$Stand_ID = 
           if (sCN) paste0("Stand",1:nrow(fvsInit)) else fvsInit$Stand_CN
         if (sCN) fvsInit$Stand_CN = fvsInit$Stand_ID
-        dbWriteTable(dbGlb$dbIcon,"FVS_StandInit",fvsInit,overwrite=TRUE)
+        dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_StandInit"),fvsInit,overwrite=TRUE)
       }
     }
   }
@@ -137,7 +137,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         "EndSQL\nTreeSQL\nSELECT * FROM FVS_TreeInit\n", 
         "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
     )
-    dbWriteTable(dbGlb$dbIcon,name="FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
+    dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_GroupAddFilesAndKeywords"),value=dfin,overwrite=TRUE)
   }
 }
 
