@@ -377,7 +377,7 @@ cat ("sqlRunQuery\n")
             if (class(res) == "data.frame")
             {
               for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
-                res[[col]] = as.factor(res[[col]])
+                res[[col]] = factor(res[[col]],unique(res[[col]]))
               if (!is.null(res$Year)) res$Year = as.factor(res$Year)
               fvsOutData$dbData = res
               fvsOutData$render = res
@@ -935,10 +935,10 @@ cat ("vfacet test hit\n")
       nd$temp = NULL
     } else flip = FALSE
     p = ggplot(data = nd) + fg + labs(
-          x=if (nchar(input$xlabel)) input$xlable else input$xaxis, 
+          x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
           title=input$ptitle)  + 
-          theme(text = element_text(size=9),
+            theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
     if (flip) p = p + coord_flip() 
@@ -971,7 +971,8 @@ cat ("vfacet test hit\n")
     if (input$colBW == "B&W" && input$plotType == "bar") 
       p = p + scale_fill_grey(start=.15, end=.85)
     p = p + theme(text=element_text(size=9))
-    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>9) p = p + theme(legend.position="none")
+    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>9) p = p + 
+      theme(legend.position="none") 
     if (input$colBW == "color") p = p + scale_colour_brewer(palette = "Set1")
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(input$res)
@@ -1024,7 +1025,7 @@ cat ("inVars\n")
      'FVS_StandInit where lower(variant) like "%',input$inVars,'%"')))
     if (class(grps) == "try-error" || nrow(grps) == 0)
     {
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
+      dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),data.frame(Stand_ID="",Grp=""))
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
@@ -1041,7 +1042,7 @@ cat ("inVars\n")
       dd = do.call(rbind,dd)
       colnames(dd) = c("Stand_ID","Grp")
       dd = as.data.frame(dd)
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Grps') 
+      dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),dd)
       selGrp = dbGetQuery(dbGlb$dbIcon,
         'select distinct Grp from m.Grps order by Grp')[,1]
@@ -1065,10 +1066,10 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         output$stdSelMsg <- renderUI(NULL)
         updateSelectInput(session=session, inputId="inStds", 
            choices=list())
-      } else {
-        dbSendQuery(dbGlb$dbIcon,'drop table if exists m.SGrps') 
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.SGrps"),data.frame(SelGrps = input$inGrps))
-        
+      } else {  
+         dbSendQuery(dbGlb$dbIcon,"drop table if exists m.SGrps")
+         dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.SGrps"),
+           data.frame(SelGrps = input$inGrps))      
         stds = try(dbGetQuery(dbGlb$dbIcon,
           paste0('select Stand_ID from m.Grps ',
                  'where Grp in (select SelGrps from m.SGrps)')))
@@ -3336,7 +3337,7 @@ cat ("processing FVSClimAttrs.csv\n")
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_ClimAttrs"),climd)
+      dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
       output$actionMsg = renderText("FVSClimAttrs created.")
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
@@ -3351,7 +3352,7 @@ cat ("current FVS_ClimAttrs\n")
     if (file.exists("FVSClimAttrs.db")) unlink("FVSClimAttrs.db")
     dbclim <- nect(dbDrv,"FVSClimAttrs.db")
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbclim,DBI::SQL("FVS_ClimAttrs"),climd)
+    dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
     rm (climd)  
     progress$set(message = "Query distinct stands and scenarios",value = 5) 
     distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")
