@@ -365,16 +365,16 @@ cat ("sqlRunQuery\n")
           {
             iq = iq+1
             res = try (dbGetQuery(dbGlb$dbOcon,qry))
-            msgtxt = if (class(res) == "data.frame") paste0(msgtxt,
-              "query ",iq," returned a data frame with ",nrow(res)," rows and ",
-              ncol(res)," cols\n") else  
+            msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
+              paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
+                    " rows and ",ncol(res)," cols\n") else  
               if (class(res) == "try-error") paste0(msgtxt,"query ",iq,
                 " returned\n",attr(res,"condition"),"\n") else
-              paste0(msgtxt,"query ",iq," ran\n")         
+                paste0(msgtxt,"query ",iq," ran\n")         
             updateTextInput(session=session, inputId="sqlOutput", label="", 
                             value=msgtxt)                          
             if (class(res) == "try-error") break
-            if (class(res) == "data.frame")
+            if (class(res) == "data.frame" && ncol(res) && nrow(res))
             {
               for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
                 res[[col]] = factor(res[[col]],unique(res[[col]]))
