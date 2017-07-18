@@ -224,10 +224,10 @@ ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session)
                           "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
       myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
-      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"],labelFollows = TRUE),
-      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"],labelFollows = TRUE),
-      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"],labelFollows = TRUE),
-      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"],labelFollows = TRUE)
+      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"]),
+      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"]),
+      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"])
     ),
   list(br()))
   ans
@@ -278,10 +278,10 @@ ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session)
                                                        "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
       myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
-      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"],labelFollows = TRUE),
-      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"],labelFollows = TRUE),
-      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"],labelFollows = TRUE),
-      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"],labelFollows = TRUE)
+      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"]),
+      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"]),
+      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"])
     ),
     list(br()))
   ans
