@@ -20,6 +20,7 @@ shinyServer(function(input, output, session) {
     source("fvsOutUtilities.R",local=TRUE)
     source("componentWins.R",local=TRUE)
     source("mkInputElements.R",local=TRUE)
+    source("editDataUtilities.R",local=TRUE)
     
     if (file.exists("localSettings.R")) 
              source("localSettings.R",local=TRUE) else if
@@ -1020,9 +1021,11 @@ cat ("in updateVarSelection\n")
   ## inVars has changed
   observe({
     if (is.null(input$inVars)) return()
-cat ("inVars\n")    
-    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
-     'FVS_StandInit where lower(variant) like "%',input$inVars,'%"')))
+cat ("inVars\n")
+    stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+    grps = if (!is.null(stdInit)) 
+      try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
+        stdInit,' where lower(variant) like "%',input$inVars,'%"'))) else NULL
     if (class(grps) == "try-error" || nrow(grps) == 0)
     {
       dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
@@ -3072,10 +3075,9 @@ cat ("cmd=",cmd,"\n")
         if (substring(schema[i],1,12) == "CREATE TABLE") 
         {
           tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
-          cknt = switch(toupper(tblName),
-            "FVS_STANDINIT" = standNT,
-            "FVS_TREEINIT"  = treeNT,
-            NULL)
+          cknt = NULL
+          if      (length(grep("FVS_STANDINIT",tblName,ignore.case=TRUE))) cknt = standNT
+          else if (length(grep("FVS_TREEINIT", tblName,ignore.case=TRUE))) cknt = treeNT
           next
         }
         if (substring(schema[i],1,2)  == ");") next
@@ -3139,13 +3141,12 @@ cat ("cmd=",cmd,"\n")
     dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     progress <- shiny::Progress$new(session,min=1,max=3)
     progress$set(message = "Checking database query keywords", value = 1)
-    source("editDataUtilities.R")
     fixFVSKeywords(dbGlb,progress) 
-    checkMinColumnDefs(dbGlb,progress)
+    msg = checkMinColumnDefs(dbGlb,progress)
     Sys.sleep (.5) 
     progress$close()    
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
-    output$replaceActionMsg <- renderText("Uploaded database installed")
+    output$replaceActionMsg <- renderText(msg)
     session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
     initNewInputDB()
   }) 
@@ -3153,7 +3154,6 @@ cat ("cmd=",cmd,"\n")
     if(input$inputDBPan == "Upload and insert new rows (.csv)") 
     {
 cat ("Upload new rows\n")
-      source("editDataUtilities.R")
       tbs <- dbListTables(dbGlb$dbIcon)
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
@@ -3270,7 +3270,7 @@ cat ("Upload new rows\n")
       res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
                         dbGlb$tblName))
       dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
-      dbClearResult(dbGlb$dbIcon)
+      dbClearResult(res)
       if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
       if (dbGlb$rowSelOn && length(dbGlb$sids)) 
         updateSelectInput(session=session, inputId="rowSelector",
@@ -3446,7 +3446,6 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     if(input$inputDBPan == "View and edit existing tables") 
     {
 cat ("dataEditor\n")
-      source("editDataUtilities.R")
       tbs <- dbListTables(dbGlb$dbIcon)
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
@@ -3703,7 +3702,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
               res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
                                 dbGlb$tblName))
               dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
-              dbClearResult(dbGlb$dbIcon)
+              dbClearResult(res)
               if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
               if (dbGlb$rowSelOn && length(dbGlb$sids)) 
                 updateSelectInput(session=session, inputId="rowSelector",
@@ -3720,7 +3719,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             res <- dbSendQuery(dbGlb$dbIcon,qry)
             dbGlb$tbl <- dbFetch(res,n=-1)
             rownames(dbGlb$tbl) = dbGlb$tbl$rowid
-            dbClearResult(dbGlb$dbIcon)
+            dbClearResult(res)
             for (col in 2:ncol(dbGlb$tbl))
               if (class(dbGlb$tbl[[col]]) != "character") 
                  dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])

@@ -42,21 +42,24 @@ mkglobals <<- setRefClass("globals",
 
 loadVarData <- function(globals,prms,dbIcon)
 {
-  tbs <- dbListTables(dbIcon)
-  itab <- grep (tolower("FVS_StandInit"),tolower(tbs)) 
-  if (length(itab)) 
+  globals$selVarList = list()
+  stdInit = getTableName(dbIcon,"FVS_StandInit")
+  if (!is.null(stdInit)) 
   {
-    vars = dbGetQuery(dbIcon,'select distinct variant from FVS_StandInit')
-    selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-      function (x) strsplit(x," "))))))
-    globals$selVarList <- lapply(selVars,function (x,pk) 
-        paste(x,":",getPstring(pk,x)),prms$variants)
-    names(globals$selVarList) <- selVars
-  } else globals$selVarList = list()
-  itab <- grep (tolower("FVS_GroupAddFilesAndKeywords"),tolower(tbs))
-  if (length(itab)) 
+    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
+    if (class(vars) != "try-error")
+    {
+      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+        function (x) strsplit(x," "))))))
+      globals$selVarList <- lapply(selVars,function (x,pk) 
+          paste(x,":",getPstring(pk,x)),prms$variants)
+      names(globals$selVarList) <- selVars
+    }
+  }
+  fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
+  if (!is.null(fvsKeys)) 
   {
-    globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,tbs[itab])
+    globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,fvsKeys)
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
           toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
   } 
@@ -182,9 +185,11 @@ cat("writeKeyFile, num stds=",length(stds),
   if (length(stds)==0) return()
   dbSendQuery(dbIcon,'drop table if exists m.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("m.RunStds"),data.frame(RunStds = stds))
+  stdInit = getTableName(dbIcon,"FVS_StandInit")
+  if (is.null(stdInit)) return()
   dbQ = dbSendQuery(dbIcon,
-    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from FVS_StandInit ',
-      'where Stand_ID in (select RunStds from m.RunStds)'))
+    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
+      ' where Stand_ID in (select RunStds from m.RunStds)'))
   fvsInit = dbFetch(dbQ,n=-1)
   names(fvsInit) = toupper(names(fvsInit))
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
@@ -1079,8 +1084,9 @@ cat ("in addStandsToRun, selType=",selType,"\n")
                       vlst, vlst[[1]])
     globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
-    
-    fields = dbListFields(dbGlb$dbIcon,"FVS_StandInit")
+    stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+    if (is.null(stdInit)) return()
+    fields = dbListFields(dbGlb$dbIcon,stdInit)
     needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                        "AddFiles","FVSKeywords"))
     fields = intersect(toupper(fields),toupper(needFs)) 
@@ -1093,8 +1099,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = input$inStds))
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
-          paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-            'where Stand_ID in (select SelStds from m.Stds)')))
+          paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+            ' where Stand_ID in (select SelStds from m.Stds)')))
       } else return()
     } else {
       # use if inAddGrp 
@@ -1112,8 +1118,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = stds))
       dbQ = try(dbSendQuery(dbGlb$dbIcon,
-          paste0('select ',paste0(fields,collapse=","),' from FVS_StandInit ',
-            'where Stand_ID in (select SelStds from m.Stds)')))
+          paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+            ' where Stand_ID in (select SelStds from m.Stds)')))
     }       
     if (is.null(dbQ) || class(dbQ) == "try-error") return()
     fvsInit = dbFetch(dbQ,n=-1)
@@ -1153,8 +1159,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       addkeys <- fvsInit[row,"FVSKEYWORDS"]
       if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
         newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                 exten="base", atag="k",kwdName="From: FVS_StandInit",
-                 title="From: FVS_StandInit"))
+                 exten="base", atag="k",kwdName=paste0("From: ",stdInit), 
+                 title=paste0("From: ",stdInit)))
       grps <- if (!is.null(fvsInit$GROUPS))
          scan(text=fvsInit[row,"GROUPS"],
               what=" ",quiet=TRUE) else c("All All_Stands")
@@ -1262,5 +1268,13 @@ mkFileNameUnique <- function(fn)
     fn = paste0(name," (",i,")")
     if (nchar(ext)) fn = paste0(fn,".",ext)
   } 
+}
+
+getTableName <- function(dbcon,basename)
+{
+  tbs <- dbListTables(dbcon)
+  itab <- match(tolower(basename),tolower(tbs)) 
+  if (is.na(itab)) itab <- grep (tolower(basename),tolower(tbs)) 
+  if (length(itab) == 1) return(tbs[itab]) else return(NULL)
 }
 

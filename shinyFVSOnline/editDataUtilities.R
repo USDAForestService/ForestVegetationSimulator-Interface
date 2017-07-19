@@ -28,67 +28,73 @@ checkMinColumnDefs <- function(dbGlb,progress=NULL)
   #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
   # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
-  fields = try(dbListFields(dbGlb$dbIcon,"FVS_StandInit"))
+  stdInit <- getTableName(dbGlb$dbIcon,"FVS_StandInit")
+  if (is.null(stdInit))   
+  {
+    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+    return("FVS_StandInit not found, training data installed.")
+  }
+  fields = try(dbListFields(dbGlb$dbIcon,stdInit))
   # if this is an error, then FVS_StandInit does not exist and this is an error
   # where the standard fixup in this case is to try recovery of the database.
   if (class(fields) == "try-error")
   {
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    return()
+    return("FVS_StandInit not found, training data installed.")
   }
   modStarted = FALSE
   sID = FALSE
   sCN = FALSE
   grp = FALSE
   # make sure groups are defined, if missing set one to "All"
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 2, detail = "Groups")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,
-      "alter table FVS_StandInit add column Groups text not null default 'All_Stands'")
+    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+       " add column Groups text not null default 'All_Stands'"))
     grp = TRUE
   }
   # make sure Stand_ID is defined
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 3, detail = "Stand_ID")
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,
-      "alter table FVS_StandInit add column Stand_ID text")      
+    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+      " add column Stand_ID text"))      
     sID = TRUE
   }
   # make sure Stand_CN is defined
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 4, detail = "Stand_CN")
   if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,
-      "alter table FVS_StandInit add column Stand_CN text")
+    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+      " add column Stand_CN text"))
     sCN = TRUE
   }
   # make sure Inv_Year is defined
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 5, detail = "Inv_Year ")
   if (length(grep("Inv_Year",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
     year=substring(as.character(Sys.time()),1,4)
-    dbSendQuery(dbGlb$dbIcon,paste0(
-      "alter table FVS_StandInit add column Inv_Year integer not null default ",year))      
+    dbSendQuery(dbGlb$dbIcon,paste0(paste0("alter table ",stdInit,
+      " add column Inv_Year integer not null default ",year)))      
   }
   # make sure FVSKeywords is defined
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 6, detail = "FVSKeywords ")
   if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
     year=substring(as.character(Sys.time()),1,4)
-    dbSendQuery(dbGlb$dbIcon,
-      "alter table FVS_StandInit add column FVSKeywords text")
+    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+      " add column FVSKeywords text"))
   }
 cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
      " sCN=",sCN,"\n")
@@ -97,48 +103,55 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     dbCommit(dbGlb$dbIcon)
     if (sID || sCN) 
     {
-      fvsInit = dbReadTable(dbGlb$dbIcon,"FVS_StandInit")
-      if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+      fvsInit = dbReadTable(dbGlb$dbIcon,stdInit)
+      if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
         value = 7, detail = "Stand_ID and Stand_CN consistent")
       if (nrow(fvsInit))
       {
         if (sID) fvsInit$Stand_ID = 
           if (sCN) paste0("Stand",1:nrow(fvsInit)) else fvsInit$Stand_CN
         if (sCN) fvsInit$Stand_CN = fvsInit$Stand_ID
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_StandInit"),fvsInit,overwrite=TRUE)
+        dbWriteTable(dbGlb$dbIcon,stdInit,fvsInit,overwrite=TRUE)
       }
     }
   }
   # check groups
   if (!grp)
   {
-    if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+    if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
         value = 8, detail = "Groups content")
-    grps = dbGetQuery(dbGlb$dbIcon,"select Groups from FVS_StandInit")
+    grps = dbGetQuery(dbGlb$dbIcon,paste0("select Groups from ",stdInit))
     names(grps) = toupper(names(grps))
     if (is.null(grps$GROUPS) || any(is.na(grps$GROUPS)) || any(grps$GROUPS == "")) 
-      dbSendQuery(dbGlb$dbIcon,
-        "update FVS_StandInit set Groups = 'All_Stands' where Groups = ''")
+      dbSendQuery(dbGlb$dbIcon,paste0("update ",stdInit,
+         " set Groups = 'All_Stands' where Groups = ''"))
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
-  if (!is.null(progress)) progress$set(message = "Checking FVS_StandInit:", 
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
       value = 9, detail = "FVS_GroupAddFilesAndKeywords")
-  gtab = try(dbReadTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords"))
-  need = class(gtab) == "try-error"
-  if (!need) need = nrow(gtab) == 0
-  names(gtab) = toupper(names(gtab))
-  if (!need) need = all(is.na(gtab$FVSKEYWORDS))
-  if (!need) need = all(gtab$FVSKEYWORDS == "")
+  addkeys = getTableName(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords")
+  if (is.null(addkeys)) need = TRUE else
+  {
+    gtab = try(dbReadTable(dbGlb$dbIcon,addkeys))
+    need = class(gtab) == "try-error"
+    if (!need) need = nrow(gtab) == 0
+    names(gtab) = toupper(names(gtab))
+    if (!need) need = all(is.na(gtab$FVSKEYWORDS))
+    if (!need) need = all(gtab$FVSKEYWORDS == "")
+  }
   if (need)
   {
+    treeInit = getTableName(dbGlb$dbIcon,"FVS_TreeInit")
+    if (is.null(treeInit)) treeInit = "FVS_TreeInit"
     dfin = data.frame(Groups = "All All_Stands",Addfiles = "",
       FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-        "SELECT * FROM FVS_StandInit\nWHERE Stand_ID= '%StandID%'\n",
-        "EndSQL\nTreeSQL\nSELECT * FROM FVS_TreeInit\n", 
+        "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
+        "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
         "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
     )
-    dbWriteTable(dbGlb$dbIcon,DBI::SQL("FVS_GroupAddFilesAndKeywords"),value=dfin,overwrite=TRUE)
-  }
+    dbWriteTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
+  } 
+  return("Uploaded database installed")  
 }
 
 
@@ -192,3 +205,5 @@ cat ("qry=",qry,"\n")
   }
 cat ("exit fixFVSKeywords\n")
 }    
+
+
