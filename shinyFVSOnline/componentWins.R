@@ -209,19 +209,22 @@ ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session)
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",f2="300",f3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  defs <- c(f1=" ",tbf2="300",tbf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
-  cat ("in ThinFromBelowWin code, defs=",defs,"\n")  
-  
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "")  defs[name] = globals$currentEditCmp$reopn[name]
+cat ("in ThinFromBelowWin code, defs=",defs,"\n")  
+
   ans <-list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("tbf2", "Specify residual density ",defs["f2"]),
-      radioButtons("tbf3","in terms of: ",choices=list("Trees per acre "="1","Basal area per acre "="2","Percent of trees per acre at year of thin"="3",
-                          "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
+      myInlineTextInput("tbf2", "Specify residual density ",defs["tbf2"]),
+      radioButtons("tbf3","in terms of: ",
+        choices=list("Trees per acre "="1","Basal area per acre "="2",
+                     "Percent of trees per acre at year of thin"="3",
+                     "Percent of basal area at year of thin"="4"),
+        selected=defs["tbf3"],inline=FALSE),
       myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
       myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
@@ -263,20 +266,25 @@ ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session)
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",f2="300",f3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  defs <- c(f1=" ",taf2="300",taf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
-  cat ("in ThinFromAboveWin code, defs=",defs,"\n")  
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
+
+cat ("in ThinFromAboveWin code, defs=",defs,"\n")  
   
   ans <-list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("taf2", "Specify residual density ",defs["f2"]),
-      radioButtons("taf3","in terms of: ",choices=list("Trees per acre "="1","Basal area per acre "="2","Percent of trees per acre at year of thin"="3",
-                                                       "Percent of basal area at year of thin"="4"),selected=defs["f3"],inline=FALSE),
-      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
+      myInlineTextInput("taf2", "Specify residual density ",defs["taf2"]),
+      radioButtons("taf3","in terms of: ",
+        choices=list("Trees per acre "="1","Basal area per acre "="2",
+                     "Percent of trees per acre at year of thin"="3",
+                     "Percent of basal area at year of thin"="4"),
+        selected=defs["taf3"],inline=FALSE),
+      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", 
+                        defs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
       myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
       myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"]),

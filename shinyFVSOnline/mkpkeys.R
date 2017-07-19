@@ -5,7 +5,8 @@ rdparms <- function(pdir="parms")
   files = dir(pdir)
   for (fn in files)
   {
-    if (fn %in% c("mods.txt","mkprm","ppekeys.kwd","tutorial.prm")) next
+    if (fn %in% c("mods.txt","mkprm","ppekeys.kwd","tutorial.prm",
+        "commands.prm")) next
     file = paste0(pdir,"/",fn)
     cat ("processing file=",file,"\n")    
     raw  = scan(file=file,sep="\n",what="character",
