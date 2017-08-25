@@ -243,7 +243,6 @@ observe({
 })
   
 
-
 ThinFromBelowWin.mkKeyWrd <- function(input,output)
 {
   cat ("in ThinFromBelowWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$tbf2,
@@ -303,7 +302,6 @@ observe({
 })
 
 
-
 ThinFromAboveWin.mkKeyWrd <- function(input,output)
 {
   cat ("in ThinFromAboveWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$taf2,
@@ -311,13 +309,351 @@ ThinFromAboveWin.mkKeyWrd <- function(input,output)
   list(ex="base",
        kwds = if (input$taf3 == "1") sprintf(
          paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "2")
+         input$f1, input$taf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "2")
          sprintf(paste0("ThinABA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "3")
+         input$f1, input$taf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "3")
          sprintf(paste0("ThinATA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
+         input$f1, as.numeric(input$taf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
          sprintf(paste0("ThinABA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
-       reopn = c(f1=input$f1,tbf2=input$taf2,taf3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+         input$f1, as.numeric(input$taf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
+       reopn = c(f1=input$f1,taf2=input$taf2,taf3=input$taf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
   )
 }
+
+##-----------------------------------Seed Tree-----------------------------------------------##
+
+SeedTreeWin <- function(title, prms, fvsRun, globals,session=session) 
+{
+  pknum = match("management.Thin",names(prms))
+  globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
+  defs <- c(f1=" ",stf2="5",stf3="2",f4="200",f5="3",f6="60",f7="10",f8="5", f9="2", f10="10", f11="2", f12="6")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
+  
+  cat ("in SeedTreeWin code, defs=",defs,"\n")  
+  # useShinyjs()
+  ans <- list(
+    list(
+      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      div(style="background-color: rgb(240,240,255)",
+          myInlineTextInput("stf2", "Smallest diameter cut in prep and seed cuts ", defs["stf2"])),
+      div(style="background-color: rgb(255,240,240)",
+          radioButtons("stf3", "Perform prep cut?", c("Yes"="1","No"="2"),defs["stf3"],inline=TRUE)),
+      div(style="background-color: rgb(240,240,255)",
+          uiOutput("SeedTreePrepCut"),
+      myInlineTextInput("f8", "Seed cut residual trees (cut from below) ", defs["f8"])),
+      div(style="background-color: rgb(255,255,240)",
+          radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),defs["f9"],inline=TRUE)),
+      uiOutput("SeedTreeWinMin") 
+    ),
+    list(br()))
+
+  
+observe(
+{
+    output$SeedTreeWinMin = renderUI(list(if(input$f9==1)
+      list(div(style="background-color: rgb(255,255,240)",
+        myInlineTextInput("f10", "scheduled how many years after seed cut?", defs["f10"]),
+        myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
+        myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
+
+    if(length(input$stf3)==0) return()
+    output$SeedTreePrepCut = if(input$stf3==1)
+      renderUI(list(div(style="background-color: rgb(255,240,240)",
+        myInlineTextInput("f4", "Specify residual density ", defs["f4"]),
+        radioButtons("f5", "in terms of: ", c("Basal area per acre"="3",
+                                              "Percent of maximum SDI in year of prep cut"="4"),defs["f5"])),
+        HTML(paste0("<b>","Seed cut","</b>")),
+        myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
+       )
+    else
+      renderUI(list(HTML(paste0("<b>","Seed cut","</b>"))))
+})
+ans
+}
+
+observe({
+  if(length(input$stf3)==0) return()
+  # shinyjs::toggleState(c("f4"), input$stf3 == "1")
+  # shinyjs::toggleState(c("f5"), input$stf3 == "1")
+  # shinyjs::toggleState(c("f6"), input$stf3 == "1")
+  # shinyjs::toggleState(c("f7"), input$stf3 == "1")
+  # browser()
+    if(input$stf3==1 && is.null(input$f4)) 
+    updateTextInput(session=session,inputId ="f4",value=" ")  
+    updateTextInput(session=session,inputId ="f5",value=" ")
+    if(length(input$f4))
+    updateTextInput(session=session,inputId ="f4",value=
+                       switch(input$f5,"3"="200","4"="60"))
+}) 
+
+SeedTreeWin.mkKeyWrd <- function(input,output)
+{
+  cat ("in SeedTreeWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$stf2,
+         f3=input$stf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,
+         f8=input$f8,f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12,"\n"))
+      
+ kwds = if (input$stf3 == "1" && input$f5 == "3" && input$f9 == "1") # Prep cut=Yes, Residual BA/AC, Removal cut=Yes
+            sprintf(
+              paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+                     "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+                     "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+              input$f1, input$f4, 1, input$stf2, 999, 0, 999,
+              (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999,
+              (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+       else if (input$stf3 == "1" && input$f5 == "3" && input$f9 == "2") # Prep cut=Yes, Residual BA/AC, Removal cut=No
+            sprintf(
+              paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+                     "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+              input$f1, input$f4, 1, input$stf2, 999, 0, 999,
+              (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999)
+       else if (input$stf3 == "1" && input$f5 == "4" && input$f9 == "1") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=Yes
+           sprintf(
+             paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+                    "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+                    "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+             input$f1, (as.numeric((input$f4))/100), 1, 0, input$stf2, 999, 0,
+             (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999,
+             (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+       else if (input$stf3 == "1" && input$f5 == "4" && input$f9 == "2") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=No
+           sprintf(
+             paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+                    "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+             input$f1, (as.numeric((input$f4))/100), 1, 0, input$stf2, 999, 0,
+             (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999)
+       else if (input$stf3 == "2" && input$f9 == "1") # Prep cut=No, Residual BA/AC, Removal cut=Yes
+           sprintf(
+             paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+                    "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+             input$f1, input$f8, 1, input$stf2, 999, 0, 999,
+             (as.numeric(input$f1)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+       else 
+            sprintf(
+              paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),input$f1, input$f8, 1, input$stf2, 999, 0, 999)
+
+       list(ex="base",kwds=kwds,
+    reopn = c(f1=input$f1,stf2=input$stf2,stf3=input$stf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8,
+              f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12))
+  }
+
+##-----------------------------------Shelterwood----------------------------------------------##
+
+ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session) 
+{
+  pknum = match("management.Thin",names(prms))
+  globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
+  defs <- c(f1=" ",swf2="5",swf3="2",f4="200",f5="3",f6="60", f7="10",f8="5", f9="2", f10="10", f11="2", f12="6", f13="50", f14="6")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
+  
+  cat ("in ShelterwoodWin code, defs=",defs,"\n")  
+  ans <- list(
+    list(
+      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      div(style="background-color: rgb(240,240,255)",
+          myInlineTextInput("swf2", "Smallest diameter cut in prep and shelterwood cuts ", defs["swf2"])),
+      div(style="background-color: rgb(255,240,240)",
+          radioButtons("swf3", "Perform prep cut?", c("Yes"="1","No"="2"),defs["swf3"],inline=TRUE)),
+      div(style="background-color: rgb(240,240,255)",uiOutput("ShelterwoodPrepCut"),
+      myInlineTextInput("f13", "Specify residual density ", defs["f13"]),
+      radioButtons("f14", "in terms of: ", c("Basal area per acre"="5","Trees per acre"="6",
+                   "Percent of maximum SDI in year of prep cut"="7"),defs["f14"]),
+      myInlineTextInput("f8", "Shelterwood cut residual trees (cut from below) ", defs["f8"])),
+      div(style="background-color: rgb(255,255,240)",
+          radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),defs["f9"],inline=TRUE)),
+      uiOutput("ShelterwoodWinMin") 
+    ),
+    list(br()))
+  
+  observe(
+    {
+      output$ShelterwoodWinMin = renderUI(list(if(input$f9==1)
+        list(div(style="background-color: rgb(255,255,240)",
+          myInlineTextInput("f10", "scheduled how many years after shelterwood cut?", defs["f10"]),
+          myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
+          myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
+      
+      if(length(input$swf3)==0) return()
+      output$ShelterwoodPrepCut = if(input$swf3==1)
+        renderUI(list(div(style="background-color: rgb(255,240,240)",
+          myInlineTextInput("f4", "Specify residual density ", defs["f4"]),
+          radioButtons("f5", "in terms of: ", c("Basal area per acre"="3",
+                                                "Percent of maximum SDI in year of prep cut"="4"),defs["f5"])),
+          HTML(paste0("<b>","Shelterwood cut","</b>")),
+          myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
+        )
+      else
+        renderUI(list(HTML(paste0("<b>","Shelterwood cut","</b>"))))
+    })
+  ans
+}
+
+observe({
+  if(length(input$swf3)==0) return()
+  if(input$swf3==1 && is.null(input$f4)){
+    updateTextInput(session=session,inputId ="f4",value="200")
+    updateTextInput(session=session,inputId ="f5",value="3")
+    }
+  if(!is.null(input$f4) && input$f4=="200"){
+    updateTextInput(session=session,inputId ="f4",value=
+                    switch(input$f5,"3"="200","4"="60"))}
+  else if(!is.null(input$f4) && input$f4=="60"){
+   updateTextInput(session=session,inputId ="f4",value=
+                  switch(input$f5,"3"="200","4"="60"))
+  }
+  else{updateTextInput(session=session,inputId ="f4",value=input$f4)}
+  updateTextInput(session=session,inputId ="f13",value=
+                  switch(input$f14,"5"="100","6"="50", "7"="20"))
+})
+
+ShelterwoodWin.mkKeyWrd <- function(input,output)
+{
+  cat ("in ShelterwoodWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$swf2,f3=input$swf3,f4=input$f4,
+                                           f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8,f9=input$f9,
+                                           f10=input$f10,f11=input$f11,f12=input$f12,f13=input$f13,f14=input$f14,"\n"))
+  kwds = 
+    # Prep cut=Yes, Residual BA/AC, Shelterwood residual BA/AC, Removal cut=Yes
+    if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "1" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual BA/AC,Shelterwood residual BA/AC, Removal cut=No
+  else if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "2" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=Yes, Residual BA/AC, Shelterwood residual TPA, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "1" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual BA/AC,Shelterwood residual TPA, Removal cut=No
+  else if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "2" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=Yes, Residual BA/AC, Shelterwood residual % of MaxSDI, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "1" && input$f14 == "7") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), (as.numeric((input$f13))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual BA/AC, Shelterwood residual % of MaxSDI, Removal cut=No
+  else if (input$swf3 == "1" && input$f5 == "3" && input$f9 == "2" && input$f14 == "7") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n"),
+      input$f1, input$f4, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)), (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual BA/AC, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "1" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual BA/AC, Removal cut=No
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "2" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual TPA, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "1" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual TPA, Removal cut=No
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "2" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual % of MaxSDI, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "1" && input$f14 == "7") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), (as.numeric((input$f13))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=Yes, Residual % of MaxSDI, Shelterwood residual % of MaxSDI, Removal cut=Yes
+  else if (input$swf3 == "1" && input$f5 == "4" && input$f9 == "2" && input$f14 == "7") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n"),
+      input$f1, (as.numeric((input$f4))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f7)), (as.numeric((input$f13))/100), 1, 0, input$swf2, 999, 0)
+  # Prep cut=No,Shelterwood residual BA/AC, Removal cut=Yes
+  else if (input$swf3 == "2" && input$f9 == "1" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=No,Shelterwood residual BA/AC, Removal cut=No
+  else if (input$swf3 == "2" && input$f9 == "2" && input$f14 == "5") 
+    sprintf(
+      paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=No,Shelterwood residual TPA, Removal cut=Yes
+  else if (input$swf3 == "2" && input$f9 == "1" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f13, 1, input$swf2, 999, 0, 999,
+      (as.numeric(input$f1)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=No,Shelterwood residual TPA, Removal cut=No
+  else if (input$swf3 == "2" && input$f9 == "2" && input$f14 == "6") 
+    sprintf(
+      paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, input$f13, 1, input$swf2, 999, 0, 999)
+  # Prep cut=No,Shelterwood residual % of MaxSDI, Removal cut=Yes
+  else if (input$swf3 == "2" && input$f9 == "1" && input$f14 == "7") 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
+             "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+      input$f1, (as.numeric((input$f13))/100), 1, 0, input$swf2, 999, 0,
+      (as.numeric(input$f1)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
+  # Prep cut=No,Shelterwood residual % of MaxSDI, Removal cut=No
+  else 
+    sprintf(
+      paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n"),
+      input$f1, (as.numeric((input$f13))/100), 1, 0, input$swf2, 999, 0)
+    
+  list(ex="base",kwds=kwds,
+       reopn = c(f1=input$f1,swf2=input$swf2,swf3=input$swf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8,
+                 f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12,f13=input$f13,f14=input$f14))
+}
+
+
+
+
