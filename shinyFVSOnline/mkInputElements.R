@@ -276,4 +276,84 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL)
 }
 
 
+mkFreeformEltList <- function (globals,prms,title,kwds)
+{
+  varsDef  = " "
+  varsName = " "
+  for (elt in prms[["evmon.variables"]])
+  {
+    atl = attr(elt,"atlist")
+    # the appliesTo list will have two tokens if the extension is part of the list
+    if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
+    varsDef <- c(varsDef,paste0(elt,": ",attr(elt,"pstring")))
+    attributes(elt) <- NULL
+    varsName <- c(varsName,elt)
+  }
+  indx = sort(varsName,index.return=TRUE)$ix
+  varsName = as.list(varsName[indx])
+  names(varsName) = varsDef[indx]
+  funcDef  = " "
+  funcName = " "
+  for (elt in prms[["evmon.functions"]])
+  {
+    atl = attr(elt,"atlist")
+    # the appliesTo list will have two tokens if the extension is part of the list
+    if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
+    funcDef <- c(funcDef,paste0(elt,": ",attr(elt,"pstring")))
+    attributes(elt) <- NULL
+    funcName <- c(funcName,elt)
+  }
+  indx = sort(funcName,index.return=TRUE)$ix
+  funcName = as.list(funcName[indx])
+  names(funcName) = funcDef[indx]    
+  eltList <- list(
+    tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+    myInlineTextInput("cmdTitle","Component title",title,size=40),          
+    tags$style(type="text/css", 
+      "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+    tags$p(id="freeEditCols", 
+           HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+    tags$style(type="text/css", 
+      "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+    tags$textarea(id="freeEdit", rows=10, kwds), 
+    myInlineListButton ("freeOps","Math:",list(
+       " "=" ",
+       "+ Simple addition"="+",
+       "- Subtraction or change sign"="-",
+       "* Multiplication"="*",
+       "/ Division"="/",
+       "** Exponentiate, X**Y is X raised to the power Y"="**",
+       "EQ Logical Equal"="EQ",
+       "NE Logical Not Equal"="NE",
+       "LT Logical Less than"="LT",
+       "LE Logical Less than or equal"="LE",
+       "GT Logical Greater than"="GT",
+       "GE Logical Greater than or equal"="GE",
+       "AND Logical AND"="AND",
+       "OR Logical OR"="OR",
+       "NOT Logical NOT"="NOT",
+       "ABS() Absolute value, ABS(-3) is 3."="ABS()",
+       "ALog() Natural logarithm (base e)"="ALog()",
+       "ALog10() Common logarithm (base 10)"="ALog10()",
+       "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
+       "ArcSin() Arc sine (argument in radians)"="ArcSin()",
+       "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
+       "Cos() Cosine (argument in radians)"="Cos()",
+       "Exp() e raised to power"="Exp()",
+       "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
+       "Int() Integer part of a number, Int(3.4) is 3"="Int()",
+       "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
+       "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
+       "Mod() Remainder of first argument divided by the second"="Mod()",
+       "Sin() Sine (argument in radians)"="Sin()",
+       "Sqrt() Square root"="Sqrt()",
+       "Tan() Tangent (argument in radians)"="Tan()"), 0),
+     myInlineListButton ("freeVars","Variables:",varsName),
+     mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+          choices=NULL,globals$activeVariants[1]),
+     myInlineListButton ("freeFuncs","FVS Functions:",funcName),
+     uiOutput("fvsFuncRender")
+  )
+  eltList
+}
 

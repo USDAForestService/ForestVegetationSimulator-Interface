@@ -1,3 +1,155 @@
+keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
+{
+  defs <- c(f1=" ",freeEdit="")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  ans = list( 
+    list (
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkFreeformEltList(globals,prms,title,defs["freeEdit"]),
+      tags$p(id="instruct",HTML(paste0(
+          "Enter one or more expressions the define <i>compute</i> variables. ",
+          "Example:<br><b>NormStk = 25000*((BADBH+1.)**(-1.588))<br></b>",
+          "will define <i>normal stocking</i> (trees/acre) according to Haig's ",
+          "(1932) definition.")))
+     ),list())
+  ans
+}
+
+
+keyword.base.Compute.Win.mkKeyWrd <- function(input,output)
+{
+cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
+  list(ex="base", 
+    kwds = paste0(sprintf("Compute   %10s\n",input$f1),input$freeEdit,"\nEnd\n"),
+    reopn = c(f1=input$f1,freeEdit=input$freeEdit)
+  )  
+}
+
+keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
+{
+  defs <- c(freeEdit=" ")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  ans = list( 
+    list (
+      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      tags$style(type="text/css", 
+        "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$p(id="instruct",HTML(paste0(
+          "Specify an SQL statement that from which stand-level ",
+          "FVS variables are initialized.<br>Example:<br><b>",
+          "SELECT * FROM FVS_StandInit WHERE Stand_ID = '%StandID%';<br></b>",
+          "will define the stand-level variables from the FVS_StandInit table.")
+           ))),
+     list())
+  ans
+}
+keyword.dbs.StandSQL.Win.mkKeyWrd <- function(input,output)
+{
+  list(ex="base", 
+    kwds = paste0("StandSQL\n",input$freeEdit,"\nEndSQL\n"),
+    reopn = c(freeEdit=input$freeEdit)
+  )  
+}
+
+
+keyword.dbs.TreeSQL.Win <- function(title, prms, fvsRun, globals)
+{
+  defs <- c(freeEdit=" ")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  ans = list( 
+    list (
+      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      tags$style(type="text/css", 
+        "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$p(id="instruct",HTML(paste0(
+          "Specify an SQL statement that from which tree-level ",
+          "FVS variables are initialized.<br>Example:<br><b>",
+          "SELECT * FROM FVS_TreeInit WHERE Stand_ID = '%StandID%';<br></b>",
+          "will define the tree-level variables from the FVS_TreeInit table.")
+           ))),
+     list())
+  ans
+}
+keyword.dbs.TreeSQL.Win.mkKeyWrd <- function(input,output)
+{
+  list(ex="base", 
+    kwds = paste0("TreeSQL\n",input$freeEdit,"\nEndSQL\n"),
+    reopn = c(freeEdit=input$freeEdit)
+  )  
+}
+
+
+
+keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
+{
+  defs <- c(f1=" ",freeEdit="")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  ans = list( 
+    list (
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      tags$style(type="text/css", 
+        "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$p(id="instruct",HTML(paste0(
+            "Run an query on the DSNIn connection. If the query is a SELECT, ",
+            "then the last row of the result table will define the values of ",
+            "variables in the Event Monitor. The variables will have the column names.<br>",
+            "Example:<br><b>Select Inv_Year as MyYear from FVS_StandInit ",
+            "where Stand_ID = '%StandID%';<br></b>will define MyYear in the Event Monitor")
+            ))
+     ),list())
+  ans
+}
+keyword.dbs.SQLIn.Win.mkKeyWrd <- function(input,output)
+{
+  list(ex="base", 
+    kwds = paste0(sprintf("SQLIn     %10s\n",input$f1),input$freeEdit,"\nEndSQL\n"),
+    reopn = c(f1=input$f1,freeEdit=input$freeEdit)
+  )  
+}
+
+
+keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
+{
+  defs <- c(f1=" ",freeEdit="")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+      defs[name] = globals$currentEditCmp$reopn[name]
+  ans = list( 
+    list (
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      tags$style(type="text/css", 
+        "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"])),
+    list())
+  ans
+}
+keyword.dbs.SQLOut.Win.mkKeyWrd <- function(input,output)
+{
+  list(ex="base", 
+    kwds = paste0(sprintf("SQLOut    %10s\n",input$f1),input$freeEdit,"\nEndSQL\n"),
+    reopn = c(f1=input$f1,freeEdit=input$freeEdit)
+  )  
+}
+
+
+
 ClearcutWin <- function(title, prms, fvsRun, globals) 
 {
   pknum = match("management.Clearcut",names(prms))
@@ -32,7 +184,6 @@ cat ("in ClearcutWin code, defs=",defs,"\n")
       radioButtons("ccf6", "Percentile point", 
         c("50th"="3","70th"="4","90th"="5"),defs["ccf6"],inline=TRUE)))        
   })
-
   ans  
 }
 
@@ -348,45 +499,38 @@ SeedTreeWin <- function(title, prms, fvsRun, globals,session=session)
           radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),defs["f9"],inline=TRUE)),
       uiOutput("SeedTreeWinMin") 
     ),
-    list(br()))
+    list(br())) 
 
-  
-observe(
-{
-    output$SeedTreeWinMin = renderUI(list(if(input$f9==1)
-      list(div(style="background-color: rgb(255,255,240)",
-        myInlineTextInput("f10", "scheduled how many years after seed cut?", defs["f10"]),
-        myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
-        myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
-
-    if(length(input$stf3)==0) return()
-    output$SeedTreePrepCut = if(input$stf3==1)
-      renderUI(list(div(style="background-color: rgb(255,240,240)",
-        myInlineTextInput("f4", "Specify residual density ", defs["f4"]),
-        radioButtons("f5", "in terms of: ", c("Basal area per acre"="3",
-                                              "Percent of maximum SDI in year of prep cut"="4"),defs["f5"])),
-        HTML(paste0("<b>","Seed cut","</b>")),
-        myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
-       )
-    else
-      renderUI(list(HTML(paste0("<b>","Seed cut","</b>"))))
-})
-ans
+    observe({
+        output$SeedTreeWinMin = renderUI(list(if(input$f9==1)
+          list(div(style="background-color: rgb(255,255,240)",
+            myInlineTextInput("f10", "scheduled how many years after seed cut?", defs["f10"]),
+            myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
+            myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
+    
+        if(length(input$stf3)==0) return()
+        output$SeedTreePrepCut = if(input$stf3==1)
+          renderUI(list(div(style="background-color: rgb(255,240,240)",
+            myInlineTextInput("f4", "Specify residual density ", defs["f4"]),
+            radioButtons("f5", "in terms of: ", c("Basal area per acre"="3",
+                                                  "Percent of maximum SDI in year of prep cut"="4"),defs["f5"])),
+            HTML(paste0("<b>","Seed cut","</b>")),
+            myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
+           )
+        else
+          renderUI(list(HTML(paste0("<b>","Seed cut","</b>"))))
+    })
+  ans
 }
 
 observe({
   if(length(input$stf3)==0) return()
-  # shinyjs::toggleState(c("f4"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f5"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f6"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f7"), input$stf3 == "1")
-  # browser()
-    if(input$stf3==1 && is.null(input$f4)) 
-    updateTextInput(session=session,inputId ="f4",value=" ")  
-    updateTextInput(session=session,inputId ="f5",value=" ")
-    if(length(input$f4))
-    updateTextInput(session=session,inputId ="f4",value=
-                       switch(input$f5,"3"="200","4"="60"))
+  if(input$stf3==1 && is.null(input$f4)) 
+  updateTextInput(session=session,inputId ="f4",value=" ")  
+  updateTextInput(session=session,inputId ="f5",value=" ")
+  if(length(input$f4))
+  updateTextInput(session=session,inputId ="f4",value=
+                   switch(input$f5,"3"="200","4"="60"))
 }) 
 
 SeedTreeWin.mkKeyWrd <- function(input,output)

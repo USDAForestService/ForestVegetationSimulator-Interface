@@ -414,6 +414,40 @@ shinyUI(fixedPage(
         column(width=12,offset=0,
           tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="toolsPan", 
+            tabPanel("Manage projects",        
+              if (isLocal()) list(
+                h4(),h4("Switch to another project"), 
+                selectInput("PrjSelect", "Select project", multiple=FALSE,
+                   choices = list(), selected="", selectize=FALSE),       
+                actionButton("PrjSwitch","Switch to selected project"), 
+                h4(),h4("Setup a new project"),
+                textInput("PrjNewTitle", "New project title", ""), 
+                actionButton("PrjNew","Make new project")), 
+              h4(),h4("Delete runs in current project"),
+              modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
+                "Delete ALL runs and related outputs in current project"),
+              modalDialog(id="deleteAllRunsDlg", footer=list(
+                modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
+                  "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                  'data-dismiss' = "modal", "Cancel"))),        
+              h4(),h4("Manage current project backup files"),
+              actionButton("mkZipBackup","Make a project backup zip file"),
+              h4(),
+              selectInput("pickBackup", "Select backup to process", multiple=FALSE,
+                 choices = list(), selected="", selectize=FALSE),
+              actionButton("delZipBackup","Delete backup"),
+              downloadButton("dlPrjBackup","Download backup"),
+              list(
+                modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
+                  "Restore from backup"),
+                modalDialog(id="restorePrjBackupDlg", footer=list(
+                  modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
+                    "Yes"),
+                  tags$button(type = "button", class = "btn btn-primary", 
+                    'data-dismiss' = "modal", "Cancel")))
+              )
+            ), 
             tabPanel("Downloads", 
               h6(),
               downloadButton("dlFVSDatadb","Input data base"),
@@ -438,41 +472,7 @@ shinyUI(fixedPage(
                   "Yes"),
              tags$button(type = "button", class = "btn btn-primary", 
                 'data-dismiss' = "modal", "Cancel")))
-            ),                                           
-            tabPanel("Manage projects",        
-              h4(),h4("Process current project"),
-              modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
-                "Delete ALL runs and related outputs in current project"),
-              modalDialog(id="deleteAllRunsDlg", footer=list(
-                modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
-                  "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),        
-              h4(),
-              actionButton("mkZipBackup","Make a project backup zip file"),
-              h4(),h4("Manage current project backup files"),
-              selectInput("pickBackup", "Select backup to process", multiple=FALSE,
-                 choices = list(), selected="", selectize=FALSE),
-              actionButton("delZipBackup","Delete backup"),
-              downloadButton("dlPrjBackup","Download backup"),
-              list(
-                modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
-                  "Restore from backup"),
-                modalDialog(id="restorePrjBackupDlg", footer=list(
-                  modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
-                    "Yes"),
-                  tags$button(type = "button", class = "btn btn-primary", 
-                    'data-dismiss' = "modal", "Cancel")))
-              ),
-              if (isLocal()) list(
-                h4(),h4("Setup a new project"),
-                textInput("PrjNewTitle", "New project title", ""), 
-                actionButton("PrjNew","Make new project"),
-                h4(),h4("Switch to another project"), 
-                selectInput("PrjSelect", "Select project", multiple=FALSE,
-                   choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjSwitch","Switch to selected project")) 
-            ) #END tabPanel
+            )  #END tabPanel                                         
           ) #END tabsetPanel
         ) ) #END column and fixed row   
       ), ## END Tools

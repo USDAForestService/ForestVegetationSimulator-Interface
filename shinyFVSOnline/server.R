@@ -1397,84 +1397,8 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         pk <- match (cmp$kwdName,names(prms))
         if (is.na(pk)) # FreeForm Edit, used if pk does not match a parms.
         {
-          varsDef  = " "
-          varsName = " "
-          for (elt in prms[["evmon.variables"]])
-          {
-            atl = attr(elt,"atlist")
-            # the appliesTo list will have two tokens if the extension is part of the list
-            if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
-            varsDef <- c(varsDef,paste0(elt,": ",attr(elt,"pstring")))
-            attributes(elt) <- NULL
-            varsName <- c(varsName,elt)
-          }
-          indx = sort(varsName,index.return=TRUE)$ix
-          varsName = as.list(varsName[indx])
-          names(varsName) = varsDef[indx]
-          funcDef  = " "
-          funcName = " "
-          for (elt in prms[["evmon.functions"]])
-          {
-            atl = attr(elt,"atlist")
-            # the appliesTo list will have two tokens if the extension is part of the list
-            if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
-            funcDef <- c(funcDef,paste0(elt,": ",attr(elt,"pstring")))
-            attributes(elt) <- NULL
-            funcName <- c(funcName,elt)
-          }
-          indx = sort(funcName,index.return=TRUE)$ix
-          funcName = as.list(funcName[indx])
-          names(funcName) = funcDef[indx]    
-          eltList <- list(
-            tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-            myInlineTextInput("cmdTitle","Component title", 
-              value=globals$currentEditCmp$title,size=40),          
-            tags$style(type="text/css", 
-              "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
-            tags$p(id="freeEditCols", 
-                   HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
-            tags$style(type="text/css", 
-              "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-            tags$textarea(id="freeEdit", rows=10, 
-                          globals$currentEditCmp$kwds),
-            myInlineListButton ("freeOps","Math:",list(
-               " "=" ",
-               "+ Simple addition"="+",
-               "- Subtraction or change sign"="-",
-               "* Multiplication"="*",
-               "/ Division"="/",
-               "** Exponentiate, X**Y is X raised to the power Y"="**",
-               "EQ Logical Equal"="EQ",
-               "NE Logical Not Equal"="NE",
-               "LT Logical Less than"="LT",
-               "LE Logical Less than or equal"="LE",
-               "GT Logical Greater than"="GT",
-               "GE Logical Greater than or equal"="GE",
-               "AND Logical AND"="AND",
-               "OR Logical OR"="OR",
-               "NOT Logical NOT"="NOT",
-               "ABS() Absolute value, ABS(-3) is 3."="ABS()",
-               "ALog() Natural logarithm (base e)"="ALog()",
-               "ALog10() Common logarithm (base 10)"="ALog10()",
-               "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
-               "ArcSin() Arc sine (argument in radians)"="ArcSin()",
-               "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
-               "Cos() Cosine (argument in radians)"="Cos()",
-               "Exp() e raised to power"="Exp()",
-               "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
-               "Int() Integer part of a number, Int(3.4) is 3"="Int()",
-               "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
-               "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
-               "Mod() Remainder of first argument divided by the second"="Mod()",
-               "Sin() Sine (argument in radians)"="Sin()",
-               "Sqrt() Square root"="Sqrt()",
-               "Tan() Tangent (argument in radians)"="Tan()"), 0),
-             myInlineListButton ("freeVars","Variables:",varsName),
-             mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
-                  choices=NULL,globals$activeVariants[1]),
-             myInlineListButton ("freeFuncs","FVS Functions:",funcName),
-             uiOutput("fvsFuncRender")
-          )
+          eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
+                                       globals$currentEditCmp$kwds)
         } else {        # Launch general purpose builder when pk matches a parms.        
           pkeys <- prms[[pk]]
           eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,cmp$atag=="c")     
@@ -1868,15 +1792,25 @@ cat ("command selection, input$addComponents=",input$addComponents,
         titIndx = match(input$addComponents,title)
         if (!is.na(titIndx)) title = names(title)[titIndx]
       }
-cat ("title=",title," titIndx=",titIndx,"\n")      
-      if (is.na(indx <- suppressWarnings(as.integer(globals$currentCmdPkey))))
+cat ("title=",title," titIndx=",titIndx,"\n") 
+      indx <- suppressWarnings(as.integer(globals$currentCmdPkey))
+      # is there a function to process this keyword?
+      if (!is.na(indx))
+      {
+         funName = paste0(names(prms)[indx],".Win")
+         if (exists(funName))
+         {
+           globals$currentCmdPkey = funName 
+           indx = NA
+         }
+      }
+      if (is.na(indx)) 
       { 
         globals$winBuildFunction <- globals$currentCmdPkey
-        globals$currentCmdPkey <- character(0)
 cat ("function name=",globals$winBuildFunction,"\n")
         ans = eval(parse(text=paste0(globals$winBuildFunction,
           "(title,prms,globals$fvsRun,globals)")))
-        if (is.null(ans)) return(NULL)
+        if (is.null(ans)) return(NULL) 
         output$cmdBuild     <- renderUI (if (length(ans[[1]])) ans[[1]] else NULL)
         output$cmdBuildDesc <- renderUI (if (length(ans[[2]])) ans[[2]] else NULL)
       } else {
@@ -1913,11 +1847,14 @@ cat("input$schedbox=",input$schedbox,"\n")
       cndlist = unlist(prms$conditions_list)
       names(cndlist) = unlist(lapply(prms$conditions_list,attr,"pstring"))
       cndlist = as.list(cndlist)
-cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")      
-      n = suppressWarnings(as.numeric(globals$currentCmdPkey))    
-      default =  getPstring(prms[[if (is.na(n)) globals$currentCmdPkey else n]],
-        "defaultCondition",globals$activeVariants[1])
-      if (is.null(default)) default="cycle1"
+cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
+      if (length(globals$currentCmdPkey))
+      {
+        n = suppressWarnings(as.numeric(globals$currentCmdPkey))   
+        default =  getPstring(prms[[if (is.na(n)) globals$currentCmdPkey else n]],
+          "defaultCondition",globals$activeVariants[1])
+        if (is.null(default)) default="cycle1"
+      } else default = "cycle1"
       output$conditions <- renderUI(list(
         selectInput("condList", "Create a condition", cndlist, 
           selected = default, multiple = FALSE, selectize = FALSE),
@@ -1974,7 +1911,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
   observe({  
     # command Save in run 
     if (input$cmdSaveInRun == 0) return()
-    isolate ({      
+    isolate ({  
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
          globals$currentCndPkey == "0" && globals$currentCmdPkey == "0") return()
       if (length(globals$currentEditCmp$reopn) && 
@@ -2066,7 +2003,7 @@ cat ("Editing as freeform\n")
       {
         # try to find a function that can make the keywords
         fn = paste0(kwPname,".mkKeyWrd")
-        ans = if (exists(fn)) eval(parse(text=paste0(fn,"(input)"))) else NULL
+        ans = if (exists(fn)) eval(parse(text=paste0(fn,"(input,output)"))) else NULL
         if (is.null(ans)) return()
         ex = ans$ex
         kwds = ans$kwds
