@@ -2679,32 +2679,47 @@ cat ("avalFVSp=",avalFVSp,"\n")
     } 
   })
   
-
   ## FVSRefresh
   observe({  
+    isLocal <- function () Sys.getenv('SHINY_PORT') == ""
     if (input$FVSRefresh == 0) return()               
-cat ("FVSRefresh\n")
+    cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
       if (!exists("fvsBinDir")) fvsBinDir="FVSbin/"
       if (!file.exists(fvsBinDir))
       {
         session$sendCustomMessage(type="infomessage",
-          message="FVS programs can not be refreshed on this system.")
+                                  message="FVS programs can not be refreshed on this system.")
         rm (fvsBinDir)
       } else
       {
         shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-        i = 0
-        for (pgm in input$FVSprograms)
-        {
-          rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin")
-          if (rtn) i = i+1
-        }
-        session$sendCustomMessage(type="infomessage",
-          message=paste0(i," of ",length(input$FVSprograms),
-            " selected FVS programs refreshed."))            
-        if (i) session$reload()
+        if(isLocal()){
+          i = 0
+          pgmurl <- "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline"
+          for (pgm in input$FVSprograms)
+          {pgmd=paste0(pgmurl,"/", pgm,".zip")
+          rtn <- download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip"))
+          # browser()
+          unzip(paste0(fvsBinDir,"/", pgm,".zip"), exdir=paste0(fvsBinDir))
+          if (file.exists(paste0(fvsBinDir,"/", pgm,".dll"))) i = i+1
+          }
+          session$sendCustomMessage(type="infomessage",
+                                    message=paste0(i," of ",length(input$FVSprograms),
+                                                   " selected FVS programs refreshed."))            
+          if (i) session$reload()
+        }else{
+          i = 0
+          for (pgm in input$FVSprograms)
+          {
+            rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin")
+            if (rtn) i = i+1
+          }
+          session$sendCustomMessage(type="infomessage",
+                                    message=paste0(i," of ",length(input$FVSprograms),
+                                                   " selected FVS programs refreshed."))            
+          if (i) session$reload()}
       } 
     })
   })
