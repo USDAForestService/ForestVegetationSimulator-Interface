@@ -105,6 +105,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
       write(file="projectId.txt",prjid)
     }
+    quit(save="no")
   })
   
   initTableGraphTools <- function ()
