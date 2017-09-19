@@ -1,5 +1,6 @@
 library(shiny)
 library(rhandsontable)
+library(colourpicker)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
@@ -334,8 +335,9 @@ shinyUI(fixedPage(
               column(width=3,
     	          myInlineTextInput("height", "Height (in)", value = 3, size=5)), 
     	        column(width=6,
-    	          myRadioGroup("res","Resolution (ppi)", 
-                  c("144","288","576")))),
+    	          actionButton("moreControls","More controls"),
+    	          actionButton("hideControls","Hide controls"))),
+            fixedRow(uiOutput("graphControls")),
             fixedRow(column(width=12,plotOutput("outplot")))
           ),
           tabPanel("Reports",

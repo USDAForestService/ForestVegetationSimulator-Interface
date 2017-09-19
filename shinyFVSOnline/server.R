@@ -4,6 +4,7 @@ library(ggplot2)
 library(parallel)
 library(RSQLite)
 library(plyr)
+library(colourpicker)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
@@ -26,7 +27,8 @@ shinyServer(function(input, output, session) {
              source("localSettings.R",local=TRUE) else if
        (file.exists("../../FVSOnline/settings.R")) 
              source("../../FVSOnline/settings.R",local=TRUE)
-    
+    # cbbPalette is used in the graphics
+    cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
     load("prms.RData") 
     globals <- mkglobals(saveOnExit=TRUE)
     dbGlb <- new.env()
@@ -103,7 +105,6 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
       write(file="projectId.txt",prjid)
     }
-    if (!interactive()) q(save="no")
   })
   
   initTableGraphTools <- function ()
@@ -760,7 +761,7 @@ cat ("browsevars\n")
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
       cont = union("Year",setdiff(input$browsevars,cats))
-      
+    
       spiv  = if (length(input$pivVar) && 
                   input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
@@ -773,7 +774,7 @@ cat ("browsevars\n")
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
                       selected=sdisp)
-      if (isolate(input$plotType) == "line" || isolate(input$plotType) == "scatter")
+      if (input$plotType == "line" || input$plotType == "scatter")
       {
         sel = if ("Year" %in% cont) "Year" else 
                 if (length(cont) > 0) cont[1] else NULL
@@ -789,7 +790,7 @@ cat ("browsevars\n")
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
       }
       sel = setdiff(cont,c(sel,"Year"))
-      sel = if ("DG" %in% cont && isolate(input$plotType) == "scatter" ) "DG" else sel[1]
+      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else sel[1]
       updateSelectInput(session, "yaxis",choices=as.list(cont),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
@@ -825,7 +826,17 @@ cat ("renderPlot\n")
       }
       list(src = outfile)
     }
-
+    autorecycle <- function(a,n)
+    {
+      if (length(a)<n) 
+      {
+        add = n%/%length(a)
+        if (add) a = rep(a,add)
+        add = n%%length(a)
+        if (add) a = c(a,a[1:add])
+      }
+      a[1:n]
+    } 
     if (input$leftPan == "Load"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
 
@@ -910,12 +921,13 @@ cat ("vfacet test hit\n")
     rownames(nd)=1:nrow(nd)
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
-    if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet"      
+    if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet" 
+    legendTitle = "Legend"
     if (!is.null(pb) && !is.null(nd$Legend)) 
     {
-      alv = nlevels(as.factor(nd$Legend))
-      nd$Legend = if (alv == 1) paste(pb,nd[,pb],sep=":") else
-                                paste(nd$Legend,pb,nd[,pb],sep=":")
+      legendTitle = pb
+      nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
+        nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }      
     if (!is.null(nd$vfacet)) nd$vfacet = as.factor(nd$vfacet)
     if (!is.null(nd$hfacet)) nd$hfacet = as.factor(nd$hfacet)
@@ -942,48 +954,69 @@ cat ("vfacet test hit\n")
             theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
-    if (flip) p = p + coord_flip() 
-    colors = if (input$colBW == "B&W") rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
-      ggplotColours(n=nlevels(nd$Legend)+1)
-    if (!is.null(colors)) p = p + scale_colour_manual(values=colors)
-    if (nlevels(nd$Legend)>6) p = p +
-      scale_shape_manual(values=1:nlevels(nd$Legend))
-    alpha = approxfun(c(50,100,1000),c(1,.7,.4),rule=2)(nrow(nd))    
+    if (flip) p = p + coord_flip()
+    colors = if (input$colBW == "B&W") 
+      unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else #  rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
+        {
+          if (is.null(input$color1)) cbbPalette else
+             c(input$color1,input$color2,input$color3,input$color4,input$color5,
+               input$color6)
+        }
+    colors = autorecycle(colors,nlevels(nd$Legend))
+    alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
+cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
+    p = p + scale_colour_manual(values=colors)
+    p = p + scale_fill_manual(values=colors)
+    p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
+    p = p + scale_linetype_manual(values=1:nlevels(nd$Legend))
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    plt = switch(input$plotType,
+    p = p + switch(input$plotType,
       line    = if (input$colBW == "B&W") 
-        geom_line  (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
-        geom_line  (aes(x=X,y=Y,color=Legend),alpha=.8),
-      scatter = if (input$colBW == "B&W") 
-        geom_point (aes(x=X,y=Y,shape=Legend,color=Legend),size=size) else
-        geom_point (aes(x=X,y=Y,shape=Legend,color=Legend),
-                          alpha=alpha,size=size),
-      bar     = if (input$colBW == "B&W")
-        geom_bar (aes(x=X,y=Y,color=Legend,fill=Legend),
+        geom_line  (aes(x=X,y=Y,linetype=Legend),alpha=alpha) else
+        geom_line  (aes(x=X,y=Y,color=Legend),alpha=alpha),
+      scatter = 
+        geom_point (aes(x=X,y=Y,color=Legend,shape=Legend),size=size,alpha=alpha),
+      bar     = if (input$colBW == "B&W") 
+        geom_bar (aes(x=X,y=Y,fill=Legend),color="black",size=.2,alpha=alpha,
            position="dodge",stat="identity") else
-        geom_bar (aes(x=X,y=Y,color=Legend,fill=Legend),alpha=.8,
+        geom_bar (aes(x=X,y=Y,fill=Legend),color="transparent",size=.1,alpha=alpha,
            position="dodge",stat="identity"),
       box     = if (input$colBW == "B&W") 
-        geom_boxplot (aes(x=X,y=Y,color=Legend,linetype=Legend)) else
-        geom_boxplot (aes(x=X,y=Y,color=Legend),alpha=alpha)
-      )  
+        geom_boxplot (aes(x=X,y=Y,linetype=Legend),color="black",size=.6,alpha=alpha) else     
+        geom_boxplot (aes(x=X,y=Y,color=Legend),linetype=1,size=.6,alpha=alpha) 
+      )
     if (input$colBW == "B&W" && input$plotType == "bar") 
-      p = p + scale_fill_grey(start=.15, end=.85)
-    p = p + theme(text=element_text(size=9))
-    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>9) p = p + 
+        p = p + scale_fill_grey(start=.15, end=.85) 
+    p = p + theme(text=element_text(size=9),plot.title = element_text(hjust = 0.5))
+    p = p + switch(input$plotType,
+      line    = if (input$colBW == "B&W") 
+        guides(linetype = guide_legend(override.aes = list(alpha=1,size=.8),
+               title = legendTitle)) else
+        guides(colour = guide_legend(override.aes = list(alpha=1,size=.8),
+               title = legendTitle)),
+      scatter = 
+        guides(shape=guide_legend(override.aes = list(color=colors,alpha=1,size=1),
+               title = legendTitle),color="none"),
+      bar     = 
+        guides(fill=guide_legend(override.aes = list(alpha=.9,size=.6),
+               title = legendTitle, keywidth = .8, keyheight = .8)),
+      box     = if (input$colBW == "B&W") 
+        guides(linetype=guide_legend(override.aes = list(alpha=.8,size=.5),
+               title = legendTitle, keywidth = .8, keyheight = .8)) else 
+        guides(color=guide_legend(override.aes = list(alpha=.8,size=.5),
+               title = legendTitle, keywidth = .8, keyheight = .8)))               
+    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>15) p = p + 
       theme(legend.position="none") 
-    if (input$colBW == "color") p = p + scale_colour_brewer(palette = "Set1")
     outfile = "plot.png" 
-    fvsOutData$plotSpecs$res    = as.numeric(input$res)
+    fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
-    fvsOutData$plotSpecs$height = as.numeric(input$height)
-        
+    fvsOutData$plotSpecs$height = as.numeric(input$height)        
     png(outfile, width=fvsOutData$plotSpecs$width, 
                  height=fvsOutData$plotSpecs$height, units="in", 
                  res=fvsOutData$plotSpecs$res)              
-    print(p + plt)
+    print(p)
     dev.off()
     list(src = outfile)            
   }, deleteFile = FALSE)
@@ -3815,9 +3848,9 @@ cat ("Projects hit\n")
       if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
       if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
       globals$saveOnExit = FALSE
-      session$reload()
+      session$reload()                         
     })
-  })
+  })    
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
@@ -3833,8 +3866,29 @@ cat ("Projects hit\n")
       }
     })
   })
-    
   
+  observe(if (input$moreControls > 0)
+  { 
+cat ("moreControls hit\n")
+    output$graphControls <- renderUI(list(
+      column(width=2,
+        colourInput("color1", "Color 1", value = cbbPalette[1]),
+        colourInput("color2", "Color 2", value = cbbPalette[2])),
+      column(width=2,
+        colourInput("color3", "Color 3", value = cbbPalette[3]),
+        colourInput("color4", "Color 4", value = cbbPalette[4])),
+      column(width=2,
+        colourInput("color5", "Color 5", value = cbbPalette[5]),
+        colourInput("color6", "Color 6", value = cbbPalette[6])),
+      column(width=6, 
+  	    myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
+        sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))))
+  }) 
+  observe(if (input$hideControls > 0)
+  {
+    output$graphControls <- renderUI(NULL)
+  })
+                                      
   saveRun <- function() 
   {
     isolate({
