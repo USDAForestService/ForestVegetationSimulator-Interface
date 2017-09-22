@@ -40,11 +40,12 @@ Shiny.addCustomMessageHandler("closeWindow",
 );
 
 // this function load causes a shiny variable "signalClosing" to be set to 1 if the
-// browser is being closed for any reason. 
+// browser is being closed for any reason. NB: return null will suppress the "do you
+// really want to exit" dialog automatically created by the browser.
 window.onbeforeunload = function(e) 
 {
   Shiny.onInputChange("signalClosing", 1);
-  return true;
+  return null;
 };
 
 
