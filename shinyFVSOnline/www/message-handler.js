@@ -39,7 +39,7 @@ Shiny.addCustomMessageHandler("closeWindow",
   function (dummy) { window.close(); }
 );
 
-// this function load causes a shiny varialbe "signalClosing" to be set to 1 if the
+// this function load causes a shiny variable "signalClosing" to be set to 1 if the
 // browser is being closed for any reason. 
 window.onbeforeunload = function(e) 
 {
