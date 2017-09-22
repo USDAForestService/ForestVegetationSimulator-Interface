@@ -26,8 +26,8 @@ mkfvsRun <<- setRefClass("fvsRun",
     defMgmtID = "character", autoOut = "list", runScript = "character" ,
     uiCustomRunOps = "list", startDisp = "character"))
 
-if (exists("mkglobals")) rm(mkglobals)
-mkglobals <<- setRefClass("globals", 
+if (exists("mkGlobals")) rm(mkGlobals)
+mkGlobals <<- setRefClass("globals", 
   fields = list(activeFVS = "list", activeVariants = "character", 
     activeExtens = "character", schedBoxYrLastUsed = "character",
     extnsel = "character", kwdsel = "list", mgmtsel = "list",
@@ -38,7 +38,8 @@ mkglobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list", fvsRun = "fvsRun", foundStand="integer"))
+    customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
+    reloadAppIsSet = "numeric", hostname= "character"))
 
 loadVarData <- function(globals,prms,dbIcon)
 {

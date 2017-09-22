@@ -33,6 +33,22 @@ Shiny.addCustomMessageHandler("getStart",
   }
 );
 
+// This will close the window, it causes onSessionEnded to be called as well.
+// add: session$sendCustomMessage(type = "closeWindow"," ") anywhere in the server code.
+Shiny.addCustomMessageHandler("closeWindow",
+  function (dummy) { window.close(); }
+);
+
+// this function load causes a shiny varialbe "signalClosing" to be set to 1 if the
+// browser is being closed for any reason. 
+window.onbeforeunload = function(e) 
+{
+  Shiny.onInputChange("signalClosing", 1);
+  return true;
+};
+
+
+
 })();
 
 

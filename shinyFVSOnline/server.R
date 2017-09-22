@@ -13,6 +13,8 @@ shinyServer(function(input, output, session) {
 
   if (!interactive()) sink("FVSOnline.log")
 
+  cat ("FVSOnline/OnLocal interface server start.\n")
+       
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -30,7 +32,7 @@ shinyServer(function(input, output, session) {
     # cbbPalette is used in the graphics
     cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
     load("prms.RData") 
-    globals <- mkglobals(saveOnExit=TRUE)
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
@@ -91,22 +93,47 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     setProgress(value = NULL)          
   }, min=1, max=6)
   
+  observe({
+    cat ("protocol: ", session$clientData$url_protocol, "\n",
+         "hostname: ", session$clientData$url_hostname, "\n",
+         "pathname: ", session$clientData$url_pathname, "\n",
+         "port: ",     session$clientData$url_port,     "\n",
+         "search: ",   session$clientData$url_search,   "\n")
+    globals$hostname = session$clientData$url_hostname
+
+    cat("signalClosing=",input$signalClosing,"\n")
+    if (!is.null(input$signalClosing) && input$signalClosing==1 &&
+        globals$reloadAppIsSet == 0 && globals$hostname == "127.0.0.1") 
+    {
+cat ("sending closeWindow\n")
+      session$sendCustomMessage(type = "closeWindow"," ")
+    }
+  })
+  
   session$onSessionEnded(function ()
-  {                                                
-cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,"\n")
+  { 
+cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
+     " interactive()=",interactive(),"\n",
+     "globals$reloadAppIsSet=",globals$reloadAppIsSet,
+     " globals$hostname=",globals$hostname,"\n")
     if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
     if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
-    if (!globals$saveOnExit) return()
-    saveRun()
-    FVS_Runs = globals$FVS_Runs
-    save (file="FVS_Runs.RData",FVS_Runs)
-    if (file.exists("projectId.txt"))
+    if (globals$saveOnExit) 
     {
-      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-      write(file="projectId.txt",prjid)
+      saveRun()
+      FVS_Runs = globals$FVS_Runs
+      save (file="FVS_Runs.RData",FVS_Runs)
+      if (file.exists("projectId.txt"))
+      {
+        prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+        write(file="projectId.txt",prjid)
+      }
     }
-    # if running in interactive mode, then keep R running, otherwise close.
-    if (!interactive()) quit(save="no")
+    if (globals$reloadAppIsSet == 0 && globals$hostname == "127.0.0.1")
+    {
+      stopApp()
+    } 
+    globals$reloadAppIsSet == 0
   })
   
   initTableGraphTools <- function ()
@@ -2727,24 +2754,28 @@ cat ("avalFVSp=",avalFVSp,"\n")
         session$sendCustomMessage(type="infomessage",
                                   message="FVS programs can not be refreshed on this system.")
         rm (fvsBinDir)
-      } else
-      {
+      } else {
         shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-        if(isLocal()){
+        if(isLocal())
+        {
           i = 0
           pgmurl <- "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline"
           for (pgm in input$FVSprograms)
-          {pgmd=paste0(pgmurl,"/", pgm,".zip")
-          rtn <- download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip"))
-          # browser()
-          unzip(paste0(fvsBinDir,"/", pgm,".zip"), exdir=paste0(fvsBinDir))
-          if (file.exists(paste0(fvsBinDir,"/", pgm,".dll"))) i = i+1
+          {
+            pgmd=paste0(pgmurl,"/", pgm,".zip")
+            rtn <- download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip"))
+            unzip(paste0(fvsBinDir,"/", pgm,".zip"), exdir=paste0(fvsBinDir))
+            if (file.exists(paste0(fvsBinDir,"/", pgm,".dll"))) i = i+1
           }
           session$sendCustomMessage(type="infomessage",
                                     message=paste0(i," of ",length(input$FVSprograms),
                                                    " selected FVS programs refreshed."))            
-          if (i) session$reload()
-        }else{
+          if (i) 
+          {
+            globals$reloadAppIsSet=1
+            session$reload()
+          }
+        } else {
           i = 0
           for (pgm in input$FVSprograms)
           {
@@ -2754,7 +2785,12 @@ cat ("avalFVSp=",avalFVSp,"\n")
           session$sendCustomMessage(type="infomessage",
                                     message=paste0(i," of ",length(input$FVSprograms),
                                                    " selected FVS programs refreshed."))            
-          if (i) session$reload()}
+          if (i) 
+          {
+            globals$reloadAppIsSet=1
+            session$reload()
+          }
+        }
       } 
     })
   })
@@ -2776,8 +2812,8 @@ cat ("avalFVSp=",avalFVSp,"\n")
     if (input$deleteRunDlgBtn > 0)
     {
       isolate({
-cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid," runSel=",input$runSel,
- "lenRuns=",length(globals$FVS_Runs),"\n")
+cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
+     " runSel=",input$runSel,"lenRuns=",length(globals$FVS_Runs),"\n")
         globals$FVS_Runs[[globals$fvsRun$uuid]] = NULL
         killIfRunning(globals$fvsRun$uuid)
         removeFVSRunFiles(globals$fvsRun$uuid,all=TRUE)
@@ -2793,6 +2829,7 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid," runSel=",i
           write(file="projectId.txt",prjid)
         } 
         globals$saveOnExit = FALSE
+        globals$reloadAppIsSet=1
         session$reload()       
       })
     }
@@ -2817,6 +2854,7 @@ cat ("delete all runs\n")
       unlink("FVS_Runs.RData")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       globals$saveOnExit = FALSE
+      globals$reloadAppIsSet=1
       session$reload()
     })  
   })
@@ -2841,6 +2879,7 @@ cat ("interfaceRefreshDlgBtn\n")
     # shiny code, etc
     needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ")  
     system (paste0("cp -R ",needed," ."))
+    globals$reloadAppIsSet=1
     session$reload()
   }) 
 
@@ -2919,6 +2958,7 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
         if (file.exists(fvsWorkBackup)) 
         {
           unzip (fvsWorkBackup)
+          globals$reloadAppIsSet=1
           session$reload()
         }
       })
@@ -3850,12 +3890,14 @@ cat ("Projects hit\n")
       if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
       if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
       globals$saveOnExit = FALSE
-      session$reload()                         
+      globals$reloadAppIsSet=1
+      session$reload()                        
     })
   })    
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
+cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
@@ -3864,6 +3906,7 @@ cat ("Projects hit\n")
         if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
         setwd(input$PrjSelect)
         globals$saveOnExit = FALSE
+        globals$reloadAppIsSet=1
         session$reload()
       }
     })
