@@ -2111,12 +2111,13 @@ cat ("kwPname=",kwPname,"\n")
 cat ("Save, kwds=",kwds,"\n")      
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
-cat ("class(input$addCategories)=",class(input$addCategories)," and=",input$addCategories,"\n")
+cat ("class(input$addCategories)=",class(input$addCategories)," and=",
+     input$addCategories," reopn=",reopn,"\n")
         ex = if (input$cmdSet != "Keywords") "base" else
                unlist(strsplit(input$addCategories,":",fixed=TRUE))[1] 
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=kwds,exten=ex,
              variant=globals$activeVariants[1],kwdName=kwPname,
-             title=input$cmdTitle,reopn=reopn)
+             title=input$cmdTitle,reopn=if (is.null(reopn)) character(0) else reopn)
         # find the attachment point. 
         sel = if (length(globals$schedBoxPkey) &&
               input$schedbox == 3) input$condList else input$simCont[[1]]
