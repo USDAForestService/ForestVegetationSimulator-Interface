@@ -1,6 +1,7 @@
 library(shiny)
 library(rhandsontable)
 library(colourpicker)
+library(rgl)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
@@ -157,7 +158,8 @@ shinyUI(fixedPage(
                     checkboxGroupInput("autoOut",
                       "Database output (summaries are always produced)",
                       c("Treelists"="autoTreelists","Compute"="autoCompute",
-                        "Carbon"="autoCarbon","Fire"="autoFire","Deadwood"="autoDead"),
+                        "Carbon"="autoCarbon","Fire"="autoFire",
+                        "Deadwood"="autoDead","SVS"="autoSVS"),
                       inline=TRUE),
                     customRunElements
                   )
@@ -348,6 +350,22 @@ shinyUI(fixedPage(
             downloadButton("rpBldDwnLd","Build and download custom report")
         ) )       
       ) ) ),
+      tabPanel("SVS3d(alpha)",
+        h6(),
+        fixedRow(
+        column(width=6,offset=0,
+          selectInput(inputId="SVSRunList1",label="Select Run", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+          selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+          rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
+        column(width=6,offset=0,
+          selectInput(inputId="SVSRunList2",label="Select Run", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+          selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+          rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
+      )),
       tabPanel("Input Database",
         tags$script('
            Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   

@@ -245,7 +245,8 @@ cat("writeKeyFile, num stds=",length(stds),
        "autoCompute"=cat(autoCompute,file=fc),
        "autoCarbon"=cat(autoCarbon,file=fc),
        "autoFire"=cat(autoFire,file=fc),
-       "autoDead"=cat(autoDead,file=fc))
+       "autoDead"=cat(autoDead,file=fc),
+       "autoSVS"=cat(autoSVS,file=fc))
     }
     lastExt = "base"
     lastCnd = NULL

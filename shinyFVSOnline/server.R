@@ -5,9 +5,11 @@ library(parallel)
 library(RSQLite)
 library(plyr)
 library(colourpicker)
+library(rgl)
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE) 
+options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
+        rgl.inShiny=TRUE) 
 
 shinyServer(function(input, output, session) {
 
@@ -2708,6 +2710,133 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       })
     }
   })
+  
+  observe({
+    if (input$topPan == "SVS3d(alpha)")
+    {
+cat ("SVS3d hit\n")
+      allRuns = names(globals$FVS_Runs)
+      names(allRuns) = globals$FVS_Runs
+      runChoices = list()
+      for (has in names(allRuns))
+      {
+        fn = paste0(allRuns[[has]],"_index.svs")
+        if (file.exists(fn)) runChoices[[has]] = allRuns[[has]]
+      }
+      updateSelectInput(session=session, inputId="SVSRunList1", 
+        choices=runChoices,selected=0)
+      updateSelectInput(session=session, inputId="SVSRunList2", 
+        choices=runChoices,selected=0)   
+      updateSelectInput(session=session, inputId="SVSImgList1", choices=NULL) 
+      updateSelectInput(session=session, inputId="SVSImgList2", choices=NULL) 
+    }
+   })
+  observe({
+    if (length(input$SVSRunList1))
+    {
+cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
+      fn = paste0(input$SVSRunList1,"_index.svs")
+      if (!file.exists(fn)) return()
+      index = read.table(file=fn,as.is=TRUE)
+      choices = as.list(index[,2])
+      names(choices) = index[,1]
+      updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
+                        selected = 0)
+    }
+  })
+  observe({
+    if (length(input$SVSRunList2))
+    {
+cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
+      fn = paste0(input$SVSRunList2,"_index.svs")
+      if (!file.exists(fn)) return()
+      index = read.table(file=fn,as.is=TRUE)
+      choices = as.list(index[,2])
+      names(choices) = index[,1]
+      updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
+                        selected = 0)
+    }
+  })
+  
+  renderSVSImage <- function (id,imgfile)
+  {    
+    for (dd in rgl.dev.list()) try(rgl.close())
+    open3d()
+    rgl.viewpoint( theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
+
+    source("svsTree.R",local=TRUE)
+    load("treeforms.RData")    
+    svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
+    treeform = tolower(unlist(strsplit(unlist(strsplit(svs[2],
+               split=" ",fixed=TRUE))[2],split=".",fixed=TRUE))[1])
+    treeform = treeforms[[treeform]]
+    rcirc = grep ("^#CIRCLE",svs)
+    if (length(rcirc)) 
+    {
+      args = as.numeric(scan(text=svs[rcirc],what="character",quiet=TRUE)[2:4])
+      circle3D(x0=args[1],y0=args[2],r=args[3],alpha=0.5,)
+    } else {}  # what if it is not a circle???????                                                                        
+    rpols = grep("^RANGEPOLE",svs)
+    if (length(rpols))
+    {
+      poles = c()
+      for (line in rpols)
+      {
+        pole = as.numeric(scan(text=svs[line],what="character",quiet=TRUE)[c(21,22,7)])
+        poles = c(poles,c(pole[1:2],0,pole))
+      } 
+      poles = matrix(poles,ncol=3,byrow=TRUE)
+      segments3d(poles,col="red",lwd=4,add=TRUE)
+    }
+    drawnTrees = list()
+    calls = 1
+    progress <- shiny::Progress$new(session,min=1,max=length(svs)+3)
+    trees = list()
+    drawnTrees = list()
+    for (line in svs)
+    {
+      calls = calls+1
+      progress$set(message = "Phase 1: Generate trees",value = calls)
+      c1 = substr(line,1,1) 
+      if (c1 == "#" || c1 == ";") next                                                      
+      tree = scan(text=line,what="character",quiet=TRUE)
+      sp = tree[1]                                                                            
+      if (sp == "RANGEPOLE") next
+      tree=tree[-1]
+      tree = as.numeric(tree)
+      names(tree) = c("TrNum","TrCl","CrCl","Stus","DBH","Ht","Lang",
+                      "Fang","Edia","Crd1","Cr1","CrD2","Cr2","CrD3","Cr3",
+                      "CrD4","Cr4","Ex","Mk","Xloc","Yloc","Z")
+      tree = as.list(tree[c(2,3,4,5,6,7,8,10,11,20,21)])
+      tree$sp = sp
+      drawn = svsTree(tree,treeform) 
+      if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
+    }
+    progress$set(message = "Phase 2: Display trees",value = length(svs)+1) 
+    displayTrees(drawnTrees)
+    progress$set(message = "Phase 3: Sending image to browser",value = length(svs)+2) 
+    output[[id]] <- renderRglwidget(rglwidget(scene3d()))
+    Sys.sleep(1)
+    progress$close()    
+  }
+
+  observe({
+    if (length(input$SVSImgList1))
+    {
+cat ("SVS3d input$SVSImgList1=",input$SVSImgList1,"\n") 
+      if (!file.exists(input$SVSImgList1)) return()
+      renderSVSImage('SVSImg1',input$SVSImgList1)
+    }
+  })
+  observe({
+    if (length(input$SVSImgList2))
+    {
+cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n") 
+      if (!file.exists(input$SVSImgList2)) return()
+      renderSVSImage('SVSImg2',input$SVSImgList2)
+    }
+  })
+  
 
   ## Tools, related to FVSRefresh
   observe({    
@@ -3849,9 +3978,7 @@ cat ("Projects hit\n")
     }
   })
 
-  
-  
-  
+ 
   ## PrjNew
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
@@ -3938,10 +4065,9 @@ cat ("moreControls hit\n")
   saveRun <- function() 
   {
     isolate({
-cat ("in saveRun\n") 
-      if (input$title == "")
+      if (input$title == "") 
       {
-        if (globals$fvsRun$title == "") globals$fvsRun$title = paste("Run",length(globals$FVS_Runs))
+        if (length(globals$fvsRun$title) == 0) globals$fvsRun$title = paste("Run",length(globals$FVS_Runs))
         updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       } 
       globals$fvsRun$title = input$title

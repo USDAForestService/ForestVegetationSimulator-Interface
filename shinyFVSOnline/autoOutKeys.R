@@ -71,3 +71,6 @@ DWDCvOut       2
 End
 "
 
+autoSVS="
+SVS                2                   2         1        15
+"
