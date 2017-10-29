@@ -2727,8 +2727,13 @@ cat ("SVS3d hit\n")
         choices=runChoices,selected=0)
       updateSelectInput(session=session, inputId="SVSRunList2", 
         choices=runChoices,selected=0)   
-      updateSelectInput(session=session, inputId="SVSImgList1", choices=NULL) 
-      updateSelectInput(session=session, inputId="SVSImgList2", choices=NULL) 
+      updateSelectInput(session=session, inputId="SVSImgList1", choices=list(),
+        selected=0) 
+      updateSelectInput(session=session, inputId="SVSImgList2", choices=list(),
+        selected=0)
+      output$SVSImg1 = renderRglwidget(NULL)
+      output$SVSImg2 = renderRglwidget(NULL)
+
     }
    })
   observe({
@@ -2742,6 +2747,7 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
       names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
+      output$SVSImg1 = renderRglwidget(NULL)
     }
   })
   observe({
@@ -2755,6 +2761,7 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
+      output$SVSImg2 = renderRglwidget(NULL)
     }
   })
   
