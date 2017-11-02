@@ -1,18 +1,19 @@
 <h4><a name="contents"></a>Contents</h4>
 <ul>
 	<li><p style="margin-bottom: 0in"><a href="#intro">Introduction</a>
-		</p>
+	</p>
 	<li><p style="margin-bottom: 0in"><a href="#topmenu">Top menu
 	items</a> 
 	</p>
 	<ul>
 		<li><p style="margin-bottom: 0in"><a href="#tmruns">Runs</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmout">Process
-		Outputs</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmout">Process Outputs</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmsvs">SVS3d</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmin">Input Database</a>
-				</p>
+		</p>
 		<li><p><a href="#tmtool">Tools</a> 
 		</p>
 	</ul>
@@ -36,10 +37,14 @@ software can also be installed on personal computer or in a
 <a href="https://www.citrix.com/" target="_blank">Citrix</a>
 (or similar) system. The interaction is still through a web browser,
 but the software, inputs and outputs, are all stored on the "personal computer".
-This configuration is called FVSOnlocal. For more information on the
+This configuration is called FVSOnlocal. The system was built using 
+<a href="https://www.r-project.org/" target="_blank"><b>R</b></a>, <a 
+href="http://shiny.rstudio.com/" target="_blank"><b>Shiny</b></a>,  
+<a href="http://www.sqlite.org/" target="_blank"><b>SQLite3</b></a>, and many other
+R packages. For more information on the
 software and supporting software requirements see the 
 <a href="https://sourceforge.net/p/open-fvs/wiki/FVSOnline/" target="_blank">
-wiki on FVSOnline</a>.</p>
+wiki about FVSOnline software</a>.</p>
 <p><i>Hints</i> for first time users:</p>
 <ul>
 	<li><p style="margin-bottom: 0in">Use the default input database
@@ -66,6 +71,8 @@ wiki on FVSOnline</a>.</p>
 	tables, graphs and reports using the outputs stored in the output
 	database. 
 	</p>
+	<li><p style="margin-bottom: 0in"><b>SVS3d: </b>Display 3d images of stands.
+	</p>
 	<li><p style="margin-bottom: 0in"><b>Input Database: </b>Load (or
 	edit) the input database. 
 	</p>
@@ -82,12 +89,10 @@ right. The left side contains the <b>Selected
 run</b>
 list and buttons to create new runs, reload a selected run, save it, duplicate it 
 (more on that later), or delete it. The title of the selected run is displayed in a text box
-(you can change it to whatever you wish) and the run’s <b>Contents</b>
+(you can change it to whatever you wish) and the run <b>Contents</b>
 are listed below. There are buttons and other tools below the
-<b>Contents</b>
-that are <a href="#leftSideRun">described below</a>.</p>
-<p>The
-right side contains a secondary menu, used to select
+<b>Contents</b> that are <a href="#leftSideRun">described below</a>.</p>
+<p>The right side contains a secondary menu, used to select
 <b>Stands</b> and add <b>Components</b>. Stands are the simulation
 units defined in the 
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
@@ -260,6 +265,17 @@ joined to tables in the output. A <i>query</i> can
 actually be several queries each separated by a semicolon. They can
 be stored and recovered for later use. Lastly, comments can be included in 
 the query by surrounding it with /*  */ character sequences.
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="tmsvs"></a>SVS3d</h4>
+<p>You can display two 3d images of stands if the output that support 
+<a href="http://forsys.cfr.washington.edu/svs.html" target="_blank">
+Stand Visualization System</a> has been created (easily done by checking
+SVS under the run tab). Pick a run, and within the Run, pick the stand and 
+time period you wish to display. It takes some time for the images to be created 
+and transferred to your browser. Once the transfer is completed, you can click 
+on the image and rotate it, flip it, and zoom in and out using your mouse.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
