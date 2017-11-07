@@ -43,6 +43,9 @@ shinyServer(function(input, output, session) {
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()
+    if (.Platform$OS.type == "windows"){
+    Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
+    sqlite3 = Sys.getenv("sqlite3")}
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
@@ -1898,19 +1901,22 @@ cat ("function name=",globals$winBuildFunction,"\n")
   observe({  
     if (length(input$schedbox) == 0) return()
 cat("input$schedbox=",input$schedbox,"\n")
-    if (input$schedbox == 1) 
-    {
+    if (input$schedbox == 1){
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Year or cycle number: ", 
         value = globals$schedBoxYrLastUsed) 
       output$conditions <- renderUI(NULL)
-    } else if (input$schedbox == 2) 
+      if(length(globals$toggleind)){
+        globals$currentCndPkey <- "0"
+      }
+    }else if (input$schedbox == 2) 
     {
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Number of years after condition is found true: ", value = "0") 
       cndlist = unlist(prms$conditions_list)
       names(cndlist) = unlist(lapply(prms$conditions_list,attr,"pstring"))
       cndlist = as.list(cndlist)
+      globals$toggleind <- "1"
 cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
       if (length(globals$currentCmdPkey))
       {
@@ -1939,6 +1945,7 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
     # schedule by condition condition selection
     if (length(input$schedbox) == 0) return()
     if (length(input$condList) == 0) return()
+    if (length(globals$toggleind) && input$schedbox == 1)return()
 cat("make condElts, input$condList=",input$condList,"\n")    
     output$condElts <- renderUI(if (input$condList == "none") NULL else
       {
@@ -3275,7 +3282,12 @@ cat ("cmd=",cmd,"\n")
 cat ("cmd=",cmd,"\n")       
       system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
-      system (paste0 ("sqlite3 ","FVS_Data.db"," < schema"))
+      cmd = paste0("sqlite3 ","FVS_Data.db < schema")
+cat ("cmd=",cmd,"\n")
+      if (.Platform$OS.type == "windows")
+        shell(cmd) 
+      else
+        system(cmd)
       fix = grep ("CREATE TABLE",schema)
       schema = sub ("CREATE TABLE ","",schema[fix])
       schema = sub (" [(]",".csv",schema)
@@ -3290,7 +3302,10 @@ cat ("cmd=",cmd,"\n")
         i = i+1;
         cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
-        system (cmd)
+      if (.Platform$OS.type == "windows")
+        shell(cmd) 
+      else
+        system(cmd)
       }
       progress$set(message = "Copy tables", value = i+1) 
       lapply(schema,unlink) 
