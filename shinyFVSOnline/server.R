@@ -6,6 +6,8 @@ library(RSQLite)
 library(plyr)
 library(colourpicker)
 library(rgl)
+library(leaflet)
+# loaded when Maps are used: library(rgdal)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
@@ -26,7 +28,8 @@ shinyServer(function(input, output, session) {
     source("componentWins.R",local=TRUE)
     source("mkInputElements.R",local=TRUE)
     source("editDataUtilities.R",local=TRUE)
-    
+    myobjExist <- function(name,envir) !is.na(match(name,ls(envir=envir)))
+
     if (file.exists("localSettings.R")) 
              source("localSettings.R",local=TRUE) else if
        (file.exists("../../FVSOnline/settings.R")) 
@@ -43,9 +46,11 @@ shinyServer(function(input, output, session) {
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()
-    if (.Platform$OS.type == "windows"){
-    Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
-    sqlite3 = Sys.getenv("sqlite3")}
+    if (.Platform$OS.type == "windows")
+    {
+      Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
+      sqlite3 = Sys.getenv("sqlite3")
+    }
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
@@ -121,8 +126,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
-    if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
-    if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
+    if (myobjExist("dbOcon",dbGlb)) try(dbDisconnect(dbGlb$dbOcon))
+    if (myobjExist("dbIcon",dbGlb)) try(dbDisconnect(dbGlb$dbIcon))
     if (globals$saveOnExit) 
     {
       saveRun()
@@ -175,9 +180,9 @@ cat ("getwd= ",getwd(),"\n")
   
   ## Load
   observe({
-    if (input$topPan == "Process Outputs" && input$leftPan == "Load")
+    if (input$topPan == "Output Tables" && input$leftPan == "Load")
     {
-cat ("Process Outputs & Load\n")
+cat ("Output Tables & Load\n")
       initTableGraphTools()
       tbs <- dbListTables(dbGlb$dbOcon)
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
@@ -1901,15 +1906,14 @@ cat ("function name=",globals$winBuildFunction,"\n")
   observe({  
     if (length(input$schedbox) == 0) return()
 cat("input$schedbox=",input$schedbox,"\n")
-    if (input$schedbox == 1){
+    if (input$schedbox == 1) 
+    {
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Year or cycle number: ", 
         value = globals$schedBoxYrLastUsed) 
       output$conditions <- renderUI(NULL)
-      if(length(globals$toggleind)){
-        globals$currentCndPkey <- "0"
-      }
-    }else if (input$schedbox == 2) 
+      if (length(globals$toggleind)) globals$currentCndPkey <- "0"
+    } else if (input$schedbox == 2) 
     {
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Number of years after condition is found true: ", value = "0") 
@@ -2850,7 +2854,156 @@ cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n")
       renderSVSImage('SVSImg2',input$SVSImgList2)
     }
   })
-  
+ 
+  observe({
+    if (input$topPan == "Maps(alpha)")
+    {
+cat ("Maps hit, load rgdal\n")
+      library(rgdal)
+      allRuns = names(globals$FVS_Runs)
+      names(allRuns) = globals$FVS_Runs
+      updateSelectInput(session=session, inputId="mapDsRunList", 
+        choices=allRuns,selected=0)
+      updateSelectInput(session=session, inputId="mapDsTable", choices=list(),
+        selected=0)   
+      updateSelectInput(session=session, inputId="mapDsVar", choices=list(),
+        selected=0) 
+      updateSelectInput(session=session, inputId="MapYear", choices=list(),
+        selected=0)
+      output$leafletMap = renderLeaflet(NULL)
+      output$leafletMessage=renderText(NULL)
+    }
+   })
+  observe({
+    if (length(input$mapDsRunList))
+    {
+cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
+      cases = dbGetQuery(dbGlb$dbOcon,
+          paste0("select CaseID from FVS_Cases where KeywordFile = '",
+                 input$mapDsRunList,"'"))
+      dbSendQuery(dbGlb$dbOcon,"drop table if exists m.mapsCases")
+      dbWriteTable(dbGlb$dbOcon,DBI::SQL("m.mapsCases"),data.frame(cases))
+      tabs = setdiff(dbListTables(dbGlb$dbOcon),c("Composite","FVS_Cases"))
+      tables = list()
+      for (tab in tabs)
+      {
+        cnt = dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
+                 " where CaseID in (select CaseID from m.mapsCases)"))
+        if (cnt[1,1]) tables=append(tables,tab)
+      }
+      if (length(tables)) names(tables) = tables
+      updateSelectInput(session=session, inputId="mapDsTable", choices=tables,
+        selected=0)   
+      updateSelectInput(session=session, inputId="mapDsVar", choices=list(),
+        selected=0) 
+      output$leafletMap = renderLeaflet(NULL)
+    }
+  })
+  observe({
+    if (length(input$mapDsTable))
+    {
+cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
+      vars = setdiff(dbListFields(dbGlb$dbOcon,input$mapDsTable),
+         c("CaseID","StandID","Year"))
+      vars = as.list(vars)
+      names(vars) = vars
+      updateSelectInput(session=session, inputId="mapDsVar", choices=vars,
+        selected=0) 
+      output$leafletMap = renderLeaflet(NULL)
+    }
+  })
+  observe({
+    if (length(input$mapDsVar))
+    {
+cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
+     " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
+      if (!myobjExist("SpatialData",dbGlb) && 
+          file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
+      if (!myobjExist("SpatialData",dbGlb)) 
+      {
+        output$leafletMessage=renderText("Spatial polygon data needs to be loaded")
+        return()
+      }
+      matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
+cat ("matchVar=",matchVar,"\n")
+      dispData = dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
+                isolate(input$mapDsTable)," where CaseID in (select CaseID from m.mapsCases)"))
+      dispData = dispData[,-1]
+      keys = setdiff(colnames(dispData),c("StandID","Year"))
+      extra = NULL
+      for (var in keys) 
+      {
+        if (class(dispData[,var]) == "character") 
+        {
+          x = suppressWarnings(as.numeric(dispData[,var]))
+          if (!any(is.na(x))) dispData[,var] = x
+        }
+      }
+      extra = NULL
+      if (any(table(dispData[,c("StandID","Year")]) > 1)) for (var in keys) 
+      {
+        if (class(dispData[,var]) == "character") 
+        {
+          extra = c(extra,var)
+          if (all(table(dispData[,c("StandID","Year",extra)]) == 1)) break
+        }
+      }
+      extra = setdiff(extra,input$mapDsVar)
+      if (length(extra) > 1) extra = extra[1]
+      if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
+          format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
+      dispData = dispData[,c("StandID","Year",extra,input$mapDsVar)]
+      subset=match(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
+      subset=na.omit(subset)
+      if (length(subset) == 0) 
+      {
+        output$leafletMessage=renderText("No StandIDs match polygons")
+        return()
+      }
+      output$textOutput=renderText(paste0(length(subset)," StandIds match polygons"))
+      polys = spTransform(dbGlb$SpatialData[subset,],CRS("+init=epsg:4326"))
+      uids = unique(dispData$StandID)
+      progress <- shiny::Progress$new(session,min=1,max=length(uids))
+      labs  = lapply(uids, function (sid)
+        {
+          tab = subset(dispData,StandID == sid)[,-1]
+          progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)        
+          if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
+          {
+            HTML(paste0("<p style=LINE-HEIGHT:1>StandID=",sid,"<br>",
+               paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x) 
+               paste0(paste0(x,collapse=" "))),collapse="<br>"),"</p>",collapse=""))
+          } else {
+            tab = subset(dispData,StandID == sid)[,-1]          
+            tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
+            pfile=paste0("www/s",sid,".png")
+cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
+            png(file=pfile,height=1.7,width=2.3,units="in",res=100) 
+            p = ggplot(tab, if (!is.null(extra))
+                 aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
+                 aes_string(x="Year",y=input$mapDsVar)) +
+                 geom_line()+geom_point()+
+                 ggtitle(sid)+theme(text = element_text(size=8))
+            print(p)
+            dev.off()
+            pfile=paste0("s",sid,".png")
+            HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
+              '" alt="',sid,'" style="width:229px;height:170px;">'))
+         }  
+      })
+      progress$close()
+      map = leaflet(data=polys) %>% addTiles() %>%
+          addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
+                      opacity = .3, fillOpacity = 0.1, label=labs,   
+                      highlightOptions = c(weight = 5, color = "#666", dashArray = "",
+                        fillOpacity = 0.3, opacity = .6, bringToFront = TRUE)) %>% 
+          addTiles(urlTemplate = "https://mts1.google.com/vt/lyrs=s&hl=en&src=app&x={x}&y={y}&z={z}&s=G", 
+                   attribution = 'Google')
+     #addProviderTiles(providers[[input$mapDsProvider]]
+     output$leafletMap = renderLeaflet(map)
+    }
+  })
+
 
   ## Tools, related to FVSRefresh
   observe({    
@@ -3140,9 +3293,9 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     }
   })
   
-  ##### dataEditor upload code  
+  ##### data upload code  
   observe({
-    if(input$topPan == "Input Database")
+    if(input$topPan == "Import Data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Replace existing database")
@@ -3284,10 +3437,7 @@ cat ("cmd=",cmd,"\n")
       progress$set(message = "Import schema to Sqlite3", value = 4) 
       cmd = paste0("sqlite3 ","FVS_Data.db < schema")
 cat ("cmd=",cmd,"\n")
-      if (.Platform$OS.type == "windows")
-        shell(cmd) 
-      else
-        system(cmd)
+      if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
       fix = grep ("CREATE TABLE",schema)
       schema = sub ("CREATE TABLE ","",schema[fix])
       schema = sub (" [(]",".csv",schema)
@@ -3302,10 +3452,7 @@ cat ("cmd=",cmd,"\n")
         i = i+1;
         cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
-      if (.Platform$OS.type == "windows")
-        shell(cmd) 
-      else
-        system(cmd)
+        if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
       }
       progress$set(message = "Copy tables", value = i+1) 
       lapply(schema,unlink) 
@@ -3529,7 +3676,7 @@ cat ("no current FVS_ClimAttrs\n")
     }
 cat ("current FVS_ClimAttrs\n")
     if (file.exists("FVSClimAttrs.db")) unlink("FVSClimAttrs.db")
-    dbclim <- nect(dbDrv,"FVSClimAttrs.db")
+    dbclim <- dbConnect(dbDrv,"FVSClimAttrs.db")
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
     dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
     rm (climd)  
@@ -3918,8 +4065,6 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
     }
   })
 
-
-
   
   observe(if (input$clearTable > 0) 
   {
@@ -3945,7 +4090,182 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     isolate(if (input$mode=="New rows") updateRadioButtons(session=session, 
       inputId="mode",selected="Edit"))
   })
-  
+
+##### Map data mapUpload
+   observe({
+    if(input$inputDBPan == "Map data") 
+    {
+      progress <- shiny::Progress$new(session,min=1,max=3)
+      progress$set(message = "Preparing projection library",value = 2)
+      updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
+      if (!exists("prjs",envir=dbGlb)) 
+      {
+        dbGlb$prjs = epsg=make_EPSG()
+        dbGlb$prjs = dbGlb$prjs[-(1:696),]
+        dbGlb$prjs = dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
+        del = grep("unable",dbGlb$prjs$note,ignore.case=TRUE)
+        if (length(del))  dbGlb$prjs = dbGlb$prjs[-del,]
+        del = grep("deprecated",dbGlb$prjs$note,ignore.case=TRUE)
+        if (length(del))  dbGlb$prjs = dbGlb$prjs[-del,]
+        dbGlb$prjs = dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
+      }
+      updateSelectInput(session=session, inputId="mapUpLayers", choices=list(),
+                        selected=0)
+      epsg = as.character(1:nrow(dbGlb$prjs))
+      names(epsg) = paste0("epsg:",dbGlb$prjs$code," ",dbGlb$prjs$note)
+      updateSelectInput(session=session, inputId="mapUpSelectEPSG", choices=epsg,
+                        selected=0)
+      updateTextInput(session=session, inputId="mapUpProjection",value="")
+      output$mapActionMsg = renderText(" ")
+      progress$close()
+    }
+   })
+   observe({
+    if(is.null(input$mapUpload)) return()
+    {
+      curdir = getwd()
+      setwd(dirname(input$mapUpload$datapath))
+      progress <- shiny::Progress$new(session,min=1,max=3)
+      if (file.exists(basename(input$mapUpload$datapath)))
+      {
+        progress$set(message = "Unzipping",value = 1)
+        unzip(basename(input$mapUpload$datapath)) 
+        unlink(input$mapUpload$datapath)
+      }
+      progress$set(message = "Getting layers",value = 2)
+      dirdata=dir()
+      if (length(dirdata) > 1)
+      {
+        output$mapActionMsg = 
+          renderText("Too many entries in zip. zip file should contains dir that contains the coverage")
+        progress$close()
+        return()
+      }
+      lyrs = try(ogrListLayers(dir()))
+      setwd(curdir)
+      if (class(lyrs) == "try-error" || length(lyrs) == 0)
+      {
+        output$mapActionMsg = renderText("Can not find layers in data")
+        progress$close()
+        return()
+      }
+      attributes(lyrs) = NULL
+      lyrs = as.list(lyrs)
+      names(lyrs) = unlist(lyrs)
+      if (length(lyrs) > 1) 
+      {
+        lyr = grep ("poly",names(lyrs),ignore.case=TRUE)
+        if (length(lyr) == 0 || any(is.na(lyr))) lyr = 1
+        if (length(lyr) > 1) lyr = lyr[which.min(nchar(names(lyrs)[lyr]))]
+        lyr = names(lyrs)[lyr]
+      } else lyr = lyrs[1]
+      lyr = unlist(lyr)                
+      updateSelectInput(session=session, inputId="mapUpLayers", choices=lyrs,
+                        selected=lyr)
+      progress$close()
+    }
+   })
+   observe({
+      if (is.null(input$mapUpLayers)) return()
+      curdir = getwd()
+      datadir = dirname(isolate(input$mapUpload$datapath))
+      if (!dir.exists(datadir)) return()
+      setwd(datadir)
+cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
+      datadir = dir()
+      progress <- shiny::Progress$new(session,min=1,max=3)
+      progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
+      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers)))
+      setwd(curdir)
+      if (class(dbGlb$spd) == "try-error")
+      {
+        output$mapActionMsg = renderText(paste0("Map read error: ",dbGlb$spd))
+        progress$close()
+        return()
+      }
+      for (col in colnames(dbGlb$spd@data))
+      {
+        if (is.factor(dbGlb$spd@data[,col])) 
+          dbGlb$spd@data[,col]=levels(dbGlb$spd@data[,col])[as.numeric(dbGlb$spd@data[,col])]
+      }
+      txtoutput = paste0(txtoutput,collapse="\n")
+      output$mapActionMsg = renderText(txtoutput)
+      progress$set(message = txtoutput,value=3)
+      choices = as.list(names(dbGlb$spd@data))
+      names(choices) = choices
+      stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+      ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
+      if (class(ids) == "try-error" || length(ids) == 0)
+      {
+        selected = grep("ID",names(dbGlb$spd@data),ignore.case=TRUE)[1]
+        selected = if (is.na(selected)) 0 else names(dbGlb$spd@data)[selected]
+      } else {
+        ids = unlist(ids)
+        cnts = NULL
+        for (col in colnames(dbGlb$spd@data))
+          cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd@data[,col]))))
+        cnts = cnts/length(ids)*100
+        choices = paste0(choices," ",cnts,"%")
+        selected = choices[which.max(cnts)]
+      }
+      updateSelectInput(session=session, inputId="mapUpIDMatch",
+          choices=choices,selected=selected)
+      prj = proj4string(dbGlb$spd)
+      if (!is.na(prj)) 
+      {
+        updateTextInput(session=session, inputId="mapUpProjection",value=prj)
+        i = grep (prj,dbGlb$prjs$prj4,fixed=TRUE)
+        if(length(i) && !is.na(i))
+          updateSelectInput(session=session, inputId="mapUpSelectEPSG",selected=i)
+      }
+      progress$close()
+   })
+   observe({
+     if(length(input$mapUpSelectEPSG))
+       updateTextInput(session=session, inputId="mapUpProjection",
+            value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
+   })
+   observe({
+    if(input$mapUpSetPrj > 0)
+    {
+      if (!exists("spd",envir=dbGlb)) 
+      {
+        output$mapActionMsg = renderText("No map, upload one")
+        return()
+      }
+      prjstring = trim(isolate(input$mapUpProjection))
+      if (nchar(prjstring) == 0) 
+      {
+        output$mapActionMsg = renderText("proj4 string is empty")
+        return()
+      }
+      prj = try(CRS(prjstring))
+      if (class(prj) == "try-error") 
+      {
+        output$mapActionMsg = renderText("proj4 string is not valid")
+      } else {
+        proj4string(dbGlb$spd) = prjstring
+        output$mapActionMsg = renderText("proj4 set/reset")
+      }
+    }
+   })
+   observe({
+    if(input$mapUpSave > 0)
+    {
+      if (!exists("spd",envir=dbGlb)) 
+      {
+        output$mapActionMsg = renderText("No map to save.")
+        return()
+      }
+      SpatialData = dbGlb$spd
+      rm (spd,envir=dbGlb)    
+      attr(SpatialData,"MatchesStandID") =  unlist(strsplit(input$mapUpIDMatch," "))[1]
+      save (SpatialData,file="SpatialData.RData")
+      dbGlb$SpatialData = SpatialData
+      output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
+                            attr(SpatialData,"MatchesStandID")))
+    }
+   })
 
   #runScript selection
   observe({
@@ -4105,6 +4425,9 @@ cat ("moreControls hit\n")
       saveFvsRun = globals$fvsRun
       save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+      # remove excess images that maybe created in Maps.
+      delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
+      if (length(delList)) lapply(delList,function(x) unlink(x))      
 cat ("leaving saveRun\n") 
     }) 
   }

@@ -94,66 +94,85 @@ svsTree <- function(tree,treeform)
     if (tr$PlFrm <= 1) 
     {
       # single leader, then ignore the nwhorl and nbran data from treeform
-      #nwhorl = tr$Nwhorls
-      #nbran  = tr$Nbrchs
 #      nwhorl = max(5,floor(CL*.5))
 #      nbran  = 3+floor(max(1,log(tree$DBH*12))) #*2)
       nwhorl = tr$Nwhorls
       nbran  = tr$Nbrchs  # total number
-      nbran = max(3,floor(nbran/nwhorl))  # branches per whorl
-      xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
-      ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
-      distfun <- approxfun(xtap,ytap,rule=2)
-      rsc = runif(nwhorl)*min(1/nwhorl,.05)
-      z <- rep((seq(0,1,length=nwhorl)+rsc),each=nbran)
-      z[z>1] = 1
-      # tlt in degrees.
-      tlt <- tr$BaseUp + tltslp*z
-      # tlt in slope proprtion
-      tlt <- tan(tlt*pi/180)
-      z <- HCB+CL*z
-      angs <- rep(seq(0,2*pi,length=nbran),nwhorl)
-      startang = runif(nwhorl*nbran)*.5*pi               
-      angs = angs+startang  
-      r <- tree$Crd1/2
-      ll <- distfun(z)
-      x <- tree$Xloc + ll*cos(angs)
-      y <- tree$Yloc + ll*sin(angs)
-      ll <- ll * tlt * .5
-      ans = cbind(x,y,z)
-      for (row in 1:nrow(ans)) 
+      # limit the number of branches to 4 per foot of crown length
+      if (nbran > 4*CL) nbran = 4*CL
+      if (nwhorl == 0) nwhorl = nbran 
+      if (nwhorl > 0) 
       {
-        lin = rbind(c(x=tree$Xloc,y=tree$Yloc,ans[row,3]),ans[row,])
-        lin[1,3] = lin[1,3]-ll[row]
-        lin[2,3] = lin[2,3]+ll[row]
-        lin[lin[,3] > tree$Ht,3] = tree$Ht
-        branchList[[row]] = lin
-      }
-      branchList = branchList[!duplicated(branchList)]
-      tree$branches = list()
-      if (fallangle==0)
-      {
-        tree$baseht = 0
-        tree$tip = c(tree$Xloc,tree$Yloc,tree$Ht)
-        if (length(branchList))
+        nbran = max(3,floor(nbran/nwhorl))  # branches per whorl
+        xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
+        ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
+        distfun <- approxfun(xtap,ytap,rule=2)
+        rsc = runif(nwhorl)*min(1/nwhorl,.05)
+        z <- rep((seq(0,1,length=nwhorl)+rsc),each=nbran)
+        z[z>1] = 1
+        # tlt in degrees.
+        tlt <- tr$BaseUp + tltslp*z
+        # tlt in slope proprtion
+        tlt <- tan(tlt*pi/180)
+        z <- HCB+CL*z
+        angs <- rep(seq(0,2*pi,length=nbran),nwhorl)
+
+        startang = runif(nwhorl*nbran)*2*pi               
+        angs = angs+startang  
+        r <- tree$Crd1/2
+        ll <- distfun(z)
+        x <- tree$Xloc + ll*cos(angs)
+        y <- tree$Yloc + ll*sin(angs)
+        ll <- ll * tlt * .5
+        ans = cbind(x,y,z)
+        for (row in 1:nrow(ans)) 
         {
-          if (length(tree$crowncolor) > 1)
-          {
-            c1 = sort(sample.int(n=length(branchList),size=floor(length(branchList)*.75)))
-            tree$branches[[1]] = do.call(rbind,branchList[ c1])
-            tree$branches[[2]] = do.call(rbind,branchList[-c1]) 
-          } else {  
-            tree$branches[[1]] = do.call(rbind,branchList)
-          }
+          lin = rbind(c(x=tree$Xloc,y=tree$Yloc,ans[row,3]),ans[row,])
+          lin[1,3] = lin[1,3]-ll[row]
+          lin[2,3] = lin[2,3]+ll[row]
+          lin[lin[,3] > tree$Ht,3] = tree$Ht
+          branchList[[row]] = lin
         }
-      } else {    
-        tree$baseht=tree$DBH/2
-        tree$branches[[1]] = do.call(rbind,branchList)   
-        tree=fellTree(fallangle,tree)
+        branchList = branchList[!duplicated(branchList)]
+        tree$branches = list()
+        if (fallangle==0)
+        {
+          tree$baseht = 0
+          tree$tip = c(tree$Xloc,tree$Yloc,tree$Ht)                 
+          if (length(branchList))
+          {
+            if (length(tree$crowncolor) > 1)
+            {
+              c1 = sort(sample.int(n=length(branchList),size=floor(length(branchList)*.75)))
+              tree$branches[[1]] = do.call(rbind,branchList[ c1])
+              tree$branches[[2]] = do.call(rbind,branchList[-c1]) 
+            } else {  
+              tree$branches[[1]] = do.call(rbind,branchList)
+            }                                                    
+          }
+        } else {    
+          tree$baseht=tree$DBH/2
+          tree$branches[[1]] = do.call(rbind,branchList)   
+          tree=fellTree(fallangle,tree)
+        }
+      } else {
+        if (fallangle==0)
+        {
+          tree$baseht = 0
+          tree$tip = c(tree$Xloc,tree$Yloc,tree$Ht)
+        } else {
+          tree$baseht=tree$DBH/2
+          tree=fellTree(fallangle,tree)
+        }
       }
     } else {     # multi leader  2=multiple leader with weak central
       nbran = tr$Nwhorl
       nleaves = tr$Nbrchs
+      if (nbran == 0)
+      {
+cat ("svsTree, multiple leader, nbran == 0, tree not drawn.\n")
+        return(NULL)
+      }
       xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
       ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
       distfun <- approxfun(xtap,ytap,rule=2)
@@ -233,7 +252,7 @@ fellTree <- function (fallangle,tree)
   ty90 = matrix(c(0,0,1,0,1,0,-1,0,0),nrow=3,byrow=TRUE)
   tzfa = matrix(c(cosfa,-sinfa,0,sinfa,cosfa,0,0,0,1),nrow=3,byrow=TRUE)  
   tree$tip = c(tree$Xloc+tree$Ht*cosfa,tree$Yloc+tree$Ht*sinfa,0)
-  if (length(tree$branches)) 
+  if (length(tree$branches))                           
   {
     down = tree$branches[[1]]
     if (nrow(down) == 0) next

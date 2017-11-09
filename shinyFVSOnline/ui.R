@@ -2,6 +2,8 @@ library(shiny)
 library(rhandsontable)
 library(colourpicker)
 library(rgl)
+library(leaflet)
+
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
@@ -156,7 +158,7 @@ shinyUI(fixedPage(
                   ),
                   column(width=9,
                     checkboxGroupInput("autoOut",
-                      "Database output (summaries are always produced)",
+                      "Select outputs (summaries are always produced)",
                       c("Treelists"="autoTreelists","Compute"="autoCompute",
                         "Carbon"="autoCarbon","Fire"="autoFire",
                         "Deadwood"="autoDead","SVS"="autoSVS"),
@@ -199,7 +201,7 @@ shinyUI(fixedPage(
               )
           ) )
       ) ),   #END Make Runs
-      tabPanel("Process Outputs",
+      tabPanel("Output Tables",
         fixedRow(
         column(width=4,offset=0,
           h6(),
@@ -355,18 +357,42 @@ shinyUI(fixedPage(
         fixedRow(
         column(width=6,offset=0,
           selectInput(inputId="SVSRunList1",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
-          selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+          selectInput(inputId="SVSImgList1",label="Select SVS case", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
         column(width=6,offset=0,
           selectInput(inputId="SVSRunList2",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
-          selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%"),
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+          selectInput(inputId="SVSImgList2",label="Select SVS case", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
-      tabPanel("Input Database",
+      tabPanel("Maps(alpha)",
+        h6(),
+        fixedRow(
+        column(width=3,offset=0,
+          selectInput(inputId="mapDsRunList",label="Select Run", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
+        column(width=2,offset=0,
+          selectInput(inputId="mapDsTable",label="Output Table", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
+        column(width=2,offset=0,
+          selectInput(inputId="mapDsVar",label="Variable", choices=NULL, 
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
+        column(width=5,offset=0,
+           myRadioGroup("mapDsType","Display", c("table","graph")))            
+#        column(width=2,offset=0,
+#          selectInput(inputId="mapDsProvider",label="Underlay map", 
+#            choices=leaflet::providers,selected="Esri.WorldTopoMap",
+#            multiple=FALSE, selectize=FALSE, width="95%"))
+         ), 
+         fixedRow(
+         column(width=12,offset=0,
+           textOutput("leafletMessage"),
+           leafletOutput("leafletMap",height="800px",width="100%"))
+      )),
+      tabPanel("Import Data",
         tags$script('
            Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
                var el = $("#" + x);
@@ -386,7 +412,7 @@ shinyUI(fixedPage(
               actionButton("installTrainDB","Install training database"),h6(),
               actionButton("installEmptyDB","Install empty database"),h6(),
               tags$style(type="text/css","#replaceActionMsg{color:darkred;}"), 
-              textOutput("replaceActionMsg")     
+              textOutput("replaceActionMsg")
       	    ),
             tabPanel("Upload and insert new rows (.csv)", 
               h4(),             
@@ -422,9 +448,21 @@ shinyUI(fixedPage(
                   uiOutput("navRows"),
                   h6(),
                   rHandsontableOutput("tbl"),
-                  textOutput("actionMsg")
-                )
-              )
+                  textOutput("actionMsg"))
+             )),              
+            tabPanel("Map data", h6(),       
+              fileInput("mapUpload","Upload polygon data (.zip that contains spatial data)",
+                      width="90%"), h6(),
+           	  selectInput("mapUpLayers", label="Layer",
+      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+           	  selectInput("mapUpIDMatch", label="Variable that matches StandID",
+      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+           	  selectInput("mapUpSelectEPSG", label="Projection library",
+      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+      	      textInput("mapUpProjection", label="proj4 projection string",width="70%"),
+      	      actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject the data)"),h6(),
+      	      actionButton("mapUpSave","Save imported map"),h6(),            
+      	      textOutput("mapActionMsg") 
             ) #END tabPanel
           ) #END tabsetPanel
         ) ) #END column and fixed row   
