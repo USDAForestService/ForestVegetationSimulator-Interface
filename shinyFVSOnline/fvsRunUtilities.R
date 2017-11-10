@@ -39,7 +39,7 @@ mkGlobals <<- setRefClass("globals",
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
-    reloadAppIsSet = "numeric", hostname= "character"))
+    reloadAppIsSet = "numeric", hostname= "character", toggleind="character" ))
 
 loadVarData <- function(globals,prms,dbIcon)
 {
