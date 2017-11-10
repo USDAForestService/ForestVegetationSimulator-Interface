@@ -55,7 +55,7 @@ FVSOnlineNeeded = c(
 "runScripts.R",
 "server.R", 
 "sqlQueries.R",
-"svsTrees.R",
+"svsTree.R",
 "ui.R",
 "www")
 
