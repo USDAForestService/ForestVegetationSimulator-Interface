@@ -33,7 +33,7 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
 ##The following line needs to be edited and uncommented to replace the
 ##base web address string in the substitution
   names (ids) = sub("../FVSwork",
-                    "http://forest.moscowfsl.wsu.edu/FVSwork",workDirs)
+                    "https://forest.moscowfsl.wsu.edu/FVSwork",workDirs)
   
   rptFile = tempfile()
   con = file(rptFile,"w")

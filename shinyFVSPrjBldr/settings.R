@@ -51,9 +51,11 @@ FVSOnlineNeeded = c(
 "mkpkeys.R",
 "modalDialog.R",
 "prms.RData",
+"treeforms.RData",
 "runScripts.R",
 "server.R", 
 "sqlQueries.R",
+"svsTrees.R",
 "ui.R",
 "www")
 
