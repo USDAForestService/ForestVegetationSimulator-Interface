@@ -517,7 +517,7 @@ shinyUI(fixedPage(
                 zipList,selZip,inline=FALSE),	
               downloadButton("dlFVSRunZip","Download fvsRun.zip")
             ),
-            tabPanel("Refresh FVS", 
+            tabPanel("Refresh software", 
               h4(),
               selectInput("FVSprograms", "Pick programs to add or refresh", multiple=TRUE,
                 choices = list(), selected="", selectize=FALSE),
@@ -525,7 +525,7 @@ shinyUI(fixedPage(
               actionButton("FVSRefresh","Refresh or add selected FVS programs"),
               h6(),
               modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
-                "Refresh this Interface Software"),
+                "Refresh this interface software"),
               modalDialog(id="interfaceRefreshDlg", footer=list(
               modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
                   "Yes"),

@@ -15,8 +15,15 @@ options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
 
 shinyServer(function(input, output, session) {
 
-  if (!interactive()) sink("FVSOnline.log")
-
+  if (!interactive()) 
+  {
+    if (!file.exists("FVSOnline.log")) 
+    {
+      unlink("FVSOnline.older.log")
+      file.rename("FVSOnline.log","FVSOnline.older.log")
+    }
+    sink("FVSOnline.log")
+  }
   cat ("FVSOnline/OnLocal interface server start.\n")
        
   withProgress(session, {  
@@ -2883,12 +2890,13 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
                  input$mapDsRunList,"'"))
       dbSendQuery(dbGlb$dbOcon,"drop table if exists m.mapsCases")
       dbWriteTable(dbGlb$dbOcon,DBI::SQL("m.mapsCases"),data.frame(cases))
-      tabs = setdiff(dbListTables(dbGlb$dbOcon),c("Composite","FVS_Cases"))
+      tabs = setdiff(dbListTables(dbGlb$dbOcon),c("Composite","FVS_Cases","Composite_East"))
       tables = list()
       for (tab in tabs)
       {
-        cnt = dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                 " where CaseID in (select CaseID from m.mapsCases)"))
+        cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
+                 " where CaseID in (select CaseID from m.mapsCases)")))
+        if (class(cnt) == "try-error") next
         if (cnt[1,1]) tables=append(tables,tab)
       }
       if (length(tables)) names(tables) = tables
@@ -2967,7 +2975,7 @@ cat ("matchVar=",matchVar,"\n")
       labs  = lapply(uids, function (sid)
         {
           tab = subset(dispData,StandID == sid)[,-1]
-          progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)        
+          progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
           if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
           {
             HTML(paste0("<p style=LINE-HEIGHT:1>StandID=",sid,"<br>",
@@ -3171,11 +3179,15 @@ cat ("interfaceRefreshDlgBtn\n")
     if (.Platform$OS.type == "windows") return()
 ## TODO: set this up so that it works "ONLocal" and with windows.
     if (file.exists("../../FVSOnline/settings.R")) 
-             source("../../FVSOnline/settings.R") 
-    if (!exists("fvsOnlineDir")) return()
+             source("../../FVSOnline/settings.R")
+    exDir = exists("fvsOnlineDir")
+cat ("interfaceRefreshDlgBtn, exDir = ",exDir,"\n")           
+    if (!exDir) return()
     # shiny code, etc
-    needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ")  
-    system (paste0("cp -R ",needed," ."))
+    needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ") 
+    cmd = paste0("cp -R ",needed," .")
+cat ("interfaceRefreshDlgBtn, cmd = ",cmd,"\n")           
+    system (cmd)
     globals$reloadAppIsSet=1
     session$reload()
   }) 
@@ -4095,12 +4107,13 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
    observe({
     if(input$inputDBPan == "Map data") 
     {
+      library(rgdal)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = "Preparing projection library",value = 2)
       updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
       if (!exists("prjs",envir=dbGlb)) 
       {
-        dbGlb$prjs = epsg=make_EPSG()
+        dbGlb$prjs = make_EPSG()
         dbGlb$prjs = dbGlb$prjs[-(1:696),]
         dbGlb$prjs = dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
         del = grep("unable",dbGlb$prjs$note,ignore.case=TRUE)
@@ -4137,7 +4150,8 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
       if (length(dirdata) > 1)
       {
         output$mapActionMsg = 
-          renderText("Too many entries in zip. zip file should contains dir that contains the coverage")
+          renderText(paste0("Too many entries in zip. zip file should contain ", 
+                     " only the directory (folder) that contains the coverage"))
         progress$close()
         return()
       }
@@ -4205,7 +4219,7 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
         for (col in colnames(dbGlb$spd@data))
           cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd@data[,col]))))
         cnts = cnts/length(ids)*100
-        choices = paste0(choices," ",cnts,"%")
+        choices = paste0(choices," ",format(cnts,digits=3),"%")
         selected = choices[which.max(cnts)]
       }
       updateSelectInput(session=session, inputId="mapUpIDMatch",
