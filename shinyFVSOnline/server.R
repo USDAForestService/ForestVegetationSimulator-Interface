@@ -17,7 +17,7 @@ shinyServer(function(input, output, session) {
 
   if (!interactive()) 
   {
-    if (!file.exists("FVSOnline.log")) 
+    if (file.exists("FVSOnline.log")) 
     {
       unlink("FVSOnline.older.log")
       file.rename("FVSOnline.log","FVSOnline.older.log")
@@ -3050,7 +3050,7 @@ cat ("avalFVSp=",avalFVSp,"\n")
   observe({  
     isLocal <- function () Sys.getenv('SHINY_PORT') == ""
     if (input$FVSRefresh == 0) return()               
-    cat ("FVSRefresh\n")
+cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
       if (!exists("fvsBinDir")) fvsBinDir="FVSbin/"
