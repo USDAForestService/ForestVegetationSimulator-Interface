@@ -7,7 +7,7 @@ library(plyr)
 library(colourpicker)
 library(rgl)
 library(leaflet)
-# loaded when Maps are used: library(rgdal)
+library(rgdal)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
@@ -2865,8 +2865,7 @@ cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n")
   observe({
     if (input$topPan == "Maps(alpha)")
     {
-cat ("Maps hit, load rgdal\n")
-      library(rgdal)
+cat ("Maps hit\n")
       allRuns = names(globals$FVS_Runs)
       names(allRuns) = globals$FVS_Runs
       updateSelectInput(session=session, inputId="mapDsRunList", 
@@ -4107,11 +4106,11 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
    observe({
     if(input$inputDBPan == "Map data") 
     {
-      library(rgdal)
+cat ("Map data hit.\n")
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = "Preparing projection library",value = 2)
       updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
-      if (!exists("prjs",envir=dbGlb)) 
+      if (!exists("prjs",envir=dbGlb,inherit=FALSE)) 
       {
         dbGlb$prjs = make_EPSG()
         dbGlb$prjs = dbGlb$prjs[-(1:696),]
@@ -4136,17 +4135,29 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
    observe({
     if(is.null(input$mapUpload)) return()
     {
+cat ("mapUpload\n")
       curdir = getwd()
       setwd(dirname(input$mapUpload$datapath))
       progress <- shiny::Progress$new(session,min=1,max=3)
       if (file.exists(basename(input$mapUpload$datapath)))
       {
+        fileEnding = tolower(substring(basename(input$mapUpload$datapath),
+                  nchar(basename(input$mapUpload$datapath))-3,
+                  nchar(basename(input$mapUpload$datapath))))
+cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
+        if (fileEnding != ".zip") 
+        {
+          output$mapActionMsg = renderText(paste0("Upload a .zip file"))
+          progress$close()
+          return()
+        }
         progress$set(message = "Unzipping",value = 1)
-        unzip(basename(input$mapUpload$datapath)) 
+        unzip(basename(input$mapUpload$datapath))
         unlink(input$mapUpload$datapath)
       }
       progress$set(message = "Getting layers",value = 2)
       dirdata=dir()
+cat ("mapUpload, length(dirdata)=",length(dirdata),"\n")
       if (length(dirdata) > 1)
       {
         output$mapActionMsg = 
@@ -4157,6 +4168,7 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
       }
       lyrs = try(ogrListLayers(dir()))
       setwd(curdir)
+cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
       if (class(lyrs) == "try-error" || length(lyrs) == 0)
       {
         output$mapActionMsg = renderText("Can not find layers in data")
@@ -4222,6 +4234,7 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
         choices = paste0(choices," ",format(cnts,digits=3),"%")
         selected = choices[which.max(cnts)]
       }
+cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected=",selected,"\n")
       updateSelectInput(session=session, inputId="mapUpIDMatch",
           choices=choices,selected=selected)
       prj = proj4string(dbGlb$spd)
@@ -4242,7 +4255,7 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
    observe({
     if(input$mapUpSetPrj > 0)
     {
-      if (!exists("spd",envir=dbGlb)) 
+      if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
       {
         output$mapActionMsg = renderText("No map, upload one")
         return()
@@ -4266,7 +4279,7 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
    observe({
     if(input$mapUpSave > 0)
     {
-      if (!exists("spd",envir=dbGlb)) 
+      if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
       {
         output$mapActionMsg = renderText("No map to save.")
         return()
@@ -4371,8 +4384,8 @@ cat ("Projects hit\n")
       unlink("projectId.txt")
       cat ("title= ",fn,"\n",file="projectId.txt")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
-      if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
-      if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
+      if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+      if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
       globals$saveOnExit = FALSE
       globals$reloadAppIsSet=1
       session$reload()                        
@@ -4386,8 +4399,8 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
       if (dir.exists(input$PrjSelect))
       {
         saveRun()        
-        if (exists("dbGlb$dbOcon")) try(dbDisconnect(dbGlb$dbOcon))
-        if (exists("dbGlb$dbIcon")) try(dbDisconnect(dbGlb$dbIcon))
+        if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+        if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
         setwd(input$PrjSelect)
         globals$saveOnExit = FALSE
         globals$reloadAppIsSet=1

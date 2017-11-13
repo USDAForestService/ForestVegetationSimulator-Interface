@@ -541,12 +541,12 @@ uuidgen <- function (n=1)
 # to generate a duplicate...even when the user first calls set.seed
 # and does not have package digest.
 
-  ss <- if (exists(".Random.seed",envir=.GlobalEnv)) 
+  ss <- if (exists(".Random.seed",envir=.GlobalEnv,inherit=FALSE)) 
         get(".Random.seed",envir=.GlobalEnv) else NULL
   cp <- Sys.getpid()
-  if (exists(".uuid.seedpid",envir=.GlobalEnv) &&
+  if (exists(".uuid.seedpid",envir=.GlobalEnv,inherit=FALSE) &&
          get(".uuid.seedpid",envir=.GlobalEnv) == cp &&
-      exists(".uuid.seed",   envir=.GlobalEnv))
+      exists(".uuid.seed",   envir=.GlobalEnv,inherit=FALSE))
     .Random.seed <<- get(".uuid.seed",envir=.GlobalEnv) else 
   {
     .uuid.seedpid <<- cp
