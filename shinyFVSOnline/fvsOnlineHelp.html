@@ -12,6 +12,8 @@
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmsvs">SVS3d</a> 
 		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmmaps">Maps</a> 
+		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmin">Import Data</a>
 		</p>
 		<li><p><a href="#tmtool">Tools</a> 
@@ -279,6 +281,18 @@ on the image and rotate it, flip it, and zoom in and out using your mouse.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
+<h4><a name="tmmaps"></a>Maps</h4>
+<p>You can display stand polygon boundaries of the stands in the <b>Selected Run</b> 
+over a Google satellite image. Select an <b>Output Table</b> and a <b>Variable</b> 
+from the table. When you point your mouse at a stand, a small table is displayed 
+showing the values of that variable over time. You can <b>Display</b> graphs rather 
+than tables. Note that if you have a very large run, it can take significant amounts of
+time to generate the graphs. Note that the spatial polygons of the stand boundaries are 
+required to use this feature. See <b>Map data</b> under <a href="#tmin">Import Data</a>
+to see now to load this spatial data.
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
 <h4><a name="tmin"></a>Import Data</h4>
 <p>You can <b>Replace the existing database</b> by uploading an
 FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
@@ -304,6 +318,22 @@ given null values.</p>
 in the
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
 Users Guide to the Database Extension.</a></p>
+<p>You can upload <b>Map data</b> that is used to display stand polygons on top of reference
+maps using the <a href="#tmmaps">Maps</a> menu item. Many file formats are
+supported. To upload a map, first create a .zip file that contains a single directory (folder) 
+where the coverages are stored. Then upload the .zip file and let FVSOnline try to
+load the appropriate files. </p>
+<p>If the .zip file contains more than one coverage, you can select the one that 
+contains stand polygons (the system will attempt to make a valid selection). Note that
+the polygons must be identifiable by StandID but frequently the coverage data contains
+this information under a different variable name. FVSOnline attempts to discover the 
+correct variable to match to StandID. You can set the variable here if necessary.</p>
+<p>If the geographic projection of your data is not stored with the data (usually it 
+is an element of the .zip file), then you can set the projection
+using the provided tools. You can select a projection from the list button or just
+type in the proj4 string into the text box if you know what it is. Note the the 
+projection is set or reset here but the spatial data is not reprojected. 
+Any needed reprojection is done automatically.</p>
 
 <p><a href="#contents">Back to contents</a></p>
 <h4><a name="tmtool"></a>Tools</h4>
