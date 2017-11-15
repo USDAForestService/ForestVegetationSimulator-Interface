@@ -1087,7 +1087,11 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
     stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-    if (is.null(stdInit)) return()
+    if (is.null(stdInit)) 
+    {
+cat ("error: stdInit is null\n")
+      return()
+    }
     fields = dbListFields(dbGlb$dbIcon,stdInit)
     needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                        "AddFiles","FVSKeywords"))

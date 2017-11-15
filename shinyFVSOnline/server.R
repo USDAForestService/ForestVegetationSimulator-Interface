@@ -1105,7 +1105,7 @@ cat ("inVars\n")
     grps = if (!is.null(stdInit)) 
       try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
         stdInit,' where lower(variant) like "%',input$inVars,'%"'))) else NULL
-    if (class(grps) == "try-error" || nrow(grps) == 0)
+    if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),data.frame(Stand_ID="",Grp=""))
@@ -2257,6 +2257,15 @@ cat("Nulling uiRunPlot at Save and Run\n")
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
         writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms)
+        if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
+        {
+cat ("keyword file was not created.\n")
+          progress$set(message = "Error: Keyword file was not created.",
+                      detail = "", value = 3) 
+          Sys.sleep(3)
+          progress$close()
+          return()
+        }          
         dir.create(globals$fvsRun$uuid)
         if (!exists("rFVSDir")) rFVSDir = "rFVS/R"
         if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R"
