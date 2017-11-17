@@ -373,19 +373,20 @@ shinyUI(fixedPage(
         fixedRow(
         column(width=3,offset=0,
           selectInput(inputId="mapDsRunList",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsTable",label="Output Table", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsVar",label="Variable", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="95%")),
-        column(width=5,offset=0,
-           myRadioGroup("mapDsType","Display", c("table","graph")))            
-#        column(width=2,offset=0,
-#          selectInput(inputId="mapDsProvider",label="Underlay map", 
-#            choices=leaflet::providers,selected="Esri.WorldTopoMap",
-#            multiple=FALSE, selectize=FALSE, width="95%"))
+            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+        column(width=3,offset=0,
+           myRadioGroup("mapDsType","Display", c("table","graph"))),            
+        column(width=2,offset=0,
+          selectInput(inputId="mapDsProvider",label="Base map", 
+            choices=list("Google Hybrid"="s,h","Google Satellite"="s",
+                         "Google Streets"="m","Google Terrain"="p"),
+            multiple=FALSE, selectize=FALSE, width="95%"))
          ), 
          fixedRow(
          column(width=12,offset=0,
