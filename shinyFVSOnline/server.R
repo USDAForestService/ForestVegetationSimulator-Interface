@@ -2937,8 +2937,27 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
           file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
       if (!myobjExist("SpatialData",dbGlb)) 
       {
-        output$leafletMessage=renderText("Spatial polygon data needs to be loaded")
-        return()
+        stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+        dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
+           paste0("select Stand_ID,Latitude,Longitude from ", stdInit)))
+        if (class(dbGlb$SpatialData)!="try-error")
+        {
+          dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
+          dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
+          dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+          if (nrow(dbGlb$SpatialData) == 0 ||
+              class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == "try-error") 
+          {
+            output$leafletMessage=renderText("Spatial data needs to be loaded")
+            return()
+          }
+          proj4string(dbGlb$SpatialData) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+          attr(dbGlb$SpatialData,"MatchesStandID") = "Stand_ID"
+          output$leafletMessage=renderText(paste0("Spatial data is taken from ",stdInit))
+        } else {  
+          output$leafletMessage=renderText("Spatial data needs to be loaded")
+          return()
+        }
       }
       matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
 cat ("matchVar=",matchVar,"\n")
@@ -3008,14 +3027,18 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
          }  
       })
       progress$close()
+      # polys could be point data, not polygons, and thats OK here.
       map = leaflet(data=polys) %>% addTiles() %>%
-          addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-                      opacity = .3, fillOpacity = 0.1, label=labs,   
-                      highlightOptions = c(weight = 5, color = "#666", dashArray = "",
-                        fillOpacity = 0.3, opacity = .6, bringToFront = TRUE)) %>% 
-          addTiles(urlTemplate = 
-            paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
-                   "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
+              addTiles(urlTemplate = 
+                paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
+                       "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
+      if (class(polys) == "SpatialPointsDataFrame")         
+        map = map %>% addCircleMarkers(radius = 6, color="red", 
+                        stroke = FALSE, fillOpacity = 0.5, label=labs)  else
+        map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
+              opacity = .3, fillOpacity = 0.1, label=labs,   
+              highlightOptions = c(weight = 5, color = "#666", dashArray = "",
+                fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })
