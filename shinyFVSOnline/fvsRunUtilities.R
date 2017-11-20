@@ -1146,7 +1146,7 @@ cat ("error: stdInit is null\n")
       sid = fvsInit[row,"STAND_ID"]
       newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
       addfiles <- fvsInit[row,"ADDFILES"]
-      if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles))
+      if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
       {
         fns=scan(text=addfiles,what="character",quiet=TRUE)
         for (fn in fns)
@@ -1163,7 +1163,7 @@ cat ("error: stdInit is null\n")
         }
       }
       addkeys <- fvsInit[row,"FVSKEYWORDS"]
-      if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys)) 
+      if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
         newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
                  exten="base", atag="k",kwdName=paste0("From: ",stdInit), 
                  title=paste0("From: ",stdInit)))

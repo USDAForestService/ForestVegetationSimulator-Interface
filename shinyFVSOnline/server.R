@@ -3027,7 +3027,6 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
          }  
       })
       progress$close()
-      # polys could be point data, not polygons, and thats OK here.
       map = leaflet(data=polys) %>% addTiles() %>%
               addTiles(urlTemplate = 
                 paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
@@ -3565,6 +3564,7 @@ cat ("Upload new rows\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
+#browser()
       del = apply(indat,1,function (x) 
         {
           x = as.vector(x)
@@ -3580,19 +3580,19 @@ cat ("Upload new rows\n")
         return()
       }
       cols = na.omit(pmatch(tolower(colnames(indat)),
-               tolower(names(dbGlb$tbsCTypes[[dbGlb$tblName]]))))
+               tolower(names(dbGlb$tbsCTypes[[isolate(input$uploadSelDBtabs)]]))))
       if (length(cols) == 0) 
       {
         output$uploadActionMsg = renderText(paste0("No columns match what is defined for ",
-               dbGlb$tblName,", no data loaded."))
+               isolate(input$uploadSelDBtabs),", no data loaded."))
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
       kill = attr(cols,"na.action")
       if (length(kill)) indat = indat[,-kill,drop=FALSE]
-      types = dbGlb$tbsCTypes[[dbGlb$tblName]][cols]
-      req = switch(dbGlb$tblName,
+      types = dbGlb$tbsCTypes[[isolate(input$uploadSelDBtabs)]][cols]
+      req = switch(isolate(input$uploadSelDBtabs),
          FVS_StandInit = c("Stand_ID","Variant","Inv_Year"),
          FVS_TreeInit  = c("Stand_ID","Species","DBH"),
          FVS_GroupAddFilesAndKeywords = c("Groups"),
@@ -3600,7 +3600,7 @@ cat ("Upload new rows\n")
       if (!is.null(req) && !all(req %in% names(types)))
       {
         output$uploadActionMsg = renderText(paste0("Required columns were missing for ",
-               dbGlb$tblName,", no data loaded."))
+               isolate(input$uploadSelDBtabs),", no data loaded."))
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
@@ -3615,7 +3615,7 @@ cat ("Upload new rows\n")
       {
         row = indat[i,,drop=FALSE]
         row = row[,!is.na(row),drop=FALSE]
-        qry = paste0("insert into ",dbGlb$tblName," (",
+        qry = paste0("insert into ",isolate(input$uploadSelDBtabs)," (",
                 paste0(colnames(row),collapse=","),
                   ") values (",paste0(row,collapse=","),");")
         res = try(dbSendQuery(dbGlb$dbIcon,qry))
@@ -3629,15 +3629,15 @@ cat ("Upload new rows\n")
       } else {
         dbCommit(dbGlb$dbIcon)
         output$uploadActionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
-               dbGlb$tblName))
+               isolate(input$uploadSelDBtabs)))
         loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
       Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
-      dbSendQuery(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName,
+      dbSendQuery(dbGlb$dbIcon,paste0("delete from ",isolate(input$uploadSelDBtabs),
         " where Stand_ID = ''"))      
       res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                        dbGlb$tblName))
+                        isolate(input$uploadSelDBtabs)))
       dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
       dbClearResult(res)
       if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
@@ -3646,7 +3646,7 @@ cat ("Upload new rows\n")
           choices  = as.list(dbGlb$sids), selected=unique(indat[,"Stand_ID"])) else 
         output$stdSel <- mkStdSel(dbGlb)
       
-      qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+      qry <- paste0("select _ROWID_,* from ",isolate(input$uploadSelDBtabs))
       qry <- if (length(input$rowSelector))
         paste0(qry," where Stand_ID in (",
               paste0("'",input$rowSelector,"'",collapse=","),");") else
