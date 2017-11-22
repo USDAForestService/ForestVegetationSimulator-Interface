@@ -7,7 +7,7 @@ library(plyr)
 library(colourpicker)
 library(rgl)
 library(leaflet)
-library(rgdal)
+#library(rgdal) #loaded when it is needed
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
@@ -2875,6 +2875,7 @@ cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n")
     if (input$topPan == "Maps(alpha)")
     {
 cat ("Maps hit\n")
+      require(rgdal) 
       allRuns = names(globals$FVS_Runs)
       names(allRuns) = globals$FVS_Runs
       updateSelectInput(session=session, inputId="mapDsRunList", 
@@ -2931,6 +2932,7 @@ cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
   observe({
     if (length(input$mapDsVar))
     {
+      require(rgdal) 
 cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
      " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
       if (!myobjExist("SpatialData",dbGlb) && 
@@ -3114,7 +3116,8 @@ cat ("FVSRefresh\n")
           i = 0
           for (pgm in input$FVSprograms)
           {
-            rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin")
+            rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin",
+                          overwrite = TRUE)
             if (rtn) i = i+1
           }
           session$sendCustomMessage(type="infomessage",
@@ -3558,18 +3561,17 @@ cat ("Upload new rows\n")
       if (file.exists(input$uploadStdTree$datapath)) 
                unlink(input$uploadStdTree$datapath)
       if (class(indat) == "try-error" || nrow(indat)==0)
-      {
+      {                       
         output$uploadActionMsg = renderText("Input empty, no data loaded.")
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-#browser()
       del = apply(indat,1,function (x) 
         {
           x = as.vector(x)
           x[is.na(x)] = ""
-          all(x == "")
+          all(x == "") 
         })
       indat = indat[!del,,drop=FALSE]
       if (nrow(indat)==0)
@@ -3580,19 +3582,40 @@ cat ("Upload new rows\n")
         return()
       }
       cols = na.omit(pmatch(tolower(colnames(indat)),
-               tolower(names(dbGlb$tbsCTypes[[isolate(input$uploadSelDBtabs)]]))))
+             tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       if (length(cols) == 0) 
       {
         output$uploadActionMsg = renderText(paste0("No columns match what is defined for ",
-               isolate(input$uploadSelDBtabs),", no data loaded."))
+               input$uploadSelDBtabs,", no data loaded."))
         Sys.sleep(1)
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-      kill = attr(cols,"na.action")
-      if (length(kill)) indat = indat[,-kill,drop=FALSE]
-      types = dbGlb$tbsCTypes[[isolate(input$uploadSelDBtabs)]][cols]
-      req = switch(isolate(input$uploadSelDBtabs),
+      addCols = attr(cols,"na.action")
+      if (length(addCols))
+      {
+        for (icol in addCols)
+        {
+          dtyp = switch(class(indat[,icol]),
+                 "integer" = "int",
+                 "numeric" = "real",
+                 "character")
+          newVar = names(indat)[icol]
+          qry = paste0("alter table ",input$uploadSelDBtabs," add column ",
+                newVar," ",dtyp,";")
+          added = try(dbSendQuery(dbGlb$dbIcon,qry))
+          if (class(added) != "try-error")
+          {
+            v = dtyp == "character"
+            names(v) = newVar
+            dbGlb$tbsCTypes[[input$uploadSelDBtabs]] = c(dbGlb$tbsCTypes[[input$uploadSelDBtabs]],v)
+          }
+        }
+      }
+      cols = na.omit(pmatch(tolower(colnames(indat)),
+             tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
+      types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]][cols]
+      req = switch(input$uploadSelDBtabs,
          FVS_StandInit = c("Stand_ID","Variant","Inv_Year"),
          FVS_TreeInit  = c("Stand_ID","Species","DBH"),
          FVS_GroupAddFilesAndKeywords = c("Groups"),
@@ -3600,13 +3623,12 @@ cat ("Upload new rows\n")
       if (!is.null(req) && !all(req %in% names(types)))
       {
         output$uploadActionMsg = renderText(paste0("Required columns were missing for ",
-               isolate(input$uploadSelDBtabs),", no data loaded."))
-        Sys.sleep(1)
+               input$uploadSelDBtabs,", no data loaded."))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
       colnames(indat) = names(types)
-      quote = types[types]
+      quote = types[types]   
       if (length(quote)) for (cn in names(quote)) 
         indat[,cn] = paste0("'",indat[,cn],"'")
       dbBegin(dbGlb$dbIcon)
@@ -3615,7 +3637,7 @@ cat ("Upload new rows\n")
       {
         row = indat[i,,drop=FALSE]
         row = row[,!is.na(row),drop=FALSE]
-        qry = paste0("insert into ",isolate(input$uploadSelDBtabs)," (",
+        qry = paste0("insert into ",input$uploadSelDBtabs," (",
                 paste0(colnames(row),collapse=","),
                   ") values (",paste0(row,collapse=","),");")
         res = try(dbSendQuery(dbGlb$dbIcon,qry))
@@ -3628,45 +3650,60 @@ cat ("Upload new rows\n")
         return()
       } else {
         dbCommit(dbGlb$dbIcon)
-        output$uploadActionMsg = renderText(paste0(nrow(indat)," rows were inserted into ",
-               isolate(input$uploadSelDBtabs)))
+        output$uploadActionMsg = renderText(paste0(nrow(indat)," row(s) inserted into ",
+               input$uploadSelDBtabs))
         loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
       Sys.sleep(1)
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
-      dbSendQuery(dbGlb$dbIcon,paste0("delete from ",isolate(input$uploadSelDBtabs),
-        " where Stand_ID = ''"))      
-      res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                        isolate(input$uploadSelDBtabs)))
-      dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
-      dbClearResult(res)
-      if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
-      if (dbGlb$rowSelOn && length(dbGlb$sids)) 
-        updateSelectInput(session=session, inputId="rowSelector",
-          choices  = as.list(dbGlb$sids), selected=unique(indat[,"Stand_ID"])) else 
-        output$stdSel <- mkStdSel(dbGlb)
-      
-      qry <- paste0("select _ROWID_,* from ",isolate(input$uploadSelDBtabs))
-      qry <- if (length(input$rowSelector))
-        paste0(qry," where Stand_ID in (",
-              paste0("'",input$rowSelector,"'",collapse=","),");") else
-        paste0(qry,";") 
-      dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
-      rownames(dbGlb$tbl) = dbGlb$tbl$rowid
-      for (col in 2:ncol(dbGlb$tbl))
-        if (class(dbGlb$tbl[[col]]) != "character") 
-           dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
-      if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
+      # this section removes records that have missing values for standID or group
+      keyCol = NULL
+      if (length(grep("standinit",input$uploadSelDBtabs,ignore.case=TRUE)) ||
+          length(grep("treeinit", input$uploadSelDBtabs,ignore.case=TRUE)) ||
+          length(grep("plotinit", input$uploadSelDBtabs,ignore.case=TRUE)))
+               keyCol = "Stand_ID"
+      if (length(grep("GroupAddFilesAndKeywords",input$uploadSelDBtabs,
+                 ignore.case=TRUE))) keyCol = "Groups"
+      if (!is.null(keyCol))
       {
-        dbGlb$tbl$Delete = FALSE
-        dbGlb$rows <- c(dbGlb$rows[1],
-                        min(nrow(dbGlb$tbl),dbGlb$rows[2]))
-        output$tbl <- renderRHandsontable(rhandsontable(
-          dbGlb$tbl[dbGlb$rows[1]:dbGlb$rows[2],
-          union(c("Delete"),input$selectdbvars),drop=FALSE],
-          readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
-      } 
-      Sys.sleep(1)
+        # the key column must not be null, it it is delete the rows.
+        try(dbSendQuery(dbGlb$dbIcon,paste0("delete from ",
+            input$uploadSelDBtabs," where ",keyCol," is null")))
+        # update the stand selector list if it exists and if we are not doing groups
+        if (keyCol != "Groups")
+        {
+          res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
+                            input$uploadSelDBtabs))
+          dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
+          dbClearResult(res)
+          if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
+          if (dbGlb$rowSelOn && length(dbGlb$sids)) 
+            updateSelectInput(session=session, inputId="rowSelector",
+              choices  = as.list(dbGlb$sids), selected=unique(indat[,"Stand_ID"])) else 
+            output$stdSel <- mkStdSel(dbGlb)
+          
+          qry <- paste0("select _ROWID_,* from ",input$uploadSelDBtabs)
+          qry <- if (length(input$rowSelector))
+            paste0(qry," where Stand_ID in (",
+                  paste0("'",input$rowSelector,"'",collapse=","),");") else
+            paste0(qry,";") 
+          dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          rownames(dbGlb$tbl) = dbGlb$tbl$rowid
+          for (col in 2:ncol(dbGlb$tbl))
+            if (class(dbGlb$tbl[[col]]) != "character") 
+               dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+          if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
+          {
+            dbGlb$tbl$Delete = FALSE
+            dbGlb$rows <- c(dbGlb$rows[1], 
+                            min(nrow(dbGlb$tbl),dbGlb$rows[2]))
+            output$tbl <- renderRHandsontable(rhandsontable(
+              dbGlb$tbl[dbGlb$rows[1]:dbGlb$rows[2],
+              union(c("Delete"),input$selectdbvars),drop=FALSE],
+              readOnly=FALSE,useTypes=TRUE,contextMenu=FALSE))
+          }
+        }
+      }
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
     })
   }) 
@@ -3828,7 +3865,7 @@ cat ("dataEditor\n")
           res[] = !res
         }, dbGlb$dbIcon)     
       names(dbGlb$tbsCTypes) = tbs       
-      idx <- grep ("StandInit",tbs)
+      idx <- grep ("StandInit",tbs,ignore.case=TRUE)
       if (length(idx) == 0) idx=1     
       updateSelectInput(session=session, inputId="editSelDBtabs", choices=tbs, 
         selected=tbs[idx]) 
@@ -4139,6 +4176,7 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     if(input$inputDBPan == "Map data") 
     {
 cat ("Map data hit.\n")
+      require(rgdal) 
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = "Preparing projection library",value = 2)
       updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())

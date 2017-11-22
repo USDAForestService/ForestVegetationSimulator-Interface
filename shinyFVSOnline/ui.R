@@ -420,7 +420,7 @@ shinyUI(fixedPage(
            	  selectInput("uploadSelDBtabs", label="Table to process",
       	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               fileInput("uploadStdTree",
-                       'Upload and commit to "Table to process" (.csv, data will be appended)',
+                       'Upload .cvs file and append to "Table to process"',
                         width="90%"), 
               fileInput("climateFVSUpload",
                         "Upload and commit Climate-FVS data (append and replace; FVSClimAttrs.csv or answers.zip).",
@@ -452,7 +452,7 @@ shinyUI(fixedPage(
                   textOutput("actionMsg"))
              )),              
             tabPanel("Map data", h6(),       
-              fileInput("mapUpload","Upload polygon data (.zip that contains spatial data)",
+              fileInput("mapUpload","Upload polygon (best) or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
            	  selectInput("mapUpLayers", label="Layer",
       	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),

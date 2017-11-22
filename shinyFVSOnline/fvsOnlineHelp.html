@@ -283,13 +283,20 @@ on the image and rotate it, flip it, and zoom in and out using your mouse.
 </p>
 <h4><a name="tmmaps"></a>Maps</h4>
 <p>You can display stand polygon boundaries of the stands in the <b>Selected Run</b> 
-over a Google satellite image. Select an <b>Output Table</b> and a <b>Variable</b> 
+over a Google satellite or other map. Select an <b>Output Table</b> and a <b>Variable</b> 
 from the table. When you point your mouse at a stand, a small table is displayed 
 showing the values of that variable over time. You can <b>Display</b> graphs rather 
 than tables. Note that if you have a very large run, it can take significant amounts of
-time to generate the graphs. Note that the spatial polygons of the stand boundaries are 
-required to use this feature. See <b>Map data</b> under <a href="#tmin">Import Data</a>
+time to generate the graphs. 
+</p><p>
+Note that the spatial polygons of the stand boundaries are 
+required to display boundaries. However, spatial points can alternatively be loaded and
+when points are provided, a red dot is displayed at the point location. 
+See <b>Map data</b> under <a href="#tmin">Import Data</a>
 to see now to load this spatial data.
+</p><p>
+If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
+information from the FVS_StandInit table assuming WGS84 geographic coordinates are used. 
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
@@ -303,9 +310,8 @@ can be installed without uploading a file simply by pressing the
 obvious buttons.</p>
 <p>You can <b>Upload and insert new rows</b> to existing database
 tables. This is done by uploading a .csv file that contains column
-headings that are also in the existing database tables. Columns in
-the .csv file that are not in the existing table are ignored. Columns
-in the existing table that have no values in the .csv file are left
+headings. Columns in the .csv file that are not in the existing table are added. 
+Columns in the existing table that have no values in the .csv file are left
 null.</p>
 <p>You can <b>View and edit existing tables</b>. Use the <b>Edit</b>
 mode to change values or delete rows. Make the changes and then
@@ -320,7 +326,8 @@ in the
 Users Guide to the Database Extension.</a></p>
 <p>You can upload <b>Map data</b> that is used to display stand polygons on top of reference
 maps using the <a href="#tmmaps">Maps</a> menu item. Many file formats are
-supported. To upload a map, first create a .zip file that contains a single directory (folder) 
+supported, <a href="http://www.gdal.org/ogr_formats.html" target="_blank">see this
+list</a>. To upload a map, first create a .zip file that contains a single directory (folder) 
 where the coverages are stored. Then upload the .zip file and let FVSOnline try to
 load the appropriate files. </p>
 <p>If the .zip file contains more than one coverage, you can select the one that 
@@ -329,7 +336,7 @@ the polygons must be identifiable by StandID but frequently the coverage data co
 this information under a different variable name. FVSOnline attempts to discover the 
 correct variable to match to StandID. You can set the variable here if necessary.</p>
 <p>If the geographic projection of your data is not stored with the data (usually it 
-is an element of the .zip file), then you can set the projection
+is part of the coverage data), then you can set the projection
 using the provided tools. You can select a projection from the list button or just
 type in the proj4 string into the text box if you know what it is. Note the the 
 projection is set or reset here but the spatial data is not reprojected. 
