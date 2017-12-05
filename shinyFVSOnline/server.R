@@ -8,6 +8,7 @@ library(colourpicker)
 library(rgl)
 library(leaflet)
 #library(rgdal) #loaded when it is needed
+library(openxlsx)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
@@ -35,7 +36,6 @@ shinyServer(function(input, output, session) {
     source("componentWins.R",local=TRUE)
     source("mkInputElements.R",local=TRUE)
     source("editDataUtilities.R",local=TRUE)
-    myobjExist <- function(name,envir) !is.na(match(name,ls(envir=envir)))
 
     if (file.exists("localSettings.R")) 
              source("localSettings.R",local=TRUE) else if
@@ -133,8 +133,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
-    if (myobjExist("dbOcon",dbGlb)) try(dbDisconnect(dbGlb$dbOcon))
-    if (myobjExist("dbIcon",dbGlb)) try(dbDisconnect(dbGlb$dbIcon))
+    if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+    if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
     if (globals$saveOnExit) 
     {
       saveRun()
@@ -2504,14 +2504,53 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
        content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
   output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
-  ## Download dlRenderData
-  output$dlRenderData <- downloadHandler(filename="table.csv",
+  output$dlFVSOutxlsx <- downloadHandler(
+       filename=function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
+       content = function (tf = paste0(tempfile(),".xlsx"))
+       {
+         runuuid = globals$fvsRun$uuid
+         if (is.null(runuuid)) return()
+         tabs = dbListTables(dbGlb$dbOcon)
+         if (!("FVS_Cases" %in% tabs)) return()
+         cases = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
+             "where KeywordFile = '",globals$fvsRun$uuid,"';"))
+         if (nrow(cases) == 0) return()
+cat ("download run as xlsx, ncases=",nrow(cases),"\n")
+         tmp = paste0("tmp",gsub("-","",runuuid),Sys.getpid(),"genoutput")
+         dbSendQuery(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
+         casesToGet = paste0(tmp,".casesToGet")
+         dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
+         out = list()
+         for (tab in tabs)
+         {
+           qry = paste0("select * from ",tab," where ",tab,".CaseID in",
+           " (select CaseID from ",casesToGet,") limit 1048576;")
+          dat = try(dbGetQuery(dbGlb$dbOcon,qry))
+          if (class(dat) != "try-error") out[[tab]] = dat
+cat ("qry=",qry," class(dat)=",class(dat),"\n")
+         }
+         dbSendQuery(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
+         if (length(out)) write.xlsx(file=tf,out)
+       }, contentType=NULL)
+  ## Download dlRenderData  
+  output$dlRenderData <- downloadHandler(
+      filename=function() paste0("table",isolate(input$dlRDType)),
       content=function (tf = tempfile())
       {
-        if (nrow(fvsOutData$render) > 0)
-          write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
-          cat (file=tf,'"No data"\n')
-      }, contentType="text")
+        if (isolate(input$dlRDType) == ".csv")
+        {
+          if (nrow(fvsOutData$render) > 0)
+            write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
+            cat (file=tf,'"No data"\n')
+        } else {
+          if (nrow(fvsOutData$render) > 0)
+          {
+            tabOut =  if (nrow(fvsOutData$render) > 1048576) 
+              fvsOutData$render[1:1048576,] else fvsOutData$render
+            write.xlsx(tabOut,file=tf, colNames = TRUE) 
+          } else write.xlsx(file=tf)
+        }          
+      }, contentType=NULL)
   ## dlPrjBackup
   output$dlPrjBackup <- downloadHandler(filename=function ()
       isolate({
@@ -2903,8 +2942,10 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       tables = list()
       for (tab in tabs)
       {
+        tb <- dbGetQuery(dbGlb$dbOcon,paste0("PRAGMA table_info('",tab,"')"))
+        if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
         cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                 " where CaseID in (select CaseID from m.mapsCases)")))
+                 " where CaseID in (select CaseID from m.mapsCases) limit 1")))
         if (class(cnt) == "try-error") next
         if (cnt[1,1]) tables=append(tables,tab)
       }
@@ -2935,9 +2976,9 @@ cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
       require(rgdal) 
 cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
      " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
-      if (!myobjExist("SpatialData",dbGlb) && 
+      if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
           file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
-      if (!myobjExist("SpatialData",dbGlb)) 
+      if (!exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
         stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
         dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
@@ -3394,36 +3435,59 @@ cat ("Replace existing database\n")
   }) 
   ## Upload new database
   observe({  
-    if (is.null(input$uploadNewDB)) return()   
-    if (regexpr("\\.accdb$",input$uploadNewDB$name) == 0 && 
-        regexpr("\\.mdb$",input$uploadNewDB$name)   == 0 &&
-        regexpr("\\.db$",input$uploadNewDB$name)    == 0) return()
-    dbDisconnect(dbGlb$dbIcon)
-    unlink ("FVS_Data.db")
-    if (regexpr("\\.db$",input$uploadNewDB$name) > 1) 
+    if (is.null(input$uploadNewDB)) return()
+    fext = tools::file_ext(basename(input$uploadNewDB$name))
+cat ("fext=",fext,"\n")
+    if (! (fext %in% c("accdb","mdb","db","xlsx","zip"))) 
     {
-      file.copy(input$uploadNewDB$datapath,"FVS_Data.db",overwrite = TRUE)
-    } else {   
+      output$replaceActionMsg  = renderText("Uploaded file is not suitable.")
+      unlink(input$uploadNewDB$datapath)
+      return()
+    }
+    fdir = dirname(input$uploadNewDB$datapath)
+    if (fext == "zip") 
+    {
+      unzip(input$uploadNewDB$datapath, junkpaths = TRUE, exdir = fdir)
+      unlink(input$uploadNewDB$datapath)
+      fname = dir(dirname(input$uploadNewDB$datapath))
+      if (length(fname)>1) 
+      {
+        output$replaceActionMsg = renderText(".zip contains more than one file.")
+        lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
+        return()
+      } else if (length(fname) == 0) {
+        output$actionMsg = renderText(".zip was empty.")
+        return()
+      } 
+      fext = tools::file_ext(fname)
+      if (! (fext %in% c("accdb","mdb","db","xlsx"))) 
+      {
+        output$replaceActionMsg = renderText(".zip did not contain a suitable file.")
+        lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
+        return()
+      }
+    } else fname = basename(input$uploadNewDB$datapath)
+cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
+    source("dbNamesAndTypes.R")
+    curDir=getwd()
+    setwd(fdir)
+    if (fext %in% c("accdb","mdb"))
+    {      
       progress <- shiny::Progress$new(session,min=1,max=12)
-      progress$set(message = "Create schema", value = 1)
-      source("dbNamesAndTypes.R")
-      curDir=getwd()
       progress$set(message = "Process schema", value = 2)
-
-      setwd(dirname(input$uploadNewDB$datapath))
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
          shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
-              basename(input$uploadNewDB$datapath)," --schema"),type="cmd2") else
+              fname," --schema"),type="cmd2") else
          paste0("java -jar '",curDir,"/access2csv.jar' ",
-              basename(input$uploadNewDB$datapath)," --schema")
+              fname," --schema")
 cat ("cmd=",cmd,"\n")
       schema = system(cmd,intern = TRUE)
       if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
         progress$close()     
-        output$actionMsg = renderText("'schema' not created, no data loaded.")
+        output$replaceActionMsg = renderText("'schema' not created, no data loaded.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
@@ -3470,13 +3534,10 @@ cat ("cmd=",cmd,"\n")
       schema = gsub(" MEMO,"," TEXT,",schema)
       schema = gsub(" SHORT_DATE_TIME,"," TEXT,",schema)
       cat (paste0(schema,"\n"),file="schema")
-      progress$set(message = "Extract data", value = 3) 
-      
+      progress$set(message = "Extract data", value = 3)            
       cmd = if (.Platform$OS.type == "windows") 
-         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
-              basename(input$uploadNewDB$datapath)),type="cmd2") else
-         paste0("java -jar '",curDir,"/access2csv.jar' ",
-               basename(input$uploadNewDB$datapath))
+         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",fname),type="cmd2") else
+         paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
 cat ("cmd=",cmd,"\n")       
       system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
@@ -3499,27 +3560,155 @@ cat ("cmd=",cmd,"\n")
 cat ("cmd=",cmd,"\n")
         if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
       }
-      progress$set(message = "Copy tables", value = i+1) 
-      lapply(schema,unlink) 
-      file.copy("FVS_Data.db",paste0(curDir),overwrite=TRUE)
-      unlink("schema") 
-      setwd(curDir)      
-      Sys.sleep (.5) 
-      progress$close()  
+    } else if (fext == "xlsx") {
+      sheets = getSheetNames(fname)
+      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+3)
+      i = 0
+      normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
+                    "FVS_StandInit","FVS_TreeInit")
+      for (sheet in sheets)
+      {
+        i = i+1
+cat ("sheet = ",sheet," i=",i,"\n")
+        progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
+        odb = dbConnect(dbDrv,"FVS_Data.db")
+        sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
+        im = grep(sheet,normNames,ignore.case=TRUE)
+        if (!is.na(im)) sheet = normNames[im]
+        NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,NULL) 
+        if (!is.null(NT))
+        {
+          std = pmatch(names(sdat),NT[,1])        
+          for (icol in 1:length(sdat))
+          {
+            if (!is.na(std[icol])) sdat[,icol] = 
+              switch(NT[std[icol],2],
+              "TEXT"    = as.character(sdat[,icol]),
+              "REAL"    = as.numeric  (sdat[,icol]),
+              "INTEGER" = as.integer  (sdat[,icol]))
+          }
+        }
+        dbWriteTable(conn=odb,name=sheet,value=sdat)
+      }
+    } else {
+      i = 0
+      file.rename(from=fname,to="FVS_Data.db")
+      dbo = dbConnect(dbDrv,"FVS_Data.db")
+      progress <- shiny::Progress$new(session,min=1,max=3)
     }
-    unlink(input$uploadNewDB$datapath)
+    tabs = dbListTables(dbo)
+    # get rid of "NRIS_" part of names if any
+    for (tab in tabs)
+    {
+      nn = sub("NRIS_","",tab)
+      if (nchar(nn) && nn != tab) dbSendQuery(dbo,paste0("alter table ",tab," rename to ",nn))
+    }
+    tabs = dbListTables(dbo)
+    rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
+      paste0("select count(*) as ",x," from ",x,";"))))
+    msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
+    msg = paste0("Uploaded data: ",paste0(msg,collapse="; "))
+    output$replaceActionMsg = renderText(msg)
+    dbGlb$newFVSData = tempfile()
+    file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
+    dbDisconnect(dbo)
+    session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+    setwd(curDir)      
+    progress$close()    
+  })
+  ## installNewDB
+  observe({  
+    if (input$installNewDB == 0) return()
+    if (is.null(dbGlb$newFVSData)) return()
+    dbDisconnect(dbGlb$dbIcon)
+    file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE)
+    unlink(dbGlb$newFVSData)
+    dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     progress <- shiny::Progress$new(session,min=1,max=3)
     progress$set(message = "Checking database query keywords", value = 1)
     fixFVSKeywords(dbGlb,progress) 
     msg = checkMinColumnDefs(dbGlb,progress)
-    Sys.sleep (.5) 
-    progress$close()    
-    loadVarData(globals,prms,dbGlb$dbIcon)                                              
     output$replaceActionMsg <- renderText(msg)
-    session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+    loadVarData(globals,prms,dbGlb$dbIcon)                                              
     initNewInputDB()
+    progress$close()
+  }) 
+  ## addNewDB
+  observe({  
+    if (input$addNewDB == 0) return()
+    if (is.null(dbGlb$newFVSData)) return()
+    oldtabs = dbListTables(dbGlb$dbIcon)
+    dbo = dbConnect(dbDrv,dbGlb$newFVSData)
+    newtabs = dbListTables(dbo)
+    progress <- shiny::Progress$new(session,min=1,max=length(newtabs)+1)
+    i = 0
+    dbDisconnect(dbo)
+    attach = try(dbSendQuery(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
+    if (class(attach) == "try-error")
+    {
+      output$replaceActionMsg <- renderText("New data could not be loaded")
+      unlink(dbGlb$newFVSData)
+      dbGlb$newFVSData=NULL
+    }
+    justNew = setdiff(newtabs,oldtabs)
+    dbBegin(dbGlb$dbIcon)
+    for (tab in justNew) 
+    {
+      i=i+1
+      progress$set(message = paste0("Loading ",tab), value = i)
+      dbSendQuery(dbGlb$dbIcon,paste0("insert into ",tab," select * from addnew.",tab))
+    }
+    newtabs = setdiff(newtabs,justNew)
+    for (tab in newtabs)
+    {
+      i=i+1
+      progress$set(message = paste0("Loading ",tab), value = i)
+      if (tab %in% c("FVS_StandInit","FVS_TreeInit","FVS_PlotInit"))
+      {
+        dbSendQuery(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
+                    "(select Stand_ID from addnew.",tab,")"))
+      } else if (tab == "FVS_GroupAddFilesAndKeywords") {
+        dbSendQuery(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
+                    " (select Groups from addnew.",tab,")"))
+      }
+      # homogenize table structure and then do the insert from ...
+      newTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma addnew.table_info(",tab,")"))
+      trgTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma        table_info(",tab,")"))
+      newTdef$lcname = tolower(newTdef$name)
+      trgTdef$lcname = tolower(trgTdef$name)
+      missingInTrg = setdiff(newTdef$lcname,trgTdef$lcname)
+      missingIndx  = match(missingInTrg,newTdef$lcname)
+      if (length(missingIndx) && !any(is.na(missingIndx)))
+      {
+        for (i in missingIndx)
+        {
+          qry = paste0("alter table ",tab," add column ",newTdef$name[i],
+                " ",newTdef$type[i],";")
+cat ("homogenize qry=",qry,"\n")
+          dbSendQuery(dbGlb$dbIcon,qry)
+        }
+      }
+      alln = paste0(newTdef$name,collapse=",")
+      qry = paste0("insert into ",tab," (",alln,") select ",alln,
+                   " from addnew.",tab,";") 
+cat ("homogenize qry=",qry,"\n")
+      dbSendQuery(dbGlb$dbIcon,qry)
+    }
+    dbCommit(dbGlb$dbIcon)
+    dbSendQuery(dbGlb$dbIcon,paste0("detach addnew;"))
+    unlink(dbGlb$newFVSData)
+    dbGlb$newFVSData=NULL
+    tabs = dbListTables(dbGlb$dbIcon)
+    rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
+      paste0("select count(*) as ",x," from ",x,";"))))
+    msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
+    msg = paste0("New database: ",paste0(msg,collapse="; "))
+    output$replaceActionMsg <- renderText(msg)
+    loadVarData(globals,prms,dbGlb$dbIcon) 
+    initNewInputDB()
+    progress$close()
   }) 
   observe({
     if(input$inputDBPan == "Upload and insert new rows (.csv)") 
@@ -3548,7 +3737,7 @@ cat ("Upload new rows\n")
           selected=tbs[idx])
       } else updateSelectInput(session=session, inputId="uploadSelDBtabs",  
                choices=list())
-      output$uploadActionMsg <- renderText(if (length(tbs)) "" else 
+      output$replaceActionMsg <- renderText(if (length(tbs)) "" else 
         "No tables in existing database. Use 'Replace existing' to install a new one.")        
       initNewInputDB()
     }
@@ -4183,14 +4372,31 @@ cat ("Map data hit.\n")
       if (!exists("prjs",envir=dbGlb,inherit=FALSE)) 
       {
         dbGlb$prjs = make_EPSG()
-        dbGlb$prjs = dbGlb$prjs[-(1:696),]
-        dbGlb$prjs = dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
-        del = grep("unable",dbGlb$prjs$note,ignore.case=TRUE)
-        if (length(del))  dbGlb$prjs = dbGlb$prjs[-del,]
-        del = grep("deprecated",dbGlb$prjs$note,ignore.case=TRUE)
-        if (length(del))  dbGlb$prjs = dbGlb$prjs[-del,]
-        dbGlb$prjs = dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
+        delList = c("Unknown","deprecated","Unable to","Unspecified","Paris","China",
+        "Oslo","NZGD","Kalianpur","Hartebeesth","ELD79","Sierra Le","Locodjo","ETRS89",
+        "Xian 1980","Italy","GDM2000","KKJ ","Karbala","North Pole","LGD2006","JAD2","GDA94",
+        "HTRS96","Bermuda","Pitcairn","Cuba ","Kertau","Portug","Brunei","Jakarta","Abidjan",
+        "Chile","Russia","Japan","Israel","Nahrwan","Fiji","Viti L","PRS92","MAGNA-","Banglade",
+        "Minna","poraloko","Sahara","Zanderij","MGI","Ain el","Afgooye","Barbados","Carthage",
+        "Luzon","Maroc","Massawa","Schwarzeck","Tanana","Timbalai","OSNI","Irish","Trinidad",
+        "Voirol","Yoff","Belge ","Tokyo","British","Amersfoort","Lao ","Yemen ","Brazil",
+        "Indian","Indonesia","Garoua","Fahud","Egypt","Deir ez","Corrego","Cape /","Hong Kong",
+        "Bogota","Camacupa","Beijing","Batavia","Aratu","Adindan","Pulkovo","Lisbon","Hanoi",
+        "Macedonia","Cayman","Arctic","Europe","Krovak","Panama","Sibun G","Ocotepeque",
+        "Peru","DRUKREF","TUREF","Korea","Spain","Congo","Katanga","Manoca","LKS9","Tahiti",
+        "Argentina","Iraq","Slovenia","Naparima","Mauritania","Maupiti","Martinique","Estonian",
+        "Qatar","Doulas","Easter","Qornoq","Rassad","Miquelon","Segara","Tahhaa","Singapore")
+        dbGlb$prjs <- dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
+        for (del in delList)
+        {
+          tod = grep(del,dbGlb$prjs[,2],ignore.case=TRUE)
+# cat ("del=",del," len=",length(tod)," nrow=",nrow(dbGlb$prjs),"\n")
+          if (length(tod)) dbGlb$prjs = dbGlb$prjs[-tod,]
+        }         
       }
+      dbGlb$prjs = dbGlb$prjs[order(dbGlb$prjs[,2]),]
+      grp = c(grep ("NAD",dbGlb$prjs[,2],fixed=TRUE),grep("WGS",dbGlb$prjs[,2],fixed=TRUE))
+      dbGlb$prjs = rbind(dbGlb$prjs[grp,],dbGlb$prjs[-grp,])
       updateSelectInput(session=session, inputId="mapUpLayers", choices=list(),
                         selected=0)
       epsg = as.character(1:nrow(dbGlb$prjs))

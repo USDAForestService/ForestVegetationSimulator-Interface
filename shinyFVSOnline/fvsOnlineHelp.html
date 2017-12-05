@@ -217,10 +217,10 @@ for graphing.
 <p>When <b>Tables</b> are
 displayed, you can use tools to change a categorical variable (such
 as stand or management identifications) into a column and display a
-variable’s value under that column. Tables can be download as .csv
+variable’s value under that column. Tables can be download as .xlsx or .csv
 files (easily opened using Excel or other spreadsheet programs). Note
 that the number of lines displayed in the table is limited, however,
-when the table is downloaded, all lines are included. 
+when the table is downloaded, all lines are included (.xlsx row limit is 1048576). 
 </p>
 <p>The <b>Graphs</b> menu
 item on the right provides
@@ -260,7 +260,7 @@ database (the database structure is defined in the
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
 Users Guide to the Database Extension).</a> The tabular output from 
 those queries is displayed as a table and data in that table can be graphed or
-downloaded as a .csv file. 
+downloaded. 
 Note that SQLite3 allows the attachment additional databases. For example, 
 the input database can be attached and tables from the input can then be 
 joined to tables in the output. A <i>query</i> can
@@ -303,8 +303,9 @@ information from the FVS_StandInit table assuming WGS84 geographic coordinates a
 <h4><a name="tmin"></a>Import Data</h4>
 <p>You can <b>Replace the existing database</b> by uploading an
 FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
-database (use the file suffix .db) or as a Microsoft Access database
-(.mdb or .accdb). The built-in training data or a blank database (and
+database (use the file suffix .db), as a Microsoft Access database
+(.mdb or .accdb), or as an Excel (.xlsx) database where the sheet names are
+the same as the target table names. The built-in training data or a blank database (and
 FVS-Ready database that contains no rows but has predefined columns)
 can be installed without uploading a file simply by pressing the
 obvious buttons.</p>

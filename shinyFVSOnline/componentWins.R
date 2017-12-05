@@ -481,9 +481,7 @@ SeedTreeWin <- function(title, prms, fvsRun, globals,session=session)
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
       if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
-  
-  cat ("in SeedTreeWin code, defs=",defs,"\n")  
-  # useShinyjs()
+cat ("in SeedTreeWin code, defs=",defs,"\n")  
   ans <- list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
@@ -527,17 +525,14 @@ SeedTreeWin <- function(title, prms, fvsRun, globals,session=session)
 
 observe({
   if(length(input$stf3)==0) return()
-  # shinyjs::toggleState(c("stf4"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f5"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f6"), input$stf3 == "1")
-  # shinyjs::toggleState(c("f7"), input$stf3 == "1")
-  # browser()
-  if(input$stf3==1 && is.null(input$stf4)) 
-    updateTextInput(session=session,inputId ="stf4",value=" ")  
-  updateTextInput(session=session,inputId ="stf5",value=" ")
-  if(length(input$stf4))
-    updateTextInput(session=session,inputId ="stf4",value=
-                      switch(input$stf5,"3"="200","4"="60"))
+  isolate({
+    if(input$stf3==1 && is.null(input$stf4)) 
+      updateTextInput(session=session,inputId ="stf4",value=" ")  
+    updateTextInput(session=session,inputId ="stf5",value=" ")
+    if(length(input$stf4))
+      updateTextInput(session=session,inputId ="stf4",value=
+                        switch(input$stf5,"3"="200","4"="60"))
+  })
 }) 
 
 SeedTreeWin.mkKeyWrd <- function(input,output)
