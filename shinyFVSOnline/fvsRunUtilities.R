@@ -36,7 +36,7 @@ mkGlobals <<- setRefClass("globals",
     selVarList = "list", customCmps = "list", selStds = "character",
     schedBoxPkey = "character", currentCmdPkey = "character",
     currentCndPkey = "character", winBuildFunction = "character", 
-    existingCmps = "list",currentQuickPlot = "character", 
+    existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character" ))

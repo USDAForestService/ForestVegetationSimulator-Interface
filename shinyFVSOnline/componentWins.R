@@ -1,13 +1,13 @@
 keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
 {
-  defs <- c(f1=" ",freeEdit="")
+  globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      mkFreeformEltList(globals,prms,title,defs["freeEdit"]),
+      mkFreeformEltList(globals,prms,title,globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
           "Enter one or more expressions the define <i>compute</i> variables. ",
           "Example:<br><b>NormStk = 25000*((BADBH+1.)**(-1.588))<br></b>",
@@ -29,17 +29,17 @@ cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
 
 keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
 {
-  defs <- c(freeEdit=" ")
+  globals$currentCmdDefs <- c(freeEdit=" ")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
       tags$style(type="label/css", "#cmdTitle{display: inline;}"),
       myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
           "Specify an SQL statement that from which stand-level ",
           "FVS variables are initialized.<br>Example:<br><b>",
@@ -60,17 +60,17 @@ keyword.dbs.StandSQL.Win.mkKeyWrd <- function(input,output)
 
 keyword.dbs.TreeSQL.Win <- function(title, prms, fvsRun, globals)
 {
-  defs <- c(freeEdit=" ")
+  globals$currentCmdDefs <- c(freeEdit=" ")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
       tags$style(type="label/css", "#cmdTitle{display: inline;}"),
       myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
           "Specify an SQL statement that from which tree-level ",
           "FVS variables are initialized.<br>Example:<br><b>",
@@ -92,10 +92,10 @@ keyword.dbs.TreeSQL.Win.mkKeyWrd <- function(input,output)
 
 keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
 {
-  defs <- c(f1=" ",freeEdit="")
+  globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
@@ -103,7 +103,7 @@ keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
       myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"]),
+      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
             "Run an query on the DSNIn connection. If the query is a SELECT, ",
             "then the last row of the result table will define the values of ",
@@ -125,10 +125,10 @@ keyword.dbs.SQLIn.Win.mkKeyWrd <- function(input,output)
 
 keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
 {
-  defs <- c(f1=" ",freeEdit="")
+  globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
@@ -136,7 +136,7 @@ keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
       myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-      tags$textarea(id="freeEdit", rows=10, defs["freeEdit"])),
+      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"])),
     list())
   ans
 }
@@ -154,22 +154,22 @@ ClearcutWin <- function(title, prms, fvsRun, globals)
 {
   pknum = match("management.Clearcut",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",f2="5",f3="10",ccf4="1",ccf5="30",ccf6="5")
+  globals$currentCmdDefs <- c(f1=" ",f2="5",f3="10",ccf4="1",ccf5="30",ccf6="5")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
-cat ("in ClearcutWin code, defs=",defs,"\n")    
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
+cat ("in ClearcutWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")    
   # change this global so that the correct prms entry can be found later
   ans <- list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("f2", "Diameter of smallest tree cut: ", defs["f2"]),
-      myInlineTextInput("f3", "Number of legacy trees per acre: ", defs["f3"]),
+      myInlineTextInput("f2", "Diameter of smallest tree cut: ", globals$currentCmdDefs["f2"]),
+      myInlineTextInput("f3", "Number of legacy trees per acre: ", globals$currentCmdDefs["f3"]),
       radioButtons("ccf4", "How is the minimum diameter of legacy trees computed?", 
         c("Exactly specified, or"="1",
           "computed as percentile point in the distribution of trees."="2"),
-        selected=defs["ccf4"],inline=TRUE),
+        selected=globals$currentCmdDefs["ccf4"],inline=TRUE),
       uiOutput("ClearcutWinMin")
     ),
     list(br(),
@@ -180,9 +180,9 @@ cat ("in ClearcutWin code, defs=",defs,"\n")
   {
     output$ClearcutWinMin = renderUI(list( if (input$ccf4=="1")
       myInlineTextInput ("ccf5",
-        "Minimum diameter of legacy trees: ",defs["ccf5"]) else
+        "Minimum diameter of legacy trees: ",globals$currentCmdDefs["ccf5"]) else
       radioButtons("ccf6", "Percentile point", 
-        c("50th"="3","70th"="4","90th"="5"),defs["ccf6"],inline=TRUE)))        
+        c("50th"="3","70th"="4","90th"="5"),globals$currentCmdDefs["ccf6"],inline=TRUE)))        
   })
   ans  
 }
@@ -211,21 +211,21 @@ PlantNaturalFullWin <- function(title, prms, fvsRun, globals, full=TRUE)
 {
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
-  defs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",
+  globals$currentCmdDefs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",
     pnSprt=getPstring(atag=globals$activeVariants[1],pkey="hasSproutingSpecies",
           pkeys=prms[[pknum]])[[1]],
     pnYpn1="1",pnTr1="1",pnSp1=" ", pnTpa1=" ",pnPsv1="100.",pnAge1=" ",
     pnHt1=" ",pnShd1="0",
     pnYpn2="1",pnTr2="1",pnSp2=" ", pnTpa2=" ",pnPsv2="100.",pnAge2=" ",
     pnHt2=" ",pnShd2="0")
-  if (full) defs <- c(defs,
+  if (full) globals$currentCmdDefs <- c(globals$currentCmdDefs,
     c(pnIng=getPstring(atag=globals$activeVariants[1],pkey="inGrowthDefault",
           pkeys=prms[[pknum]])[[1]],pnNt="1",pnSAj="1.0"))
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
-      defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   # change this global so that the correct prms entry can be found later
-cat ("in PlantNaturalFullWin code, defs=",defs,"\n")    
+cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")    
   ans <- list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
@@ -233,67 +233,67 @@ cat ("in PlantNaturalFullWin code, defs=",defs,"\n")
         fvsRun,globals),
       div(style="background-color: rgb(255,240,240)",
         myInlineTextInput("pnYD", "Years following disturbance for site preparation: ", 
-          defs["pnYD"]),
+          globals$currentCmdDefs["pnYD"]),
         fixedRow(
           column(width=4,
-            myInlineTextInput("pnPBrn", "% plots burned: ", defs["pnPBrn"])),
+            myInlineTextInput("pnPBrn", "% plots burned: ", globals$currentCmdDefs["pnPBrn"])),
           column(width=6,          
             myInlineTextInput("pnPMch", "% mechanically scarified: ", 
-              defs["pnPMch"]))
+              globals$currentCmdDefs["pnPMch"]))
       )),
       div(style="background-color: rgb(240,240,255)",
         fixedRow(
           column(width=5,          
             myRadioGroup("pnSprt", "Sprouting:", c("On"="1","Off"="0"),
-              selected=defs["pnSprt"])),
+              selected=globals$currentCmdDefs["pnSprt"])),
           if (full) column(width=5,          
             myRadioGroup("pnIng", "Ingrowth:", c("On"="1","Off"="0"),
-              selected=defs["pnIng"])) else NULL
+              selected=globals$currentCmdDefs["pnIng"])) else NULL
          ),
         if (full) fixedRow(
           column(width=8,          
             myRadioGroup("pnNt", "New trees include ", 
               c("just those specified"="0",
-                "model predicted"="1"),selected=defs["pnNt"])),
+                "model predicted"="1"),selected=globals$currentCmdDefs["pnNt"])),
           column(width=3,          
-            myInlineTextInput("pnSAj","Stock Adj:", value=defs["pnSAj"], size=6))
+            myInlineTextInput("pnSAj","Stock Adj:", value=globals$currentCmdDefs["pnSAj"], size=6))
          ) else NULL
       ),
       div(style="background-color: rgb(240,255,240)",
         myInlineTextInput("pnYpn1", "Regen 1) Years following disturbance for regeneration: ", 
-          defs["pnYpn1"]),
+          globals$currentCmdDefs["pnYpn1"]),
         myRadioGroup("pnTr1", "Type of regeneration scheduled: ", 
-          c("Plant"="1","Natural"="2"),selected=defs["pnTr1"]),
-        mkSelSpecies("pnSp1",prms,"Species",defs["pnSp1"],"deleteAll",globals$activeVariants[1]),
+          c("Plant"="1","Natural"="2"),selected=globals$currentCmdDefs["pnTr1"]),
+        mkSelSpecies("pnSp1",prms,"Species",globals$currentCmdDefs["pnSp1"],"deleteAll",globals$activeVariants[1]),
         fixedRow(
           column(width=5,       
-            myInlineTextInput("pnTpa1","Trees/acre: ", value=defs["pnTpa1"], size=10),
-            myInlineTextInput("pnPsv1","Percent survival: ", value=defs["pnPsv1"], size=10)),
+            myInlineTextInput("pnTpa1","Trees/acre: ", value=globals$currentCmdDefs["pnTpa1"], size=10),
+            myInlineTextInput("pnPsv1","Percent survival: ", value=globals$currentCmdDefs["pnPsv1"], size=10)),
           column(width=5,         
-            myInlineTextInput("pnAge1","Average age: ", value=defs["pnAge1"], size=10),
-            myInlineTextInput("pnHt1","Average height: ", value=defs["pnHt1"], size=10))),
+            myInlineTextInput("pnAge1","Average age: ", value=globals$currentCmdDefs["pnAge1"], size=10),
+            myInlineTextInput("pnHt1","Average height: ", value=globals$currentCmdDefs["pnHt1"], size=10))),
         myRadioGroup("pnShd1", "Shade code:", 
           c("Uniform spatial distribution"="0" ,
             "Near dense plots"="1",
-            "Near sparse plots"="2"), selected=defs["pnShd1"])
+            "Near sparse plots"="2"), selected=globals$currentCmdDefs["pnShd1"])
       ),
       div(style="background-color: rgb(255,255,240)",
         myInlineTextInput("pnYpn2", 
-          "Regen 2) Years following disturbance for regeneration: ", defs["pnYpn2"]),
+          "Regen 2) Years following disturbance for regeneration: ", globals$currentCmdDefs["pnYpn2"]),
         myRadioGroup("pnTr2", "Type of regeneration scheduled: ", 
-          c("Plant"="1","Natural"="2"),selected=defs["pnTr2"]),
-        mkSelSpecies("pnSp2",prms,"Species",defs["pnSp2"],"deleteAll",globals$activeVariants[1]),
+          c("Plant"="1","Natural"="2"),selected=globals$currentCmdDefs["pnTr2"]),
+        mkSelSpecies("pnSp2",prms,"Species",globals$currentCmdDefs["pnSp2"],"deleteAll",globals$activeVariants[1]),
         fixedRow(
           column(width=5,       
-            myInlineTextInput("pnTpa2","Trees/acre: ", value=defs["pnTpa2"], size=10),
-            myInlineTextInput("pnPsv2","Percent survival: ", value=defs["pnPsv2"], size=10)),
+            myInlineTextInput("pnTpa2","Trees/acre: ", value=globals$currentCmdDefs["pnTpa2"], size=10),
+            myInlineTextInput("pnPsv2","Percent survival: ", value=globals$currentCmdDefs["pnPsv2"], size=10)),
           column(width=5,         
-            myInlineTextInput("pnAge2","Average age: ", value=defs["pnAge2"], size=10),
-            myInlineTextInput("pnHt2","Average height: ", value=defs["pnHt2"], size=10))),
+            myInlineTextInput("pnAge2","Average age: ", value=globals$currentCmdDefs["pnAge2"], size=10),
+            myInlineTextInput("pnHt2","Average height: ", value=globals$currentCmdDefs["pnHt2"], size=10))),
         myRadioGroup("pnShd2", "Shade code:", 
           c("Uniform spatial distribution"="0" ,
             "Near dense plots"="1",
-            "Near sparse plots"="2"), selected=defs["pnShd2"])    
+            "Near sparse plots"="2"), selected=globals$currentCmdDefs["pnShd2"])    
       )
     ),
     list()
@@ -360,28 +360,28 @@ ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session)
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",tbf2="300",tbf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  globals$currentCmdDefs <- c(f1=" ",tbf2="300",tbf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
-      if(globals$currentEditCmp$reopn[name] != "")  defs[name] = globals$currentEditCmp$reopn[name]
-cat ("in ThinFromBelowWin code, defs=",defs,"\n")  
+    for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "")  globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
+cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
 
   ans <-list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("tbf2", "Specify residual density ",defs["tbf2"]),
+      myInlineTextInput("tbf2", "Specify residual density ",globals$currentCmdDefs["tbf2"]),
       radioButtons("tbf3","in terms of: ",
         choices=list("Trees per acre "="1","Basal area per acre "="2",
                      "Percent of trees per acre at year of thin"="3",
                      "Percent of basal area at year of thin"="4"),
-        selected=defs["tbf3"],inline=FALSE),
-      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", defs["f4"]),
+        selected=globals$currentCmdDefs["tbf3"],inline=FALSE),
+      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", globals$currentCmdDefs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
-      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
-      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"]),
-      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"]),
-      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"])
+      myInlineTextInput("f5","Diameter lower limits (inches) ",globals$currentCmdDefs["f5"]),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", globals$currentCmdDefs["f6"]),
+      myInlineTextInput("f7", "Height lower limits (feet) ", globals$currentCmdDefs["f7"]),
+      myInlineTextInput("f8", "Height upper limits (feet) ", globals$currentCmdDefs["f8"])
     ),
   list(br()))
   ans
@@ -416,30 +416,30 @@ ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session)
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",taf2="300",taf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  globals$currentCmdDefs <- c(f1=" ",taf2="300",taf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
-      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
 
-cat ("in ThinFromAboveWin code, defs=",defs,"\n")  
+cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   
   ans <-list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("taf2", "Specify residual density ",defs["taf2"]),
+      myInlineTextInput("taf2", "Specify residual density ",globals$currentCmdDefs["taf2"]),
       radioButtons("taf3","in terms of: ",
         choices=list("Trees per acre "="1","Basal area per acre "="2",
                      "Percent of trees per acre at year of thin"="3",
                      "Percent of basal area at year of thin"="4"),
-        selected=defs["taf3"],inline=FALSE),
+        selected=globals$currentCmdDefs["taf3"],inline=FALSE),
       myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", 
-                        defs["f4"]),
+                        globals$currentCmdDefs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
-      myInlineTextInput("f5","Diameter lower limits (inches) ",defs["f5"]),
-      myInlineTextInput("f6", "Diameter upper limits (inches) ", defs["f6"]),
-      myInlineTextInput("f7", "Height lower limits (feet) ", defs["f7"]),
-      myInlineTextInput("f8", "Height upper limits (feet) ", defs["f8"])
+      myInlineTextInput("f5","Diameter lower limits (inches) ",globals$currentCmdDefs["f5"]),
+      myInlineTextInput("f6", "Diameter upper limits (inches) ", globals$currentCmdDefs["f6"]),
+      myInlineTextInput("f7", "Height lower limits (feet) ", globals$currentCmdDefs["f7"]),
+      myInlineTextInput("f8", "Height upper limits (feet) ", globals$currentCmdDefs["f8"])
     ),
     list(br()))
   ans
@@ -475,73 +475,92 @@ ThinFromAboveWin.mkKeyWrd <- function(input,output)
 
 SeedTreeWin <- function(title, prms, fvsRun, globals,session=session) 
 {
-  pknum = match("management.Thin",names(prms))
+  pknum = match("management.Seedtree",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",stf2="5",stf3="2",stf4="200",stf5="3",f6="60",f7="10",f8="5", f9="2", f10="10", f11="2", f12="6")
+  globals$currentCmdDefs <- c(f1=" ",stf2="5",stf3="2",stf4="200",stf5="3",f6="60",
+                              f7="10",f8="5", stf9="2", f10="10", f11="2", f12="6")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
-      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
-cat ("in SeedTreeWin code, defs=",defs,"\n")  
+    for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
+cat ("in SeedTreeWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       div(style="background-color: rgb(240,240,255)",
-          myInlineTextInput("stf2", "Smallest diameter cut in prep and seed cuts ", defs["stf2"])),
+          myInlineTextInput("stf2", "Smallest diameter cut in prep and seed cuts ", 
+          globals$currentCmdDefs["stf2"])),
       div(style="background-color: rgb(255,240,240)",
-          radioButtons("stf3", "Perform prep cut?", c("Yes"="1","No"="2"),defs["stf3"],inline=TRUE)),
+          radioButtons("stf3", "Perform prep cut?", c("Yes"="1","No"="2"),
+          globals$currentCmdDefs["stf3"],inline=TRUE)),
       div(style="background-color: rgb(240,240,255)",
           uiOutput("SeedTreePrepCut"),
-          myInlineTextInput("f8", "Seed cut residual trees (cut from below) ", defs["f8"])),
+          myInlineTextInput("f8", "Seed cut residual trees (cut from below) ", 
+          globals$currentCmdDefs["f8"])),
       div(style="background-color: rgb(255,255,240)",
-          radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),defs["f9"],inline=TRUE)),
+          radioButtons("stf9", "Perform removal cut?", c("Yes"="1","No"="2"),
+          globals$currentCmdDefs["stf9"],inline=TRUE)),
       uiOutput("SeedTreeWinMin") 
     ),
     list(br()))
+
+  observe({
+cat ("stf9 observer, length(input$stf9)=",length(input$stf9),"\n")
+    if (length(input$stf9) == 0) return()
+cat ("stf9 observer, input$stf9=",input$stf9,"\n")
+    output$SeedTreeWinMin = renderUI(list(if(input$stf9==1)
+      list(div(style="background-color: rgb(255,255,240)",
+               myInlineTextInput("f10", "scheduled how many years after seed cut?", 
+                 globals$currentCmdDefs["f10"]),
+               myInlineTextInput("f11", "Removal cut residual trees (cut from below)", 
+                 globals$currentCmdDefs["f11"]), 
+               myInlineTextInput("f12", "Smallest diameter cut in removal cut", 
+                 globals$currentCmdDefs["f12"])))))
+  })
   
-  
-  observe(
+  observe({
+cat ("stf3 observer, length(input$stf3)=",length(input$stf3),"\n")
+    if (length(input$stf3) == 0) return()
+cat ("stf3 observer, input$stf3=",input$stf3,"\n")
+    output$SeedTreePrepCut = if(input$stf3=="1")
     {
-      output$SeedTreeWinMin = renderUI(list(if(input$f9==1)
-        list(div(style="background-color: rgb(255,255,240)",
-                 myInlineTextInput("f10", "scheduled how many years after seed cut?", defs["f10"]),
-                 myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
-                 myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
-      
-      if(length(input$stf3)==0) return()
-      output$SeedTreePrepCut = if(input$stf3==1)
-        renderUI(list(div(style="background-color: rgb(255,240,240)",
-                          myInlineTextInput("stf4", "Specify residual density ", defs["stf4"]),
-                          radioButtons("stf5", "in terms of: ", c("Basal area per acre"="3",
-                                                                  "Percent of maximum SDI in year of prep cut"="4"),defs["stf5"])),
-                      HTML(paste0("<b>","Seed cut","</b>")),
-                      myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
+      stObs5$resume()
+      renderUI(list(div(style="background-color: rgb(255,240,240)",
+          myInlineTextInput("stf4", "Specify residual density ", value=globals$currentCmdDefs["stf4"]),
+            radioButtons("stf5", "in terms of: ", 
+              list("Basal area per acre"="3",
+                   "Percent of maximum SDI in year of prep cut"="4"), globals$currentCmdDefs["stf5"])),
+              HTML("<b>Seed cut</b>"),
+                   myInlineTextInput("f7", "scheduled how many years after prep cut?", value=globals$currentCmdDefs["f7"]))
         )
-      else
-        renderUI(list(HTML(paste0("<b>","Seed cut","</b>"))))
-    })
+    } else {
+      stObs5$suspend()      
+      renderUI(list(HTML("<b>Seed cut</b>")))
+    }
+  })
   ans
 }
 
-observe({
-  if(length(input$stf3)==0) return()
+stObs5 = observe({
+cat ("stf5 observer, length(input$stf5)=",length(input$stf5),"\n")
+  if (length(input$stf5) == 0) return()
   isolate({
-    if(input$stf3==1 && is.null(input$stf4)) 
-      updateTextInput(session=session,inputId ="stf4",value=" ")  
-    updateTextInput(session=session,inputId ="stf5",value=" ")
-    if(length(input$stf4))
-      updateTextInput(session=session,inputId ="stf4",value=
-                        switch(input$stf5,"3"="200","4"="60"))
+  if (length(input$stf4) == 0) return()
+cat ("stf5 observer, input$stf5=",input$stf5,"\n")
+  updateTextInput(session=session,inputId ="stf4",value=
+                    switch(input$stf5,"3"="200","4"="60"))
   })
-}) 
+},suspended = TRUE)
+  
+
 
 SeedTreeWin.mkKeyWrd <- function(input,output)
 {
   cat ("in SeedTreeWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$stf2,
-                                           f3=input$stf3,stf4=input$stf4,stf5=input$stf5,f6=input$f6,f7=input$f7,
-                                           f8=input$f8,f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12,"\n"))
+      f3=input$stf3,stf4=input$stf4,stf5=input$stf5,f6=input$f6,f7=input$f7,
+      f8=input$f8,stf9=input$stf9,f10=input$f10,f11=input$f11,f12=input$f12,"\n"))
   
-  kwds = if (input$stf3 == "1" && input$stf5 == "3" && input$f9 == "1") # Prep cut=Yes, Residual BA/AC, Removal cut=Yes
+  kwds = if (input$stf3 == "1" && input$stf5 == "3" && input$stf9 == "1") # Prep cut=Yes, Residual BA/AC, Removal cut=Yes
     sprintf(
       paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
              "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
@@ -549,13 +568,13 @@ SeedTreeWin.mkKeyWrd <- function(input,output)
       input$f1, input$stf4, 1, input$stf2, 999, 0, 999,
       (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999,
       (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
-  else if (input$stf3 == "1" && input$stf5 == "3" && input$f9 == "2") # Prep cut=Yes, Residual BA/AC, Removal cut=No
+  else if (input$stf3 == "1" && input$stf5 == "3" && input$stf9 == "2") # Prep cut=Yes, Residual BA/AC, Removal cut=No
     sprintf(
       paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n",
              "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
       input$f1, input$stf4, 1, input$stf2, 999, 0, 999,
       (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999)
-  else if (input$stf3 == "1" && input$stf5 == "4" && input$f9 == "1") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=Yes
+  else if (input$stf3 == "1" && input$stf5 == "4" && input$stf9 == "1") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=Yes
     sprintf(
       paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
              "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
@@ -563,13 +582,13 @@ SeedTreeWin.mkKeyWrd <- function(input,output)
       input$f1, (as.numeric((input$stf4))/100), 1, 0, input$stf2, 999, 0,
       (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999,
       (as.numeric(input$f1)+as.numeric(input$f7)+as.numeric(input$f10)), input$f11, 1, input$f12, 999, 0, 999)
-  else if (input$stf3 == "1" && input$stf5 == "4" && input$f9 == "2") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=No
+  else if (input$stf3 == "1" && input$stf5 == "4" && input$stf9 == "2") # Prep cut=Yes, Residual % of MaxSDI, Removal cut=No
     sprintf(
       paste0("ThinSDI   %10s  Parms(BSDIMax*%s,%s,%s,%s,%s,%s)\n",
              "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
       input$f1, (as.numeric((input$stf4))/100), 1, 0, input$stf2, 999, 0,
       (as.numeric(input$f1)+as.numeric(input$f7)), input$f8, 1, input$stf2, 999, 0, 999)
-  else if (input$stf3 == "2" && input$f9 == "1") # Prep cut=No, Residual BA/AC, Removal cut=Yes
+  else if (input$stf3 == "2" && input$stf9 == "1") # Prep cut=No, Residual BA/AC, Removal cut=Yes
     sprintf(
       paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n",
              "ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
@@ -581,36 +600,36 @@ SeedTreeWin.mkKeyWrd <- function(input,output)
   
   list(ex="base",kwds=kwds,
        reopn = c(f1=input$f1,stf2=input$stf2,stf3=input$stf3,stf4=input$stf4,stf5=input$stf5,f6=input$f6,f7=input$f7,f8=input$f8,
-                 f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12))
+                 stf9=input$stf9,f10=input$f10,f11=input$f11,f12=input$f12))
 }
 
 ##-----------------------------------Shelterwood----------------------------------------------##
 
 ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session) 
 {
-  pknum = match("management.Thin",names(prms))
+  pknum = match("management.Shelterwood",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  defs <- c(f1=" ",swf2="5",swf3="2",swf4="200",swf5="3",f6="60", f7="10",f8="5", f9="2", f10="10", f11="2", f12="6", f13="50", swf14="6")
+  globals$currentCmdDefs <- c(f1=" ",swf2="5",swf3="2",swf4="200",swf5="3",f6="60", f7="10",f8="5", f9="2", f10="10", f11="2", f12="6", f13="50", swf14="6")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in intersect(names(defs),names(globals$currentEditCmp$reopn))) 
-      if(globals$currentEditCmp$reopn[name] != "") defs[name] = globals$currentEditCmp$reopn[name]
+    for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
+      if(globals$currentEditCmp$reopn[name] != "") globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   
-  cat ("in ShelterwoodWin code, defs=",defs,"\n")  
+  cat ("in ShelterwoodWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       div(style="background-color: rgb(240,240,255)",
-          myInlineTextInput("swf2", "Smallest diameter cut in prep and shelterwood cuts ", defs["swf2"])),
+          myInlineTextInput("swf2", "Smallest diameter cut in prep and shelterwood cuts ", globals$currentCmdDefs["swf2"])),
       div(style="background-color: rgb(255,240,240)",
-          radioButtons("swf3", "Perform prep cut?", c("Yes"="1","No"="2"),defs["swf3"],inline=TRUE)),
+          radioButtons("swf3", "Perform prep cut?", c("Yes"="1","No"="2"),globals$currentCmdDefs["swf3"],inline=TRUE)),
       div(style="background-color: rgb(240,240,255)",uiOutput("ShelterwoodPrepCut"),
-          myInlineTextInput("f13", "Specify residual density ", defs["f13"]),
+          myInlineTextInput("f13", "Specify residual density ", globals$currentCmdDefs["f13"]),
           radioButtons("swf14", "in terms of: ", c("Basal area per acre"="5","Trees per acre"="6",
-                                                   "Percent of maximum SDI in year of prep cut"="7"),defs["swf14"]),
-          myInlineTextInput("f8", "Shelterwood cut residual trees (cut from below) ", defs["f8"])),
+                                                   "Percent of maximum SDI in year of prep cut"="7"),globals$currentCmdDefs["swf14"]),
+          myInlineTextInput("f8", "Shelterwood cut residual trees (cut from below) ", globals$currentCmdDefs["f8"])),
       div(style="background-color: rgb(255,255,240)",
-          radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),defs["f9"],inline=TRUE)),
+          radioButtons("f9", "Perform removal cut?", c("Yes"="1","No"="2"),globals$currentCmdDefs["f9"],inline=TRUE)),
       uiOutput("ShelterwoodWinMin") 
     ),
     list(br()))
@@ -619,18 +638,18 @@ ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session)
     {
       output$ShelterwoodWinMin = renderUI(list(if(input$f9==1)
         list(div(style="background-color: rgb(255,255,240)",
-                 myInlineTextInput("f10", "scheduled how many years after shelterwood cut?", defs["f10"]),
-                 myInlineTextInput("f11", "Removal cut residual trees (cut from below)", defs["f11"]), 
-                 myInlineTextInput("f12", "Smallest diameter cut in removal cut", defs["f12"])))))
+                 myInlineTextInput("f10", "scheduled how many years after shelterwood cut?", globals$currentCmdDefs["f10"]),
+                 myInlineTextInput("f11", "Removal cut residual trees (cut from below)", globals$currentCmdDefs["f11"]), 
+                 myInlineTextInput("f12", "Smallest diameter cut in removal cut", globals$currentCmdDefs["f12"])))))
       
       if(length(input$swf3)==0) return()
       output$ShelterwoodPrepCut = if(input$swf3==1)
         renderUI(list(div(style="background-color: rgb(255,240,240)",
-                          myInlineTextInput("swf4", "Specify residual density ", defs["swf4"]),
+                          myInlineTextInput("swf4", "Specify residual density ", globals$currentCmdDefs["swf4"]),
                           radioButtons("swf5", "in terms of: ", c("Basal area per acre"="3",
-                                                                  "Percent of maximum SDI in year of prep cut"="4"),defs["swf5"])),
+                                                                  "Percent of maximum SDI in year of prep cut"="4"),globals$currentCmdDefs["swf5"])),
                       HTML(paste0("<b>","Shelterwood cut","</b>")),
-                      myInlineTextInput("f7", "scheduled how many years after prep cut?", defs["f7"]))
+                      myInlineTextInput("f7", "scheduled how many years after prep cut?", globals$currentCmdDefs["f7"]))
         )
       else
         renderUI(list(HTML(paste0("<b>","Shelterwood cut","</b>"))))

@@ -61,6 +61,25 @@ shinyServer(function(input, output, session) {
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
+      # make sure there are .RData files for each of these and if not, then
+      # delete them from the list of runs. This code does some testing in hopes
+      # of clearing up some startup-after failure problems.
+      notok = c()
+      for (i in 1:length(FVS_Runs))
+      {
+        rn = names(FVS_Runs)[i]
+        run = FVS_Runs[[i]]
+        ok =  !is.null(rn) && !is.null(run) && nchar(rn) && nchar(run) && rn != run && 
+              !is.null(attributes(run)$time) && file.exists(paste0(rn,".RData"))
+        if (!ok) notok = c(notok,i)
+      }
+cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," notok=",notok,"\n")
+      if (length(FVS_Runs) == length(notok))
+      {
+        unlink("FVS_Runs.RData")
+        resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      } else if (length(notok)) FVS_Runs = FVS_Runs[-notok] 
       globals$FVS_Runs = FVS_Runs
       rm (FVS_Runs)      
     } else { 
@@ -90,6 +109,7 @@ shinyServer(function(input, output, session) {
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
     names(selChoices) = globals$FVS_Runs
+
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=selChoices[[1]])
@@ -1308,23 +1328,23 @@ cat("setting uiRunPlot to NULL\n")
       sel = match (input$runSel,names(globals$FVS_Runs)) 
       if (is.na(sel)) sel = 1
       fn=paste0(names(globals$FVS_Runs)[sel],".RData")
-      if (file.exists(fn)) 
+      ret = try (load(file=fn))  # maybe the file has been corrupted or does not exist
+      if (class(ret) == "try-error")
       {
-        ret = try (load(file=fn))  # maybe the file has been corrupted
-        if (class(ret) == "try-error")
+        cat ("error loading",fn,"\n")
+        unlink(fn)
+        globals$FVS_Runs = globals$FVS_Runs[-sel]
+        saveFvsRun=globals$fvsRun
+        if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
         {
-          cat ("error loading",fn,"\n")
-          unlink(fn)
-          globals$FVS_Runs = globals$FVS_Runs[-sel]
-          saveFvsRun=globals$fvsRun
-          if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
-          {
-            FVS_Runs = globals$FVS_Runs
-            save (file="FVS_Runs.RData",FVS_Runs)
-          }
-        } 
-        globals$fvsRun = saveFvsRun
-      }
+          FVS_Runs = globals$FVS_Runs
+          save (file="FVS_Runs.RData",FVS_Runs)
+        }
+        globals$saveOnExit = TRUE
+        globals$reloadAppIsSet=1
+        session$reload()
+      } 
+      globals$fvsRun = saveFvsRun
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -4710,28 +4730,27 @@ cat ("moreControls hit\n")
   saveRun <- function() 
   {
     isolate({
-      if (input$title == "") 
+      saveTheRun = nchar(trim(input$title)) > 1
+      if (saveTheRun) 
       {
-        if (length(globals$fvsRun$title) == 0) globals$fvsRun$title = paste("Run",length(globals$FVS_Runs))
-        updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
-      } 
-      globals$fvsRun$title = input$title
-      globals$fvsRun$defMgmtID = input$defMgmtID
-      globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
-      if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
-      {
-        for (item in names(globals$fvsRun$uiCustomRunOps))
-          globals$fvsRun$uiCustomRunOps[[item]] = input[[item]]
+        globals$fvsRun$title = input$title
+        globals$fvsRun$defMgmtID = input$defMgmtID
+        globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
+        if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
+        {
+          for (item in names(globals$fvsRun$uiCustomRunOps))
+            globals$fvsRun$uiCustomRunOps[[item]] = input[[item]]
+        }
+        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+        attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+        saveFvsRun = globals$fvsRun
+        save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+        globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs) 
       }
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-      saveFvsRun = globals$fvsRun
-      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
       # remove excess images that maybe created in Maps.
       delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
       if (length(delList)) lapply(delList,function(x) unlink(x))      
-cat ("leaving saveRun\n") 
+cat ("leaving saveRun, saveTheRun=",saveTheRun,"\n") 
     }) 
   }
    
