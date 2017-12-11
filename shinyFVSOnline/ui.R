@@ -445,7 +445,8 @@ shinyUI(fixedPage(
               	  selectInput("editSelDBvars", "Variables to consider", 
                       choices  = list(), size=10,
                       selected = NULL, multiple = TRUE, selectize=FALSE),
-                  uiOutput("stdSel"),h6(),
+                  uiOutput("stdSel"),
+                  myInlineTextInput("editStandSearch", "Find stand:", value = "", size="25%"),h6(),
                   actionButton("clearTable","Remove all rows and commit"),h6(),
                   actionButton("commitChanges","Commit edits or new rows")
                 ),

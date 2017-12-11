@@ -3873,16 +3873,14 @@ cat ("Upload new rows\n")
                  ignore.case=TRUE))) keyCol = "Groups"
       if (!is.null(keyCol))
       {
-        # the key column must not be null, it it is delete the rows.
+        # the key column must not be null, if it is delete the rows.
         try(dbSendQuery(dbGlb$dbIcon,paste0("delete from ",
             input$uploadSelDBtabs," where ",keyCol," is null")))
         # update the stand selector list if it exists and if we are not doing groups
         if (keyCol != "Groups")
         {
-          res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                            input$uploadSelDBtabs))
-          dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
-          dbClearResult(res)
+          dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
+                            input$uploadSelDBtabs))$Stand_ID
           if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
           if (dbGlb$rowSelOn && length(dbGlb$sids)) 
             updateSelectInput(session=session, inputId="rowSelector",
@@ -4138,6 +4136,12 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
                   paste0("'",input$rowSelector,"'",collapse=","),");") else
             paste0(qry,";")                             
           dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          stdSearch = trim(input$editStandSearch)
+          if (nchar(stdSearch)>0) 
+          {
+            keep = try(grep (stdSearch,dbGlb$tbl$Stand_ID))
+            if (class(keep) != "try-error" && length(keep)) dbGlb$tbl = dbGlb$tbl[keep,]
+          }
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
           for (col in 2:ncol(dbGlb$tbl))
             if (class(dbGlb$tbl[[col]]) != "character") 
