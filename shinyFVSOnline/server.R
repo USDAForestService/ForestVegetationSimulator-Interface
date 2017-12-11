@@ -263,7 +263,6 @@ cat ("runs, tbs=",tbs,"\n")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
         dbSendQuery(dbGlb$dbOcon,paste0("create table m.Cases as select CaseID ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))        
-        dbBegin(dbGlb$dbOcon)      
         for (tb in tbs) 
         {
 cat ("tb=",tb,"\n")
@@ -327,7 +326,6 @@ cat ("tbs2=",tbs,"\n")
 cat ("tbs3=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
-        dbCommit(dbGlb$dbOcon)
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
         if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
@@ -637,8 +635,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           initTableGraphTools()
           return()
         }
-
-        
+       
         iprg = iprg+1
         setProgress(message = "Merging selected tables", detail  = "", value = iprg)
         if (length(dat) > 0)
@@ -671,6 +668,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         {
           cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
                if("srtOrd" %in% vars) ",mdat$srtOrd)" else ")")
+cat ("cmd=",cmd,"\n")
           sby = try(eval(parse(text=cmd)))
           if (class(sby) == "try-error") NULL else sby
         } else NULL
