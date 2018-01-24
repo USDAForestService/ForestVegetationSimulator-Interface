@@ -353,14 +353,20 @@ cat("selectdbtables\n")
     if (is.null(input$selectdbtables))
     {
       updateSelectInput(session, "selectdbvars", choices=list(" "))               
-    } else         
-    {
-      tables = input$selectdbtables    
-      if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
-        union("FVS_Cases",tables)
-      updateSelectInput(session, "selectdbtables", 
-                        choices=as.list(names(fvsOutData$dbLoadData)),
-                        selected=tables)
+    } else  {
+      tables = input$selectdbtables 
+      if ("Composite" %in% tables || "Composite_East" %in% tables)
+      {
+        if (length(tables)>1) updateSelectInput(session, "selectdbtables", 
+           choices=as.list(names(fvsOutData$dbLoadData)),
+           selected=if ("Composite" %in% tables) "Composite" else "Composite_East")
+      } else {
+        if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
+          union("FVS_Cases",tables)
+        updateSelectInput(session, "selectdbtables", 
+                          choices=as.list(names(fvsOutData$dbLoadData)),
+                          selected=tables)
+      }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)
@@ -649,12 +655,17 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           } 
           for (tb in names(dat))
           { 
-            mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","Species"))
-            mrgVars = intersect(mrgVars,names(dat[[tb]]))
-            setProgress(message = "Merging selected tables", 
-                        detail  = tb, value = iprg)
+            if (tb == "Composite")
+            {
+              mdat = dat[[tb]]
+            } else {
+              mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","Species"))
+              mrgVars = intersect(mrgVars,names(dat[[tb]]))
+              setProgress(message = "Merging selected tables", 
+                          detail  = tb, value = iprg)
 cat ("tb=",tb," mrgVars=",mrgVars,"\n")                        
-            mdat = merge(mdat,dat[[tb]], by=mrgVars)
+              mdat = merge(mdat,dat[[tb]], by=mrgVars)
+            }
           }
           fvsOutData$dbData = mdat
         } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
