@@ -27,6 +27,36 @@ mkdbhCase = function (smdbh=4,lgdbh=40)
                        "' end ")
   dbhclassexp
 }
+mkCmpCompute <- function(cases,cmp)
+{
+  if (all(is.na(cases$SamplingWt))) cases$SamplingWt = 1
+  if (all(cases$SamplingWt == 0))   cases$SamplingWt = 1
+  keep = !is.na(cases$SamplingWt)
+  cmp = merge(x=cases,y=cmp,by.both="CaseID")  
+  ncases = length(unique(cmp$CaseID))
+  if (ncases < 2) return(NULL)    
+  keep = table(cmp$Year) == ncases  
+  if (!any(keep)) return(NULL)
+  yrs = as.integer(names(keep)[keep])
+  cmp = cmp[cmp$Year %in% yrs,,drop=FALSE]
+  vars = colnames(cmp)[(ncol(cmp)-5):ncol(cmp)]
+  for (i in 1:length(vars)) vars[i] = if (all(is.na(cmp[,vars[i]]))) NA else vars[i] 
+  vars = na.omit(vars)
+  if (length(vars) == 0) return(NULL)
+  ccmp = matrix(NA,nrow=length(yrs),ncol=length(vars))
+  colnames(ccmp) = vars
+  sumwts = rep(NA,length(yrs))
+  for (i in 1:length(yrs))
+  {
+    yr = yrs[i]
+    sub = cmp[cmp$Year==yr,c("SamplingWt",vars)]
+    ccmp[i,vars] = colSums(sub[,vars]*sub$SamplingWt)
+    sumwts[i] = sum(sub$SamplingWt)
+  }
+  for (var in vars) ccmp[,var] = ccmp[,var]/sumwts
+  outdf = data.frame(MgmtID=cases$MgmtID[1],Year=yrs,SamplingWt=sumwts,ccmp)
+  return(outdf)
+}
 
 Create_m.StdStk = "
 drop table if exists m.StdStkDBHSp; 

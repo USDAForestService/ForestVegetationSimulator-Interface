@@ -274,6 +274,8 @@ cat ("tb=",tb,"\n")
             dbSendQuery(dbGlb$dbOcon,"drop table Composite_East")
           else if (tb == "StdStk")
             dbSendQuery(dbGlb$dbOcon,"drop table StdStk")
+          else if (tb == "CmpCompute")
+            dbSendQuery(dbGlb$dbOcon,"drop table CmpCompute")
           else 
           {
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
@@ -289,7 +291,7 @@ cat ("tb=",tb,"\n")
         if ("FVS_Summary" %in% tbs)
         {
           setProgress(message = "Output query", 
-            detail  = "Building composites", value = i); i = i+1
+            detail  = "Building Composite", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_Composite)
           tbs = c(tbs,"Composite")
 cat ("tbs1=",tbs,"\n")
@@ -297,9 +299,35 @@ cat ("tbs1=",tbs,"\n")
         if ("FVS_Summary_East" %in% tbs)
         {
           setProgress(message = "Output query", 
-            detail  = "Building composites", value = i); i = i+1
+            detail  = "Building Composite_East", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_Composite_East)
           tbs = c(tbs,"Composite_East")
+cat ("tbs2=",tbs,"\n")
+        }
+        if ("FVS_Compute" %in% tbs)
+        {
+          setProgress(message = "Output query", 
+            detail  = "Building CmpCompute", value = i); i = i+1
+          cases = dbGetQuery(dbGlb$dbOcon,
+            "select CaseID,MgmtID,SamplingWt from FVS_Cases where CaseID in (select CaseID from m.Cases)")
+          cmp = dbGetQuery(dbGlb$dbOcon,
+            "select * from FVS_Compute where CaseID in (select CaseID from m.Cases)")
+          allC = list()
+          for (mgm in unique(cases$MgmtID))
+          {
+            subcases = subset(cases, MgmtID == mgm)
+            subcmp   = subset(cmp, CaseID %in% subcases$CaseID)
+            cmpC = mkCmpCompute(subcases,subcmp)
+            allC[[mgm]] = cmpC
+          } 
+          allcols = setdiff(unlist(unique(lapply(allC,colnames))),
+                    c("MgmtID","Year","SamplingWt"))
+          allC = lapply(allC,function(x,allcols) {
+            for (c in allcols) if (!(c %in% colnames(x))) x[[c]] = NA
+            x},allcols)
+          allC = do.call(rbind,allC)
+          dbWriteTable(dbGlb$dbOcon,"CmpCompute",allC,overwrite=TRUE)
+          tbs = c(tbs,"CmpCompute")
 cat ("tbs2=",tbs,"\n")
         }
 
@@ -355,11 +383,13 @@ cat("selectdbtables\n")
       updateSelectInput(session, "selectdbvars", choices=list(" "))               
     } else  {
       tables = input$selectdbtables 
-      if ("Composite" %in% tables || "Composite_East" %in% tables)
+      if ("Composite"  %in% tables || "Composite_East" %in% tables ||
+          "CmpCompute" %in% tables)
       {
         if (length(tables)>1) updateSelectInput(session, "selectdbtables", 
            choices=as.list(names(fvsOutData$dbLoadData)),
-           selected=if ("Composite" %in% tables) "Composite" else "Composite_East")
+           selected=if ("Composite" %in% tables) "Composite" else 
+                    if ("Composite_East" %in% tables) "Composite_East" else "CmpCompute")
       } else {
         if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
           union("FVS_Cases",tables)
@@ -655,7 +685,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
           } 
           for (tb in names(dat))
           { 
-            if (tb == "Composite")
+            if (tb %in% c("Composite","Composite_East","CmpCompute"))
             {
               mdat = dat[[tb]]
             } else {
@@ -3740,7 +3770,7 @@ cat ("homogenize qry=",qry,"\n")
     progress$close()
   }) 
   observe({
-    if(input$inputDBPan == "Upload and insert new rows (.csv)") 
+    if(input$inputDBPan == "Upload and add new rows to existing tables (.csv)") 
     {
 cat ("Upload new rows\n")
       tbs <- dbListTables(dbGlb$dbIcon)
