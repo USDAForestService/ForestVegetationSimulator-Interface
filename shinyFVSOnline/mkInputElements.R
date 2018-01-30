@@ -52,6 +52,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       numberBox      = mkTextInput (pkey, pmt, choices, fpvs), 
       intNumberBox   = mkTextInput (pkey, pmt, choices, fpvs), 
       textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
+      longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs), 
       fileBrowse     = {
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 

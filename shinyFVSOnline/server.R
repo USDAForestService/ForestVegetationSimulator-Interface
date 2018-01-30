@@ -57,7 +57,7 @@ shinyServer(function(input, output, session) {
     {
       Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
       sqlite3 = Sys.getenv("sqlite3")
-    }
+    } else sqlite3 = "sqlite3"
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
@@ -1916,7 +1916,7 @@ cat ("command selection, input$addComponents=",input$addComponents,
      " input$cmdSet=",input$cmdSet,
      " input$addCategories=",input$addCategories,
      "\nglobals$currentCndPkey=",globals$currentCndPkey,
-     " globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
+     " globals$currentCmdPkSys.setenvey=",globals$currentCmdPkey,"\n")
        if (is.null(input$addCategories)) return()
        title = switch (input$cmdSet,
         "Management" = globals$mgmtsel[[as.numeric(input$addCategories)]],
@@ -3616,9 +3616,11 @@ cat ("cmd=",cmd,"\n")
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
         cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
-cat ("cmd=",cmd,"\n")
+cat ("s=",s," cmd=",cmd,"; ")
         if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
+cat ("cmd done.\n")
       }
+      dbo = dbConnect(dbDrv,"FVS_Data.db")
     } else if (fext == "xlsx") {
       sheets = getSheetNames(fname)
       progress <- shiny::Progress$new(session,min=1,max=length(sheets)+3)
@@ -3659,6 +3661,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
     # get rid of "NRIS_" part of names if any
     for (tab in tabs)
     {
+cat("loaded table=",tab,"\n")      
       nn = sub("NRIS_","",tab)
       if (nchar(nn) && nn != tab) dbSendQuery(dbo,paste0("alter table ",tab," rename to ",nn))
     }

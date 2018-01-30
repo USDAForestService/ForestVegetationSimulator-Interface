@@ -27,6 +27,9 @@ cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
   )  
 }
 
+UDComputes.Win <- keyword.base.Compute.Win
+UDComputes.Win.mkKeyWrd <- keyword.base.Compute.Win.mkKeyWrd
+
 keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
 {
   globals$currentCmdDefs <- c(freeEdit=" ")
