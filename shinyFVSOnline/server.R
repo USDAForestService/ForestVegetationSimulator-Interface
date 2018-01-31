@@ -8,7 +8,7 @@ library(colourpicker)
 library(rgl)
 library(leaflet)
 #library(rgdal) #loaded when it is needed
-library(openxlsx)
+library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
@@ -366,7 +366,7 @@ cat ("tbs3=",tbs,"\n")
         if (length(dbd)) fvsOutData$dbLoadData <- dbd      
         updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
                     selected= intersect(tbs, 
-                    c("FVS_Cases","FVS_Summary","FVS_Summary_East")))
+                    c("FVS_Summary","FVS_Summary_East")))
         setProgress(value = NULL)          
       }, min=1, max=6)
     } else
@@ -383,20 +383,20 @@ cat("selectdbtables\n")
       updateSelectInput(session, "selectdbvars", choices=list(" "))               
     } else  {
       tables = input$selectdbtables 
-      if ("Composite"  %in% tables || "Composite_East" %in% tables ||
-          "CmpCompute" %in% tables)
-      {
-        if (length(tables)>1) updateSelectInput(session, "selectdbtables", 
-           choices=as.list(names(fvsOutData$dbLoadData)),
-           selected=if ("Composite" %in% tables) "Composite" else 
-                    if ("Composite_East" %in% tables) "Composite_East" else "CmpCompute")
-      } else {
-        if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
-          union("FVS_Cases",tables)
-        updateSelectInput(session, "selectdbtables", 
-                          choices=as.list(names(fvsOutData$dbLoadData)),
-                          selected=tables)
-      }
+#      if ("Composite"  %in% tables || "Composite_East" %in% tables ||
+#          "CmpCompute" %in% tables)
+#      {
+#        if (length(tables)>1) updateSelectInput(session, "selectdbtables", 
+#           choices=as.list(names(fvsOutData$dbLoadData)),
+#           selected=if ("Composite" %in% tables) "Composite" else 
+#                    if ("Composite_East" %in% tables) "Composite_East" else "CmpCompute")
+#      } else {
+#        if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
+#          union("FVS_Cases",tables)
+#        updateSelectInput(session, "selectdbtables", 
+#                          choices=as.list(names(fvsOutData$dbLoadData)),
+#                          selected=tables)
+#      }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)
@@ -512,7 +512,7 @@ cat ("sqlRunQuery\n")
     }
   })
 
-## sqlSave      
+## sqlSave             
   observe({ 
     if (input$sqlSave > 0)
     {
@@ -620,18 +620,37 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
               function (x) x[2])))
         if (length(cols) == 0) return()
         dat = list()
-        for (tb in tbs)       
+        tbgroup=c("Composite"=1, "CmpCompute"=1, "StdStk"=3, "FVS_ATRTList"=8,
+          "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
+          "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
+          "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
+          "FVS_Down_Wood_Vol"=2, "FVS_Consumption"=2, "FVS_Hrv_Carbon"=2,
+          "FVS_Mortality"=2, "FVS_PotFire_East"=2, "FVS_PotFire"=2, "FVS_SnagSum"=2,
+          "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Stnd_Sum"=2, "FVS_DM_Sz_Sum"=2,
+          "FVS_RD_Sum"=2, "FVS_RD_Det"=2, "FVS_RD_Beetle"=2, "FVS_StrClass"=2,
+          "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8)
+        tbg = tbgroup[tbs]
+        arena = is.na(tbg)
+        if (any(arena))
         {
+          tbg[arena] = 3
+          names(tbg)[arena] = tbs[arena]
+        }
+        if (max(tbg) > 1 && ! ("FVS_Cases" %in% tbs)) tbg = c("FVS_Cases"=2,tbg)
+        dat=NULL
+        for (tb in names(sort(tbg)))       
+        {
+cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
           if (tb == "Composite" || tb == "Composite_East") 
-          {
+          {            
             dtab = dbReadTable(dbGlb$dbOcon,tb)
             dtab <- ddply(dtab,.(MgmtID),.fun=function (x) 
                    setupSummary(x,composite=TRUE))
             dtab$Year=as.factor(dtab$Year) 
             dtab$MgmtID=as.factor(dtab$MgmtID) 
-            dat = list(Composite = dtab)
+            dat[[tb]] = dtab
           } else {
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
@@ -642,7 +661,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
             {
               fix = grep ("Hrv",colnames(dtab))
               if (length(fix)) for (ifx in fix) dtab[[ifx]] = as.numeric(dtab[[ifx]])
-            }
+            }                             
             if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
               dtab <- ddply(dtab,.(CaseID),.fun=setupSummary)
@@ -663,48 +682,42 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           }
         }
 cat ("Explore, len(dat)=",length(dat),"\n") 
-        mdat = dat$FVS_Cases
-        dat$FVS_Cases = NULL
-        if (is.null(mdat))  mdat = dat[[1]]
-        if (is.null(mdat))
+        if (length(dat) == 0)
         {
           initTableGraphTools()
           return()
         }
-       
         iprg = iprg+1
         setProgress(message = "Merging selected tables", detail  = "", value = iprg)
-        if (length(dat) > 0)
+        inch = 0
+        mdat = NULL
+        for (tb in names(dat))       
         {
           #avoid name conflicts with the TreeList table and others.
-          if (!is.null(dat[["FVS_TreeList"]]))
+          if (tb %in% c("FVS_TreeList","FVS_ATRTList","FVS_CutList"))
           {
             toren = c("TCuFt", "MCuFt", "BdFt", "PrdLen")
-            cols = match(toren,names(dat[["FVS_TreeList"]]))
-            names(dat[["FVS_TreeList"]])[cols] = paste0("T.",toren)
-          } 
-          for (tb in names(dat))
-          { 
-            if (tb %in% c("Composite","Composite_East","CmpCompute"))
-            {
-              mdat = dat[[tb]]
-            } else {
-              mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","Species"))
-              mrgVars = intersect(mrgVars,names(dat[[tb]]))
-              setProgress(message = "Merging selected tables", 
-                          detail  = tb, value = iprg)
+            cols = match(toren,names(dat[[tb]]))
+            names(dat[[tb]])[cols] = paste0(if (inch==0) "T." else paste0("T",inch,".",toren))
+            inch = inch+1
+          }
+          if (is.null(mdat)) mdat = dat[[tb]] else
+          {
+             mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","MgmtID"))
+             mrgVars = intersect(mrgVars,names(dat[[tb]]))
+             setProgress(message = "Merging selected tables", 
+                         detail  = tb, value = iprg)
 cat ("tb=",tb," mrgVars=",mrgVars,"\n")                        
-              mdat = merge(mdat,dat[[tb]], by=mrgVars)
-            }
+             mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
-        } else fvsOutData$dbData = mdat #happens when only FVS_Cases is selected  
-        iprg = iprg+1
+        } 
+        iprg = iprg+1                                      
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
         vars = colnames(mdat)
         sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-                  "TreeIndex","Species","DBHClass","RunDateTime"),vars)
+                  "TreeIndex","Species","DBHClass"),vars)
         sby = if (length(sby)) 
         {
           cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
@@ -759,7 +772,7 @@ cat ("cmd=",cmd,"\n")
             choices  = list("None loaded"), selected = NULL) else 
           updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
             selected=levels(mdat$MgmtID))
-        if ("FVS_TreeList" %in% names(dat))
+        if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList"),names(dat))))
           updateSelectInput(session, "plotType",selected="scatter") else 
           if ("StdStk" %in% names(dat)) 
             updateSelectInput(session, "plotType",selected="bar") else
