@@ -619,8 +619,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
               function (x) x[2])))
         if (length(cols) == 0) return()
-        dat = list()
-        tbgroup=c("Composite"=1, "CmpCompute"=1, "StdStk"=3, "FVS_ATRTList"=8,
+        tbgroup=c("Composite"=1, "Composite_East"=1, "CmpCompute"=1, "StdStk"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
@@ -669,7 +668,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
             } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
-            cls = intersect(c(cols,"srtOrd"),colnames(dtab))
+            cls = intersect(c(cols,"StandID","MgmtID","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
                 dtab[,col] = as.factor(dtab[,col])
@@ -691,7 +690,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         setProgress(message = "Merging selected tables", detail  = "", value = iprg)
         inch = 0
         mdat = NULL
-        for (tb in names(dat))       
+        for (tb in names(dat))      
         {
           #avoid name conflicts with the TreeList table and others.
           if (tb %in% c("FVS_TreeList","FVS_ATRTList","FVS_CutList"))
@@ -701,6 +700,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
             names(dat[[tb]])[cols] = paste0(if (inch==0) "T." else paste0("T",inch,".",toren))
             inch = inch+1
           }
+cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n") 
           if (is.null(mdat)) mdat = dat[[tb]] else
           {
              mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","MgmtID"))
@@ -813,7 +813,7 @@ cat ("cmd=",cmd,"\n")
         setProgress(message = "Finishing", detail  = "", value = iprg)
         selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
           "AGE","CCF","SDI","QMD","TopHt","^BA$","TPA","Species","^Ht$",
-          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle"),
+          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle","^MY"),
           function (x,vs) 
             {
               hits = unlist(grep(x,vs,ignore.case = TRUE))

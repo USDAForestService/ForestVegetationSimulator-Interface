@@ -50,10 +50,10 @@ mkCmpCompute <- function(cases,cmp)
   {
     yr = yrs[i]
     sub = cmp[cmp$Year==yr,c("SamplingWt",vars)]
-    ccmp[i,vars] = colSums(sub[,vars]*sub$SamplingWt)
+    ccmp[i,vars] = colSums(sub[,vars,drop=FALSE]*sub$SamplingWt)
     sumwts[i] = sum(sub$SamplingWt)
   }
-  for (var in vars) ccmp[,var] = ccmp[,var]/sumwts
+  for (var in vars) ccmp[,var] = ccmp[,var,drop=FALSE]/sumwts
   outdf = data.frame(MgmtID=cases$MgmtID[1],Year=yrs,SamplingWt=sumwts,ccmp)
   return(outdf)
 }
@@ -185,48 +185,6 @@ select Year,Species,DBHClass,
  0 as HrvPA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvBdFt,
  MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from m.StdStkDBHSp;"
-
-
-Create_ATRTStdStk = "
-drop table if exists m.ATRTStdStk;
-drop table if exists m.ATRTStdStkAllDBH;
-drop table if exists m.ATRTStdStkAllSp;
-drop table if exists m.ATRTStdStkAllAll;
-create table m.ATRTStdStk as
-select CaseID,Year,Species, 
-    printf('%3.0f',dbhclassexp as dbhclass, 
-    sum(Tpa)          as ATRTPA,
-    sum(TCuFt*Tpa)    as ATRTTCuFt,
-    sum(MCuFt*Tpa)    as ATRTMCuFt,
-    sum(BdFt*Tpa)     as ATRTBdFt
-  from FVS_ATRTList 
-  where CaseID in (select CaseID from m.Cases)
-  group by CaseID,Year,Species,DBHClass;
-create table m.ATRTStdStkAllDBH as 
-select CaseID,Year,Species,'All' as DBHClass,
-    sum(ATRTPA)       as ATRTPA,
-    sum(ATRTTCuFt)    as ATRTTCuFt,
-    sum(ATRTMCuFt)    as ATRTMCuFt,
-    sum(ATRTBdFt)     as ATRTBdFt
-    from m.ATRTStdStk 
-  group by CaseID,Year,Species;
-create table m.ATRTStdStkAllSp as 
-select CaseID,Year,'All' as Species, DBHClass,
-    sum(ATRTPA)       as ATRTPA,
-    sum(ATRTTCuFt)    as ATRTTCuFt,
-    sum(ATRTMCuFt)    as ATRTMCuFt,
-    sum(ATRTBdFt)     as ATRTBdFt
-    from m.ATRTStdStk 
-  group by CaseID,Year,DBHClass;
-create table m.ATRTStdStkAllAll as 
-select CaseID,Year,'All' as Species, 'All' as DBHClass,
-    sum(ATRTPA)       as ATRTPA,
-    sum(ATRTTCuFt)    as ATRTTCuFt,
-    sum(ATRTMCuFt)    as ATRTMCuFt,
-    sum(ATRTBdFt)     as ATRTBdFt
-    from m.ATRTStdStk 
-  group by CaseID,Year;"
-
   
 Create_Composite = "
 drop table if exists Composite;
