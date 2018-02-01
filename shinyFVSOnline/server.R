@@ -328,30 +328,31 @@ cat ("tbs2=",tbs,"\n")
           allC = do.call(rbind,allC)
           dbWriteTable(dbGlb$dbOcon,"CmpCompute",allC,overwrite=TRUE)
           tbs = c(tbs,"CmpCompute")
-cat ("tbs2=",tbs,"\n")
+cat ("tbs3=",tbs,"\n")
         }
 
         if ("FVS_TreeList" %in% tbs)  
         {
           setProgress(message = "Output query", 
             detail  = "Building StdStk from Treelists", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_m.StdStk,dbhclassexp)
+          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,dbhclassexp)
           if ("FVS_CutList" %in% tbs)
           {
             setProgress(message = "Output query", 
               detail  = "Building StdStk from Cutlists", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_m.HrvStdStk,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_HrvStdStk,dbhclassexp)
             setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_StdStk,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStk1Hrv,dbhclassexp)
           } else {
              setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,Create_StdStkNoHrv,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,dbhclassexp)
           }
+          exqury(dbGlb$dbOcon,Create_StdStkFinal)
           tbs = c(tbs,"StdStk")     
         }
-cat ("tbs3=",tbs,"\n")       
+cat ("tbs4=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
@@ -363,10 +364,11 @@ cat ("tbs3=",tbs,"\n")
         if (!is.null(dbd[["Composite"]])) dbd$Composite = c(dbd$Composite,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
           
-        if (length(dbd)) fvsOutData$dbLoadData <- dbd      
+        if (length(dbd)) fvsOutData$dbLoadData <- dbd
+        sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
+        if (length(sel)>1) sel = sel[1]
         updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
-                    selected= intersect(tbs, 
-                    c("FVS_Summary","FVS_Summary_East")))
+                          selected=sel)
         setProgress(value = NULL)          
       }, min=1, max=6)
     } else
@@ -380,23 +382,9 @@ cat ("tbs3=",tbs,"\n")
 cat("selectdbtables\n")    
     if (is.null(input$selectdbtables))
     {
-      updateSelectInput(session, "selectdbvars", choices=list(" "))               
+      updateSelectInput(session, "selectdbvars", choices=list())               
     } else  {
       tables = input$selectdbtables 
-#      if ("Composite"  %in% tables || "Composite_East" %in% tables ||
-#          "CmpCompute" %in% tables)
-#      {
-#        if (length(tables)>1) updateSelectInput(session, "selectdbtables", 
-#           choices=as.list(names(fvsOutData$dbLoadData)),
-#           selected=if ("Composite" %in% tables) "Composite" else 
-#                    if ("Composite_East" %in% tables) "Composite_East" else "CmpCompute")
-#      } else {
-#        if (!is.null(fvsOutData$dbLoadData$FVS_Cases)) tables = 
-#          union("FVS_Cases",tables)
-#        updateSelectInput(session, "selectdbtables", 
-#                          choices=as.list(names(fvsOutData$dbLoadData)),
-#                          selected=tables)
-#      }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)

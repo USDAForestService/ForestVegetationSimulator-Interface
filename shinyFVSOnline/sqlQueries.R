@@ -58,7 +58,7 @@ mkCmpCompute <- function(cases,cmp)
   return(outdf)
 }
 
-Create_m.StdStk = "
+Create_StdStkDBHSp = "
 drop table if exists m.StdStkDBHSp; 
 drop table if exists m.StdStkAllDBH; 
 drop table if exists m.StdStkAllSp; 
@@ -122,7 +122,7 @@ insert into m.StdStkDBHSp select * from m.StdStkAllDBH;
 insert into m.StdStkDBHSp select * from m.StdStkAllAll;" 
  
   
-Create_m.HrvStdStk = "
+Create_HrvStdStk = "
 drop table if exists m.HrvStdStk;
 drop table if exists m.HrvStdStkAllDBH;
 drop table if exists m.HrvStdStkAllSp;
@@ -165,27 +165,35 @@ insert into m.HrvStdStk select * from m.HrvStdStkAllSp;
 insert into m.HrvStdStk select * from m.HrvStdStkAllDBH;
 insert into m.HrvStdStk select * from m.HrvStdStkAllAll;" 
   
-Create_StdStk = "
-drop table if exists m.StdStk1;
-create table m.StdStk1 as select * from m.StdStkDBHSp 
+Create_StdStk1Hrv = "
+drop table if exists m.StdStk2;
+create table m.StdStk2 as select * from m.StdStkDBHSp 
  left join m.HrvStdStk using (CaseID,Year,Species,DBHClass);
-drop table if exists StdStk;
-create table StdStk as 
+drop table if exists m.StdStk1;
+create table m.StdStk1 as 
 select Year,Species,DBHClass,
  LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
  HrvPA, HrvTCuFt, HrvMCuFt, HrvBdFt,
  MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
-from m.StdStk1;"
+from m.StdStk2;"
   
-Create_StdStkNoHrv = "
-drop table if exists StdStk;
-create table StdStk as 
+Create_StdStk1NoHrv = "
+drop table if exists m.StdStk1;
+create table m.StdStk1 as 
 select Year,Species,DBHClass,
  LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
- 0 as HrvPA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvBdFt,
+ NULL as HrvPA, NULL as HrvTCuFt, NULL as HrvMCuFt, NULL as HrvBdFt,
  MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from m.StdStkDBHSp;"
-  
+
+Create_StdStkFinal = "
+drop table if exists StdStk;
+create table StdStk as select *,
+ LiveTpa   - HrvPA    as RsdTPA,
+ LiveTCuFt - HrvTCuFt as RsdTCuFt,
+ LiveMCuFt - HrvMCuFt as RsdMCuFt,
+ LiveBdFt  - HrvBdFt  as RsdBdFt from m.StdStk1;"
+
 Create_Composite = "
 drop table if exists Composite;
 create table Composite as 
