@@ -287,7 +287,7 @@ shinyUI(fixedPage(
         column(width=8,offset=.2,
         h6(),
         tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
-        tabsetPanel(id="outputRightPan",
+        conditionalPanel("input.leftPan != 'Load'", tabsetPanel(id="outputRightPan",
           tabPanel("Tables",
             fixedRow(
               column(width=4,
@@ -351,7 +351,7 @@ shinyUI(fixedPage(
             textInput("rpTitle", "Custom report title", ""),
             actionButton("rpRestart","Restart custom report"),
             downloadButton("rpBldDwnLd","Build and download custom report")
-        ) )       
+        ) ) )       
       ) ) ),
       tabPanel("SVS3d(alpha)",
         h6(),
