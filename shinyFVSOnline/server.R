@@ -330,7 +330,6 @@ cat ("tbs2=",tbs,"\n")
           tbs = c(tbs,"CmpCompute")
 cat ("tbs3=",tbs,"\n")
         }
-
         if ("FVS_TreeList" %in% tbs)  
         {
           setProgress(message = "Output query", 
@@ -607,7 +606,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
               function (x) x[2])))
         if (length(cols) == 0) return()
-        tbgroup=c("Composite"=1, "Composite_East"=1, "CmpCompute"=1, "StdStk"=3, "FVS_ATRTList"=8,
+        tbgroup=c("Composite"=1, "Composite_East"=1, "CmpCompute"=1, 
+          "CmpStdStk"=1, "StdStk"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
@@ -1035,9 +1035,9 @@ cat ("vfacet test hit\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }      
-    if (!is.null(nd$vfacet)) nd$vfacet = as.factor(nd$vfacet)
-    if (!is.null(nd$hfacet)) nd$hfacet = as.factor(nd$hfacet)
-    if (!is.null(nd$Legend)) nd$Legend = as.factor(nd$Legend)
+    if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=unique(nd$vfacet))
+    if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=unique(nd$hfacet))
+    if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=unique(nd$Legend))
     fg = NULL
     fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
          facet_grid(vfacet~hfacet)
@@ -1048,7 +1048,7 @@ cat ("vfacet test hit\n")
     if (input$plotType %in% c("bar","box") && is.factor(nd$Y))
     {
       flip = TRUE
-      nd$temp = nd$X
+      nd$temp = nd$X                         
       nd$X    = nd$Y
       nd$Y    = nd$temp
       nd$temp = NULL
@@ -1062,7 +1062,7 @@ cat ("vfacet test hit\n")
             axis.text = element_text(color="black"))
     if (flip) p = p + coord_flip()
     colors = if (input$colBW == "B&W") 
-      unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else #  rep(rgb(0,0,0,seq(.5,.9,.05)),5) else
+      unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else
         {
           if (is.null(input$color1)) cbbPalette else
              c(input$color1,input$color2,input$color3,input$color4,input$color5,
@@ -1071,6 +1071,10 @@ cat ("vfacet test hit\n")
     colors = autorecycle(colors,nlevels(nd$Legend))
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
 cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
+    p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
+      hjust = if(input$XlabRot=="0") .5 else 1))
+    p = p + theme(axis.text.y = element_text(angle = as.numeric(input$YlabRot), 
+      hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
     p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
@@ -4752,27 +4756,6 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
     })
   })
   
-  observe(if (input$moreControls > 0)
-  { 
-cat ("moreControls hit\n")
-    output$graphControls <- renderUI(list(
-      column(width=2,
-        colourInput("color1", "Color 1", value = cbbPalette[1]),
-        colourInput("color2", "Color 2", value = cbbPalette[2])),
-      column(width=2,
-        colourInput("color3", "Color 3", value = cbbPalette[3]),
-        colourInput("color4", "Color 4", value = cbbPalette[4])),
-      column(width=2,
-        colourInput("color5", "Color 5", value = cbbPalette[5]),
-        colourInput("color6", "Color 6", value = cbbPalette[6])),
-      column(width=6, 
-  	    myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
-        sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))))
-  }) 
-  observe(if (input$hideControls > 0)
-  {
-    output$graphControls <- renderUI(NULL)
-  })
                                       
   saveRun <- function() 
   {

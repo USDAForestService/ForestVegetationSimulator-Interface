@@ -1,10 +1,11 @@
 exqury = function (dbcon,x,dbhclassexp=NULL) 
-{
+{                 
   lapply(scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE), 
     function (x,dbcon,dbhclassexp) 
     {
       if (!is.null(dbhclassexp)) x = sub("dbhclassexp",dbhclassexp,x)
-      if (nchar(x) > 5) try(dbSendQuery(dbcon,statement=x)) else NULL
+      res = if (nchar(x) > 5) try(dbSendQuery(dbcon,statement=x)) else NULL
+      if (!is.null(res) && class(res) != "try-error") dbClearResult(res)
     },
   dbcon,dbhclassexp) 
 }   
@@ -15,7 +16,7 @@ mkdbhCase = function (smdbh=4,lgdbh=40)
   classes = seq(smdbh,lgdbh,smdbh)
   nc = nchar(as.character(classes[length(classes)])) + 1
   nc = paste0("%",nc,".",nc,"i")
-  chrclasses = sprintf(nc,as.integer(classes))
+  chrclasses = sprintf(nc,as.integer(classes))     
   dbhclassexp = paste0("case when (dbh <= ",classes[1],") then '", 
                        chrclasses[1],"'")
   for (i in 1:(length(classes)-1))
@@ -67,10 +68,12 @@ create table m.StdStkDBHSp as
 select CaseID,Year,Species, 
     dbhclassexp as DBHClass, 
     sum(Tpa)          as LiveTpa, 
+    sum(DBH*DBH*.005454154*TPA) as LiveBA, 
     sum(TCuFt*Tpa)    as LiveTCuFt, 
     sum(MCuFt*Tpa)    as LiveMCuFt, 
     sum(BdFt*Tpa)     as LiveBdFt, 
-    sum(MortPA)       as MrtPA, 
+    sum(MortPA)       as MrtTPA, 
+    sum(DBH*DBH*.005454154*MortPA) as MrtBA, 
     sum(TCuFt*MortPA) as MrtTCuFt, 
     sum(MCuFt*MortPA) as MrtMCuFt,               
     sum(BdFt*MortPA)  as MrtBdFt 
@@ -81,10 +84,12 @@ select CaseID,Year,Species,
 create table m.StdStkAllDBH as 
 select CaseID,Year,Species,'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
+    sum(LiveBA)       as LiveBA, 
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MrtPA)        as MrtPA, 
+    sum(MrtTPA)       as MrtTPA, 
+    sum(MrtBA)        as MrtBA, 
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
@@ -94,10 +99,12 @@ select CaseID,Year,Species,'All' as DBHClass,
 create table m.StdStkAllSp as 
 select CaseID,Year,'All' as Species, DBHClass,
     sum(LiveTpa)      as LiveTpa, 
+    sum(LiveBA)       as LiveBA, 
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MrtPA)        as MrtPA, 
+    sum(MrtTPA)       as MrtTPA, 
+    sum(MrtBA)        as MrtBA, 
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
@@ -107,10 +114,12 @@ select CaseID,Year,'All' as Species, DBHClass,
 create table m.StdStkAllAll as 
 select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
+    sum(LiveBA)       as LiveBA,           
     sum(LiveTCuFt)    as LiveTCuFt, 
     sum(LiveMCuFt)    as LiveMCuFt, 
     sum(LiveBdFt)     as LiveBdFt, 
-    sum(MrtPA)        as MrtPA, 
+    sum(MrtTPA)       as MrtTPA, 
+    sum(MrtBA)        as MrtBA, 
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
@@ -130,7 +139,8 @@ drop table if exists m.HrvStdStkAllAll;
 create table m.HrvStdStk as
 select CaseID,Year,Species, 
     dbhclassexp as dbhclass, 
-    sum(Tpa)          as HrvPA,
+    sum(Tpa)          as HrvTPA,
+    sum(DBH*DBH*.005454154*Tpa) as HrvBA, 
     sum(TCuFt*Tpa)    as HrvTCuFt,
     sum(MCuFt*Tpa)    as HrvMCuFt,
     sum(BdFt*Tpa)     as HrvBdFt
@@ -139,7 +149,8 @@ select CaseID,Year,Species,
   group by CaseID,Year,Species,DBHClass;
 create table m.HrvStdStkAllDBH as 
 select CaseID,Year,Species,'All' as DBHClass,
-    sum(HrvPA)       as HrvPA,
+    sum(HrvTPA)      as HrvTPA,
+    sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
@@ -147,7 +158,8 @@ select CaseID,Year,Species,'All' as DBHClass,
   group by CaseID,Year,Species;
 create table m.HrvStdStkAllSp as 
 select CaseID,Year,'All' as Species, DBHClass,
-    sum(HrvPA)       as HrvPA,
+    sum(HrvTPA)      as HrvTPA,
+    sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
@@ -155,7 +167,8 @@ select CaseID,Year,'All' as Species, DBHClass,
   group by CaseID,Year,DBHClass;
 create table m.HrvStdStkAllAll as 
 select CaseID,Year,'All' as Species, 'All' as DBHClass,
-    sum(HrvPA)       as HrvPA,
+    sum(HrvTPA)      as HrvTPA,
+    sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
@@ -172,27 +185,59 @@ create table m.StdStk2 as select * from m.StdStkDBHSp
 drop table if exists m.StdStk1;
 create table m.StdStk1 as 
 select Year,Species,DBHClass,
- LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
- HrvPA, HrvTCuFt, HrvMCuFt, HrvBdFt,
- MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
-from m.StdStk2;"
+ LiveTpa, LiveBA, LiveTCuFt, LiveMCuFt, LiveBdFt,  
+ case when HrvTPA   is not null then HrvTPA   else 0 end as HrvTPA, 
+ case when HrvBA    is not null then HrvBA    else 0 end as HrvBA, 
+ case when HrvTCuFt is not null then HrvTCuFt else 0 end as HrvTCuFt, 
+ case when HrvMCuFt is not null then HrvMCuFt else 0 end as HrvMCuFt, 
+ case when HrvBdFt  is not null then HrvBdFt  else 0 end as HrvBdFt,
+ MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
+from m.StdStk2;"                                                                         
   
 Create_StdStk1NoHrv = "
-drop table if exists m.StdStk1;
+drop table if exists m.StdStk1; 
 create table m.StdStk1 as 
 select Year,Species,DBHClass,
- LiveTpa, LiveTCuFt, LiveMCuFt, LiveBdFt,  
- NULL as HrvPA, NULL as HrvTCuFt, NULL as HrvMCuFt, NULL as HrvBdFt,
- MrtPA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
-from m.StdStkDBHSp;"
-
+ LiveTpa, LiveBA, LiveTCuFt, LiveMCuFt, LiveBdFt,                                   
+ 0 as HrvTPA, 0 as HrvBA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvBdFt,
+ MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
+from m.StdStkDBHSp;"                                 
+                                                                                    
 Create_StdStkFinal = "
 drop table if exists StdStk;
-create table StdStk as select *,
- LiveTpa   - HrvPA    as RsdTPA,
- LiveTCuFt - HrvTCuFt as RsdTCuFt,
- LiveMCuFt - HrvMCuFt as RsdMCuFt,
- LiveBdFt  - HrvBdFt  as RsdBdFt from m.StdStk1;"
+create table StdStk as select Year, Species, DBHClass, 
+ LiveTpa,    MrtTPA,   HrvTPA,   LiveTpa   - HrvTPA   as RsdTPA,
+ LiveBA,     MrtBA,    HrvBA,    LiveBA    - HrvBA    as RsdBA,
+ LiveTCuFt,  MrtTCuFt, HrvTCuFt, LiveTCuFt - HrvTCuFt as RsdTCuFt,
+ LiveMCuFt,  MrtMCuFt, HrvMCuFt, LiveMCuFt - HrvMCuFt as RsdMCuFt,
+ LiveBdFt,   MrtBdFt,  HrvBdFt,  LiveBdFt  - HrvBdFt  as RsdBdFt, 
+ CaseID from m.StdStk1;                                     
+drop table if exists CmpStdStk;                               
+create table CmpStdStk as 
+select MgmtID,Year,Species,DBHClass,
+    round(sum(LiveTPA  *SamplingWt)/sum(SamplingWt),2) as CmpLiveTPA,
+    round(sum(MrtTPA   *SamplingWt)/sum(SamplingWt),2) as CmpMrtTPA,
+    round(sum(HrvTPA   *SamplingWt)/sum(SamplingWt),2) as CmpHrvTPA,
+    round(sum(RsdTPA   *SamplingWt)/sum(SamplingWt),2) as CmpRsdTPA,
+    round(sum(LiveBA   *SamplingWt)/sum(SamplingWt),2) as CmpLiveBA,
+    round(sum(MrtBA    *SamplingWt)/sum(SamplingWt),2) as CmpMrtBA,
+    round(sum(HrvBA    *SamplingWt)/sum(SamplingWt),2) as CmpHrvBA,
+    round(sum(RsdBA    *SamplingWt)/sum(SamplingWt),2) as CmpRsdBA,
+    round(sum(LiveTCuFt*SamplingWt)/sum(SamplingWt),2) as CmpLiveTCuFt,
+    round(sum(MrtTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpMrtTCuFt,
+    round(sum(HrvTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpHrvTCuFt,
+    round(sum(RsdTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpRsdTCuFt,
+    round(sum(LiveMCuFt*SamplingWt)/sum(SamplingWt),2) as CmpLiveMCuFt,
+    round(sum(MrtMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpMrtMCuFt,
+    round(sum(HrvMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpHrvMCuFt,
+    round(sum(RsdMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpRsdMCuFt,
+    round(sum(LiveBdFt *SamplingWt)/sum(SamplingWt),2) as CmpLiveBdFt,
+    round(sum(MrtBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpMrtBdFt,
+    round(sum(HrvBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpHrvBdFt,
+    round(sum(RsdBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpRsdBdFt  
+  from (select * from StdStk where CaseID in (select CaseID from m.Cases))
+  join FVS_Cases using (CaseID)
+  group by MgmtID,Year,Species,DBHClass;"
 
 Create_Composite = "
 drop table if exists Composite;

@@ -27,6 +27,8 @@ customRunElements = list(
 
 source("modalDialog.R")
 source("mkInputElements.R")
+    # cbbPalette is used in the graphics
+    cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
 
 # used in Tools, dlZipSet
 zipList <- list(	
@@ -341,9 +343,29 @@ shinyUI(fixedPage(
               column(width=3,
     	          myInlineTextInput("height", "Height (in)", value = 3, size=5)), 
     	        column(width=6,
-    	          actionButton("moreControls","More controls"),
-    	          actionButton("hideControls","Hide controls"))),
-            fixedRow(uiOutput("graphControls")),
+    	          myRadioGroup("moreControls","More controls", c("Hide","Show")))),
+             fixedRow(column(width=12,conditionalPanel("input.moreControls == 'Show'",
+               fixedRow(
+                 column(width=2,
+                   colourInput("color1", "Color 1", value = cbbPalette[1]),
+                   colourInput("color2", "Color 2", value = cbbPalette[2])),
+                 column(width=2,
+                   colourInput("color3", "Color 3", value = cbbPalette[3]),
+                   colourInput("color4", "Color 4", value = cbbPalette[4])),
+                 column(width=2,
+                   colourInput("color5", "Color 5", value = cbbPalette[5]),
+                   colourInput("color6", "Color 6", value = cbbPalette[6])),
+                 column(width=6, 
+  	               myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
+                   sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))),
+               fixedRow(
+                 column(width=6,
+                   myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
+                      c("0"="0","45"="45","90"="90"))),
+                 column(width=6,
+                   myRadioGroup("YlabRot","Rotate Y-Labels (degrees)",
+                      c("0"="0","45"="45","90"="90"))))))
+             ),
             fixedRow(column(width=12,plotOutput("outplot")))
           ),
           tabPanel("Reports",
