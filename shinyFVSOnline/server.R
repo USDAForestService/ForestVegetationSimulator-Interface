@@ -308,25 +308,20 @@ cat ("tbs2=",tbs,"\n")
         {
           setProgress(message = "Output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
-          cases = dbGetQuery(dbGlb$dbOcon,
-            "select CaseID,MgmtID,SamplingWt from FVS_Cases where CaseID in (select CaseID from m.Cases)")
           cmp = dbGetQuery(dbGlb$dbOcon,
-            "select * from FVS_Compute where CaseID in (select CaseID from m.Cases)")
-          allC = list()
-          for (mgm in unique(cases$MgmtID))
+            "select * from FVS_Compute limit 0")
+          sumExpressions = paste0(
+            lapply(setdiff(colnames(cmp),c("CaseID","StandID","Year")),
+              function (var) paste0("round(sum(",var,
+                "*SamplingWT)/sum(SamplingWt),2) as Cmp",var)),collapse=",")
+          exqury(dbGlb$dbOcon,Create_Composite_Compute,subExpression=sumExpressions)
+          cmp = dbGetQuery(dbGlb$dbOcon,"Select * from CmpCompute;")
+          keep = apply(cmp,2,function (x) !(all(is.na(x))))
+          if (!all(keep)) 
           {
-            subcases = subset(cases, MgmtID == mgm)
-            subcmp   = subset(cmp, CaseID %in% subcases$CaseID)
-            cmpC = mkCmpCompute(subcases,subcmp)
-            allC[[mgm]] = cmpC
-          } 
-          allcols = setdiff(unlist(unique(lapply(allC,colnames))),
-                    c("MgmtID","Year","SamplingWt"))
-          allC = lapply(allC,function(x,allcols) {
-            for (c in allcols) if (!(c %in% colnames(x))) x[[c]] = NA
-            x},allcols)
-          allC = do.call(rbind,allC)
-          dbWriteTable(dbGlb$dbOcon,"CmpCompute",allC,overwrite=TRUE)
+            cmp = cmp[,keep]
+            dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
+          }
           tbs = c(tbs,"CmpCompute")
 cat ("tbs3=",tbs,"\n")
         }
@@ -334,19 +329,19 @@ cat ("tbs3=",tbs,"\n")
         {
           setProgress(message = "Output query", 
             detail  = "Building StdStk from Treelists", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,dbhclassexp)
+          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,subExpression=dbhclassexp)
           if ("FVS_CutList" %in% tbs)
           {
             setProgress(message = "Output query", 
               detail  = "Building StdStk from Cutlists", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_HrvStdStk,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_HrvStdStk,subExpression=dbhclassexp)
             setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_StdStk1Hrv,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStk1Hrv,subExpression=dbhclassexp)
           } else {
              setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,dbhclassexp)
+            exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,subExpression=dbhclassexp)
           }
           exqury(dbGlb$dbOcon,Create_StdStkFinal)
           tbs = c(tbs,"StdStk")     
@@ -1072,13 +1067,20 @@ cat ("vfacet test hit\n")
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
 cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
-      hjust = if(input$XlabRot=="0") .5 else 1))
+      hjust = if(input$XlabRot=="45") 1 else .5))
     p = p + theme(axis.text.y = element_text(angle = as.numeric(input$YlabRot), 
       hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
     p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
     p = p + scale_linetype_manual(values=1:nlevels(nd$Legend))
+    xmin = as.numeric(input$XLimMin)
+    xmax = as.numeric(input$XLimMax)
+    xlim = if (!is.na(xmin) && !is.na(xmax) && xmin < xmax) c(xmin, xmax) else NULL
+    ymin = as.numeric(input$YLimMin)
+    ymax = as.numeric(input$YLimMax)
+    ylim = if (!is.na(ymin) && !is.na(ymax) && ymin < ymax) c(ymin, ymax) else NULL
+    p = p + coord_cartesian(xlim = xlim, ylim = ylim)
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)

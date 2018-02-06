@@ -359,11 +359,20 @@ shinyUI(fixedPage(
   	               myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
                    sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))),
                fixedRow(
-                 column(width=6,
-                   myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
-                      c("0"="0","45"="45","90"="90"))),
+                 column(width=3,
+                   myInlineTextInput("YLimMin", "Y-limits: "," ", size=5)),
+                 column(width=3,
+                   myInlineTextInput("YLimMax", "to"," ", size=5)),
+                 column(width=3,
+                   myInlineTextInput("XLimMin", "X-limits: "," ", size=5)),
+                 column(width=3,
+                   myInlineTextInput("XLimMax", "to"," ", size=5))),
+               fixedRow(
                  column(width=6,
                    myRadioGroup("YlabRot","Rotate Y-Labels (degrees)",
+                      c("0"="0","45"="45","90"="90"))),
+                 column(width=6,
+                   myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
                       c("0"="0","45"="45","90"="90"))))))
              ),
             fixedRow(column(width=12,plotOutput("outplot")))

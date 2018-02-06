@@ -1,62 +1,32 @@
-exqury = function (dbcon,x,dbhclassexp=NULL) 
+exqury = function (dbcon,x,subExpression=NULL) 
 {                 
   lapply(scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE), 
-    function (x,dbcon,dbhclassexp) 
+    function (x,dbcon,subExpression) 
     {
-      if (!is.null(dbhclassexp)) x = sub("dbhclassexp",dbhclassexp,x)
+      if (!is.null(subExpression)) x = sub("subExpression",subExpression,x)
       res = if (nchar(x) > 5) try(dbSendQuery(dbcon,statement=x)) else NULL
       if (!is.null(res) && class(res) != "try-error") dbClearResult(res)
     },
-  dbcon,dbhclassexp) 
+  dbcon,subExpression) 
 }   
 
-# dbhclassexp = "printf('%3.0f',round(dbh*.5,0)*2)"
+# subExpression = "printf('%3.0f',round(dbh*.5,0)*2)"
 mkdbhCase = function (smdbh=4,lgdbh=40)
 {
   classes = seq(smdbh,lgdbh,smdbh)
   nc = nchar(as.character(classes[length(classes)])) + 1
   nc = paste0("%",nc,".",nc,"i")
   chrclasses = sprintf(nc,as.integer(classes))     
-  dbhclassexp = paste0("case when (dbh <= ",classes[1],") then '", 
+  subExpression = paste0("case when (dbh <= ",classes[1],") then '", 
                        chrclasses[1],"'")
   for (i in 1:(length(classes)-1))
   {
-    dbhclassexp = paste0(dbhclassexp," when (dbh > ",classes[i]," and dbh <= ",
+    subExpression = paste0(subExpression," when (dbh > ",classes[i]," and dbh <= ",
      classes[i+1],") then '", chrclasses[i+1],"'")
   }
-  dbhclassexp = paste0(dbhclassexp," else '",sub("0",">",chrclasses[i+1]),
+  subExpression = paste0(subExpression," else '",sub("0",">",chrclasses[i+1]),
                        "' end ")
-  dbhclassexp
-}
-mkCmpCompute <- function(cases,cmp)
-{
-  if (all(is.na(cases$SamplingWt))) cases$SamplingWt = 1
-  if (all(cases$SamplingWt == 0))   cases$SamplingWt = 1
-  keep = !is.na(cases$SamplingWt)
-  cmp = merge(x=cases,y=cmp,by.both="CaseID")  
-  ncases = length(unique(cmp$CaseID))
-  if (ncases < 2) return(NULL)    
-  keep = table(cmp$Year) == ncases  
-  if (!any(keep)) return(NULL)
-  yrs = as.integer(names(keep)[keep])
-  cmp = cmp[cmp$Year %in% yrs,,drop=FALSE]
-  vars = colnames(cmp)[(ncol(cmp)-5):ncol(cmp)]
-  for (i in 1:length(vars)) vars[i] = if (all(is.na(cmp[,vars[i]]))) NA else vars[i] 
-  vars = na.omit(vars)
-  if (length(vars) == 0) return(NULL)
-  ccmp = matrix(NA,nrow=length(yrs),ncol=length(vars))
-  colnames(ccmp) = vars
-  sumwts = rep(NA,length(yrs))
-  for (i in 1:length(yrs))
-  {
-    yr = yrs[i]
-    sub = cmp[cmp$Year==yr,c("SamplingWt",vars)]
-    ccmp[i,vars] = colSums(sub[,vars,drop=FALSE]*sub$SamplingWt)
-    sumwts[i] = sum(sub$SamplingWt)
-  }
-  for (var in vars) ccmp[,var] = ccmp[,var,drop=FALSE]/sumwts
-  outdf = data.frame(MgmtID=cases$MgmtID[1],Year=yrs,SamplingWt=sumwts,ccmp)
-  return(outdf)
+  subExpression
 }
 
 Create_StdStkDBHSp = "
@@ -66,7 +36,7 @@ drop table if exists m.StdStkAllSp;
 drop table if exists m.StdStkAllAll; 
 create table m.StdStkDBHSp as 
 select CaseID,Year,Species, 
-    dbhclassexp as DBHClass, 
+    subExpression as DBHClass, 
     sum(Tpa)          as LiveTpa, 
     sum(DBH*DBH*.005454154*TPA) as LiveBA, 
     sum(TCuFt*Tpa)    as LiveTCuFt, 
@@ -138,7 +108,7 @@ drop table if exists m.HrvStdStkAllSp;
 drop table if exists m.HrvStdStkAllAll;
 create table m.HrvStdStk as
 select CaseID,Year,Species, 
-    dbhclassexp as dbhclass, 
+    subExpression as dbhclass, 
     sum(Tpa)          as HrvTPA,
     sum(DBH*DBH*.005454154*Tpa) as HrvBA, 
     sum(TCuFt*Tpa)    as HrvTCuFt,
@@ -295,3 +265,12 @@ select MgmtID,Year,
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
+  
+Create_Composite_Compute = "
+drop table if exists CmpCompute;
+create table CmpCompute as
+  select MgmtID,Year,subExpression,
+  round(sum(SamplingWt),2) as CmpSamplingWt
+  from (select * from FVS_Compute where CaseID in (select CaseID from fvs_Cases))
+  join FVS_Cases using (CaseID)
+  group by MgmtID,Year;" 
