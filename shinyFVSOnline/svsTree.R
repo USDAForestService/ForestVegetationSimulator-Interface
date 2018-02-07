@@ -306,12 +306,12 @@ displayTrees <- function (drawnTrees)
     alltr[[tree$stemcolor]] = if (is.null(alltr[[tree$stemcolor]])) line 
                               else  rbind(alltr[[tree$stemcolor]],  line)                                                             
   }
-  for (col in names(alltr)) segments3d(alltr[[col]],col=col,lwd=2,alpha=1,add=TRUE)
+  for (col in names(alltr)) segments3d(alltr[[col]],col=col,lwd=3,alpha=1,add=TRUE)
   #make big trees cones ... this code could be much faster by making a list of all triangles. 
   for (tree in drawnTrees)                                  
   {
     if (is.null(tree$baseht)) next
-    if (tree$DBH > 2) #24 inches
+    if (tree$DBH > 1) # note that dbh is in feet. 
     {
       cone3d(base=c(tree$Xloc,tree$Yloc,tree$baseht),tip=tree$tip,
                     rad=tree$DBH/2,n= 5, col=tree$stemcolor)
