@@ -184,13 +184,13 @@ writeKeyFile <- function (fvsRun,dbIcon,prms)
 cat("writeKeyFile, num stds=",length(stds),
     " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
   if (length(stds)==0) return()
-  dbSendQuery(dbIcon,'drop table if exists m.RunStds') 
-  dbWriteTable(dbIcon,DBI::SQL("m.RunStds"),data.frame(RunStds = stds))
+  dbSendQuery(dbIcon,'drop table if exists temp.RunStds') 
+  dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
   stdInit = getTableName(dbIcon,"FVS_StandInit")
   if (is.null(stdInit)) return()
   dbQ = dbSendQuery(dbIcon,
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
-      ' where Stand_ID in (select RunStds from m.RunStds)'))
+      ' where Stand_ID in (select RunStds from temp.RunStds)'))
   fvsInit = dbFetch(dbQ,n=-1)
   names(fvsInit) = toupper(names(fvsInit))
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
@@ -934,7 +934,7 @@ cat("pasteComponent finding cmp in stands, sel=",sel,"\n")
 
 deleteRelatedDBRows <- function(runuuid,dbcon)
 {
-  tbs <- dbListTables(dbcon)
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
   if (! ("FVS_Cases" %in% tbs)) return()
   tmpDel = paste0("tmp",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database ':memory:' as ",tmpDel)
@@ -952,7 +952,7 @@ cat ("qry=",qry,"\n")
 cat ("ncases to delete=",nr,"\n")
   if (nr)
   {
-    tbs <- dbListTables(dbcon)
+    tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
     dbBegin(dbcon)
     for (tab in tbs)
     {
@@ -1008,7 +1008,7 @@ cat ("nrow(res)=",nrow(res),"\n")
 
   deleteRelatedDBRows(runuuid,dbcon)
    
-  tbs <- dbListTables(dbcon)
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
 cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
   {
@@ -1100,18 +1100,18 @@ cat ("error: stdInit is null\n")
     dbQ = NULL
     if (selType == "inAdd")
     {
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
+      dbSendQuery(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       if (length(input$inStds))
       {
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = input$inStds))
+        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-            ' where Stand_ID in (select SelStds from m.Stds)')))
+            ' where Stand_ID in (select SelStds from temp.Stds)')))
       } else return()
     } else {
       # use if inAddGrp 
-      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from m.Grps ',
-           'where Grp in (select SelGrps from m.SGrps)')))
+      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
+           'where Grp in (select SelGrps from temp.SGrps)')))
       if (class(stds) == "try-error") return()                                                             
       if (nrow(stds) == 0) return()
       stds = stds[,1]
@@ -1121,11 +1121,11 @@ cat ("error: stdInit is null\n")
         stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                           
       } 
       if (length(stds) == 0) return()  
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists m.Stds') 
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Stds"),data.frame(SelStds = stds))
+      dbSendQuery(dbGlb$dbIcon,'drop table if exists temp.Stds') 
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
       dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-            ' where Stand_ID in (select SelStds from m.Stds)')))
+            ' where Stand_ID in (select SelStds from temp.Stds)')))
     }       
     if (is.null(dbQ) || class(dbQ) == "try-error") return()
     fvsInit = dbFetch(dbQ,n=-1)
@@ -1278,7 +1278,7 @@ mkFileNameUnique <- function(fn)
 
 getTableName <- function(dbcon,basename)
 {
-  tbs <- dbListTables(dbcon)
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
   itab <- match(tolower(basename),tolower(tbs)) 
   if (is.na(itab)) itab <- grep (tolower(basename),tolower(tbs)) 
   if (length(itab) == 1) return(tbs[itab]) else return(NULL)

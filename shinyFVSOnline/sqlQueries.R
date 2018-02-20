@@ -29,12 +29,23 @@ mkdbhCase = function (smdbh=4,lgdbh=40)
   subExpression
 }
 
+Create_CmpMetaData = "
+drop table if exists CmpMetaData; 
+create table CmpMetaData as 
+ select RunTitle,RunDateTime,Variant,
+   sum(SamplingWt) as TotalSamplingWt,
+   count(*)        as NumOfCases,
+   Version, RV, KeywordFile from FVS_Cases   
+   where CaseID in (select CaseID from temp.Cases)
+ group by KeywordFile
+ order by RunTitle,RunDateTime;"
+
 Create_StdStkDBHSp = "
-drop table if exists m.StdStkDBHSp; 
-drop table if exists m.StdStkAllDBH; 
-drop table if exists m.StdStkAllSp; 
-drop table if exists m.StdStkAllAll; 
-create table m.StdStkDBHSp as 
+drop table if exists temp.StdStkDBHSp; 
+drop table if exists temp.StdStkAllDBH; 
+drop table if exists temp.StdStkAllSp; 
+drop table if exists temp.StdStkAllAll; 
+create table temp.StdStkDBHSp as 
 select CaseID,Year,Species, 
     subExpression as DBHClass, 
     sum(Tpa)          as LiveTpa, 
@@ -48,10 +59,10 @@ select CaseID,Year,Species,
     sum(MCuFt*MortPA) as MrtMCuFt,               
     sum(BdFt*MortPA)  as MrtBdFt 
   from FVS_TreeList 
-  where CaseID in (select CaseID from m.Cases)
+  where CaseID in (select CaseID from temp.Cases)
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
-create table m.StdStkAllDBH as 
+create table temp.StdStkAllDBH as 
 select CaseID,Year,Species,'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA, 
@@ -63,10 +74,10 @@ select CaseID,Year,Species,'All' as DBHClass,
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
-  from m.StdStkDBHSp 
+  from temp.StdStkDBHSp 
   group by CaseID,Year,Species
   order by CaseID,Year,Species,DBHClass;
-create table m.StdStkAllSp as 
+create table temp.StdStkAllSp as 
 select CaseID,Year,'All' as Species, DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA, 
@@ -78,10 +89,10 @@ select CaseID,Year,'All' as Species, DBHClass,
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
-  from m.StdStkDBHSp 
+  from temp.StdStkDBHSp 
   group by CaseID,Year,DBHClass
   order by CaseID,Year,Species,DBHClass;
-create table m.StdStkAllAll as 
+create table temp.StdStkAllAll as 
 select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA,           
@@ -93,20 +104,20 @@ select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(MrtTCuFt)     as MrtTCuFt, 
     sum(MrtMCuFt)     as MrtMCuFt, 
     sum(MrtBdFt)      as MrtBdFt 
-  from m.StdStkDBHSp 
+  from temp.StdStkDBHSp 
   group by CaseID,Year
   order by CaseID,Year,Species,DBHClass;
-insert into m.StdStkDBHSp select * from m.StdStkAllSp;
-insert into m.StdStkDBHSp select * from m.StdStkAllDBH;
-insert into m.StdStkDBHSp select * from m.StdStkAllAll;" 
+insert into temp.StdStkDBHSp select * from temp.StdStkAllSp;
+insert into temp.StdStkDBHSp select * from temp.StdStkAllDBH;
+insert into temp.StdStkDBHSp select * from temp.StdStkAllAll;" 
  
   
 Create_HrvStdStk = "
-drop table if exists m.HrvStdStk;
-drop table if exists m.HrvStdStkAllDBH;
-drop table if exists m.HrvStdStkAllSp;
-drop table if exists m.HrvStdStkAllAll;
-create table m.HrvStdStk as
+drop table if exists temp.HrvStdStk;
+drop table if exists temp.HrvStdStkAllDBH;
+drop table if exists temp.HrvStdStkAllSp;
+drop table if exists temp.HrvStdStkAllAll;
+create table temp.HrvStdStk as
 select CaseID,Year,Species, 
     subExpression as dbhclass, 
     sum(Tpa)          as HrvTPA,
@@ -115,45 +126,45 @@ select CaseID,Year,Species,
     sum(MCuFt*Tpa)    as HrvMCuFt,
     sum(BdFt*Tpa)     as HrvBdFt
   from FVS_CutList 
-  where CaseID in (select CaseID from m.Cases)
+  where CaseID in (select CaseID from temp.Cases)
   group by CaseID,Year,Species,DBHClass;
-create table m.HrvStdStkAllDBH as 
+create table temp.HrvStdStkAllDBH as 
 select CaseID,Year,Species,'All' as DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
-  from m.HrvStdStk 
+  from temp.HrvStdStk 
   group by CaseID,Year,Species;
-create table m.HrvStdStkAllSp as 
+create table temp.HrvStdStkAllSp as 
 select CaseID,Year,'All' as Species, DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
-  from m.HrvStdStk 
+  from temp.HrvStdStk 
   group by CaseID,Year,DBHClass;
-create table m.HrvStdStkAllAll as 
+create table temp.HrvStdStkAllAll as 
 select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
     sum(HrvMCuFt)    as HrvMCuFt,
     sum(HrvBdFt)     as HrvBdFt
-  from m.HrvStdStk 
+  from temp.HrvStdStk 
   group by CaseID,Year;
-insert into m.HrvStdStk select * from m.HrvStdStkAllSp;
-insert into m.HrvStdStk select * from m.HrvStdStkAllDBH;
-insert into m.HrvStdStk select * from m.HrvStdStkAllAll;" 
+insert into temp.HrvStdStk select * from temp.HrvStdStkAllSp;
+insert into temp.HrvStdStk select * from temp.HrvStdStkAllDBH;
+insert into temp.HrvStdStk select * from temp.HrvStdStkAllAll;" 
   
 Create_StdStk1Hrv = "
-drop table if exists m.StdStk2;
-create table m.StdStk2 as select * from m.StdStkDBHSp 
- left join m.HrvStdStk using (CaseID,Year,Species,DBHClass);
-drop table if exists m.StdStk1;
-create table m.StdStk1 as 
+drop table if exists temp.StdStk2;
+create table temp.StdStk2 as select * from temp.StdStkDBHSp 
+ left join temp.HrvStdStk using (CaseID,Year,Species,DBHClass);
+drop table if exists temp.StdStk1;
+create table temp.StdStk1 as 
 select Year,Species,DBHClass,
  LiveTpa, LiveBA, LiveTCuFt, LiveMCuFt, LiveBdFt,  
  case when HrvTPA   is not null then HrvTPA   else 0 end as HrvTPA, 
@@ -162,16 +173,16 @@ select Year,Species,DBHClass,
  case when HrvMCuFt is not null then HrvMCuFt else 0 end as HrvMCuFt, 
  case when HrvBdFt  is not null then HrvBdFt  else 0 end as HrvBdFt,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
-from m.StdStk2;"                                                                         
+from temp.StdStk2;"                                                                         
   
 Create_StdStk1NoHrv = "
-drop table if exists m.StdStk1; 
-create table m.StdStk1 as 
+drop table if exists temp.StdStk1; 
+create table temp.StdStk1 as 
 select Year,Species,DBHClass,
  LiveTpa, LiveBA, LiveTCuFt, LiveMCuFt, LiveBdFt,                                   
  0 as HrvTPA, 0 as HrvBA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvBdFt,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
-from m.StdStkDBHSp;"                                 
+from temp.StdStkDBHSp;"                                 
                                                                                     
 Create_StdStkFinal = "
 drop table if exists StdStk;
@@ -181,7 +192,7 @@ create table StdStk as select Year, Species, DBHClass,
  LiveTCuFt,  MrtTCuFt, HrvTCuFt, LiveTCuFt - HrvTCuFt as RsdTCuFt,
  LiveMCuFt,  MrtMCuFt, HrvMCuFt, LiveMCuFt - HrvMCuFt as RsdMCuFt,
  LiveBdFt,   MrtBdFt,  HrvBdFt,  LiveBdFt  - HrvBdFt  as RsdBdFt, 
- CaseID from m.StdStk1;                                     
+ CaseID from temp.StdStk1;                                     
 drop table if exists CmpStdStk;                               
 create table CmpStdStk as 
 select MgmtID,Year,Species,DBHClass,
@@ -205,13 +216,13 @@ select MgmtID,Year,Species,DBHClass,
     round(sum(MrtBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpMrtBdFt,
     round(sum(HrvBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpHrvBdFt,
     round(sum(RsdBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpRsdBdFt  
-  from (select * from StdStk where CaseID in (select CaseID from m.Cases))
+  from (select * from StdStk where CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year,Species,DBHClass;"
 
-Create_Composite = "
-drop table if exists Composite;
-create table Composite as 
+Create_CmpSummary = "
+drop table if exists CmpSummary;
+create table CmpSummary as 
 select MgmtID,Year,
     round(sum(Age    *SamplingWt)/sum(SamplingWt),2) as CmpAge,
     round(sum(Tpa    *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
@@ -233,13 +244,13 @@ select MgmtID,Year,
     round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
-  from (select * from FVS_Summary where CaseID in (select CaseID from m.Cases))
+  from (select * from FVS_Summary where CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
-Create_Composite_East = "
-drop table if exists Composite_East;
-create table Composite_East as 
+Create_CmpSummary_East = "
+drop table if exists CmpSummary_East;
+create table CmpSummary_East as 
 select MgmtID,Year,
     round(sum(Age    *SamplingWt)/sum(SamplingWt),2) as CmpAge,
     round(sum(Tpa    *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
@@ -261,16 +272,16 @@ select MgmtID,Year,
     round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
-  from (select * from FVS_Summary_East where CaseID in (select CaseID from m.Cases))
+  from (select * from FVS_Summary_East where CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
   
-Create_Composite_Compute = "
+Create_CmpCompute = "
 drop table if exists CmpCompute;
 create table CmpCompute as
   select MgmtID,Year,subExpression,
   round(sum(SamplingWt),2) as CmpSamplingWt
-  from (select * from FVS_Compute where CaseID in (select CaseID from fvs_Cases))
+  from (select * from FVS_Compute where CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;" 

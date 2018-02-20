@@ -120,12 +120,10 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
     dbDrv <- dbDriver("SQLite")
     dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
-    dbSendQuery(dbGlb$dbOcon,'attach ":memory:" as m')
     if (!file.exists("FVS_Data.db")) 
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
     
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     setProgress(value = NULL)          
   }, min=1, max=6)
@@ -211,7 +209,7 @@ cat ("getwd= ",getwd(),"\n")
     {
 cat ("Output Tables & Load\n")
       initTableGraphTools()
-      tbs <- dbListTables(dbGlb$dbOcon)
+      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         fvsOutData$dbCases = dbReadTable(dbGlb$dbOcon,"FVS_Cases")
@@ -250,28 +248,33 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
-      tbs <- dbListTables(dbGlb$dbOcon)
+      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
 cat ("runs, tbs=",tbs,"\n")
       withProgress(session, {  
         i = 1
         setProgress(message = "Output query", 
                     detail  = "Selecting tables", value = i); i = i+1
-        # create a m.Cases table that is a list of CaseIDs and MgmtIDs 
+        # create a temp.Cases table that is a list of CaseIDs and MgmtIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        dbSendQuery(dbGlb$dbOcon,"drop table if exists m.Cases")
+        dbSendQuery(dbGlb$dbOcon,"drop table if exists temp.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
-        dbSendQuery(dbGlb$dbOcon,paste0("create table m.Cases as select CaseID ",
+        dbSendQuery(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))        
         for (tb in tbs) 
         {
 cat ("tb=",tb,"\n")
           cnt = 0
           if (tb == "FVS_Cases") next
-          else if (tb == "Composite")
+          # lines to delete Composite and Composite_East can be deleted some day!
+          else if (tb == "Composite") 
             dbSendQuery(dbGlb$dbOcon,"drop table Composite")
           else if (tb == "Composite_East")
             dbSendQuery(dbGlb$dbOcon,"drop table Composite_East")
+          else if (tb == "CmpSummary")
+            dbSendQuery(dbGlb$dbOcon,"drop table CmpSummary")
+          else if (tb == "CmpSummary_East")
+            dbSendQuery(dbGlb$dbOcon,"drop table CmpSummary_East")
           else if (tb == "StdStk")
             dbSendQuery(dbGlb$dbOcon,"drop table StdStk")
           else if (tb == "CmpCompute")
@@ -281,27 +284,28 @@ cat ("tb=",tb,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
               dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",
                    "(select distinct CaseID from ",tb," where CaseID in ",
-                   "(select CaseID from m.Cases))")) else 1
+                   "(select CaseID from temp.Cases))")) else 1
           }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
+        exqury(dbGlb$dbOcon,Create_CmpMetaData)
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to this input     
         if ("FVS_Summary" %in% tbs)
         {
           setProgress(message = "Output query", 
-            detail  = "Building Composite", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_Composite)
-          tbs = c(tbs,"Composite")
+            detail  = "Building CmpSummary", value = i); i = i+1
+          exqury(dbGlb$dbOcon,Create_CmpSummary)
+          tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")
         }
         if ("FVS_Summary_East" %in% tbs)
         {
           setProgress(message = "Output query", 
-            detail  = "Building Composite_East", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_Composite_East)
-          tbs = c(tbs,"Composite_East")
+            detail  = "Building CmpSummary_East", value = i); i = i+1
+          exqury(dbGlb$dbOcon,Create_CmpSummary_East)
+          tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
         }
         if ("FVS_Compute" %in% tbs)
@@ -314,7 +318,7 @@ cat ("tbs2=",tbs,"\n")
             lapply(setdiff(colnames(cmp),c("CaseID","StandID","Year")),
               function (var) paste0("round(sum(",var,
                 "*SamplingWT)/sum(SamplingWt),2) as Cmp",var)),collapse=",")
-          exqury(dbGlb$dbOcon,Create_Composite_Compute,subExpression=sumExpressions)
+          exqury(dbGlb$dbOcon,Create_CmpCompute,subExpression=sumExpressions)
           cmp = dbGetQuery(dbGlb$dbOcon,"Select * from CmpCompute;")
           keep = apply(cmp,2,function (x) !(all(is.na(x))))
           if (!all(keep)) 
@@ -355,10 +359,13 @@ cat ("tbs4=",tbs,"\n")
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
         if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
             c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMCuFt","TPrdSCuFt","TPrdSBdFt"))
-        if (!is.null(dbd[["Composite"]])) dbd$Composite = c(dbd$Composite,
+        if (!is.null(dbd[["CmpSummary"]])) dbd$CmpSummary = c(dbd$CmpSummary,
+            c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
+        if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
           
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
+        tbs = sort(tbs)
         sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
@@ -367,7 +374,7 @@ cat ("tbs4=",tbs,"\n")
       }, min=1, max=6)
     } else
     {
-      updateSelectInput(session, "selectdbtables", choices=list(" "))
+      updateSelectInput(session, "selectdbtables", choices=list())
     }
   })
     
@@ -601,8 +608,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         cols = unique(unlist(lapply(strsplit(fvsOutData$dbSelVars,".",fixed=TRUE),
               function (x) x[2])))
         if (length(cols) == 0) return()
-        tbgroup=c("Composite"=1, "Composite_East"=1, "CmpCompute"=1, 
-          "CmpStdStk"=1, "StdStk"=3, "FVS_ATRTList"=8,
+        tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
+          "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
@@ -625,7 +632,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
-          if (tb == "Composite" || tb == "Composite_East") 
+          if (tb == "CmpSummary" || tb == "CmpSummary_East") 
           {            
             dtab = dbReadTable(dbGlb$dbOcon,tb)
             dtab <- ddply(dtab,.(MgmtID),.fun=function (x) 
@@ -636,7 +643,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
           } else {
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
-                   " where CaseID in (select CaseID from m.Cases)")) else
+                   " where CaseID in (select CaseID from temp.Cases)")) else
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))
             # fix the stand and stock table.
             if (tb == "StdStk") 
@@ -690,7 +697,7 @@ cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n")
              mrgVars = intersect(mrgVars,names(dat[[tb]]))
              setProgress(message = "Merging selected tables", 
                          detail  = tb, value = iprg)
-cat ("tb=",tb," mrgVars=",mrgVars,"\n")                        
+cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
@@ -1173,8 +1180,8 @@ cat ("inVars\n")
         stdInit,' where lower(variant) like "%',input$inVars,'%"'))) else NULL
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
-      dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),data.frame(Stand_ID="",Grp=""))
+      dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.Grps")
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
     } else {
@@ -1190,10 +1197,10 @@ cat ("inVars\n")
       dd = do.call(rbind,dd)
       colnames(dd) = c("Stand_ID","Grp")
       dd = as.data.frame(dd)
-      dbSendQuery(dbGlb$dbIcon,"drop table if exists m.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.Grps"),dd)
+      dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.Grps")
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
       selGrp = dbGetQuery(dbGlb$dbIcon,
-        'select distinct Grp from m.Grps order by Grp')[,1]
+        'select distinct Grp from temp.Grps order by Grp')[,1]
       updateSelectInput(session=session, inputId="inGrps", 
               choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="inStds", 
@@ -1215,12 +1222,12 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         updateSelectInput(session=session, inputId="inStds", 
            choices=list())
       } else {  
-         dbSendQuery(dbGlb$dbIcon,"drop table if exists m.SGrps")
-         dbWriteTable(dbGlb$dbIcon,DBI::SQL("m.SGrps"),
+         dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.SGrps")
+         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),
            data.frame(SelGrps = input$inGrps))      
         stds = try(dbGetQuery(dbGlb$dbIcon,
-          paste0('select Stand_ID from m.Grps ',
-                 'where Grp in (select SelGrps from m.SGrps)')))
+          paste0('select Stand_ID from temp.Grps ',
+                 'where Grp in (select SelGrps from temp.SGrps)')))
         if (class(stds) == "try-error") return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         globals$selStds = stds[,1]
@@ -2576,7 +2583,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
        {
          runuuid = globals$fvsRun$uuid
          if (is.null(runuuid)) return()
-         tabs = dbListTables(dbGlb$dbOcon)
+         tabs = dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
          if (!("FVS_Cases" %in% tabs)) return()
          cases = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
@@ -3002,16 +3009,17 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       cases = dbGetQuery(dbGlb$dbOcon,
           paste0("select CaseID from FVS_Cases where KeywordFile = '",
                  input$mapDsRunList,"'"))
-      dbSendQuery(dbGlb$dbOcon,"drop table if exists m.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("m.mapsCases"),data.frame(cases))
-      tabs = setdiff(dbListTables(dbGlb$dbOcon),c("Composite","FVS_Cases","Composite_East"))
+      dbSendQuery(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
+      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),data.frame(cases))
+      tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1],
+                     c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
       for (tab in tabs)
       {
         tb <- dbGetQuery(dbGlb$dbOcon,paste0("PRAGMA table_info('",tab,"')"))
         if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
         cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                 " where CaseID in (select CaseID from m.mapsCases) limit 1")))
+                 " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
         if (class(cnt) == "try-error") next
         if (cnt[1,1]) tables=append(tables,tab)
       }
@@ -3071,7 +3079,7 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
       matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
 cat ("matchVar=",matchVar,"\n")
       dispData = dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
-                isolate(input$mapDsTable)," where CaseID in (select CaseID from m.mapsCases)"))
+                isolate(input$mapDsTable)," where CaseID in (select CaseID from temp.mapsCases)"))
       dispData = dispData[,-1]
       keys = setdiff(colnames(dispData),c("StandID","Year"))
       extra = NULL
@@ -3483,7 +3491,6 @@ cat ("Replace existing database\n")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
     output$replaceActionMsg <- renderText("Training database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
@@ -3495,7 +3502,6 @@ cat ("Replace existing database\n")
     file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
     output$replaceActionMsg <- renderText("Empty database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
@@ -3664,7 +3670,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       progress <- shiny::Progress$new(session,min=1,max=3)
     }
-    tabs = dbListTables(dbo)
+    tabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
     # get rid of "NRIS_" part of names if any
     for (tab in tabs)
     {
@@ -3672,7 +3678,7 @@ cat("loaded table=",tab,"\n")
       nn = sub("NRIS_","",tab)
       if (nchar(nn) && nn != tab) dbSendQuery(dbo,paste0("alter table ",tab," rename to ",nn))
     }
-    tabs = dbListTables(dbo)
+    tabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
@@ -3694,7 +3700,6 @@ cat("loaded table=",tab,"\n")
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    dbSendQuery(dbGlb$dbIcon,'attach ":memory:" as m')
     progress <- shiny::Progress$new(session,min=1,max=3)
     progress$set(message = "Checking database query keywords", value = 1)
     fixFVSKeywords(dbGlb,progress) 
@@ -3708,9 +3713,9 @@ cat("loaded table=",tab,"\n")
   observe({  
     if (input$addNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
-    oldtabs = dbListTables(dbGlb$dbIcon)
+    oldtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
     dbo = dbConnect(dbDrv,dbGlb$newFVSData)
-    newtabs = dbListTables(dbo)
+    newtabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
     progress <- shiny::Progress$new(session,min=1,max=length(newtabs)+1)
     i = 0
     dbDisconnect(dbo)
@@ -3769,7 +3774,7 @@ cat ("homogenize qry=",qry,"\n")
     dbSendQuery(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
-    tabs = dbListTables(dbGlb$dbIcon)
+    tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
@@ -3783,7 +3788,7 @@ cat ("homogenize qry=",qry,"\n")
     if(input$inputDBPan == "Upload and add new rows to existing tables (.csv)") 
     {
 cat ("Upload new rows\n")
-      tbs <- dbListTables(dbGlb$dbIcon)
+      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
@@ -3994,7 +3999,7 @@ cat ("processing FVSClimAttrs.csv\n")
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
     unlink("FVSClimAttrs.csv")
-    climTab <- dbListTables(dbGlb$dbIcon)
+    climTab <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
@@ -4108,7 +4113,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     if(input$inputDBPan == "View and edit existing tables") 
     {
 cat ("dataEditor\n")
-      tbs <- dbListTables(dbGlb$dbIcon)
+      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
