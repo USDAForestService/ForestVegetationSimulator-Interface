@@ -38,7 +38,7 @@ create table CmpMetaData as
    Version, RV, KeywordFile from FVS_Cases   
    where CaseID in (select CaseID from temp.Cases)
  group by KeywordFile
- order by RunTitle,RunDateTime;"
+ order by RunTitle, RunDateTime;"
 
 Create_StdStkDBHSp = "
 drop table if exists temp.StdStkDBHSp; 
@@ -192,7 +192,9 @@ create table StdStk as select Year, Species, DBHClass,
  LiveTCuFt,  MrtTCuFt, HrvTCuFt, LiveTCuFt - HrvTCuFt as RsdTCuFt,
  LiveMCuFt,  MrtMCuFt, HrvMCuFt, LiveMCuFt - HrvMCuFt as RsdMCuFt,
  LiveBdFt,   MrtBdFt,  HrvBdFt,  LiveBdFt  - HrvBdFt  as RsdBdFt, 
- CaseID from temp.StdStk1;                                     
+ CaseID from temp.StdStk1;"                                    
+                                                                                    
+Create_CmpStdStk = "
 drop table if exists CmpStdStk;                               
 create table CmpStdStk as 
 select MgmtID,Year,Species,DBHClass,

@@ -277,6 +277,10 @@ cat ("tb=",tb,"\n")
             dbSendQuery(dbGlb$dbOcon,"drop table CmpSummary_East")
           else if (tb == "StdStk")
             dbSendQuery(dbGlb$dbOcon,"drop table StdStk")
+          else if (tb == "CmpStdStk")
+            dbSendQuery(dbGlb$dbOcon,"drop table CmpStdStk")
+          else if (tb == "CmpMetaData")
+            dbSendQuery(dbGlb$dbOcon,"drop table CmpMetaData")
           else if (tb == "CmpCompute")
             dbSendQuery(dbGlb$dbOcon,"drop table CmpCompute")
           else 
@@ -289,10 +293,12 @@ cat ("tb=",tb,"\n")
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
-        exqury(dbGlb$dbOcon,Create_CmpMetaData)
+        dbExecute(dbGlb$dbOcon, "drop table if exists CmpMetaData;")
+        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+        if (ncases > 1) exqury(dbGlb$dbOcon,Create_CmpMetaData)
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to this input     
-        if ("FVS_Summary" %in% tbs)
+        if ("FVS_Summary" %in% tbs && ncases > 1)
         {
           setProgress(message = "Output query", 
             detail  = "Building CmpSummary", value = i); i = i+1
@@ -300,7 +306,7 @@ cat ("tb=",tb,"\n")
           tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")
         }
-        if ("FVS_Summary_East" %in% tbs)
+        if ("FVS_Summary_East" %in% tbs && ncases > 1)
         {
           setProgress(message = "Output query", 
             detail  = "Building CmpSummary_East", value = i); i = i+1
@@ -308,7 +314,7 @@ cat ("tbs1=",tbs,"\n")
           tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
         }
-        if ("FVS_Compute" %in% tbs)
+        if ("FVS_Compute" %in% tbs && ncases > 1)
         {
           setProgress(message = "Output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
@@ -348,7 +354,12 @@ cat ("tbs3=",tbs,"\n")
             exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,subExpression=dbhclassexp)
           }
           exqury(dbGlb$dbOcon,Create_StdStkFinal)
-          tbs = c(tbs,"StdStk")     
+          tbs = c(tbs,"StdStk") 
+          if (ncases > 1) 
+          {
+            exqury(dbGlb$dbOcon,Create_CmpStdStk)
+            tbs = c(tbs,"CmpStdStk")
+          }
         }
 cat ("tbs4=",tbs,"\n")       
         setProgress(message = "Output query", 
