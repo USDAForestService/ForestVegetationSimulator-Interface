@@ -5,7 +5,7 @@ function ()
 
   all=NULL
   for (i in 1:maxsp) {
-    ans = .Fortran("fvsSpeciesCode",as.character(""),as.character(""),as.character(""),
+    ans = .Fortran("fvsSpeciesCode",strrep(" ",10),strrep(" ",10),strrep(" ",10),
           as.integer(i),as.integer(0),as.integer(0),as.integer(0),
           as.integer(0))
     ans = c(substr(ans[[1]],1,ans[[5]]),substr(ans[[2]],1,ans[[6]]),
