@@ -257,9 +257,9 @@ cat ("runs, tbs=",tbs,"\n")
         # create a temp.Cases table that is a list of CaseIDs and MgmtIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        dbSendQuery(dbGlb$dbOcon,"drop table if exists temp.Cases")
+        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
-        dbSendQuery(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))        
         for (tb in tbs) 
         {
@@ -268,21 +268,21 @@ cat ("tb=",tb,"\n")
           if (tb == "FVS_Cases") next
           # lines to delete Composite and Composite_East can be deleted some day!
           else if (tb == "Composite") 
-            dbSendQuery(dbGlb$dbOcon,"drop table Composite")
+            dbExecute(dbGlb$dbOcon,"drop table Composite")
           else if (tb == "Composite_East")
-            dbSendQuery(dbGlb$dbOcon,"drop table Composite_East")
+            dbExecute(dbGlb$dbOcon,"drop table Composite_East")
           else if (tb == "CmpSummary")
-            dbSendQuery(dbGlb$dbOcon,"drop table CmpSummary")
+            dbExecute(dbGlb$dbOcon,"drop table CmpSummary")
           else if (tb == "CmpSummary_East")
-            dbSendQuery(dbGlb$dbOcon,"drop table CmpSummary_East")
+            dbExecute(dbGlb$dbOcon,"drop table CmpSummary_East")
           else if (tb == "StdStk")
-            dbSendQuery(dbGlb$dbOcon,"drop table StdStk")
+            dbExecute(dbGlb$dbOcon,"drop table StdStk")
           else if (tb == "CmpStdStk")
-            dbSendQuery(dbGlb$dbOcon,"drop table CmpStdStk")
+            dbExecute(dbGlb$dbOcon,"drop table CmpStdStk")
           else if (tb == "CmpMetaData")
-            dbSendQuery(dbGlb$dbOcon,"drop table CmpMetaData")
+            dbExecute(dbGlb$dbOcon,"drop table CmpMetaData")
           else if (tb == "CmpCompute")
-            dbSendQuery(dbGlb$dbOcon,"drop table CmpCompute")
+            dbExecute(dbGlb$dbOcon,"drop table CmpCompute")
           else 
           {
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
@@ -1191,7 +1191,7 @@ cat ("inVars\n")
         stdInit,' where lower(variant) like "%',input$inVars,'%"'))) else NULL
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
-      dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.Grps")
+      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
@@ -1208,7 +1208,7 @@ cat ("inVars\n")
       dd = do.call(rbind,dd)
       colnames(dd) = c("Stand_ID","Grp")
       dd = as.data.frame(dd)
-      dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.Grps")
+      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
       selGrp = dbGetQuery(dbGlb$dbIcon,
         'select distinct Grp from temp.Grps order by Grp')[,1]
@@ -1233,7 +1233,7 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         updateSelectInput(session=session, inputId="inStds", 
            choices=list())
       } else {  
-         dbSendQuery(dbGlb$dbIcon,"drop table if exists temp.SGrps")
+         dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
          dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),
            data.frame(SelGrps = input$inGrps))      
         stds = try(dbGetQuery(dbGlb$dbIcon,
@@ -2601,7 +2601,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
          if (nrow(cases) == 0) return()
 cat ("download run as xlsx, ncases=",nrow(cases),"\n")
          tmp = paste0("tmp",gsub("-","",runuuid),Sys.getpid(),"genoutput")
-         dbSendQuery(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
+         dbExecute(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
          casesToGet = paste0(tmp,".casesToGet")
          dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
          out = list()
@@ -2613,7 +2613,7 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
           if (class(dat) != "try-error") out[[tab]] = dat
 cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
-         dbSendQuery(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
+         dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## Download dlRenderData  
@@ -3020,7 +3020,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       cases = dbGetQuery(dbGlb$dbOcon,
           paste0("select CaseID from FVS_Cases where KeywordFile = '",
                  input$mapDsRunList,"'"))
-      dbSendQuery(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
+      dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
       dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),data.frame(cases))
       tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1],
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
@@ -3687,7 +3687,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
     {
 cat("loaded table=",tab,"\n")      
       nn = sub("NRIS_","",tab)
-      if (nchar(nn) && nn != tab) dbSendQuery(dbo,paste0("alter table ",tab," rename to ",nn))
+      if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
     }
     tabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
@@ -3730,7 +3730,7 @@ cat("loaded table=",tab,"\n")
     progress <- shiny::Progress$new(session,min=1,max=length(newtabs)+1)
     i = 0
     dbDisconnect(dbo)
-    attach = try(dbSendQuery(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
+    attach = try(dbExecute(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
     if (class(attach) == "try-error")
     {
       output$replaceActionMsg <- renderText("New data could not be loaded")
@@ -3743,7 +3743,7 @@ cat("loaded table=",tab,"\n")
     {
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
-      dbSendQuery(dbGlb$dbIcon,paste0("insert into ",tab," select * from addnew.",tab))
+      dbExecute(dbGlb$dbIcon,paste0("insert into ",tab," select * from addnew.",tab))
     }
     newtabs = setdiff(newtabs,justNew)
     for (tab in newtabs)
@@ -3752,10 +3752,10 @@ cat("loaded table=",tab,"\n")
       progress$set(message = paste0("Loading ",tab), value = i)
       if (tab %in% c("FVS_StandInit","FVS_TreeInit","FVS_PlotInit"))
       {
-        dbSendQuery(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
+        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
                     "(select Stand_ID from addnew.",tab,")"))
       } else if (tab == "FVS_GroupAddFilesAndKeywords") {
-        dbSendQuery(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
+        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
                     " (select Groups from addnew.",tab,")"))
       }
       # homogenize table structure and then do the insert from ...
@@ -3772,17 +3772,17 @@ cat("loaded table=",tab,"\n")
           qry = paste0("alter table ",tab," add column ",newTdef$name[i],
                 " ",newTdef$type[i],";")
 cat ("homogenize qry=",qry,"\n")
-          dbSendQuery(dbGlb$dbIcon,qry)
+          dbExecute(dbGlb$dbIcon,qry)
         }
       }
       alln = paste0(newTdef$name,collapse=",")
       qry = paste0("insert into ",tab," (",alln,") select ",alln,
                    " from addnew.",tab,";") 
 cat ("homogenize qry=",qry,"\n")
-      dbSendQuery(dbGlb$dbIcon,qry)
+      dbExecute(dbGlb$dbIcon,qry)
     }
     dbCommit(dbGlb$dbIcon)
-    dbSendQuery(dbGlb$dbIcon,paste0("detach addnew;"))
+    dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
     tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
@@ -3832,8 +3832,7 @@ cat ("Upload new rows\n")
     if (is.null(input$uploadStdTree)) return()
     isolate({      
       indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE))
-      if (file.exists(input$uploadStdTree$datapath)) 
-               unlink(input$uploadStdTree$datapath)
+      unlink(input$uploadStdTree$datapath)
       if (class(indat) == "try-error" || nrow(indat)==0)
       {                       
         output$uploadActionMsg = renderText("Input empty, no data loaded.")
@@ -3855,7 +3854,7 @@ cat ("Upload new rows\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-      cols = na.omit(pmatch(tolower(colnames(indat)),
+      cols = na.omit(charmatch(tolower(colnames(indat)),
              tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       if (length(cols) == 0) 
       {
@@ -3866,6 +3865,7 @@ cat ("Upload new rows\n")
         return()
       }
       addCols = attr(cols,"na.action")
+cat ("addCols=",addCols,"\n")
       if (length(addCols))
       {
         for (icol in addCols)
@@ -3877,7 +3877,8 @@ cat ("Upload new rows\n")
           newVar = names(indat)[icol]
           qry = paste0("alter table ",input$uploadSelDBtabs," add column ",
                 newVar," ",dtyp,";")
-          added = try(dbSendQuery(dbGlb$dbIcon,qry))
+cat ("add column qry=",qry,"\n")
+          added = try(dbExecute(dbGlb$dbIcon,qry))
           if (class(added) != "try-error")
           {
             v = dtyp == "character"
@@ -3886,7 +3887,7 @@ cat ("Upload new rows\n")
           }
         }
       }
-      cols = na.omit(pmatch(tolower(colnames(indat)),
+      cols = na.omit(charmatch(tolower(colnames(indat)),
              tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]][cols]
       req = switch(input$uploadSelDBtabs,
@@ -3901,20 +3902,28 @@ cat ("Upload new rows\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-      colnames(indat) = names(types)
       quote = types[types]   
       if (length(quote)) for (cn in names(quote)) 
-        indat[,cn] = paste0("'",indat[,cn],"'")
+      {
+        if (class(indat[,cn]) != "character") indat[,cn] = as.character(indat[,cn])
+      } 
+      for (cn in colnames(indat))  
+        if (class(indat[,cn]) == "character") indat[,cn] = paste0("'",indat[,cn],"'")
+
       dbBegin(dbGlb$dbIcon)
       err = FALSE
       for (i in 1:nrow(indat))
       {
         row = indat[i,,drop=FALSE]
         row = row[,!is.na(row),drop=FALSE]
+        if (ncol(row) == 0) next
+        row = row[,row != "'NA'",drop=FALSE]
+        if (ncol(row) == 0) next
         qry = paste0("insert into ",input$uploadSelDBtabs," (",
                 paste0(colnames(row),collapse=","),
-                  ") values (",paste0(row,collapse=","),");")
-        res = try(dbSendQuery(dbGlb$dbIcon,qry))
+                  ") values (",paste0(row[1,],collapse=","),");")
+cat ("insert qry=",qry,"\n")
+        res = try(dbExecute(dbGlb$dbIcon,qry))
         if (class(res) == "try-error") {err=TRUE; break}
       }
       if (err) 
@@ -3941,7 +3950,7 @@ cat ("Upload new rows\n")
       if (!is.null(keyCol))
       {
         # the key column must not be null, if it is delete the rows.
-        try(dbSendQuery(dbGlb$dbIcon,paste0("delete from ",
+        try(dbExecute(dbGlb$dbIcon,paste0("delete from ",
             input$uploadSelDBtabs," where ",keyCol," is null")))
         # update the stand selector list if it exists and if we are not doing groups
         if (keyCol != "Groups")
@@ -4019,8 +4028,8 @@ cat ("no current FVS_ClimAttrs\n")
       output$actionMsg = renderText("FVSClimAttrs created.")
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
-      dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-      dbSendQuery(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
+      dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
       progress$set(message = "Done", value = 9)
       Sys.sleep (.5)
       progress$close()
@@ -4039,31 +4048,27 @@ cat ("current FVS_ClimAttrs\n")
     dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
     {
-      dbSendQuery(dbIcon,paste0('delete from FVS_ClimAttrs where Stand_ID = "',
+      dbExecute(dbIcon,paste0('delete from FVS_ClimAttrs where Stand_ID = "',
          x[1],'" and Scenario = "',x[2],'"'))
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
-    dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
+    dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     
-    dbSendQuery(dbGlb$dbIcon,'attach database "FVSClimAttrs.db" as new')
+    dbExecute(dbGlb$dbIcon,'attach database "FVSClimAttrs.db" as new')
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
-    qur = dbSendQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs')
-    oldAttrs = dbFetch(qur,n=1)
-    dbClearResult(qur)
+    oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
     if (nrow(oldAttrs) == 0) 
     {
 cat ("simple copy from new, all rows were deleted\n")
-      dbSendQuery(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
-      dbSendQuery(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+      dbExecute(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
+      dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
     } else {
-      qur = dbSendQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs')
-      newAttrs = dbFetch(qur,n=1)
-      dbClearResult(qur)
+      newAttrs = dbGetQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs limit 1;')
       if (identical(colnames(oldAttrs),colnames(newAttrs)))
       {
 cat ("simple insert from new, all cols are identical\n")
-        dbSendQuery(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+        dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
       } else {  
 cat ("need to match columns, cols are not identical\n")
         oldAttrs=colnames(oldAttrs)[-(1:3)]
@@ -4088,31 +4093,31 @@ cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         if (length(newmiss) > 0)  
         {
           dbBegin(dbGlb$dbIcon)
-          for (mis in newmiss) dbSendQuery(dbGlb$dbIcon,
+          for (mis in newmiss) dbExecute(dbGlb$dbIcon,
             paste0('alter table new.FVS_ClimAttrs add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
         if (length(oldmiss) > 0)
         {
-          dbSendQuery(dbGlb$dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
+          dbExecute(dbGlb$dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
           dbBegin(dbGlb$dbIcon)
-          for (mis in oldmiss) dbSendQuery(dbGlb$dbIcon,
+          for (mis in oldmiss) dbExecute(dbGlb$dbIcon,
             paste0('alter table oldClimAttrs add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
-          dbSendQuery(dbGlb$dbIcon,
+          dbExecute(dbGlb$dbIcon,
             paste0('create table FVS_ClimAttrs as select ',selnew,' from oldClimAttrs'))
-          dbSendQuery(dbGlb$dbIcon,'drop table oldClimAttrs')
+          dbExecute(dbGlb$dbIcon,'drop table oldClimAttrs')
         }     
-        dbSendQuery(dbGlb$dbIcon,
+        dbExecute(dbGlb$dbIcon,
           paste0('insert into FVS_ClimAttrs select ',selnew,' from new.FVS_ClimAttrs'))
       }
     }
-    dbSendQuery(dbGlb$dbIcon,'detach database new')   
+    dbExecute(dbGlb$dbIcon,'detach database new')   
     unlink("FVSClimAttrs.db")
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
-    dbSendQuery(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    dbSendQuery(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+    dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
+    dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
     progress$set(message = "Done", value = 10)
     output$uploadActionMsg = renderText("FVSClimAttrs updated.")
     Sys.sleep (2)
@@ -4123,7 +4128,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   observe({
     if(input$inputDBPan == "View and edit existing tables") 
     {
-cat ("dataEditor\n")
+cat ("dataEditor View and edit existing tables\n")
       tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
@@ -4284,15 +4289,14 @@ cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
           "New rows"= 
           {
             inserts <- mkInserts(inputTbl,dbGlb$tblName,
-                                 dbGlb$tbsCTypes[[dbGlb$tblName]])
-lapply(inserts,function (x) cat("ins=",x,"\n"))                             
+                                 dbGlb$tbsCTypes[[dbGlb$tblName]])                                                          
             if (length(inserts)) 
             {
               dbBegin(dbGlb$dbIcon)
               err = FALSE
               for (ins in inserts) 
               {
-                res = try(dbSendQuery(dbGlb$dbIcon,ins))
+                res = try(dbExecute(dbGlb$dbIcon,ins))
                 if (class(res) == "try-error") {err=TRUE; break}
               }
               if (err) 
@@ -4326,7 +4330,7 @@ lapply(inserts,function (x) cat("ins=",x,"\n"))
                 qry = paste0("delete from ",dbGlb$tblName," where _ROWID_ = ",
                              id)
 cat ("edit del, qry=",qry,"\n")                     
-                res = try(dbSendQuery(dbGlb$dbIcon,qry))
+                res = try(dbExecute(dbGlb$dbIcon,qry))
                 if (class(res) == "try-error") {err=TRUE; break}
                 nprocess = nprocess+1
                 if (!is.null(dbGlb$sids)) dbGlb$sids = NULL
@@ -4362,7 +4366,7 @@ cat ("edit del, qry=",qry,"\n")
                   paste(paste0(names(update)," = ",update),collapse=", "),
                     " where _ROWID_ = ",id)
 cat ("edit upd, qry=",qry,"\n")
-                res = try(dbSendQuery(dbGlb$dbIcon,qry))              
+                res = try(dbExecute(dbGlb$dbIcon,qry))              
                 if (class(res) == "try-error") {err=TRUE; break}
                 nprocess = nprocess+1
               }
@@ -4383,10 +4387,8 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             if (is.null(dbGlb$sids) && 
                 length(intersect("Stand_ID",dbGlb$tblCols)))
             {
-              res = dbSendQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                                dbGlb$tblName))
-              dbGlb$sids = dbFetch(res,n=-1)$Stand_ID
-              dbClearResult(res)
+              dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
+                                dbGlb$tblName))$Stand_ID
               if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
               if (dbGlb$rowSelOn && length(dbGlb$sids)) 
                 updateSelectInput(session=session, inputId="rowSelector",
@@ -4400,10 +4402,8 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
               paste0(qry," where Stand_ID in (",
                     paste0("'",input$rowSelector,"'",collapse=","),");") else
               paste0(qry,";") 
-            res <- dbSendQuery(dbGlb$dbIcon,qry)
-            dbGlb$tbl <- dbFetch(res,n=-1)
+            dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
             rownames(dbGlb$tbl) = dbGlb$tbl$rowid
-            dbClearResult(res)
             for (col in 2:ncol(dbGlb$tbl))
               if (class(dbGlb$tbl[[col]]) != "character") 
                  dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
@@ -4427,7 +4427,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
   observe(if (input$clearTable > 0) 
   {
 cat ("clearTable, tbl=",dbGlb$tblName,"\n")
-    dbSendQuery(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName))
+    dbExecute(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName))
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$sids <- NULL

@@ -52,7 +52,7 @@ cat ("in checkMinColumnDefs\n")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
        " add column Groups text not null default 'All_Stands'"))
     grp = TRUE
   }
@@ -62,7 +62,7 @@ cat ("in checkMinColumnDefs\n")
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
       " add column Stand_ID text"))      
     sID = TRUE
   }
@@ -72,7 +72,7 @@ cat ("in checkMinColumnDefs\n")
   if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
       " add column Stand_CN text"))
     sCN = TRUE
   }
@@ -83,7 +83,7 @@ cat ("in checkMinColumnDefs\n")
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
     year=substring(as.character(Sys.time()),1,4)
-    dbSendQuery(dbGlb$dbIcon,paste0(paste0("alter table ",stdInit,
+    dbExecute(dbGlb$dbIcon,paste0(paste0("alter table ",stdInit,
       " add column Inv_Year integer not null default ",year)))      
   }
   # make sure FVSKeywords is defined
@@ -93,7 +93,7 @@ cat ("in checkMinColumnDefs\n")
   {
     if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
     year=substring(as.character(Sys.time()),1,4)
-    dbSendQuery(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
       " add column FVSKeywords text"))
   }
 cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
@@ -123,7 +123,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
     grps = dbGetQuery(dbGlb$dbIcon,paste0("select Groups from ",stdInit))
     names(grps) = toupper(names(grps))
     if (is.null(grps$GROUPS) || any(is.na(grps$GROUPS)) || any(grps$GROUPS == "")) 
-      dbSendQuery(dbGlb$dbIcon,paste0("update ",stdInit,
+      dbExecute(dbGlb$dbIcon,paste0("update ",stdInit,
          " set Groups = 'All_Stands' where Groups = ''"))
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
@@ -196,7 +196,7 @@ cat ("result nrow=",nrow(kwdf),"\n")
             qry <- paste0("update ",tb," set ",kwdname," = ",qut,
               kwdf[row,2],qut," where _ROWID_ = ",kwdf[row,1],";")
 cat ("qry=",qry,"\n")              
-             dbSendQuery(dbGlb$dbIcon,qry)              
+             dbExecute(dbGlb$dbIcon,qry)              
           }
           dbCommit(dbGlb$dbIcon)
         }
@@ -206,4 +206,24 @@ cat ("qry=",qry,"\n")
 cat ("exit fixFVSKeywords\n")
 }    
 
-
+mkInserts <- function(inputTbl,tblName,tbsCTypes)
+{
+  inserts=NULL
+  colnames(inputTbl) = toupper(colnames(inputTbl))
+  names   (tbsCTypes)= toupper(   names(tbsCTypes))
+  for (i in 1:nrow(inputTbl))
+  {
+    line = na.omit(inputTbl[i,inputTbl[i,] != ""])
+    if (length(line) > 0)
+    {
+      vars = paste0(names(line),collapse=",")
+      charVars = na.omit(tbsCTypes[names(line)])
+      if (length(charVars)) line[charVars] = paste0("'",line[charVars],"'")
+      vals = paste0(line,collapse=",")
+      ins  = paste0("insert into ",tblName," (",vars,") values (",vals,");")
+      inserts = c(inserts,ins)
+    }
+  }
+  inserts
+}
+    

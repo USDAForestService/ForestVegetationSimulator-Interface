@@ -96,7 +96,7 @@ shinyUI(fixedPage(
                         selectize=FALSE),
             actionButton("editSel","Edit"),
             actionButton("mkfree","Change to freeform"),
-            actionButton("cutCmp","Cut"),
+            actionButton("cutCmp","Cut/Delete"),
             actionButton("copyCmp","Copy"),
             h6(),
             actionButton("paste","Paste item selected below"),

@@ -184,14 +184,13 @@ writeKeyFile <- function (fvsRun,dbIcon,prms)
 cat("writeKeyFile, num stds=",length(stds),
     " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
   if (length(stds)==0) return()
-  dbSendQuery(dbIcon,'drop table if exists temp.RunStds') 
+  dbExecute(dbIcon,'drop table if exists temp.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
   stdInit = getTableName(dbIcon,"FVS_StandInit")
   if (is.null(stdInit)) return()
-  dbQ = dbSendQuery(dbIcon,
+  fvsInit = dbGetQuery(dbIcon,
     paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
       ' where Stand_ID in (select RunStds from temp.RunStds)'))
-  fvsInit = dbFetch(dbQ,n=-1)
   names(fvsInit) = toupper(names(fvsInit))
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R")
@@ -939,15 +938,15 @@ deleteRelatedDBRows <- function(runuuid,dbcon)
   tmpDel = paste0("tmp",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database ':memory:' as ",tmpDel)
 cat ("qry=",qry,"\n") 
-  dbSendQuery(dbcon,qry)
+  dbExecute(dbcon,qry)
   todel = paste0(tmpDel,".todel")
   qry = paste0("drop table if exists ",todel)
 cat ("qry=",qry,"\n") 
-  dbSendQuery(dbcon,qry)      
+  dbExecute(dbcon,qry)      
   qry = paste0("create table ",todel,
      " as select CaseID from FVS_Cases where KeywordFile = '",runuuid,"'")
 cat ("qry=",qry,"\n") 
-  dbSendQuery(dbcon,qry)    
+  dbExecute(dbcon,qry)    
   nr = dbGetQuery(dbcon,paste0("select count(*) from ",todel))[,1]
 cat ("ncases to delete=",nr,"\n")
   if (nr)
@@ -961,15 +960,15 @@ cat ("ncases to delete=",nr,"\n")
         qry = paste0("delete from ",tab," where CaseID in (",
                      "select CaseID from ",todel,")")
 cat ("qry=",qry,"\n")                      
-        dbSendQuery(dbcon,qry)
+        dbExecute(dbcon,qry)
         nr = dbGetQuery(dbcon,paste0("select count(*) from ",tab))[,1]
 cat ("nr=",nr,"\n")                      
-        if (nr == 0) dbSendQuery(dbcon,paste0("drop table ",tab))
-      } else dbSendQuery(dbcon,paste0("drop table ",tab)) 
+        if (nr == 0) dbExecute(dbcon,paste0("drop table ",tab))
+      } else dbExecute(dbcon,paste0("drop table ",tab)) 
     }
     dbCommit(dbcon)
   }
-  dbSendQuery(dbcon,paste0("detach database '",tmpDel,"'"))
+  dbExecute(dbcon,paste0("detach database '",tmpDel,"'"))
 }
 
 
@@ -984,14 +983,14 @@ cat ("addNewRun2DB, runuuid=",runuuid,"\n")
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
 cat ("qry=",qry,"\n") 
-  res = try (dbSendQuery(dbcon,qry))
+  res = try (dbExecute(dbcon,qry))
   if (class(res) == "try-error") return ("new run database attach failed")
   qry = paste0("select * from ",newrun,".sqlite_master where type='table'")
 cat ("qry=",qry,"\n") 
   newtabs = dbGetQuery(dbcon,qry)[,"tbl_name",drop=TRUE]
   if (length(newtabs)==0)
   {
-    try (dbSendQuery(dbcon,paste0("detach database '",newrun,"'")))
+    try (dbExecute(dbcon,paste0("detach database '",newrun,"'")))
     return("no data found in new run")
   }
   ic = grep ("FVS_Cases",newtabs)
@@ -1002,7 +1001,7 @@ cat ("qry=",qry,"\n")
 cat ("nrow(res)=",nrow(res),"\n")
   if (nrow(res) == 0)
   {
-    dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
+    dbExecute(dbcon,paste0("detach database '",newrun,"'"))
     return("no new cases found in new run")
   }
 
@@ -1030,7 +1029,7 @@ cat ("qry=",qry,"\n")
           qry = paste0("alter table ",newtab," add column ",addCol," ",
                 subset(newCols,name==addCol)[,"type"])
 cat ("qry=",qry,"\n") 
-          dbSendQuery(dbcon,qry)
+          dbExecute(dbcon,qry)
         }
         dbCommit(dbcon)
       }
@@ -1039,14 +1038,14 @@ cat ("qry=",qry,"\n")
         paste0("insert into ",newtab," (",
           paste0(newColNs,collapse=","),") select * from ",newrun,".",newtab)
 cat ("qry=",qry,"\n") 
-      dbSendQuery(dbcon,qry)
+      dbExecute(dbcon,qry)
     } else {
       qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
 cat ("qry=",qry,"\n") 
-      dbSendQuery(dbcon,qry)
+      dbExecute(dbcon,qry)
     }
   }    
-  dbSendQuery(dbcon,paste0("detach database '",newrun,"'"))
+  dbExecute(dbcon,paste0("detach database '",newrun,"'"))
   unlink(fn)
   "data inserted"
 }                                                    
@@ -1100,7 +1099,7 @@ cat ("error: stdInit is null\n")
     dbQ = NULL
     if (selType == "inAdd")
     {
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists temp.Stds') 
+      dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       if (length(input$inStds))
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
@@ -1121,7 +1120,7 @@ cat ("error: stdInit is null\n")
         stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                           
       } 
       if (length(stds) == 0) return()  
-      dbSendQuery(dbGlb$dbIcon,'drop table if exists temp.Stds') 
+      dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
       dbQ = try(dbSendQuery(dbGlb$dbIcon,
           paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
