@@ -287,3 +287,18 @@ create table CmpCompute as
   from (select * from FVS_Compute where CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;" 
+  
+Create_View_DWN_Required = c("FVS_Down_Wood_Cov","FVS_Down_Wood_Vol")
+Create_View_DWN = "
+drop view if exists View_DWN;
+create temp view View_DWN as
+select FVS_Down_Wood_Cov.CaseID,FVS_Down_Wood_Cov.StandID,
+  FVS_Down_Wood_Cov.Year,
+  DWD_Cover_Total_Hard, DWD_Cover_Total_Soft, 
+  DWD_Cover_Total_Hard+DWD_Cover_Total_Soft as DWD_Total_Cover,
+  DWD_Volume_Total_Hard, DWD_Volume_Total_Soft, 
+  DWD_Volume_Total_Hard+DWD_Volume_Total_Soft as DWD_Total_Volume
+from FVS_Down_Wood_Cov inner join FVS_Down_Wood_Vol 
+  on FVS_Down_Wood_Cov.CaseID = FVS_Down_Wood_Vol.CaseID and
+     FVS_Down_Wood_Cov.Year = FVS_Down_Wood_Vol.Year;"
+

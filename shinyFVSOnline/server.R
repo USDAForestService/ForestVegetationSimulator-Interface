@@ -209,7 +209,7 @@ cat ("getwd= ",getwd(),"\n")
     {
 cat ("Output Tables & Load\n")
       initTableGraphTools()
-      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
+      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         fvsOutData$dbCases = dbReadTable(dbGlb$dbOcon,"FVS_Cases")
@@ -360,6 +360,11 @@ cat ("tbs3=",tbs,"\n")
             exqury(dbGlb$dbOcon,Create_CmpStdStk)
             tbs = c(tbs,"CmpStdStk")
           }
+        }
+        if (all(Create_View_DWN_Required %in% tbs)) 
+        {
+          exqury(dbGlb$dbOcon,Create_View_DWN)
+          tbs = c(tbs,"View_DWN")
         }
 cat ("tbs4=",tbs,"\n")       
         setProgress(message = "Output query", 

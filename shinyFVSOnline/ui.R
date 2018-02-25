@@ -100,7 +100,7 @@ shinyUI(fixedPage(
             actionButton("copyCmp","Copy"),
             h6(),
             actionButton("paste","Paste item selected below"),
-            selectInput("selpaste","Items to paste", NULL, 
+            selectInput("selpaste","Components available to paste", NULL, 
                         NULL, multiple=FALSE, selectize=FALSE), 
             myInlineTextInput("searchString", "Find stand:", value = "", size="25%"),
             actionButton("searchNext","Find")
