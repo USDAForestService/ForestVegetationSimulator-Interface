@@ -160,10 +160,12 @@ shinyUI(fixedPage(
                   ),
                   column(width=9,
                     checkboxGroupInput("autoOut",
-                      "Select outputs (summaries are always produced)",
-                      c("Treelists"="autoTreelists","Compute"="autoCompute",
-                        "Carbon"="autoCarbon","Fire"="autoFire",
-                        "Deadwood"="autoDead","SVS"="autoSVS"),
+                      "Quick select outputs (default: Summary, Compute, Mistletoe)",
+                      c("Tree lists (StdStk)"="autoTreelists",
+                        "Carbon and fuels"="autoCarbon",
+                        "Fire and mortality"="autoFire",
+                        "Snags and down wood"="autoDead",
+                        "SVS"="autoSVS"),
                       inline=TRUE),
                     customRunElements
                   )

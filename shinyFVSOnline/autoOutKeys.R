@@ -4,19 +4,15 @@ defaultOut="
 DataBase
 DSNOut
 FVSOut.db
+* FVS_Summary, FVS_Compute, FVS_DM_Stnd_Sum
 Summary
-Compute
+Compute            0         0
 MisRpts        2
 End
 "
 
-defaultOutMist=" 
-Mistoe
-MisTable       0         0
-End
-"
-
 autoTreelists="
+* FVS_TreeList, FVS_Cutlist 
 Treelist       0                   0
 Cutlist        0                   0
 Database
@@ -25,13 +21,8 @@ Cutlist        2
 End
 "
 
-autoCompute="
-Database
-Compute            0         0
-End
-"
-
 autoCarbon="
+* FVS_Carbon, FVS_Hrv_Carbon, FVS_Fuels, FVS_Consumption
 FMIn
 CarbRept        2
 CarbCut
@@ -46,6 +37,7 @@ End
 "
 
 autoFire="
+* FVS_Potfire, FVS_BurnReport, FVS_Mortality
 FMIn
 MortRept        0
 BurnRept        0
@@ -59,12 +51,15 @@ End
 "
 
 autoDead="
+* FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
 FMIn
+* SnagOut
+SnagSum
 DWDVlout
 DWDCvOut
 End
 Database
-SnagOut        2         2
+* SnagOut        2         2
 SnagSum        2
 DWDVlout       2
 DWDCvOut       2
