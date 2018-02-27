@@ -157,7 +157,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
 
 fixFVSKeywords <- function(dbGlb,progress=NULL)
 {
-  tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+  tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
   for (tb in tbs)
   {
 cat ("in fixFVSKeywords, tb=",tb,"\n")

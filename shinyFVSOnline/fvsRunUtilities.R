@@ -933,7 +933,7 @@ cat("pasteComponent finding cmp in stands, sel=",sel,"\n")
 
 deleteRelatedDBRows <- function(runuuid,dbcon)
 {
-  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
   if (! ("FVS_Cases" %in% tbs)) return()
   tmpDel = paste0("tmp",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database ':memory:' as ",tmpDel)
@@ -951,7 +951,7 @@ cat ("qry=",qry,"\n")
 cat ("ncases to delete=",nr,"\n")
   if (nr)
   {
-    tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
+    tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
     dbBegin(dbcon)
     for (tab in tbs)
     {
@@ -1007,7 +1007,7 @@ cat ("nrow(res)=",nrow(res),"\n")
 
   deleteRelatedDBRows(runuuid,dbcon)
    
-  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
 cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
   {
@@ -1277,7 +1277,7 @@ mkFileNameUnique <- function(fn)
 
 getTableName <- function(dbcon,basename)
 {
-  tbs <- dbGetQuery(dbcon,"select name from sqlite_master;")[,1]
+  tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
   itab <- match(tolower(basename),tolower(tbs)) 
   if (is.na(itab)) itab <- grep (tolower(basename),tolower(tbs)) 
   if (length(itab) == 1) return(tbs[itab]) else return(NULL)

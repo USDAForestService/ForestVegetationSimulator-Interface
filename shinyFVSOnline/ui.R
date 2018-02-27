@@ -443,7 +443,7 @@ shinyUI(fixedPage(
             tabPanel("Replace existing database", 
               h6(),
               fileInput("uploadNewDB",paste0("Upload FVS-Ready database ",
-                        "(.accdb, .mdb, .db (SQLite3), .xlsx, or .zip that contains one of these)"),
+                        "(.accdb, .mdb, .db (SQLite3), .sqlite, .xlsx, or .zip that contains one of these)"),
                         width="90%"), 
               h5("Following upload, you must do one of the following"), 
               actionButton("installNewDB","Install uploaded database"),

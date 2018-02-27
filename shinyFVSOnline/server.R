@@ -209,7 +209,7 @@ cat ("getwd= ",getwd(),"\n")
     {
 cat ("Output Tables & Load\n")
       initTableGraphTools()
-      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]      
+      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         fvsOutData$dbCases = dbReadTable(dbGlb$dbOcon,"FVS_Cases")
@@ -248,7 +248,7 @@ cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
-      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
+      tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
 cat ("runs, tbs=",tbs,"\n")
       withProgress(session, {  
         i = 1
@@ -1160,7 +1160,9 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
   observe({    
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
     {
-cat ("Stands\n")
+cat ("Stands\n")     
+      initNewInputDB()
+      loadVarData(globals,prms,dbGlb$dbIcon)                                              
       updateVarSelection()
     }
   })
@@ -1189,7 +1191,13 @@ cat ("in updateVarSelection\n")
   ## inVars has changed
   observe({
     if (is.null(input$inVars)) return()
+    reloadStandSelection()
 cat ("inVars\n")
+  })
+
+  reloadStandSelection <- function ()
+  {
+cat ("in reloadStandSelection\n")
     stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
     grps = if (!is.null(stdInit)) 
       try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
@@ -1223,7 +1231,7 @@ cat ("inVars\n")
            choices=list())
       output$stdSelMsg <- renderUI(NULL)
     }
-  })
+  }
 
   ## inGrps, inAnyAll, or inStdFindBut has changed
   observe({
@@ -2479,21 +2487,28 @@ cat ("at for start\n")
               cmd = paste0("clusterEvalQ(fvschild,",globals$fvsRun$runScript,"(runOps))")
 cat ("custom run cmd=",cmd,"\n")              
               try(eval(parse(text=cmd)))
-            } else try(clusterEvalQ(fvschild,fvsRun()))
+            } else {
+cat ("running normal run cmd\n")
+              try(clusterEvalQ(fvschild,fvsRun()))
+            }
           if (class(rtn) == "try-error")
           { 
             cat ("run try error\n")
             break
           }
+cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
           if (rtn != 0) break          
-          ids = clusterEvalQ(fvschild,fvsGetStandIDs())[[1]]
+          ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
+          if (class(ids) == "try-error") break
+          ids = ids[[1]]
           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
 cat ("rn=",rn,"\n")
-          allSum[[rn]] = clusterEvalQ(fvschild,
-                         fvsSetupSummary(fvsGetSummary()))[[1]]
+          rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
+          if (class(rtn) == "try-error") break
+          allSum[[rn]] = rtn[[1]]
         }
-        if (rtn == 0) clusterEvalQ(fvschild,fvsRun())        
-        stopCluster(fvschild)
+cat ("rtn,class=",class(rtn),"\n")
+        if (rtn == 0) try(clusterEvalQ(fvschild,fvsRun()))        
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(globals$fvsRun$stands)+4)
         errScan = try(errorScan(paste0(globals$fvsRun$uuid,".out")))
@@ -2599,7 +2614,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
        {
          runuuid = globals$fvsRun$uuid
          if (is.null(runuuid)) return()
-         tabs = dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1]
+         tabs = dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
          if (!("FVS_Cases" %in% tabs)) return()
          cases = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
@@ -3027,7 +3042,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
                  input$mapDsRunList,"'"))
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
       dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),data.frame(cases))
-      tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master;")[,1],
+      tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1],
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
       for (tab in tabs)
@@ -3526,7 +3541,7 @@ cat ("Replace existing database\n")
     if (is.null(input$uploadNewDB)) return()
     fext = tools::file_ext(basename(input$uploadNewDB$name))
 cat ("fext=",fext,"\n")
-    if (! (fext %in% c("accdb","mdb","db","xlsx","zip"))) 
+    if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
       output$replaceActionMsg  = renderText("Uploaded file is not suitable.")
       unlink(input$uploadNewDB$datapath)
@@ -3548,7 +3563,7 @@ cat ("fext=",fext,"\n")
         return()
       } 
       fext = tools::file_ext(fname)
-      if (! (fext %in% c("accdb","mdb","db","xlsx"))) 
+      if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx"))) 
       {
         output$replaceActionMsg = renderText(".zip did not contain a suitable file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
@@ -3656,12 +3671,12 @@ cat ("cmd done.\n")
       i = 0
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
+      dbo = dbConnect(dbDrv,"FVS_Data.db")
       for (sheet in sheets)
       {
         i = i+1
 cat ("sheet = ",sheet," i=",i,"\n")
         progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
-        odb = dbConnect(dbDrv,"FVS_Data.db")
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
         im = grep(sheet,normNames,ignore.case=TRUE)
         if (!is.na(im)) sheet = normNames[im]
@@ -3678,7 +3693,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
               "INTEGER" = as.integer  (sdat[,icol]))
           }
         }
-        dbWriteTable(conn=odb,name=sheet,value=sdat)
+        dbWriteTable(conn=dbo,name=sheet,value=sdat)
       }
     } else {
       i = 0
@@ -3686,7 +3701,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       progress <- shiny::Progress$new(session,min=1,max=3)
     }
-    tabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
+    tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
     # get rid of "NRIS_" part of names if any
     for (tab in tabs)
     {
@@ -3694,7 +3709,7 @@ cat("loaded table=",tab,"\n")
       nn = sub("NRIS_","",tab)
       if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
     }
-    tabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
+    tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
@@ -3716,8 +3731,34 @@ cat("loaded table=",tab,"\n")
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    progress <- shiny::Progress$new(session,min=1,max=3)
-    progress$set(message = "Checking database query keywords", value = 1)
+    tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
+    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+1)
+    i = 0
+    for (tb in tabs)
+    {
+      i = i+1
+      progress$set(message = paste0("Setting up index for table ",tb), value=i)
+      if (tb == "FVS_ClimAttr") 
+      {
+        rtn = try(dbExecute(dbGlb$dbIcon,"drop index if exists StdScnIndex"))
+        if (class(try)!="try-error") 
+        {
+          qry = "create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);"
+cat ("index creation, qry=",qry,"\n")
+          dbExecute(dbGlb$dbIcon,qry)
+        }
+      } else if (tb %in% c("FVS_StandInit","FVS_PlotInit","FVS_TreeInit")) {
+        tbinx = paste0("idx",tb)
+        rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+        if (class(try)!="try-error") 
+        {
+          qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
+cat ("index creation, qry=",qry,"\n")
+          dbExecute(dbGlb$dbIcon,qry)
+        }
+      }
+    }
+    progress$set(message = "Checking database query keywords", value = i+1)
     fixFVSKeywords(dbGlb,progress) 
     msg = checkMinColumnDefs(dbGlb,progress)
     output$replaceActionMsg <- renderText(msg)
@@ -3729,10 +3770,12 @@ cat("loaded table=",tab,"\n")
   observe({  
     if (input$addNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
-    oldtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+    oldInds = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='index';")[,1]
+    for (idx in oldInds) dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",idx,";"))
+    oldtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
     dbo = dbConnect(dbDrv,dbGlb$newFVSData)
-    newtabs = dbGetQuery(dbo,"select name from sqlite_master;")[,1]
-    progress <- shiny::Progress$new(session,min=1,max=length(newtabs)+1)
+    newtabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
+    progress <- shiny::Progress$new(session,min=1,max=length(newtabs)*2+1)
     i = 0
     dbDisconnect(dbo)
     attach = try(dbExecute(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
@@ -3790,7 +3833,23 @@ cat ("homogenize qry=",qry,"\n")
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
-    tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+    tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
+    i = i+1
+    progress$set(message = "Setting up indices", value=i)
+    for (tb in tabs)
+    {
+      i = i+1
+      progress$set(message = paste0("Setting up index for table ",tb), value=i)
+      if (tb == "FVS_ClimAttr") 
+      {
+        dbExecute(dbGlb$dbIcon,"drop index if exists StdScnIndex")
+        dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      } else if (tb != "FVS_GroupAddFilesAndKeywords") {
+        tbinx = paste0("idx",tb)
+        dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx))
+        dbExecute(dbGlb$dbIcon,paste0("create index ",tbinx," on ",tb," (Stand_ID);"))
+      }
+    }
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
@@ -3804,7 +3863,7 @@ cat ("homogenize qry=",qry,"\n")
     if(input$inputDBPan == "Upload and add new rows to existing tables (.csv)") 
     {
 cat ("Upload new rows\n")
-      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
@@ -3991,6 +4050,7 @@ cat ("insert qry=",qry,"\n")
         }
       }
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
+      initNewInputDB()
     })
   }) 
   ## climateFVSUpload
@@ -4024,7 +4084,7 @@ cat ("processing FVSClimAttrs.csv\n")
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
     unlink("FVSClimAttrs.csv")
-    climTab <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+    climTab <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
@@ -4134,7 +4194,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     if(input$inputDBPan == "View and edit existing tables") 
     {
 cat ("dataEditor View and edit existing tables\n")
-      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master;")[,1]
+      tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
@@ -4426,6 +4486,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
         )
       })
     }
+    reloadStandSelection()
   })
 
   
