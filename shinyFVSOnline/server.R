@@ -2464,7 +2464,6 @@ cat ("run script load cmd=",cmd,"\n")
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
-browser()
         cmd = paste0("clusterEvalQ(fvschild,",
               'fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key"))')
 cat ("load run cmd=",cmd,"\n")
