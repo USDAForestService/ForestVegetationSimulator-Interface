@@ -2464,6 +2464,7 @@ cat ("run script load cmd=",cmd,"\n")
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
+browser()
         cmd = paste0("clusterEvalQ(fvschild,",
               'fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key"))')
 cat ("load run cmd=",cmd,"\n")
@@ -2497,6 +2498,7 @@ cat ("running normal run cmd\n")
             break
           }
 cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
+          if (class(rtn) != "try-error") rtn = rtn[[1]]
           if (rtn != 0) break          
           ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
           if (class(ids) == "try-error") break
@@ -2508,7 +2510,7 @@ cat ("rn=",rn,"\n")
           allSum[[rn]] = rtn[[1]]
         }
 cat ("rtn,class=",class(rtn),"\n")
-        if (rtn == 0) try(clusterEvalQ(fvschild,fvsRun()))        
+        try(clusterEvalQ(fvschild,fvsRun()))        
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(globals$fvsRun$stands)+4)
         errScan = try(errorScan(paste0(globals$fvsRun$uuid,".out")))
