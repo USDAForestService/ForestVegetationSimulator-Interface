@@ -487,7 +487,7 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
     avalFVS <- dir(binDir,pattern=shlibsufx) 
     avalFVSp <- sub(shlibsufx,"",avalFVS)
     globals$activeExtens <- "base"
-    if (length(avalFVSp) == 0) avalFVSp = "FVSiec"
+    if (length(avalFVSp) == 0) avalFVSp = "FVSie"
     pgmNames = unique(unlist(prms[["programs"]]))
     if (length(avalFVSp)) for (i in 1:length(avalFVSp))
     {

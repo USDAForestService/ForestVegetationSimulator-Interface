@@ -1,16 +1,13 @@
 exqury = function (dbcon,x,subExpression=NULL) 
-{                 
-  lapply(scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE), 
-    function (x,dbcon,subExpression) 
-    {
-      if (!is.null(subExpression)) x = sub("subExpression",subExpression,x)
-      res = if (nchar(x) > 5) try(dbSendQuery(dbcon,statement=x)) else NULL
-      if (!is.null(res) && class(res) != "try-error") dbClearResult(res)
-    },
-  dbcon,subExpression) 
+{
+  for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))
+  {
+    if (!is.null(subExpression)) qry = sub("subExpression",subExpression,qry)
+    res = if (nchar(qry) > 5) try(dbExecute(dbcon,qry)) else NULL
+    if (is.null(res) || class(res) == "try-error") break
+  }
 }   
 
-# subExpression = "printf('%3.0f',round(dbh*.5,0)*2)"
 mkdbhCase = function (smdbh=4,lgdbh=40)
 {
   classes = seq(smdbh,lgdbh,smdbh)

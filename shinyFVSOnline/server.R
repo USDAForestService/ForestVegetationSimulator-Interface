@@ -65,7 +65,8 @@ shinyServer(function(input, output, session) {
       # delete them from the list of runs. This code does some testing in hopes
       # of clearing up some startup-after failure problems.
       notok = c()
-      for (i in 1:length(FVS_Runs))
+
+      if (length(FVS_Runs)) for (i in 1:length(FVS_Runs))
       {
         rn = names(FVS_Runs)[i]
         run = FVS_Runs[[i]]
@@ -109,7 +110,6 @@ cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," noto
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
     names(selChoices) = globals$FVS_Runs
-
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=selChoices[[1]])
@@ -471,6 +471,7 @@ cat ("sqlRunQuery\n")
           if (nchar(qry))
           {
             iq = iq+1
+cat ("sqlRunQuery, qry=",qry,"\n")
             res = try (dbGetQuery(dbGlb$dbOcon,qry))
             msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
               paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
