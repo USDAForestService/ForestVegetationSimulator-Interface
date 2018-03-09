@@ -205,9 +205,9 @@ cat ("getwd= ",getwd(),"\n")
   
   ## Load
   observe({
-    if (input$topPan == "Output Tables" && input$leftPan == "Load")
+    if (input$topPan == "View Outputs" && input$leftPan == "Load")
     {
-cat ("Output Tables & Load\n")
+cat ("View Outputs & Load\n")
       initTableGraphTools()
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))

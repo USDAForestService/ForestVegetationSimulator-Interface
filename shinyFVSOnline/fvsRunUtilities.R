@@ -238,15 +238,7 @@ cat("writeKeyFile, num stds=",length(stds),
     cat (defaultOut,file=fc)
     if (!is.na(match("mist",extns))) cat (defaultOutMist,file=fc)
     for (out in fvsRun$autoOut)
-    {
-      switch (out,
-       "autoTreelists"=cat(autoTreelists,file=fc),
-       "autoCompute"=cat(autoCompute,file=fc),
-       "autoCarbon"=cat(autoCarbon,file=fc),
-       "autoFire"=cat(autoFire,file=fc),
-       "autoDead"=cat(autoDead,file=fc),
-       "autoSVS"=cat(autoSVS,file=fc))
-    }
+      try(eval(parse(text=paste0("cat(",out,",file=fc)"))))
     lastExt = "base"
     lastCnd = NULL
     if (length(std$grps)) for (grp in std$grps)

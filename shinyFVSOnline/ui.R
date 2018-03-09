@@ -146,6 +146,30 @@ shinyUI(fixedPage(
                 tags$style(type="text/css", "#cycleat { width: 90%; }"),
                 textInput("cycleat", "Include cycles at these years", "") 
               ),
+              tabPanel("Select Outputs",
+                    h4("Select outputs"),
+                    h6("Note that all outputs are put in output database except for the SVS data."),
+                    h6(paste0("FVS_Cases, FVS_Summary, FVS_Compute,",
+                              " and mistletoe tables (FVS_DM_Spp_Sum,",
+                              " and FVS_DM_Stnd_Sum) are always produced.")),
+                    checkboxGroupInput("autoOut",NULL,
+                      c("Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                        "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
+                        "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
+                        "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
+                        "SVS: Stand Visualization"="autoSVS",     
+                        "Economics (FVS_EconSummary, FVS_EconHarvestValue)"="autoEcon",
+                        "FVS_CalibStats"="autoCalibStats",  
+                        "FVS_Climate"="autoClimate",         
+                        "FVS_CanProfile (from FFE)"="autoCanProfile",          
+                        "FVS_SnagDet (from FFE)"="autoSnagDet",  
+                        "FVS_DM_Sz_Sum (Mistletoe)"="autoDM_Sz_Sum",  
+                        "FVS_RD_Sum (Western Root Disease)"="autoRD_Sum",  
+                        "FVS_RD_Det (Western Root Disease)"="autoRD_Det",  
+                        "FVS_RD_Beetle (Western Root Disease)"="autoRD_Beetle",  
+                        "FVS_StrClass (Stand structure)"="autoStrClass"
+                        ),width="100%",inline=FALSE)
+              ),
               tabPanel("Run",
                 fixedRow(
                   column(width=3,
@@ -159,14 +183,6 @@ shinyUI(fixedPage(
                     h4()
                   ),
                   column(width=9,
-                    checkboxGroupInput("autoOut",
-                      "Quick select outputs (default: Summary, Compute, Mistletoe)",
-                      c("Tree lists (StdStk)"="autoTreelists",
-                        "Carbon and fuels"="autoCarbon",
-                        "Fire and mortality"="autoFire",
-                        "Snags and down wood"="autoDead",
-                        "SVS"="autoSVS"),
-                      inline=TRUE),
                     customRunElements
                   )
                 ),
@@ -205,7 +221,7 @@ shinyUI(fixedPage(
               )
           ) )
       ) ),   #END Make Runs
-      tabPanel("Output Tables",
+      tabPanel("View Outputs",
         fixedRow(
         column(width=4,offset=0,
           h6(),

@@ -51,15 +51,13 @@ End
 "
 
 autoDead="
-* FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
+*FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
 FMIn
-* SnagOut
 SnagSum
 DWDVlout
 DWDCvOut
 End
 Database
-* SnagOut        2         2
 SnagSum        2
 DWDVlout       2
 DWDCvOut       2
@@ -68,4 +66,71 @@ End
 
 autoSVS="
 SVS                2                   2         1        15
+"
+
+autoEcon="
+Econ
+NoTable            1
+End
+Database
+EconRpts           2
+End
+"
+
+autoCalibStats="
+Database
+CalbStat
+End
+"
+
+autoClimate="
+Database
+Climate
+End
+"
+
+autoCanProfile="
+FMIn
+CanfProf
+End
+"
+
+autoSnagDet="
+FMIn
+SnagOut
+End
+Database
+SnagOut        2         2
+End
+
+"
+
+autoDM_Sz_Sum="
+Database
+MisRpts          3
+End
+"
+
+autoRD_Sum="
+Database
+RDSum
+End
+"
+
+autoRD_Det="
+Database
+RDDetail
+End
+"
+
+autoRD_Beetle="
+Database
+RDBBMort
+End
+"
+
+autoStrClass="
+Database
+StrClass         2
+End
 "
