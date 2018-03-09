@@ -4569,73 +4569,71 @@ cat ("Map data hit.\n")
     if(is.null(input$mapUpload)) return()
     {
 cat ("mapUpload\n")
-      curdir = getwd()
-      setwd(dirname(input$mapUpload$datapath))
       progress <- shiny::Progress$new(session,min=1,max=3)
-      if (file.exists(basename(input$mapUpload$datapath)))
+      if (file.exists(input$mapUpload$datapath))
       {
-        fileEnding = tolower(substring(basename(input$mapUpload$datapath),
-                  nchar(basename(input$mapUpload$datapath))-3,
-                  nchar(basename(input$mapUpload$datapath))))
+        fileEnding = tolower(tools::file_ext(basename(input$mapUpload$datapath)))
 cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
-        if (fileEnding != ".zip") 
+        if (fileEnding != "zip") 
         {
           output$mapActionMsg = renderText(paste0("Upload a .zip file"))
           progress$close()
           return()
         }
-        progress$set(message = "Unzipping",value = 1)
-        unzip(basename(input$mapUpload$datapath))
+        mapDir = paste0(dirname(input$mapUpload$datapath),"/mapData")
+        unlink(mapDir,recursive=TRUE)
+        dir.create(mapDir)
+        file.copy(from=input$mapUpload$datapath,to=mapDir)
+        zipName = basename(input$mapUpload$datapath)
         unlink(input$mapUpload$datapath)
-      }
-      progress$set(message = "Getting layers",value = 2)
-      dirdata=dir()
-cat ("mapUpload, length(dirdata)=",length(dirdata),"\n")
-      if (length(dirdata) > 1)
-      {
-        output$mapActionMsg = 
-          renderText(paste0("Too many entries in zip. zip file should contain ", 
-                     " only the directory (folder) that contains the coverage"))
-        progress$close()
-        return()
-      }
-      lyrs = try(ogrListLayers(dir()))
-      setwd(curdir)
+        progress$set(message = "Unzipping",value = 1)
+        curdir = getwd()
+        setwd(mapDir)
+        unzip(zipName)
+        unlink(zipName)
+        if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
+        progress$set(message = "Getting layers",value = 2)
+        if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
+        setwd(mapDir)
+        lyrs = try(ogrListLayers(dir(mapDir)))
 cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
-      if (class(lyrs) == "try-error" || length(lyrs) == 0)
-      {
-        output$mapActionMsg = renderText("Can not find layers in data")
-        progress$close()
-        return()
+        setwd(curdir)                                
+        if (class(lyrs) == "try-error" || length(lyrs) == 0)
+        {
+          output$mapActionMsg = renderText("Can not find layers in data")
+          progress$close()
+          return()
+        }
+        attributes(lyrs) = NULL
+        lyrs = as.list(lyrs)
+        names(lyrs) = unlist(lyrs)
+        if (length(lyrs) > 1) 
+        {
+          lyr = grep ("poly",names(lyrs),ignore.case=TRUE)
+          if (length(lyr) == 0 || any(is.na(lyr))) lyr = 1
+          if (length(lyr) > 1) lyr = lyr[which.min(nchar(names(lyrs)[lyr]))]
+          lyr = names(lyrs)[lyr]
+        } else lyr = lyrs[1]
+        lyr = unlist(lyr)                
+        updateSelectInput(session=session, inputId="mapUpLayers", choices=lyrs,
+                          selected=lyr)
+        progress$close() 
       }
-      attributes(lyrs) = NULL
-      lyrs = as.list(lyrs)
-      names(lyrs) = unlist(lyrs)
-      if (length(lyrs) > 1) 
-      {
-        lyr = grep ("poly",names(lyrs),ignore.case=TRUE)
-        if (length(lyr) == 0 || any(is.na(lyr))) lyr = 1
-        if (length(lyr) > 1) lyr = lyr[which.min(nchar(names(lyrs)[lyr]))]
-        lyr = names(lyrs)[lyr]
-      } else lyr = lyrs[1]
-      lyr = unlist(lyr)                
-      updateSelectInput(session=session, inputId="mapUpLayers", choices=lyrs,
-                        selected=lyr)
-      progress$close()
     }
    })
    observe({
       if (is.null(input$mapUpLayers)) return()
       curdir = getwd()
       datadir = dirname(isolate(input$mapUpload$datapath))
+
       if (!dir.exists(datadir)) return()
       setwd(datadir)
 cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       datadir = dir()
+      if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
       txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers)))
-      setwd(curdir)
       if (class(dbGlb$spd) == "try-error")
       {
         output$mapActionMsg = renderText(paste0("Map read error: ",dbGlb$spd))
@@ -4654,7 +4652,8 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       names(choices) = choices
       stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
       ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
-      if (class(ids) == "try-error" || length(ids) == 0)
+cat ("length(ids)=",length(ids),"\n")
+      if (class(ids) == "try-error" || nrow(ids) == 0)
       {
         selected = grep("ID",names(dbGlb$spd@data),ignore.case=TRUE)[1]
         selected = if (is.na(selected)) 0 else names(dbGlb$spd@data)[selected]
