@@ -238,7 +238,7 @@ cat("writeKeyFile, num stds=",length(stds),
     cat (defaultOut,file=fc)
     if (!is.na(match("mist",extns))) cat (defaultOutMist,file=fc)
     for (out in fvsRun$autoOut)
-      try(eval(parse(text=paste0("cat(",out,",file=fc)"))))
+      if (exists(out)) try(eval(parse(text=paste0("cat(",out,",file=fc)"))))
     lastExt = "base"
     lastCnd = NULL
     if (length(std$grps)) for (grp in std$grps)
