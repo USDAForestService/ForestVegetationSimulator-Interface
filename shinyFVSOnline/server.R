@@ -3087,23 +3087,45 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
           file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
-        stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+        inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
         dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
-           paste0("select Stand_ID,Latitude,Longitude from ", stdInit)))
+           paste0("select Stand_ID,Latitude,Longitude from ", inInit)))
         if (class(dbGlb$SpatialData)!="try-error")
         {
           dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
           dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
           dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+              dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
+                -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
           if (nrow(dbGlb$SpatialData) == 0 ||
-              class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == "try-error") 
+            class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
+             "try-error") 
           {
-            output$leafletMessage=renderText("Spatial data needs to be loaded")
-            return()
+            inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+            dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
+              paste0("select Stand_ID,avg(Latitude) as Latitude, ",
+                     "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
+            if (class(dbGlb$SpatialData)!="try-error")
+            {
+              dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
+              dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
+              dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
+              dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+              dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
+                -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
+              if (nrow(dbGlb$SpatialData) == 0 ||
+                  class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
+                   "try-error")
+              {
+                output$leafletMessage=renderText("Spatial data needs to be loaded")
+                return()
+              }
+            }
           }
+          names(dbGlb$SpatialData) = "Stand_ID"
           proj4string(dbGlb$SpatialData) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
           attr(dbGlb$SpatialData,"MatchesStandID") = "Stand_ID"
-          output$leafletMessage=renderText(paste0("Spatial data is taken from ",stdInit))
+          output$leafletMessage=renderText(paste0("Spatial data are taken from ",inInit))
         } else {  
           output$leafletMessage=renderText("Spatial data needs to be loaded")
           return()
@@ -4716,13 +4738,24 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
         output$mapActionMsg = renderText("No map to save.")
         return()
       }
-      SpatialData = dbGlb$spd
-      rm (spd,envir=dbGlb)    
-      attr(SpatialData,"MatchesStandID") =  unlist(strsplit(input$mapUpIDMatch," "))[1]
-      save (SpatialData,file="SpatialData.RData")
-      dbGlb$SpatialData = SpatialData
-      output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
-                            attr(SpatialData,"MatchesStandID")))
+      stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+      ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
+      ids = unlist(ids)
+      names(ids) = NULL
+      matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
+      keep=na.omit(match(ids,dbGlb$spd@data[,matID]))
+      if (length(keep))
+      {
+        SpatialData = dbGlb$spd[keep,]
+        rm (spd,envir=dbGlb)    
+        attr(SpatialData,"MatchesStandID") =  matID
+        save (SpatialData,file="SpatialData.RData")
+        dbGlb$SpatialData = SpatialData
+        output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
+                              matID,", Number of objects kept=",nrow(SpatialData@data)))
+      } else {
+        output$mapActionMsg = renderText(paste0("Map not saved, no objects match Stand_ID"))
+      }
     }
    })
 
