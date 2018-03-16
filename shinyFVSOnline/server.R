@@ -3507,6 +3507,18 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       output$uiHelpText <- renderUI(HTML(help))
     }
   })
+  ##tabDescSel
+  observe({
+    tab = input$tabDescSel
+cat ("tabDescSel, tab=",tab,"\n")
+    if (nchar(tab)==0) output$tabDesc <- renderUI(HTML(" ")) else
+    {
+      if (!exists("descFVS_Cases") && file.exists("tablesDesc.R")) source("tablesDesc.R")
+      desc = paste0("desc",tab) 
+      output$tabDesc <- if (exists(desc)) renderUI(HTML(eval(parse(text=desc)))) else 
+        renderUI(HTML(" "))
+    }
+  })
   
   ##### data upload code  
   observe({

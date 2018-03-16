@@ -56,6 +56,7 @@ FVSOnlineNeeded = c(
 "server.R", 
 "sqlQueries.R",
 "svsTree.R",
+"tablesDesc.R",
 "ui.R",
 "www")
 
