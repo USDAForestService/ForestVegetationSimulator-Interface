@@ -113,6 +113,7 @@ trim <- function (x) gsub("^\\s+|\\s+$","",x)
 mkpair <- function(alist)
 {
 cat("mkpair, length(alist)=",length(alist),"\n")
+  if (length(list) == 0) return(list())
   l <- as.list(as.character(1:length(alist)))
   names(l) <- names(alist)
   l
@@ -251,18 +252,20 @@ cat("writeKeyFile, num stds=",length(stds),
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
-        if (lastExt != cmp$exten && lastExt != "base") 
+        exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
+           unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
+        if (lastExt != exten && lastExt != "base") 
         {
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        if (lastExt != cmp$exten)
+        if (lastExt != exten)
         { 
           cat (getPstring(prms[["extensPrefixes"]],
-               cmp$exten),"\n",file=fc,sep="")
-          lastExt = cmp$exten
+               exten),"\n",file=fc,sep="")
+          lastExt = exten
         }
-        if (cmp$exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
+        if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
         {
           scn = unlist(strsplit(cmp$kwds,"\n"))[2]
           qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
@@ -281,23 +284,25 @@ cat("writeKeyFile, num stds=",length(stds),
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
-    {
+    {     
       if (cmp$atag == "k" && !is.null(lastCnd))
       {
         cat ("EndIf\n",file=fc,sep="")
         lastCnd = NULL
       }
       if (cmp$atag == "c") lastCnd = cmp$uuid
-      if (lastExt != cmp$exten && lastExt != "base") 
+      exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
+             unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
+      if (lastExt != exten && lastExt != "base") 
       {
         lastExt = "base"
         cat ("End\n",file=fc,sep="")
       } 
-      if (lastExt != cmp$exten)
+      if (lastExt != exten)
       {   
         cat (getPstring(prms[["extensPrefixes"]],
-             cmp$exten),"\n",file=fc,sep="")
-        lastExt = cmp$exten
+             exten),"\n",file=fc,sep="")
+        lastExt = exten
       }
       cat (cmp$kwds,"\n",file=fc,sep="")
     }
@@ -477,12 +482,36 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
     shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
     binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
     avalFVS <- dir(binDir,pattern=shlibsufx) 
+    #### this section can be deleted after after all the old programs are renamed
+    if (length(avalFVS) > 0) 
+    {
+      oldPgmNames = c("FVSbmc","FVScac","FVScic","FVScrc","FVSecc", 
+                      "FVSemc","FVSiec","FVSncc","FVSsoc","FVSttc", 
+                      "FVSutc","FVSwcc","FVSpnc","FVSwsc","FVSktc")
+      ex = tools::file_ext(avalFVS[1])
+      chpgm = na.omit(match(avalFVS,paste0(oldPgmNames,".",ex)))
+      if (length(chpgm))
+      {
+        for (oldIdx in chpgm) 
+        {
+          from=paste0(binDir,oldPgmNames[oldIdx],".",ex)
+          to=paste0(binDir,substr(oldPgmNames[oldIdx],1,5),".",ex)
+cat ("renaming program file: from=",from," to=",to,"\n")
+          file.rename(from=from,to=to)
+        }
+        avalFVS <- dir(binDir,pattern=shlibsufx)
+      }
+    }
+    #### delete above, including the comments.
     avalFVSp <- sub(shlibsufx,"",avalFVS)
     globals$activeExtens <- "base"
     if (length(avalFVSp) == 0) avalFVSp = "FVSie"
     pgmNames = unique(unlist(prms[["programs"]]))
+    pgmNames = intersect(pgmNames,names(pgmList))
+    avalFVSp = intersect(avalFVSp,pgmNames)
     if (length(avalFVSp)) for (i in 1:length(avalFVSp))
     {
+      if (avalFVSp[i] %in% names(globals$activeFVS)) next
       ats = grep(avalFVSp[i],pgmNames,fixed=TRUE)
       if (length(ats) == 0) next
       ats = attr(prms[["programs"]][prms[["programs"]] == avalFVSp[i]][[1]],
@@ -495,25 +524,34 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
         names(globals$activeFVS)[length(globals$activeFVS)] <- 
               avalFVSp[i]
       }
-    } 
+    }
     globals$schedBoxYrLastUsed <- character(0)
     globals$currentEditCmp <- globals$NULLfvsCmp
-  } else
-  { 
+  } else {
     globals$schedBoxYrLastUsed <- fvsRun$startyr
-    if (length(fvsRun$FVSpgm) > 0 && 
-        !is.null(globals$activeFVS[[fvsRun$FVSpgm]]))
+    if (length(fvsRun$FVSpgm) > 0)
     {
-      globals$activeFVS <- globals$activeFVS[fvsRun$FVSpgm]
-      globals$activeVariants <- globals$activeFVS[[1]][1]
-      globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
+      indx = match(fvsRun$FVSpgm,names(globals$activeFVS))
+      #### this section is attempting to rename an active program to one 
+      #### without the "c" (ie, FVSiec would become FVSie).
+      if (is.na(indx) && nchar(globals$activeFVS)>5)
+        indx = match(substr(fvsRun$FVSpgm,1,5),names(globals$activeFVS))
+      if (!is.na(indx))
+      {
+        fvsRun$FVSpgm = names(globals$activeFVS)[indx]
+        globals$activeFVS <- globals$activeFVS[indx]
+        globals$activeVariants <- globals$activeFVS[[1]][1]
+        globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
+      }
     }
   }
-
 cat ("globals$activeVariants=",globals$activeVariants,
      " globals$activeFVS[[1]][1]=", globals$activeFVS[[1]][1],"\n")
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
-  globals$extnsel <- character(0)  
+  globals$extnsel <- character(0)
+  globals$mgmtsel <- list()
+  globals$mmodsel <- list()
+  globals$moutsel <- list()
   globals$schedBoxPkey <- character(0)  
   globals$currentCmdPkey <- "0"
   globals$currentCndPkey <- "0"
@@ -703,7 +741,7 @@ cat ("mkcatsel, name=",name," mgmtsel=",length(globals$mgmtsel),
   for (i in 1:length(prm))
   {
     sel <- NULL
-    lines <- scan(text=attr(prm[[i]],"pstring"),what=" ",sep="\n",quiet=TRUE)
+    lines <- scan(text=attr(prm[[i]],"pstring"),what="character",sep="\n",quiet=TRUE)
     if (length(lines) < 2) next
     for (j in 2:length(lines))
     {
@@ -724,12 +762,8 @@ cat ("mkcatsel, name=",name," mgmtsel=",length(globals$mgmtsel),
         # if the mstext exists, then it is a function to be called
         # but if it doesn't exist then we need to skip this entry
         if (!exists(mstext)) next 
-      } else {
-        mstext <- as.character(mstextNum)
-      }
-      ssl <- as.character(mstext)
-      names(ssl) <- sl[1]
-      ssl <- as.character(mstext)
+      } 
+      ssl <- paste(mstext,paste(ex,collapse="&"))
       names(ssl) <- sl[1]
       if (!is.null(ssl)) sel <- append(sel,ssl)
     }
@@ -762,7 +796,7 @@ cat("mkextkwd\n")
     sk <- match(keypn,names(prms))
     if (is.na(sk)) next
     if (ex == "estbstrp") ex = if(is.null(extn$estb)) "strp" else "estb"
-    entry <- as.character(sk)
+    entry <- paste(keypn,ex)
     names(entry) <- paste0(kwd,": ",attr(kwd,"pstring"))
     globals$kwdsel[[ex]] <- append(globals$kwdsel[[ex]],entry)
   }  
@@ -1067,9 +1101,6 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     }            
     resetGlobals(globals,globals$fvsRun,prms) 
     extn <- extnslist[globals$activeExtens]
-    updateSelectInput(session,"addCategories","Extension",
-            paste0(names(extn),": ",extn),
-            selected=extn[["base"]]) 
     selVarListUse <- globals$selVarList[globals$activeVariants]    
     vlst <- as.list (names(selVarListUse))
     names(vlst) = selVarListUse

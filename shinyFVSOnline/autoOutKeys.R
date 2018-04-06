@@ -4,7 +4,7 @@ defaultOut="
 DataBase
 DSNOut
 FVSOut.db
-* FVS_Summary, FVS_Compute, FVS_DM_Stnd_Sum
+* FVS_Summary, FVS_Compute, Mistletoe
 Summary
 Compute            0         0
 MisRpts        2
@@ -106,8 +106,8 @@ End
 "
 
 autoDM_Sz_Sum="
-Database
-MisRpts          3
+Mistoe
+MistPrt         1
 End
 "
 
