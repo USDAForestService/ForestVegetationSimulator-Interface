@@ -250,6 +250,11 @@ cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     {
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
 cat ("runs, tbs=",tbs,"\n")
+      if (length(tbs) == 0) 
+      {
+        updateSelectInput(session, "selectdbtables", choices=list())
+        return()
+      }
       withProgress(session, {  
         i = 1
         setProgress(message = "Output query", 
@@ -856,8 +861,8 @@ cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
   }
          
   observe({
-cat("filterRows and/or pivot\n")
     if (is.null(input$browsevars)) return()
+cat("filterRows and/or pivot\n")
     fvsOutData$browseSelVars <- input$browsevars
     dat = if (length(input$stdtitle) || length(input$stdgroups) ||   
               length(input$stdid)    || length(input$mgmid)     || 
@@ -3365,6 +3370,25 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
     }
   })
   
+  ## deleteAllOutputs
+  observe({
+    if(input$deleteAllOutputs > 0)
+    {
+      session$sendCustomMessage(type = "dialogContentUpdate",
+        message = list(id = "deleteAllOutputsDlg",
+                  message = "Delete all outputs?"))
+    }
+  })
+  observe({  
+    if (input$deleteAllOutputsDlgBtn == 0) return()
+    isolate({
+cat ("delete all outputs\n")
+      dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon )    
+      unlink("FVSOut.db")
+      for (uuid in names(globals$FVS_Runs)) unlink(paste0(uuid,".out"))
+      dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")    
+    })  
+  })
   ## deleteAllRuns
   observe({
     if(input$deleteAllRuns > 0)
@@ -3377,7 +3401,7 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
   observe({  
     if (input$deleteAllRunsDlgBtn == 0) return()
     isolate({
-cat ("delete all runs\n")
+cat ("delete all runs and outputs\n")
       rmfiles=dir(pattern="[.]pidStatus$")      
       for (tokill in rmfiles) killIfRunning(sub(".pidStatus","",tokill))
       unlink("FVSOut.db")
