@@ -3385,7 +3385,7 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
 cat ("delete all outputs\n")
       dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon )    
       unlink("FVSOut.db")
-      for (uuid in names(globals$FVS_Runs)) unlink(paste0(uuid,".out"))
+      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid)
       dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")    
     })  
   })
