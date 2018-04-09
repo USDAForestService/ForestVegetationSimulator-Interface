@@ -8,7 +8,7 @@
 	<ul>
 		<li><p style="margin-bottom: 0in"><a href="#tmruns">Runs</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmout">Output Tables</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmout">View Outputs</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmsvs">SVS3d</a> 
 		</p>
@@ -69,7 +69,7 @@ wiki about FVSOnline software</a>.</p>
 	<li><p style="margin-bottom: 0in"><b>Runs: </b>Set up and make FVS
 	simulations; the outputs go to an output database. 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Output Tables: </b>Make
+	<li><p style="margin-bottom: 0in"><b>View Outputs: </b>Make
 	tables, graphs and reports using the outputs stored in the output
 	database. 
 	</p>
@@ -123,20 +123,31 @@ first selecting component type:</p>
 	<li><p style="margin-bottom: 0in"><b>Modifiers</b> for specify
 	changes in the FVS predictions 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Outputs</b> for FVS output
-	controls 
+	<li><p style="margin-bottom: 0in"><b>Event Monitor</b> for adding FVS output
+	variables you define using FVS functions
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Economic</b> for setting parameters
+	of the Economic Extension of FVS
 	</p>
 	<li><p style="margin-bottom: 0in"><b>Keywords</b> for direct
 	access to all FVS keywords 
 	</p>
-	<li><p><b>Your components</b> to access components you build or
-	load (using Build Components). 
+	<li><p><b>Custom</b> to make and use custom component sets you build or
+	load (also know as .kcp files). 
 	</p>
 </ul>
 <p>The <b>Time</b> scope of a simulation is automatically set to 50
 or 100 years in 5 or 10 years cycles, both depending on the variant.
 The parameters of time can be edited and specific years you want
-included in the simulation can be specified as a list of years.</p>
+included in the simulation can be specified as a list of years (separate
+the years with a space).</p>
+<p><b>Select Outputs</b> is used to select which output tables you want FVS 
+to generate. A few, like the FVS_Summary statistics table, are automaticlly generated
+every run. The others are selected using the check boxes displayed. You can
+get a short description of each table using the Describe tables tool at the
+bottom of the checkboxes. Note that FVSOnline the tree lists to generate
+stand and stock tables; if you desire them, then check the tree lists box.
+</p>
 <p><b>Run</b> simulations while you wait (great for under 20 stands
 or so), or in the background as a separate process. Use the
 checkboxes to specify sets of outputs without having to know the
@@ -145,18 +156,12 @@ alternative run scripts; these are used to implement alternative
 models within the FVS framework. Note that when you rerun a run, the
 interface clears the output from the previous time you made the run
 so that the output database contains the most recently generated
-output. If you use the <i>Wait for run</i>option,
+output. If you use the <i>Wait for run</i> option,
 the interface will scan the FVS output file for error messages and
 display any it finds in the interface. The <i>Run in
-background</i> option does not provide that service. However, there is a download button
-useful for downloading the FVS “.out” file.</p>
-<p><b>Build Components</b> is used to build or upload FVS keyword
-sets (sometimes called .kcp files). You name them and you can add
-them to simulations using the <i>Your components</i>component
-type. Notethat building components using this tool does not automatically add
-them to the current simulation. They are saved in the system and can
-be added to any of the runs. 
-</p>
+background</i> option does not provide that service. However, 
+there is a download button useful for downloading the FVS “.out” file.</p>
+</ul>
 <p id="leftSideRun">Here
 are more details on the left side elements when <b>Runs</b>
 is selected in the main manu.
@@ -189,18 +194,18 @@ state from the beginning.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
-<h4><a name="tmout"></a>Output Tables</h4>
-<p>Left and right secondary menus occupy the left and right side of
-the screen when the <b>Output Tables</b>
-menu is selected. Using the left menu, <b>Load</b>
-output to select the runs you want to explore. For example, say you
+<h4><a name="tmout"></a>View Outputs</h4>
+<p><b>View Outputs</b> after you make one or more runs. There are two required
+steps, the first is to <b>Load</b> outputs for the runs and output tables you 
+want to then <b>Explore</b>. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
 you wish to explore. Composite summary statistics tables are created
-for the runs (table name: Composite) and if treelist tables exist,
-stand and stock tables (table name StdStk) are also created. If you
-wish, you can limit the database columns you want to explore but the
-default is to select all the columns from selected tables. The system
+for the runs (table name: CmpSummary; composits are weighted averages grouped
+by management ids) and if treelist tables exist,
+stand and stock tables (table name StdStk; CmpStdStk for the composites) 
+are also created. If you wish, you can limit the database columns you want to 
+explore but the default is to select all the columns from selected tables. The system
 automatically merges (joins) the data from the selected tables so you
 can explore variables from different tables when you <b>Explore</b> the
 data you selected. The data can be displayed as <b>Tables</b>
@@ -210,20 +215,21 @@ secondary menu.</p>
 data are being explored. Use the selection tools on the left to limit
 the data used in the tables or graphs to specific runs, groups,
 stands, management identification codes (set when you make a run),
-years, species and DBHClasses. You can also turn variables on or off
+years, species, and DBHClasses. You can also turn variables on or off
 limiting the columns being displayed in tables and those available
 for graphing. 
 </p>
-<p>When <b>Tables</b> are
-displayed, you can use tools to change a categorical variable (such
-as stand or management identifications) into a column and display a
-variable’s value under that column. Tables can be download as .xlsx or .csv
-files (easily opened using Excel or other spreadsheet programs). Note
-that the number of lines displayed in the table is limited, however,
-when the table is downloaded, all lines are included (.xlsx row limit is 1048576). 
+<p>In summary, the two basic steps are to (1) Load the runs and FVS-generated 
+output tables, and (2) Explore those data as Tables or Graphs.
 </p>
-<p>The <b>Graphs</b> menu
-item on the right provides
+<p>When <b>Tables</b> are displayed, you can use tools to change a categorical
+variable (such as stand or management identifications) into a set of columns and display
+a variable’s value under that column. Tables can be download as .xlsx or .csv
+files (easily opened using Excel or other spreadsheet programs). Note that the
+number of lines displayed in the table is limited, however, when the table is
+downloaded, all lines are included (for .xlsx up to 1048576 rows). 
+</p>
+<p>The <b>Graphs</b> menu item on the right provides
 access to graphing tools that operate on the data displayed in the
 table. FVSOnline contains limited logic to preselect settings
 depending on the data being analyzed. Your changes are kept until you
@@ -235,26 +241,22 @@ selection will be automatically adjusted to <i>None</i>.
 Also note that when there are too many levels for a variable—such
 as too many stands—then the system blocks the use of the variable
 for faceting. Similar limits control the size of the legend that is
-created when you select a <i>Plot
-by</i> variable.
+created when you select a <i>Plot by</i> variable.  
 If you want to keep a graph you can cut-and-paste it from your
 browser to some other software, or add it to a custom report,
-described next.</p>
-<p style="font-variant: normal; font-style: normal">The
-<b>Reports</b> menu item on
-the right provides access to
-a report building feature of the system. You start (or restart)
-a new report using the <i>Restart
-custom report</i> button.
-There are buttons in the Tables and Graphs ares where you can add
-tables and graphs to the report (they are added in the order
-specified). The report is converted to a .docx file and downloaded
-for you to further edit. A future feature of the interface could
-provide for automatic generation of reports useful for specific
-purposes whereby builtin tools would generated tables, graphs, or
-both along with a narrative that you could then edit to meet your
-specific needs.</p>
-<p><b>Custom Query</b> provides to build and run SQL queries that run
+described next. If you want high resolution graphs, or otherwise 
+customize the apperance of a graph, then <i>Show</i> more controls and
+change the values as needed.
+</p>
+<p style="font-variant: normal; font-style: normal"><b>Reports</b> provides access to
+a report building feature. A report is a set of
+tables and graphs that are combined into a single document that can be downloaded
+as a .docx file. You start (or restart)
+a new report using the <i>Restart custom report</i> button.
+There are buttons in the Tables and Graphs panels where you can add the currently
+displayed table or graph to the report. 
+</p>
+<p><b>Custom Query</b> provides the ability to build and run SQL queries that run
 on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
 database (the database structure is defined in the  
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
@@ -274,7 +276,7 @@ the query by surrounding it with /*  */ character sequences.
 <p>You can display two 3d images of stands if the output that support 
 <a href="http://forsys.cfr.washington.edu/svs.html" target="_blank">
 Stand Visualization System</a> has been created (easily done by checking
-SVS under the run tab). Pick a run, and within the Run, pick the stand and 
+SVS under the Select Outputs table). Pick a run, and within the Run, pick the stand and 
 time period you wish to display. It takes some time for the images to be created 
 and transferred to your browser. Once the transfer is completed, you can click 
 on the image and rotate it, flip it, and zoom in and out using your mouse.
@@ -296,7 +298,8 @@ See <b>Map data</b> under <a href="#tmin">Import Data</a>
 to see now to load this spatial data.
 </p><p>
 If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
-information from the FVS_StandInit table assuming WGS84 geographic coordinates are used. 
+information from the FVS_StandInit table (failing that, the FVS_TreeInit table)
+assuming WGS84 geographic coordinates are used. 
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
@@ -331,7 +334,7 @@ supported, <a href="http://www.gdal.org/ogr_formats.html" target="_blank">see th
 list</a>. To upload a map, first create a .zip file that contains a single directory (folder) 
 where the coverages are stored. Then upload the .zip file and let FVSOnline try to
 load the appropriate files. </p>
-<p>If the .zip file contains more than one coverage, you can select the one that 
+<p>If the .zip file contains more than one layer, you can select the one that 
 contains stand polygons (the system will attempt to make a valid selection). Note that
 the polygons must be identifiable by StandID but frequently the coverage data contains
 this information under a different variable name. FVSOnline attempts to discover the 

@@ -295,6 +295,12 @@ shinyUI(fixedPage(
       	      checkboxGroupInput("browsevars","Select variables",
       	          choices = list("None"),selected = NULL,inline=TRUE)
             ),
+            tabPanel("Reports",
+              h4(),
+              textInput("rpTitle", "Custom report title", "", width="100%"),h6(),
+              actionButton("rpRestart","Restart custom report"),h6(),
+              downloadButton("rpBldDwnLd","Build and download custom report")
+            ), 
             tabPanel("Custom Query",
               selectInput("sqlSel","SQL queries (run on FVSOut.db (SQLite3))", 
                 NULL, NULL, multiple=FALSE,selectize=FALSE,width="100%"),
@@ -322,7 +328,7 @@ shinyUI(fixedPage(
         ) ) ),
         column(width=8,offset=.2,
         tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
-        conditionalPanel("input.leftPan != 'Load'", tabsetPanel(id="outputRightPan",
+        conditionalPanel("input.leftPan != 'Load' & input.leftPan != 'Reports'", tabsetPanel(id="outputRightPan",
           tabPanel("Tables",
             fixedRow(
               column(width=4,
@@ -409,13 +415,8 @@ shinyUI(fixedPage(
                       c("0"="0","45"="45","90"="90"))))))
              ),
             fixedRow(column(width=12,plotOutput("outplot")))
-          ),
-          tabPanel("Reports",
-            h4(),
-            textInput("rpTitle", "Custom report title", ""),
-            actionButton("rpRestart","Restart custom report"),
-            downloadButton("rpBldDwnLd","Build and download custom report")
-        ) ) )       
+          )
+        ) )       
       ) ) ),
       tabPanel("SVS3d(alpha)",
         h6(),
@@ -522,7 +523,7 @@ shinyUI(fixedPage(
                   rHandsontableOutput("tbl"),
                   textOutput("actionMsg"))
              )),              
-            tabPanel("Map data", h6(),       
+            tabPanel("Map data", h4("Upload a stand layer to use in the Maps feature."),       
               fileInput("mapUpload","Upload polygon (best) or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
            	  selectInput("mapUpLayers", label="Layer",
@@ -534,7 +535,7 @@ shinyUI(fixedPage(
       	      textInput("mapUpProjection", label="proj4 projection string",width="70%"),
       	      actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject the data)"),h6(),
       	      tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
-      	      actionButton("mapUpSave","Save imported map"),h6(),            
+      	      actionButton("mapUpSave","Save imported map layer"),h6(),            
       	      textOutput("mapActionMsg") 
             ) #END tabPanel
           ) #END tabsetPanel

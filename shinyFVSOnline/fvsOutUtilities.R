@@ -158,7 +158,7 @@ appendToReport <- function(obj,rptFile=getRptFile())
   con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
   if (class(obj) == "data.frame" || class(obj) == "matrix")
   {
-    cat (file=con,"Table added",format(Sys.time(),"%a %b %d %X %Z %Y"))
+    cat (file=con,"Table: Table created",format(Sys.time(),"%a %b %d %X %Z %Y"))
     cat (file=con,"  \n")
     if (!is.null(colnames(obj)))
     {
@@ -203,7 +203,10 @@ generateReport <- function(tf)
   if (file.exists("FVSReport/report.md"))
   {
     setwd("FVSReport")
-    system(paste0("pandoc -o ",tf," -t docx report.md"))
+    cmd = paste0("pandoc -o ",tf," -t docx report.md")
+cat ("generateReport, cmd=",cmd,"\n")
+browser()
+    system(cmd)
     setwd("..")
   }
 }
