@@ -187,12 +187,13 @@ appendToReport <- function(obj,rptFile=getRptFile())
 
 
 appendPlotToReport <- 
-function (plotFile=mkNextPlotFileName(),rptFile=getRptFile())
+function (plotFile=mkNextPlotFileName(),rptFile=getRptFile(),width=5,height=5)
 {
   if (!file.exists("plot.png")) return()
   ct = format(file.info("plot.png")[,"ctime"], "%a %b %d %X %Z %Y")
   con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
-  cat(file=con,"\n![Figure created ",ct,"](",plotFile,")\n\n",sep="")
+  cat(file=con,"\n![Figure created ",ct,"](",plotFile,"){width=",
+      as.character(width),"in height=",as.character(height),"in}\n\n",sep="")
   if (con != stdout()) close(con)
   file.copy(from="plot.png",to=paste0("FVSReport/",plotFile))
 }
@@ -205,7 +206,6 @@ generateReport <- function(tf)
     setwd("FVSReport")
     cmd = paste0("pandoc -o ",tf," -t docx report.md")
 cat ("generateReport, cmd=",cmd,"\n")
-browser()
     system(cmd)
     setwd("..")
   }

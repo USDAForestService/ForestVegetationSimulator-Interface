@@ -3542,7 +3542,9 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     appendToReport(fvsOutData$render)
   }) 
   ## rpPlotAdd
-  observe(if (input$rpPlotAdd > 0) appendPlotToReport())
+  observe(if (input$rpPlotAdd > 0) 
+    appendPlotToReport(width =fvsOutData$plotSpecs$width,
+                       height=fvsOutData$plotSpecs$width))
   
   ##topHelp
   observe({
