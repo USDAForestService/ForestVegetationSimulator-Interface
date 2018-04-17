@@ -1892,6 +1892,8 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
   ## addMgmtCats
   observe({
     if (is.null(input$addMgmtCats)) return()
+    if (length(globals$mgmtsel) == 0) globals$mgmtsel <- 
+          mkcatsel(prms,"mgmtCategories",globals)
     updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0, 
       choices=globals$mgmtsel[[as.numeric(input$addMgmtCats)]])     
     output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -1899,6 +1901,8 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
   ## addModCats
   observe({
     if (is.null(input$addModCats)) return()
+        if (length(globals$mmodsel) == 0) globals$mmodsel <- 
+          mkcatsel(prms,"selectModelModifiers",globals)
     updateSelectInput(session=session, inputId="addModCmps", selected = 0, 
           choices=globals$mmodsel[[as.numeric(input$addModCats)]])
     output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)

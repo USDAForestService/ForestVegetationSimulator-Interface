@@ -254,6 +254,7 @@ cat("writeKeyFile, num stds=",length(stds),
         if (cmp$atag == "c") lastCnd = cmp$uuid
         exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
            unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
+        if (is.na(exten)) exten="base"
         if (lastExt != exten && lastExt != "base") 
         {
           lastExt = "base"
