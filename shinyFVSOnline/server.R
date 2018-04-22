@@ -680,7 +680,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
             } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
-            cls = intersect(c(cols,"StandID","MgmtID","srtOrd"),colnames(dtab))
+            cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
                 dtab[,col] = as.factor(dtab[,col])
@@ -921,7 +921,7 @@ cat ("browsevars\n")
       }
       sel = setdiff(cont,c(sel,"Year"))
       sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else sel[1]
-      updateSelectInput(session, "yaxis",choices=as.list(cont),
+      updateSelectInput(session, "yaxis",choices=as.list(c(cont,cats)),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
       updateSelectInput(session, "hfacet",choices=as.list(c("None",cats)),
@@ -954,6 +954,7 @@ cat ("renderPlot\n")
         text(x=.5,y=.5,"Nothing to graph",col="red")
         dev.off()
       }
+      output$plotMessage=renderText("Pick different variables, change plot type, or change facet settings.")
       list(src = outfile)
     }
     autorecycle <- function(a,n)
@@ -969,6 +970,7 @@ cat ("renderPlot\n")
     } 
     if (input$leftPan == "Load"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
+    output$plotMessage=renderText(NULL)
 
     vf = if (input$vfacet == "None") NULL else input$vfacet
     hf = if (input$hfacet == "None") NULL else input$hfacet
@@ -1069,14 +1071,6 @@ cat ("vfacet test hit\n")
          facet_grid(.~hfacet) else fg
     fg = if (is.null(fg)         && !is.null(nd$vfacet)) 
          facet_grid(vfacet~.) else fg
-    if (input$plotType %in% c("bar","box") && is.factor(nd$Y))
-    {
-      flip = TRUE
-      nd$temp = nd$X                         
-      nd$X    = nd$Y
-      nd$Y    = nd$temp
-      nd$temp = NULL
-    } else flip = FALSE
     p = ggplot(data = nd) + fg + labs(
           x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
@@ -1084,7 +1078,6 @@ cat ("vfacet test hit\n")
             theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
-    if (flip) p = p + coord_flip()
     colors = if (input$colBW == "B&W") 
       unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else
         {
@@ -1148,8 +1141,11 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
                title = legendTitle, keywidth = .8, keyheight = .8)) else 
         guides(color=guide_legend(override.aes = list(alpha=.8,size=.5),
                title = legendTitle, keywidth = .8, keyheight = .8)))               
-    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>15) p = p + 
-      theme(legend.position="none") 
+    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>15) 
+    { 
+      p = p + theme(legend.position="none")
+      if (nlevels(nd$Legend)>15) output$plotMessage=renderText("Over 15 legend items, legend not drawn.")
+    }
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)

@@ -413,7 +413,10 @@ shinyUI(fixedPage(
                  column(width=6,
                    myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
                       c("0"="0","45"="45","90"="90"))))))
-             ),
+            ),
+            fixedRow(column(width=12, 
+              tags$style(type="text/css","#plotMessage{color:darkred;}"),          
+              textOutput("plotMessage"))),
             fixedRow(column(width=12,plotOutput("outplot")))
           )
         ) )       

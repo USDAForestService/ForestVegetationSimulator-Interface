@@ -20,7 +20,7 @@ pivot <- function(dat,pvar,dvar)
     colnames(d) = dat[,pvar]
     return(as.data.frame(d))
   }
-  grps = by(dat,as.list(dat[,facts]),
+  grps = by(dat,as.list(dat[,facts,drop=FALSE]),
     function(x,allc,facts,pvar,dvar) 
     {
       y = rep(0,length(allc)) 
