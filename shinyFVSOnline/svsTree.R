@@ -100,7 +100,8 @@ svsTree <- function(tree,treeform)
       nbran  = tr$Nbrchs  # total number
       # limit the number of branches to 4 per foot of crown length
       if (nbran > 4*CL) nbran = 4*CL
-      if (nwhorl == 0) nwhorl = nbran 
+      if (nwhorl == 0) nwhorl = nbran
+      nwhorl = ceiling(nwhorl)
       if (nwhorl > 0) 
       {
         nbran = max(3,floor(nbran/nwhorl))  # branches per whorl
@@ -115,8 +116,7 @@ svsTree <- function(tree,treeform)
         # tlt in slope proprtion
         tlt <- tan(tlt*pi/180)
         z <- HCB+CL*z
-        angs <- rep(seq(0,2*pi,length=nbran),nwhorl)
-
+        angs <- rep(seq(0,2*pi,length=nbran),nwhorl)        
         startang = runif(nwhorl*nbran)*2*pi               
         angs = angs+startang  
         r <- tree$Crd1/2
