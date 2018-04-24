@@ -200,7 +200,8 @@ shinyUI(fixedPage(
                         "Mistletoe detail by tree size (FVS_DM_Sz_Sum)"="autoDM_Sz_Sum",  
                         "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
                         "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
-                        "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle"  
+                        "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
+                        "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
                         ),width="100%",inline=FALSE),
                    selectInput("tabDescSel","Describe tables",choices=
                         list("","FVS_Cases","FVS_Summary","FVS_Compute","FVS_DM_Stnd_Sum",

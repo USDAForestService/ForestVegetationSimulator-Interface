@@ -233,13 +233,14 @@ cat("writeKeyFile, num stds=",length(stds),
     for (i in 1:length(ints)) if (ints[i] != mostint) 
        cat ("TimeInt      ",as.character(i),"      ",ints[i],"\n",file=fc)
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
-    cat ("DelOTab            1\n",file=fc)
-    cat ("DelOTab            2\n",file=fc)
-    cat ("DelOTab            4\n",file=fc)
     cat (defaultOut,file=fc)
     if (!is.na(match("mist",extns))) cat (defaultOutMist,file=fc)
-    for (out in fvsRun$autoOut)
-      if (exists(out)) try(eval(parse(text=paste0("cat(",out,",file=fc)"))))
+    # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
+    autos = unlist(fvsRun$autoOut)
+    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else
+                                          c(autos,"autoDelOTab")
+    for (out in autos)
+      if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
     lastExt = "base"
     lastCnd = NULL
     if (length(std$grps)) for (grp in std$grps)

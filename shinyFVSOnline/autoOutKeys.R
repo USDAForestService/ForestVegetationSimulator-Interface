@@ -11,6 +11,12 @@ MisRpts        2
 End
 "
 
+autoDelOTab="
+DelOTab            1
+DelOTab            2
+DelOTab            4
+"
+
 autoTreelists="
 * FVS_TreeList, FVS_Cutlist 
 Treelist       0                   0
