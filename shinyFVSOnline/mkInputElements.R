@@ -138,8 +138,8 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
     {
       sps <- append(sps," ",after=0)
       dsp <- append(dsp," ",after=0)
-    }
-  } else choices = fpvs
+    } else choices = fpvs
+  } 
   names(dsp) = sps
   myInlineListButton (pkey, pmt, dsp, selected = choices)
 }

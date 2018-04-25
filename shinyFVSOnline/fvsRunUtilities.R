@@ -253,9 +253,9 @@ cat("writeKeyFile, num stds=",length(stds),
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
+        if (is.na(cmp$exten)) cmp$exten="base" #should not be needed
         exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
-           unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
-        if (is.na(exten)) exten="base"
+               unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
         if (lastExt != exten && lastExt != "base") 
         {
           lastExt = "base"
@@ -282,7 +282,8 @@ cat("writeKeyFile, num stds=",length(stds),
               sep=",",quote=FALSE,row.names=FALSE))
             cat ("-999\n",file=fc,sep="")
           }
-        } else cat (cmp$kwds,"\n",file=fc,sep="")
+        } else cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
+                     cmp$kwds,"\n",file=fc,sep="")
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
@@ -306,8 +307,10 @@ cat("writeKeyFile, num stds=",length(stds),
              exten),"\n",file=fc,sep="")
         lastExt = exten
       }
-      cat (cmp$kwds,"\n",file=fc,sep="")
+      cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
+                     cmp$kwds,"\n",file=fc,sep="")    
     }
+    if (!is.null(lastCnd)) cat ("EndIf\n",file=fc,sep="")
     if (lastExt != "base") cat ("End\n",file=fc,sep="")
     cat ("SPLabel\n",file=fc,sep="")
     for (i in 1:length(std$grps))
