@@ -34,6 +34,7 @@ CarbRept        2
 CarbCut
 CarbCalc        0         0
 FuelOut         0
+FuelRept
 End
 Database
 CarbRpts        2
