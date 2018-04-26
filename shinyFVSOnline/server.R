@@ -854,6 +854,8 @@ cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
       dat = lapply(dat,function (x) 
         if (is.factor(x)) levels(x)[as.numeric(x)] else x)
       dat = as.data.frame(dat)
+      for (i in 1:ncol(dat)) 
+        if (class(dat[[i]]) == "numeric") dat[[i]] = round(dat[[i]],3)
     }
     renderRHandsontable(if (is.null(dat) || nrow(dat)==0) NULL else 
               rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE,
