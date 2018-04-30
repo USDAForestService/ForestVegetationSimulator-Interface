@@ -1638,7 +1638,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (length(input$freeEdit) == 0) return()
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
       if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun)
+      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
       eltList <- append(eltList,list(
         actionButton("fvsFuncInsert","Insert function"),
         actionButton("fvsFuncCancel","Cancel function"),h6()))
@@ -1653,7 +1653,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
     }
   })
   observe({  #fvsFuncInsert
-    if (length(input$fvsFuncInsert) && input$fvsFuncInsert) 
+    if (length(input$fvsFuncInsert) && input$fvsFuncInsert)
     isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]]
       ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
@@ -1665,6 +1665,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         pkey = paste0("f",fn)
         fps = getPstring(pkeys,pkey,globals$activeVariants[1])
         if (is.null(fps)) break
+        pkey = paste0("func.f",fn)
         instr = input[[pkey]]
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
@@ -2071,7 +2072,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
         globals$currentCndPkey <- if (is.na(idx)) "0" else cnpkey
         ui = if (globals$currentCndPkey == "0") NULL else
         {
-          eltList <- mkeltList(prms[[as.numeric(globals$currentCndPkey)]],prms,
+          eltList <- mkeltList(prms[[globals$currentCndPkey]],prms,
                               globals,globals$fvsRun,cndflag=TRUE)
           if (length(eltList) == 0) NULL else eltList
         }

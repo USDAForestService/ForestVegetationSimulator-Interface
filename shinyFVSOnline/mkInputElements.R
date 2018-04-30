@@ -1,4 +1,4 @@
-mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
+mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
 {
   waitYears <- NULL
   eltList <- if (cndflag) 
@@ -38,6 +38,7 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE)
     if (!is.null(fpvs) && is.na(fpvs)) fpvs = NULL
     choices <- getPstring(pkeys,paste0(pkey,"v"),globals$activeVariants[1]) 
     if (cndflag) pkey = paste0("cnd.",pkey)
+    else if (funcflag) pkey = paste0("func.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
  "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,
  "\nchoices=",choices,"\n") 
@@ -265,7 +266,7 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL)
                                  paste0(inputs,collapse="")
   if (length(label)== 0) label=""
   if (nchar(label) > 15)
-    HTML(paste0('<div id="',inputId,' " style="width:100%;" class="shiny-input-container">',
+    HTML(paste0('<div id="',inputId,'" style="width:100%;" class="shiny-input-container">',
       '<label for="',inputId,'" style="max-width:50%;" ><b>',label,'&nbsp;&nbsp;</b></label>',
       '<select id="',inputId,'" style="max-width:50%;" >', 
      inputs,"</select></div>"))
