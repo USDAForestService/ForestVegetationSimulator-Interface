@@ -218,8 +218,7 @@ cat("writeKeyFile, num stds=",length(stds),
         fvsInit$STAND_CN[sRow] != " ") 
       cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="") else
       cat ("StandCN\n",std$sid,"\n",file=fc,sep="") 
-    cat ("MgmtId\n",if (length(std$rep)) sprintf("R%3.3d",std$rep) else 
-        fvsRun$defMgmtID,"\n",file=fc,sep="")                       
+    cat ("MgmtId\n",fvsRun$defMgmtID,"\n",file=fc,sep="")                       
     if (length(std$invyr) == 0) std$invyr = as.character(thisYr) 
     ninvyr = as.numeric(std$invyr)
     cat ("InvYear       ",std$invyr,"\n",file=fc,sep="")
@@ -1245,9 +1244,7 @@ cat ("error: stdInit is null\n")
                     value=globals$fvsRun$cyclelen)
     msgVal = msgVal+1
     progress$set(detail="Updating reps tags",value = msgVal)
-    stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
-    cnts <- table(stds)
-    updateRepsTags(globals)
+    updateReps(globals)
     msgVal = msgVal+1
     progress$set(detail="Loading contents listbox",value = msgVal)
     mkSimCnts(globals$fvsRun)
@@ -1261,13 +1258,26 @@ cat ("error: stdInit is null\n")
 }
 
 
-updateRepsTags <- function(globals)
+updateReps <- function(globals)
 { 
-cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n") 
+cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n") 
   if (length(globals$fvsRun$stands))
   {
     stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))  
-    cnts <- table(stds)  
+    cnts <- table(stds) 
+    have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+            if (x$grp != "") x$grp else NULL))
+    need = paste0("AutoRepGrp=",1:max(cnts))
+    mkgps <- setdiff(need, have)
+    for (grp in mkgps) 
+    {
+      newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
+      globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
+    }
+    have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+            if (x$grp != "") x$grp else NULL))
+    grpIdxs = match(need,have)
+    names(grpIdxs) = need
     for (cn in 1:length(cnts)) 
     {
       cnt <- cnts[cn]   
@@ -1278,12 +1288,17 @@ cat ("in updateRepsTags, num stands=",length(globals$fvsRun$stands),"\n")
         for (r in reps) 
         {
           globals$fvsRun$stands[[r]]$rep <- i
+          have <- unlist(lapply(globals$fvsRun$stands[[r]]$grps,function(x) 
+                         if (x$grp != "") x$grp else NULL))
+          if (! names(grpIdxs)[i] %in% have) globals$fvsRun$stands[[r]]$grps <- 
+            append(globals$fvsRun$stands[[r]]$grps,globals$fvsRun$grps[[grpIdxs[i]]])
           i <- i+1
         }     
       } else globals$fvsRun$stands[[reps]]$rep <- integer(0)
     }
   }
 }
+
 
 mkFileNameUnique <- function(fn)
 { 

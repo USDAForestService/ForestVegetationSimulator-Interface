@@ -982,6 +982,16 @@ cat ("renderPlot\n")
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
+    if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
+    {
+      for (il in 1:length(levels(dat$Groups)))
+      {
+        levs = trim(unlist(strsplit(levels(dat$Groups)[il],",")))
+        newl = paste0(intersect(levs,input$stdgroups),collapse=", ")
+        levels(dat$Groups)[il] = newl
+      }      
+    }
+
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
     if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
     {
@@ -1715,7 +1725,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {   
         globals$foundStand=0L 
-        updateRepsTags(globals) 
+        updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2520,7 +2530,8 @@ cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
 cat ("rn=",rn,"\n")
           rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
           if (class(rtn) == "try-error") break
-          allSum[[rn]] = rtn[[1]]
+          allSum[[i]] = rtn[[1]]
+          names(allSum)[i] = rn
         }
 cat ("rtn,class=",class(rtn),"\n")
         try(clusterEvalQ(fvschild,fvsRun()))        
