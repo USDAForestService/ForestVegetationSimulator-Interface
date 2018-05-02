@@ -41,6 +41,7 @@ FVSOnlineNeeded = c(
 "componentWins.R",
 "customRun_fvsRunAcadian.R",
 "customRun_fvsRunAdirondack.R",
+"databaseDescription.xlsx",
 "dbNamesAndTypes.R",
 "editDataUtilities.R",
 "FVS_Data.db.default",
@@ -57,7 +58,6 @@ FVSOnlineNeeded = c(
 "server.R", 
 "sqlQueries.R",
 "svsTree.R",
-"tablesDesc.R",
 "ui.R",
 "www")
 
