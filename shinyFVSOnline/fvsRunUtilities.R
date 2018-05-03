@@ -1267,7 +1267,7 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
     cnts <- table(stds) 
     have <- unlist(lapply(globals$fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
-    need = paste0("AutoRepGrp=",1:max(cnts))
+    need = paste0("AutoRep=",1:max(cnts))
     mkgps <- setdiff(need, have)
     for (grp in mkgps) 
     {
