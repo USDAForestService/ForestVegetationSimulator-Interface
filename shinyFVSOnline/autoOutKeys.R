@@ -72,7 +72,7 @@ End
 "
 
 autoSVS="
-SVS                2                   2         1        15
+SVS                3                   2         1        15
 "
 
 autoEcon="

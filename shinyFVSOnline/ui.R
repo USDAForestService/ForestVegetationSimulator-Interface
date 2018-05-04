@@ -3,7 +3,7 @@ library(rhandsontable)
 library(colourpicker)
 library(rgl)
 library(leaflet)
-
+library(openxlsx)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
@@ -44,6 +44,13 @@ zipList <- list(
                                            "FVS_kcps")	
 selZip <- unlist(zipList[1:4])	
 
+tableList = list()
+if (file.exists("databaseDescription.xlsx"))
+{
+  if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
+  tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
+  tableList = as.list(c("",tabs))
+}
 
 shinyUI(fixedPage(
   tags$style(HTML(paste0(
@@ -203,14 +210,7 @@ shinyUI(fixedPage(
                         "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
                         ),width="100%",inline=FALSE),
-                   selectInput("tabDescSel","Describe tables",choices=
-                        list("","FVS_Cases","FVS_Summary","FVS_Compute","FVS_DM_Stnd_Sum",
-                             "FVS_DM_Spp_Sum","FVS_Treelist","FVS_CutList","FVS_Carbon",
-                             "FVS_Consumption","FVS_Hrv_Carbon","FVS_Fuels","FVS_Potfire",
-                             "FVS_BurnReport","FVS_Mortality","FVS_SnagSum","FVS_Down_Wood_Cov",
-                             "FVS_Down_Wood_Vol","FVS_CanProfile","FVS_SnagDet","FVS_StrClass",
-                             "FVS_Climate","FVS_EconSummary","FVS_EconHarvestValue",
-                             "FVS_DM_Sz_Sum","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle"),
+                   selectInput("tabDescSel","Describe tables",choices=tableList,
                         selected=1,multiple=FALSE,selectize=FALSE),
                         h5(),uiOutput("tabDesc")
               ),
