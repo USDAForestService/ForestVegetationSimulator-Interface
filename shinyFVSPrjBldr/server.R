@@ -1,4 +1,4 @@
-jlibrary(shiny)
+library(shiny)
 
 options(shiny.trace = F)  # change to T for trace
 
@@ -15,6 +15,9 @@ shinyServer(function(input, output, session) {
   output$uivariants <- renderUI(
     checkboxGroupInput("uivariants","Select FVS variants", 
               choices=topick,selected="FVSie",inline=TRUE))
+sink("FVSPrjBldr.log")
+cat (date(),"\n")
+cat ("length(topick)=",length(topick),"\n")
 
   observe({
     if (input$submitnew == 0) return()
@@ -24,6 +27,7 @@ shinyServer(function(input, output, session) {
       if (nchar(input$emailnew)<5 && regexpr("@",input$emailnew) < 2) return()
       uuid = uuidgen()
       workDir = paste0(fvsWork,uuid)
+cat("workDir=",workDir,"\n")
       dir.create(workDir)
       binDir = paste0(workDir,"/FVSbin/")
       # fvs libraries
@@ -40,9 +44,9 @@ cat ("fvsbin cmd=",cmd,"\n")
       system (paste0("cp -R ",rFVSDir," ",tr))
       
       # projectId file...
+cat("email=",input$emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
           "email=",input$emailnew,"\ntitle=",input$title,"\n")
-      # make link, send email:
       rptFile = tempfile()
       con = file(rptFile,"w")
       link = paste0("http://forest.moscowfsl.wsu.edu/FVSwork/",uuid)
@@ -56,6 +60,7 @@ cat ("fvsbin cmd=",cmd,"\n")
        '-a "Subject: New project: ',input$title,'"',
        '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
        '-a "Cc: ncrookston.fs@gmail.com" < ',rptFile)      
+cat("mailCmd=",mailCmd,"\n")
       system (mailCmd)
       if (nchar(input$title)) 
       {
