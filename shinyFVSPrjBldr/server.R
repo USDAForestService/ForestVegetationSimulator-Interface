@@ -1,4 +1,4 @@
-library(shiny)
+jlibrary(shiny)
 
 options(shiny.trace = F)  # change to T for trace
 
@@ -14,7 +14,7 @@ shinyServer(function(input, output, session) {
   names(topick) = unlist(pgmList[keep])
   output$uivariants <- renderUI(
     checkboxGroupInput("uivariants","Select FVS variants", 
-              choices=topick,selected="FVSiec",inline=TRUE))
+              choices=topick,selected="FVSie",inline=TRUE))
 
   observe({
     if (input$submitnew == 0) return()
