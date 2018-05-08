@@ -58,6 +58,16 @@ shinyServer(function(input, output, session) {
       Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
       sqlite3 = Sys.getenv("sqlite3")
     } else sqlite3 = "sqlite3"
+    if (!file.exists("FVS_Runs.RData"))
+    {
+      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+      saveFvsRun = globals$fvsRun
+      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+      FVS_Runs = globals$FVS_Runs
+      save (file="FVS_Runs.RData",FVS_Runs)
+    }
     if (file.exists("FVS_Runs.RData"))
     {
       load("FVS_Runs.RData")
@@ -83,10 +93,10 @@ cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," noto
       } else if (length(notok)) FVS_Runs = FVS_Runs[-notok] 
       globals$FVS_Runs = FVS_Runs
       rm (FVS_Runs)      
-    } else { 
-      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-    } 
+    } else {
+cat ("serious start up error\n") 
+      return()
+    }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     tit=NULL
@@ -129,14 +139,13 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
   }, min=1, max=6)
   
   observe({
-    cat ("protocol: ", session$clientData$url_protocol, "\n",
-         "hostname: ", session$clientData$url_hostname, "\n",
-         "pathname: ", session$clientData$url_pathname, "\n",
-         "port: ",     session$clientData$url_port,     "\n",
-         "search: ",   session$clientData$url_search,   "\n")
+cat ("protocol: ", session$clientData$url_protocol, "\n",
+     "hostname: ", session$clientData$url_hostname, "\n",
+     "pathname: ", session$clientData$url_pathname, "\n",
+     "port: ",     session$clientData$url_port,     "\n",
+     "search: ",   session$clientData$url_search,   "\n")
     globals$hostname = session$clientData$url_hostname
-
-    cat("signalClosing=",input$signalClosing,"\n")
+cat("signalClosing=",input$signalClosing,"\n")
     if (!is.null(input$signalClosing) && input$signalClosing==1 &&
         globals$reloadAppIsSet == 0 && globals$hostname == "127.0.0.1") 
     {
