@@ -25,7 +25,7 @@ shinyServer(function(input, output, session) {
     }
     sink("FVSOnline.log")
   }
-  cat ("FVSOnline/OnLocal interface server start.\n")
+cat ("FVSOnline/OnLocal interface server start.\n")
        
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -2397,10 +2397,9 @@ cat ("keyword file was not created.\n")
           return()
         }          
         dir.create(globals$fvsRun$uuid)
-        if (!exists("rFVSDir")) rFVSDir = "rFVS/R"
-        if (!file.exists(rFVSDir)) rFVSDir = "rFVS/R"
-        if (!file.exists(rFVSDir)) return()
-        binDir = if (file.exists("FVSbin")) "FVSbin" else fvsBinDir
+        locrFVSDir = "rFVS/R"
+        if (!file.exists(locrFVSDir)) return()
+        locbinDir = "FVSbin"
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
@@ -2415,11 +2414,11 @@ cat ("runwaitback=",input$runwaitback,"\n")
           cat (cmd,"\n",file=rs)                   
           cmd = paste0("nstands = ",length(globals$fvsRun$stands))
           cat (cmd,"\n",file=rs)          
-          cmd = paste0("for (rf in dir('",rFVSDir,
-             "')) source(paste0('",rFVSDir,"','/',rf))")
+          cmd = paste0("for (rf in dir('",locrFVSDir,
+             "')) source(paste0('",locrFVSDir,"','/',rf))")
           cat (cmd,"\n",file=rs)
           cmd = paste0("fvsLoad('",
-             globals$fvsRun$FVSpgm,"',bin='",binDir,"')")
+             globals$fvsRun$FVSpgm,"',bin='",locbinDir,"')")
           cat (cmd,"\n",file=rs)
           if (globals$fvsRun$runScript != "fvsRun")
           {
@@ -2473,13 +2472,13 @@ cat ("cmd=",cmd,"\n")
           return()
         }
         fvschild = makePSOCKcluster(1)
-        cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",rFVSDir,
-          "')) source(paste0('",rFVSDir,"','/',rf)))")
+        cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",locrFVSDir,
+          "')) source(paste0('",locrFVSDir,"','/',rf)))")
 cat ("load rFVS cmd=",cmd,"\n")          
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()
         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
-             globals$fvsRun$FVSpgm,"',bin='",binDir,"'))")
+             globals$fvsRun$FVSpgm,"',bin='",locbinDir,"'))")
 cat ("load FVSpgm cmd=",cmd,"\n")          
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()          
@@ -3273,7 +3272,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
     if (input$topPan == "Tools") 
     {
 cat ("Tools hit\n") 
-      if (exists("fvsBinDir") && file.exists(fvsBinDir) &&
+      if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir) &&
           exists("pgmList")) 
       {
         pgmFlip = as.list(names(pgmList))
@@ -3285,7 +3284,7 @@ cat ("Tools hit\n")
         avalFVSp <- sub(shlibsufx,"",avalFVS)
 cat ("avalFVSp=",avalFVSp,"\n")  
       } else {
-        pgmFlip = list()
+        pgmFlip = list("Refresh not supported this system.")
         haveFVSp = NULL
       }
       updateSelectInput(session=session, inputId="FVSprograms", 
@@ -3303,56 +3302,47 @@ cat ("avalFVSp=",avalFVSp,"\n")
   
   ## FVSRefresh
   observe({  
-    isLocal <- function () Sys.getenv('SHINY_PORT') == ""
     if (input$FVSRefresh == 0) return()               
+    isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
-      if (!exists("fvsBinDir")) fvsBinDir="FVSbin/"
-      if (!file.exists(fvsBinDir))
+      shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
+      i = 0
+      if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir))
       {
-        session$sendCustomMessage(type="infomessage",
-                                  message="FVS programs can not be refreshed on this system.")
-        rm (fvsBinDir)
-      } else {
-        shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-        if(isLocal())
+        for (pgm in input$FVSprograms)
         {
-          i = 0
-          pgmurl <- "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline"
-          for (pgm in input$FVSprograms)
+          rtn <- try(file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin",
+                           overwrite = TRUE))
+          if (class(rtn) != "try-error" && rtn) i = i+1
+        } 
+      } else if (exists("fvsBinURL") && !is.null(fvsBinURL)) 
+      {
+        for (pgm in input$FVSprograms)
+        {
+          pgmd=paste0(fvsBinURL,"/", pgm,".zip")
+          rtn <- try(download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip")))
+          if (class(rtn) != "try-error")
           {
-            pgmd=paste0(pgmurl,"/", pgm,".zip")
-            rtn <- download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip"))
             unzip(paste0(fvsBinDir,"/", pgm,".zip"), exdir=paste0(fvsBinDir))
-            if (file.exists(paste0(fvsBinDir,"/", pgm,".dll"))) i = i+1
-          }
-          session$sendCustomMessage(type="infomessage",
-                                    message=paste0(i," of ",length(input$FVSprograms),
-                                                   " selected FVS programs refreshed."))            
-          if (i) 
-          {
-            globals$reloadAppIsSet=1
-            session$reload()
-          }
-        } else {
-          i = 0
-          for (pgm in input$FVSprograms)
-          {
-            rtn=file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin",
-                          overwrite = TRUE)
-            if (rtn) i = i+1
-          }
-          session$sendCustomMessage(type="infomessage",
-                                    message=paste0(i," of ",length(input$FVSprograms),
-                                                   " selected FVS programs refreshed."))            
-          if (i) 
-          {
-            globals$reloadAppIsSet=1
-            session$reload()
+            if (file.exists(paste0(fvsBinDir,"/", pgm,shlibsufx))) i = i+1
+            unlink (paste0(fvsBinDir,"/", pgm,".zip"))
           }
         }
-      } 
+      } else {
+        session$sendCustomMessage(type="infomessage",
+                                  message="FVS programs can not be refreshed on this system.")
+        return()
+      }
+      session$sendCustomMessage(type="infomessage",
+              message=paste0(i," of ",length(input$FVSprograms),
+                              " selected FVS programs refreshed."))                                         
+      if (i) 
+      {
+        globals$reloadAppIsSet=1
+        session$reload()
+      }
     })
   })
 
@@ -3443,28 +3433,36 @@ cat ("delete all runs and outputs\n")
   observe({
     if(input$interfaceRefresh > 0)
     {
-      session$sendCustomMessage(type = "dialogContentUpdate",
-        message = list(id = "interfaceRefreshDlg",
-                  message = "Are you sure?"))
+      if (exists("fvsOnlineDir") && !is.null(fvsOnlineDir) && file.exists(fvsOnlineDir) &&
+        .Platform$OS.type != "windows") 
+      {
+        session$sendCustomMessage(type = "dialogContentUpdate",
+          message = list(id = "interfaceRefreshDlg",
+                    message = "Are you sure?"))
+      } else {
+        session$sendCustomMessage(type="infomessage",
+                message="The interface can not be refreshed on this system.")
+      }
     }
   })
   observe({  
     if (input$interfaceRefreshDlgBtn == 0) return()
 cat ("interfaceRefreshDlgBtn\n") 
-    if (.Platform$OS.type == "windows") return()
-## TODO: set this up so that it works "ONLocal" and with windows.
-    if (file.exists("../../FVSOnline/settings.R")) 
-             source("../../FVSOnline/settings.R")
-    exDir = exists("fvsOnlineDir")
-cat ("interfaceRefreshDlgBtn, exDir = ",exDir,"\n")           
-    if (!exDir) return()
-    # shiny code, etc
-    needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ") 
-    cmd = paste0("cp -R ",needed," .")
+## TODO: set this up so that it works "ONlocal" and with windows.
+    if (exists("fvsOnlineDir") && !is.null(fvsOnlineDir) && file.exists(fvsOnlineDir) &&
+        .Platform$OS.type != "windows") 
+    {
+      # shiny code, etc
+      needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ") 
+      cmd = paste0("cp -R ",needed," .")
 cat ("interfaceRefreshDlgBtn, cmd = ",cmd,"\n")           
-    system (cmd)
-    globals$reloadAppIsSet=1
-    session$reload()
+      system (cmd)
+      globals$reloadAppIsSet=1
+      session$reload()
+    } else {
+      session$sendCustomMessage(type="infomessage",
+              message="The interface can not be refreshed on this system.")
+    }
   }) 
 
   ## delZipBackup

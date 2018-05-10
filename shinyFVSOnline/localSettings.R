@@ -1,5 +1,14 @@
-fvsBinDir="FVSbin"
-rFVSDir  ="R"
+# these two variables can be set to the source directories of fvsBin and rFVS
+fvsBinDir=NULL
+rFVSDir  =NULL
+#fvsBinDir    = ".../trunk/bin/"  (set as needed)
+#rFVSDir      = ".../rFVS/R/"     (set as needed)
+
+#when fvsBinDir is NULL (or when the directory does not exist), 
+#then the following url is tried. If the url is NULL it is not tried.
+
+fvsBinURL = if (.Platform$OS.type == "windows") 
+     "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline" else NULL
 
 pgmList= list(
   FVSak = "Southeast AK - Coastal BC",
