@@ -4,7 +4,7 @@ mkfvsOutData <-
     fields = list(dbLoadData = "list", dbData = "data.frame", 
       dbVars = "character", browseVars = "character", 
       dbSelVars = "character", browseSelVars = "character",
-      runs = "character", plotSpecs = "list", dbCases = "data.frame",
+      runs = "character", plotSpecs = "list", 
       render = "data.frame"))
 
 pivot <- function(dat,pvar,dvar)

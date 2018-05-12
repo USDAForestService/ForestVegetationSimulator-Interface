@@ -36,9 +36,11 @@ cat ("FVSOnline/OnLocal interface server start.\n")
     source("componentWins.R",local=TRUE)
     source("mkInputElements.R",local=TRUE)
     source("editDataUtilities.R",local=TRUE)
+    
+    isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
-    if (file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
+    if (!isLocal() && file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
     # cbbPalette is used in the graphics
     cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
     load("prms.RData") 
@@ -219,19 +221,11 @@ cat ("View Outputs & Load\n")
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
-        fvsOutData$dbCases = dbReadTable(dbGlb$dbOcon,"FVS_Cases")
-        fvsOutData$runs = unique(fvsOutData$dbCases$KeywordFile)
-        times = NULL
-        titles = NULL
-        for (run in fvsOutData$runs) 
-        {
-          indx = grep(run,fvsOutData$dbCases$KeywordFile)[1]
-          times = c(times,fvsOutData$dbCases$RunDateTime[indx])
-          titles = c(titles,fvsOutData$dbCases$RunTitle[indx])
-        }
-        srt = order(times,decreasing = TRUE)
-        fvsOutData$runs = fvsOutData$runs[srt]
-        names(fvsOutData$runs) = titles[srt]
+        runsdf = dbGetQuery(dbGlb$dbOcon,
+          paste0("Select RunTitle,KeywordFile from FVS_Cases group by KeywordFile ",
+                 "having min(RunDateTime) order by RunDateTime desc;"))
+        fvsOutData$runs = runsdf$KeywordFile
+        names(fvsOutData$runs) = runsdf$RunTitle
       }
       updateSelectInput(session, "runs", choices = fvsOutData$runs, 
         selected=0)
@@ -3301,7 +3295,6 @@ cat ("avalFVSp=",avalFVSp,"\n")
   ## FVSRefresh
   observe({  
     if (input$FVSRefresh == 0) return()               
-    isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
@@ -3311,7 +3304,7 @@ cat ("FVSRefresh\n")
       {
         for (pgm in input$FVSprograms)
         {
-          frm = paste0(fvsBinDir,"/",pgm,shlibsufx)
+          frm = paste0(fvsBinDir,pgm,shlibsufx)
           tto = paste0("FVSbin/",pgm,shlibsufx)
 cat ("copy frm=",frm," tto=",tto,"\n")
           rtn <- try(file.copy(from=frm,to=tto,overwrite = TRUE))
