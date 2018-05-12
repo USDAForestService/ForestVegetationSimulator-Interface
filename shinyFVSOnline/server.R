@@ -37,10 +37,8 @@ cat ("FVSOnline/OnLocal interface server start.\n")
     source("mkInputElements.R",local=TRUE)
     source("editDataUtilities.R",local=TRUE)
 
-    if (file.exists("localSettings.R")) 
-             source("localSettings.R",local=TRUE) else if
-       (file.exists("../../FVSOnline/settings.R")) 
-             source("../../FVSOnline/settings.R",local=TRUE)
+    if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
+    if (file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
     # cbbPalette is used in the graphics
     cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
     load("prms.RData") 
@@ -3313,8 +3311,10 @@ cat ("FVSRefresh\n")
       {
         for (pgm in input$FVSprograms)
         {
-          rtn <- try(file.copy(from=paste0(fvsBinDir,"/",pgm,shlibsufx),to="FVSbin",
-                           overwrite = TRUE))
+          frm = paste0(fvsBinDir,"/",pgm,shlibsufx)
+          tto = paste0("FVSbin/",pgm,shlibsufx)
+cat ("copy frm=",frm," tto=",tto,"\n")
+          rtn <- try(file.copy(from=frm,to=tto,overwrite = TRUE))
           if (class(rtn) != "try-error" && rtn) i = i+1
         } 
       } else if (exists("fvsBinURL") && !is.null(fvsBinURL)) 
