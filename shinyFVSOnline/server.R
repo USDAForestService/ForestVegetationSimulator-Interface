@@ -3687,7 +3687,12 @@ cat ("fext=",fext,"\n")
       }
     } else fname = basename(input$uploadNewDB$datapath)
 cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
-    source("dbNamesAndTypes.R")
+    standNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_StandInit"))
+    standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
+    treeNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_TreeInit"))
+    treeNT = if (class(treeNT) == "tre-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
+    plotNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_PlotInit"))
+    plotNT = if (class(treeNT) == "tre-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
     curDir=getwd()
     setwd(fdir)
     if (fext %in% c("accdb","mdb"))
@@ -3730,6 +3735,7 @@ cat ("cmd=",cmd,"\n")
           cknt = NULL
           if      (length(grep("FVS_STANDINIT",tblName,ignore.case=TRUE))) cknt = standNT
           else if (length(grep("FVS_TREEINIT", tblName,ignore.case=TRUE))) cknt = treeNT
+          else if (length(grep("FVS_PLOTINIT", tblName,ignore.case=TRUE))) cknt = plotNT
           next
         }
         if (substring(schema[i],1,2)  == ");") next
@@ -3796,10 +3802,11 @@ cat ("sheet = ",sheet," i=",i,"\n")
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
         im = grep(sheet,normNames,ignore.case=TRUE)
         if (!is.na(im)) sheet = normNames[im]
-        NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,NULL) 
+        NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,
+                          "FVS_PlotInit"=plotNT,NULL) 
         if (!is.null(NT))
         {
-          std = pmatch(names(sdat),NT[,1])        
+          std = pmatch(toupper(names(sdat)),NT[,1])        
           for (icol in 1:length(sdat))
           {
             if (!is.na(std[icol])) sdat[,icol] = 
@@ -4357,7 +4364,29 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
         dbGlb$rowSelOn <- FALSE
       }   
       updateSelectInput(session=session, inputId="editSelDBvars", 
-        choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)  
+        choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)
+      html=NULL
+      tabs = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="InputTableDescriptions"))
+      if (class(tabs) != "try-error")
+      {
+        row = charmatch(toupper(input$editSelDBtabs),toupper(tabs[,1]))
+        if (!is.na(row))
+        {
+          tab = tabs[row,1]
+          html = paste0("<b>",tab,"</b> ",tabs[row,2])
+          sdat = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet=tab))
+          if (class(sdat) != "try-error")
+          {
+            html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
+                     paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
+            for (i in 1:nrow(sdat))
+              html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
+                       collapse="</TD><TD>"),"</TD></TR>\n")
+            html = paste0(html,"</TABLE>")
+          }
+        }
+      }
+      output$inputTabDesc <- renderUI(HTML(html))
     }
   })              
   

@@ -526,7 +526,11 @@ shinyUI(fixedPage(
                   h6(),
                   rHandsontableOutput("tbl"),
                   textOutput("actionMsg"))
-             )),              
+              ),
+              fixedRow(
+                column(width=12,offset=0,
+                  h6(),uiOutput("inputTabDesc")
+            ))),              
             tabPanel("Map data", h4("Upload a stand layer to use in the Maps feature."),       
               fileInput("mapUpload","Upload polygon (best) or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
