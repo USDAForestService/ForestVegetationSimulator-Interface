@@ -42,7 +42,6 @@ FVSOnlineNeeded = c(
 "customRun_fvsRunAcadian.R",
 "customRun_fvsRunAdirondack.R",
 "databaseDescription.xlsx",
-"dbNamesAndTypes.R",
 "editDataUtilities.R",
 "FVS_Data.db.default",
 "FVS_Data.db.empty",
