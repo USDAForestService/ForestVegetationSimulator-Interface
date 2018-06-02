@@ -518,8 +518,9 @@ cat ("renaming program file: from=",from," to=",to,"\n")
       if (avalFVSp[i] %in% names(globals$activeFVS)) next
       ats = grep(avalFVSp[i],pgmNames,fixed=TRUE)
       if (length(ats) == 0) next
-      ats = attr(prms[["programs"]][prms[["programs"]] == avalFVSp[i]][[1]],
-                "atlist",exact=TRUE)
+      ipgms = prms[["programs"]] == avalFVSp[i]
+      if (!any(ipgms)) next
+      ats = attr(prms[["programs"]][ipgms][[1]],"atlist",exact=TRUE)
       if (!is.null(ats)) 
       {
         globals$activeExtens <- union(globals$activeExtens, ats[-1])
@@ -549,8 +550,9 @@ cat ("renaming program file: from=",from," to=",to,"\n")
       }
     }
   }
-cat ("globals$activeVariants=",globals$activeVariants,
-     " globals$activeFVS[[1]][1]=", globals$activeFVS[[1]][1],"\n")
+cat ("globals$activeVariants=",globals$activeVariants,"\n")
+cat ("length activeFVS=",length(globals$activeFVS),"\n")
+if (length(globals$activeFVS)) cat ("names(globals$activeFVS)=",names(globals$activeFVS),"\n")
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$extnsel <- character(0)
   globals$mgmtsel <- list()
