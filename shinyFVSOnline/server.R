@@ -1945,36 +1945,42 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         nchar(input$addEvCmps)) renderComponent("evn")
   })
                 
-  renderComponent <- function(inCode)
+  renderComponent <- function(inCode="default")
   { 
-cat ("renderComponent, inNum=",inCode,"\n")
+cat ("renderComponent, inCode=",inCode,"\n")
     isolate ({
       globals$currentEditCmp <- globals$NULLfvsCmp
       globals$currentCndPkey <- "0"
       switch (as.character(inCode),
         "mgt" =
         {
-          titIndx = match(input$addMgmtCmps,
-                    globals$mgmtsel[[as.numeric(input$addMgmtCats)]])
+          titIndx = try(match(input$addMgmtCmps,
+                        globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
+          if (class(titIndx)=="try-error") return(NULL)
           title = names(globals$mgmtsel[[as.numeric(input$addMgmtCats)]])[titIndx]
           globals$currentCmdPkey = globals$mgmtsel[[as.numeric(input$addMgmtCats)]][titIndx]
         },
         "mod" = 
         {
-          titIndx = match(input$addModCmps,
-                    globals$mmodsel[[as.numeric(input$addModCats)]])
+          titIndx = try(match(input$addModCmps,
+                        globals$mmodsel[[as.numeric(input$addModCats)]]))
+          if (class(titIndx)=="try-error") return(NULL)
           title = names(globals$mmodsel[[as.numeric(input$addModCats)]])[titIndx]
           globals$currentCmdPkey = globals$mmodsel[[as.numeric(input$addModCats)]][titIndx]
         },
         "key" = 
         {
-          titIndx =  match(input$addKeyWds,globals$kwdsel[[input$addKeyExt]])
+          titIndx =  try(match(input$addKeyWds,
+                         globals$kwdsel[[input$addKeyExt]]))
+          if (class(titIndx)=="try-error") return(NULL)
           title = names(globals$kwdsel[[input$addKeyExt]])[titIndx] 
           globals$currentCmdPkey = globals$kwdsel[[input$addKeyExt]][titIndx]
         },
         "evn" = 
         {
-          titIndx =  match(input$addEvCmps,globals$moutsel[["Event Monitor (EM) Compute Variables"]])
+          titIndx =  try(match(input$addEvCmps,
+                         globals$moutsel[["Event Monitor (EM) Compute Variables"]]))
+          if (class(titIndx)=="try-error") return(NULL)
           title = names(globals$moutsel[[7]])[titIndx] 
           globals$currentCmdPkey = globals$moutsel[["Event Monitor (EM) Compute Variables"]][titIndx]
         },
