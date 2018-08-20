@@ -67,10 +67,10 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
   close(con)
   
 ##Edit and uncomment the mailCmd as necessary for a given installation  
-  mailCmd = paste('mailx -t',queryEmail,'-a "From: FVSOnline"',
+  mailCmd = paste('mailx -a "From: FVSOnline"',
    '-a "Subject: Active projects"',
    '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
-   '-a "Cc: ncrookston.fs@gmail.com" < ',rptFile)
+   '-a "Cc: ncrookston.fs@gmail.com" --',queryEmail,' < ',rptFile)
   
   if (sendEmail) system (mailCmd) else system(paste("cat",rptFile))
   unlink (rptFile)

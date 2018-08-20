@@ -56,10 +56,10 @@ cat("email=",input$emailnew,"\ntitle=",input$title,"\n")
            "from the system 2 months after the last access.")
       close(con)
 
-      mailCmd = paste('mailx -t',input$emailnew,'-a "From: FVSOnline"',
+      mailCmd = paste('mailx -a "From: FVSOnline"',
        '-a "Subject: New project: ',input$title,'"',
        '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
-       '-a "Cc: ncrookston.fs@gmail.com" < ',rptFile)      
+       '-a "Cc: ncrookston.fs@gmail.com" --',input$emailnew,'<',rptFile)      
 cat("mailCmd=",mailCmd,"\n")
       system (mailCmd)
       if (nchar(input$title)) 
