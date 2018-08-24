@@ -413,7 +413,16 @@ shinyUI(fixedPage(
                       c("0"="0","45"="45","90"="90"))),
                  column(width=6,
                    myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
-                      c("0"="0","45"="45","90"="90"))))))
+                      c("0"="0","45"="45","90"="90")))),
+               fixedRow(
+                 column(width=6,
+                   myRadioGroup("YTrans","Transform Y",
+#                      c("identity"="identity","log2"="log2","log10"="log10"))),
+                      c("identity"="identity","log"="log"))),
+                 column(width=6,
+                   myRadioGroup("XTrans","Transform X",
+#                      c("identity"="identity","log2"="log2","log10"="log10"))))))
+                      c("identity"="identity","log"="log"))))))
             ),
             fixedRow(column(width=12, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          

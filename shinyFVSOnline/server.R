@@ -1109,13 +1109,28 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + scale_fill_manual(values=colors)
     p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
     p = p + scale_linetype_manual(values=1:nlevels(nd$Legend))
+cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
+    p = p + coord_trans(y=input$YTrans,x=input$XTrans)
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
     xlim = if (!is.na(xmin) && !is.na(xmax) && xmin < xmax) c(xmin, xmax) else NULL
     ymin = as.numeric(input$YLimMin)
     ymax = as.numeric(input$YLimMax)
-    ylim = if (!is.na(ymin) && !is.na(ymax) && ymin < ymax) c(ymin, ymax) else NULL
-    p = p + coord_cartesian(xlim = xlim, ylim = ylim)
+    ylim = if (!is.na(ymin) && !is.na(ymax) && ymin < ymax) c(ymin, ymax) else NULL    
+    if (is.null(xlim)) 
+    {
+      if (!is.factor(nd$X)) xlim = range(nd$X)
+      if (input$XTrans != "identity") xlim = ifelse(xlim<=.01,.01,xlim)
+    }
+    if (!is.null(xlim)) p = p + xlim(xlim[1],xlim[2])
+cat("xlim=",xlim,"\n")
+    if (is.null(ylim)) 
+    {
+      if (!is.factor(nd$Y)) ylim = range(nd$Y)
+      if (input$YTrans != "identity") ylim = ifelse(ylim<=.01,.01,ylim)
+    }
+    if (!is.null(ylim)) p = p + ylim(ylim[1],ylim[2])
+cat("ylim=",ylim,"\n")
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
@@ -1243,7 +1258,7 @@ cat ("in reloadStandSelection\n")
       updateSelectInput(session=session, inputId="inGrps", 
               choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="inStds", 
-           choices=list())
+              choices=list())
       output$stdSelMsg <- renderUI(NULL)
     }
   }
