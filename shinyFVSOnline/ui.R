@@ -347,7 +347,7 @@ shinyUI(fixedPage(
           tabPanel("Graphs",
             fixedRow(
               column(width=5,
-                myRadioGroup("plotType","Plot type", c("line","scatter",
+                myRadioGroup("plotType","Plot type", c("line","path","scatter",
                   "box","bar"))),
               column(width=4,
                 myRadioGroup("colBW","Scheme", c("color","B&W"))),
@@ -417,12 +417,10 @@ shinyUI(fixedPage(
                fixedRow(
                  column(width=6,
                    myRadioGroup("YTrans","Transform Y",
-#                      c("identity"="identity","log2"="log2","log10"="log10"))),
-                      c("identity"="identity","log"="log"))),
+                      c("identity"="identity","log10"="log10"))),
                  column(width=6,
                    myRadioGroup("XTrans","Transform X",
-#                      c("identity"="identity","log2"="log2","log10"="log10"))))))
-                      c("identity"="identity","log"="log"))))))
+                      c("identity"="identity","log10"="log10"))))))
             ),
             fixedRow(column(width=12, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          

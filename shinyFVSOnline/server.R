@@ -907,7 +907,7 @@ cat ("browsevars\n")
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
                       selected=sdisp)
-      if (input$plotType == "line" || input$plotType == "scatter")
+      if (input$plotType %in% c("line","path","scatter"))
       {
         sel = if ("Year" %in% cont) "Year" else 
                 if (length(cont) > 0) cont[1] else NULL
@@ -1110,7 +1110,6 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
     p = p + scale_linetype_manual(values=1:nlevels(nd$Legend))
 cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
-    p = p + coord_trans(y=input$YTrans,x=input$XTrans)
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
     xlim = if (!is.na(xmin) && !is.na(xmax) && xmin < xmax) c(xmin, xmax) else NULL
@@ -1120,17 +1119,25 @@ cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     if (is.null(xlim)) 
     {
       if (!is.factor(nd$X)) xlim = range(nd$X)
-      if (input$XTrans != "identity") xlim = ifelse(xlim<=.01,.01,xlim)
+      if (input$XTrans == "log10") xlim = ifelse(xlim<=.01,.01,xlim)
     }
     if (!is.null(xlim)) p = p + xlim(xlim[1],xlim[2])
 cat("xlim=",xlim,"\n")
     if (is.null(ylim)) 
     {
       if (!is.factor(nd$Y)) ylim = range(nd$Y)
-      if (input$YTrans != "identity") ylim = ifelse(ylim<=.01,.01,ylim)
+      if (input$YTrans == "log10") ylim = ifelse(ylim<=.01,.01,ylim)
     }
     if (!is.null(ylim)) p = p + ylim(ylim[1],ylim[2])
 cat("ylim=",ylim,"\n")
+    brkslog10 = function (x) 
+    {
+      brks = pretty (range(x,na.rm=TRUE), n = 4, min.n = 1)
+      ifelse(brks<=0,1,brks)
+    }
+cat("brks=",brkslog10(nd$X),"\n")
+    if (!is.factor(nd$X) && input$XTrans == "log10") p = p + scale_x_log10(breaks=brkslog10(nd$X))
+    if (!is.factor(nd$Y) && input$YTrans == "log10") p = p + scale_y_log10(breaks=brkslog10(nd$Y))
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
@@ -1138,6 +1145,13 @@ cat("ylim=",ylim,"\n")
       line    = if (input$colBW == "B&W") 
         geom_line  (aes(x=X,y=Y,linetype=Legend),alpha=alpha) else
         geom_line  (aes(x=X,y=Y,color=Legend),alpha=alpha),
+      path    = if (input$colBW == "B&W") 
+        geom_path  (aes(x=X,y=Y,linetype=Legend),alpha=alpha,    
+           arrow=grid::arrow(angle=20,length=unit(5,"pt"),
+           ends="last",type="closed")) else
+        geom_path  (aes(x=X,y=Y,color=Legend),alpha=alpha,
+           arrow=grid::arrow(angle=20,length=unit(5,"pt"),
+           ends="last",type="closed")),
       scatter = 
         geom_point (aes(x=X,y=Y,color=Legend,shape=Legend),size=size,alpha=alpha),
       bar     = if (input$colBW == "B&W") 
@@ -1154,10 +1168,17 @@ cat("ylim=",ylim,"\n")
     p = p + theme(text=element_text(size=9),plot.title = element_text(hjust = 0.5))
     p = p + switch(input$plotType,
       line    = if (input$colBW == "B&W") 
-        guides(linetype = guide_legend(override.aes = list(alpha=1,size=.8),
-               title = legendTitle)) else
-        guides(colour = guide_legend(override.aes = list(alpha=1,size=.8),
+        guides(linetype=guide_legend(override.aes = list(alpha=1,size=.8),
+               title=legendTitle)) else
+        guides(colour=guide_legend(override.aes = list(alpha=1,size=.8),
                title = legendTitle)),
+      path    = if (input$colBW == "B&W") # attempt to set the arrow doesn't work.
+        guides(linetype=guide_legend(override.aes=list(alpha=1,size=.8), 
+           arrow=grid::arrow(angle=20,length=unit(5,"pt"),ends="last",type="closed"),
+           title=legendTitle)) else
+        guides(colour=guide_legend(override.aes=list(alpha=1,size=.8), 
+           arrow=grid::arrow(angle=20,length=unit(5,"pt"),ends="last",type="closed"),
+           title=legendTitle)),
       scatter = 
         guides(shape=guide_legend(override.aes = list(color=colors,alpha=1,size=1),
                title = legendTitle),color="none"),
