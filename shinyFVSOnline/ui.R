@@ -346,11 +346,11 @@ shinyUI(fixedPage(
           ) ),
           tabPanel("Graphs",
             fixedRow(
-              column(width=5,
-                myRadioGroup("plotType","Plot type", c("line","path","scatter",
-                  "box","bar"))),
-              column(width=4,
-                myRadioGroup("colBW","Scheme", c("color","B&W"))),
+              column(width=6,
+                myRadioGroup("plotType","Plot type", 
+                  c("line","path","scatter","box","bar"))),
+              column(width=3,
+                myRadioGroup("colBW","", c("Color","B&W"))),
               column(width=2,
                 actionButton("rpPlotAdd","Add graph to report"))),
             fixedRow(
