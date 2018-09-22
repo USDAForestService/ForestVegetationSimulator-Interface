@@ -348,7 +348,7 @@ shinyUI(fixedPage(
             fixedRow(
               column(width=6,
                 myRadioGroup("plotType","Plot type", 
-                  c("line","path","scatter","box","bar"))),
+                  c("line","scatter","box","bar","DMD"))),
               column(width=3,
                 myRadioGroup("colBW","", c("Color","B&W"))),
               column(width=2,
@@ -415,12 +415,29 @@ shinyUI(fixedPage(
                    myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
                       c("0"="0","45"="45","90"="90")))),
                fixedRow(
+                 column(width=12,
+                   myRadioGroup("legendPlace","Legend placement",
+                      c("Right"="right","Bottom"="bottom","Left"="left",
+                        "Top"="top","None"="none")))),
+               fixedRow(
                  column(width=6,
                    myRadioGroup("YTrans","Transform Y",
                       c("identity"="identity","log10"="log10"))),
                  column(width=6,
                    myRadioGroup("XTrans","Transform X",
-                      c("identity"="identity","log10"="log10"))))))
+                      c("identity"="identity","log10"="log10")))),
+               fixedRow(
+                 column(width=12,
+                   myInlineTextInput("SDIvals", 
+                    "SDI values for Density Mgmt Diagram (DMG): ",
+                     "300,500,700", size=25))),
+               fixedRow(
+                 column(width=6,
+                   myRadioGroup("YUnits","DMG Y-Units:",
+                      c("Tpa"="Tpa","QMD"="QMD"),selected="Tpa")),
+                 column(width=6,
+                   myRadioGroup("XUnits","DMG X-Units",
+                      c("Tpa"="Tpa","QMD"="QMD"),selected="QMD")))))
             ),
             fixedRow(column(width=12, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          

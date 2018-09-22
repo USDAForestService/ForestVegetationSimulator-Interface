@@ -896,10 +896,9 @@ cat ("browsevars\n")
       cont = union("Year",setdiff(input$browsevars,cats))
     
       spiv  = if (length(input$pivVar) && 
-                  input$pivVar %in% cats) input$pivVar else "None"
+                input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
-                  input$dispVar %in% input$browsevars) 
-                                          input$dispVar else "None"
+                input$dispVar %in% input$browsevars) input$dispVar else "None"
       ccont = c("None",setdiff(input$browsevars,spiv))
       bb = intersect(ccont,cats) # put the factors at the end of the choices
       ccont = c(setdiff(ccont,bb),bb)
@@ -907,7 +906,7 @@ cat ("browsevars\n")
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
                       selected=sdisp)
-      if (input$plotType %in% c("line","path","scatter"))
+      if (isolate(input$plotType) %in% c("line","scatter","DMD"))
       {
         sel = if ("Year" %in% cont) "Year" else 
                 if (length(cont) > 0) cont[1] else NULL
@@ -923,7 +922,7 @@ cat ("browsevars\n")
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
       }
       sel = setdiff(cont,c(sel,"Year"))
-      sel = if ("DG" %in% cont && input$plotType == "scatter" ) "DG" else sel[1]
+      sel = if ("DG" %in% cont && isolate(input$plotType=="scatter")) "DG" else sel[1]
       updateSelectInput(session, "yaxis",choices=as.list(c(cont,cats)),
                       selected=if (length(sel) > 0) sel else NULL)     
       sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
@@ -941,6 +940,31 @@ cat ("browsevars\n")
   ## selectdbvars
   observe({
     if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
+  })
+
+  ## DMG (Density Mgmt Diagram is set)
+  observe({
+    updateRadioButtons(session=session,inputId="YTrans",  
+       selected=if (input$plotType == "DMD") "log10" else "identity")
+    updateRadioButtons(session=session,inputId="XTrans",  
+       selected=if (input$plotType == "DMD") "log10" else "identity")
+  })
+  observe({
+    if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","BA","QMD")) 
+      updateRadioButtons(session=session,inputId="YUnits",  
+       selected=input$yaxis)
+    if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","BA","QMD")) 
+      updateRadioButtons(session=session,inputId="XUnits",  
+       selected=input$xaxis)
+  })
+  observe({
+    if (input$plotType == "DMD")
+    {
+      if (!is.null (input$YUnits)) 
+        updateRadioButtons(session=session,inputId="yaxis",selected=input$YUnits)
+      if (!is.null (input$YUnits)) 
+        updateRadioButtons(session=session,inputId="xaxis",selected=input$XUnits)
+    }
   })
 
   ## renderPlot
@@ -1084,7 +1108,7 @@ cat ("vfacet test hit\n")
          facet_grid(.~hfacet) else fg
     fg = if (is.null(fg)         && !is.null(nd$vfacet)) 
          facet_grid(vfacet~.) else fg
-    p = ggplot(data = nd) + fg + labs(
+    p = ggplot(data=nd) + fg + labs(
           x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
           title=input$ptitle)  + 
@@ -1116,28 +1140,78 @@ cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     ymin = as.numeric(input$YLimMin)
     ymax = as.numeric(input$YLimMax)
     ylim = if (!is.na(ymin) && !is.na(ymax) && ymin < ymax) c(ymin, ymax) else NULL    
-    if (is.null(xlim)) 
+cat("ylim=",ylim," xlim=",xlim,"\n")
+    ymaxlim = NA
+    xmaxlim = NA
+    ### add the DMD's if plotType is DMD
+    if (input$plotType == "DMD")
     {
-      if (!is.factor(nd$X)) xlim = range(nd$X)
-      if (input$XTrans == "log10") xlim = ifelse(xlim<=.01,.01,xlim)
+      idrow = 1
+      sdis=input$SDIvals
+      for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
+        NULL else unlist(strsplit(sdis,split=xx))
+      if (length(sdisn <- na.omit(as.numeric(sdis))))
+      {
+cat("XUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
+        seqTpa = seq(5,3000,length.out=50)
+        seqQMD = seq(1,80,length.out=50)
+        for (SDI in sdisn)
+        {
+          xseq = if (input$XUnits=="Tpa") seqTpa else seqQMD
+          yseq = if (input$YUnits=="Tpa") 
+                   if (input$XUnits=="Tpa") seqTpa else 
+                     # Tpa = f(QMD,SDI)
+                     10**(log10(SDI)-1.605*log10(seqQMD) + 1.605) else
+                   if (input$XUnits=="QMD") seqQMD else 
+                     # QMD = f(Tpa,SDI)
+                     10**((log10(SDI)-log10(seqTpa)+1.605)/1.605)
+          lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq == Inf,]
+          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+          idrow = idrow+1
+          idrow = min(idrow,nrow(lineData))
+          p = p + geom_line(aes(x=xseq,y=yseq),alpha=.4,data=lineData) +
+            annotate(geom="text", x=lineData$xseq[idrow], y=lineData$yseq[idrow], 
+              label=paste0(SDI),size=2,hjust="left")
+cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
+        }
+      }
     }
-    if (!is.null(xlim)) p = p + xlim(xlim[1],xlim[2])
-cat("xlim=",xlim,"\n")
-    if (is.null(ylim)) 
+    ### end DMD.
+    brks = function (x,log=FALSE) 
     {
-      if (!is.factor(nd$Y)) ylim = range(nd$Y)
-      if (input$YTrans == "log10") ylim = ifelse(ylim<=.01,.01,ylim)
+      b = pretty (range(x,na.rm=TRUE), n = 4, min.n = 1)
+      b = if (log) ifelse(b<=1,1,b) else b
+      b[!duplicated(b)]
     }
-    if (!is.null(ylim)) p = p + ylim(ylim[1],ylim[2])
-cat("ylim=",ylim,"\n")
-    brkslog10 = function (x) 
+    if (!is.factor(nd$X))
     {
-      brks = pretty (range(x,na.rm=TRUE), n = 4, min.n = 1)
-      ifelse(brks<=0,1,brks)
+      rngx=range(if (!is.null(xlim)) xlim else range(c(nd$X,xmaxlim),na.rm=TRUE))
+      if(input$XTrans == "log10")
+      {
+        brkx=brks(rngx,log=TRUE)
+        rngx=ifelse(rngx<=.01,.01,rngx)
+        p = p + scale_x_log10(breaks=brkx,limits=rngx)
+      } else {
+        brkx=brks(rngx)
+        p = p + scale_x_continuous(breaks=brkx,limits=rngx)
+      }
     }
-cat("brks=",brkslog10(nd$X),"\n")
-    if (!is.factor(nd$X) && input$XTrans == "log10") p = p + scale_x_log10(breaks=brkslog10(nd$X))
-    if (!is.factor(nd$Y) && input$YTrans == "log10") p = p + scale_y_log10(breaks=brkslog10(nd$Y))
+    if (!is.factor(nd$Y)) 
+    {
+      rngy=range(if (!is.null(ylim)) ylim else range(c(nd$Y,ymaxlim),na.rm=TRUE))
+      if(input$YTrans == "log10")
+      {
+        brky=brks(rngy,log=TRUE)
+        rngy=ifelse(rngy<.01,.01,rngy)
+        p = p + scale_y_log10(breaks=brky,limits=rngy)
+      } else {
+        brky=brks(rngy)
+        p = p + scale_y_continuous(breaks=brky,limits=rngy)
+      }
+    }
+cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
+cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
@@ -1145,12 +1219,12 @@ cat("brks=",brkslog10(nd$X),"\n")
       line    = if (input$colBW == "B&W") 
         geom_line  (aes(x=X,y=Y,linetype=Legend),alpha=alpha) else
         geom_line  (aes(x=X,y=Y,color=Legend),alpha=alpha),
-      path    = if (input$colBW == "B&W") 
+      DMD    = if (input$colBW == "B&W") 
         geom_path  (aes(x=X,y=Y,linetype=Legend),alpha=alpha,    
-           arrow=grid::arrow(angle=20,length=unit(5,"pt"),
+           arrow=grid::arrow(angle=20,length=unit(6,"pt"),
            ends="last",type="closed")) else
         geom_path  (aes(x=X,y=Y,color=Legend),alpha=alpha,
-           arrow=grid::arrow(angle=20,length=unit(5,"pt"),
+           arrow=grid::arrow(angle=20,length=unit(6,"pt"),
            ends="last",type="closed")),
       scatter = 
         geom_point (aes(x=X,y=Y,color=Legend,shape=Legend),size=size,alpha=alpha),
@@ -1172,7 +1246,7 @@ cat("brks=",brkslog10(nd$X),"\n")
                title=legendTitle)) else
         guides(colour=guide_legend(override.aes = list(alpha=1,size=.8),
                title = legendTitle)),
-      path    = if (input$colBW == "B&W") # attempt to set the arrow doesn't work.
+      DMD    = if (input$colBW == "B&W") # attempt to set the arrow doesn't work.
         guides(linetype=guide_legend(override.aes=list(alpha=1,size=.8), 
            arrow=grid::arrow(angle=20,length=unit(5,"pt"),ends="last",type="closed"),
            title=legendTitle)) else
@@ -1189,12 +1263,13 @@ cat("brks=",brkslog10(nd$X),"\n")
         guides(linetype=guide_legend(override.aes = list(alpha=.8,size=.5),
                title = legendTitle, keywidth = .8, keyheight = .8)) else 
         guides(color=guide_legend(override.aes = list(alpha=.8,size=.5),
-               title = legendTitle, keywidth = .8, keyheight = .8)))               
-    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>15) 
+               title = legendTitle, keywidth = .8, keyheight = .8))) 
+    if (nlevels(nd$Legend)==1 || nlevels(nd$Legend)>30) 
     { 
       p = p + theme(legend.position="none")
-      if (nlevels(nd$Legend)>15) output$plotMessage=renderText("Over 15 legend items, legend not drawn.")
-    }
+      if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
+    } else p = p + theme(legend.position=input$legendPlace)
+  
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -3294,7 +3369,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                         stroke = FALSE, fillOpacity = 0.5, label=labs)  else
         map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
               opacity = .3, fillOpacity = 0.1, label=labs,   
-              highlightOptions = c(weight = 5, color = "#666", dashArray = "",
+              highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
                 fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
