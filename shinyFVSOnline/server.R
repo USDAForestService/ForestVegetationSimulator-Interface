@@ -918,8 +918,9 @@ cat ("browsevars\n")
         updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
       } else {
         sel = if ("Species" %in% cats) "Species" else 
-               if (length(cats) > 0) cats[1] else NULL       
+               if (length(cats) > 0) cats[1] else 1       
         updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
+        updateSelectInput(session, "yaxis",choices=as.list(cont), selected=1)
       }
       sel = setdiff(cont,c(sel,"Year"))
       sel = if ("DG" %in% cont && isolate(input$plotType=="scatter")) "DG" else sel[1]
@@ -937,34 +938,51 @@ cat ("browsevars\n")
     }
   })
   
+  observe({ 
+    if (length(input$plotType))
+    {
+      isolate({
+        if (is.null(input$browsevars) || nrow(fvsOutData$dbData) == 0) return()
+        cats = unlist(lapply(fvsOutData$dbData,is.factor))
+        cats = names(cats)[cats]
+        cats = intersect(cats,input$browsevars)
+        cont = union("Year",setdiff(input$browsevars,cats))
+        selx = input$xaxis
+        if (input$plotType %in% c("line","scatter","DMD")) 
+          updateSelectInput(session, "xaxis",choices=as.list(cont), 
+            selected=if (selx %in% cont) selx else 1) else # box or bar
+          updateSelectInput(session, "xaxis",choices=as.list(cats), 
+            selected=if (selx %in% cats) selx else 1)         
+        sely = input$yaxis
+        updateSelectInput(session, "yaxis",choices=as.list(cont), 
+            selected=if (sely %in% cont) sely else 1)
+        if (input$plotType == "DMD")
+        {
+          if (!is.null (input$YUnits)) 
+              updateRadioButtons(session=session,inputId="yaxis",selected=input$YUnits)
+          if (!is.null (input$XUnits)) 
+              updateRadioButtons(session=session,inputId="xaxis",selected=input$XUnits)
+        }
+       updateRadioButtons(session=session,inputId="YTrans",  
+         selected=if (input$plotType == "DMD") "log10" else "identity")
+       updateRadioButtons(session=session,inputId="XTrans",  
+         selected=if (input$plotType == "DMD") "log10" else "identity")
+      })
+    }
+  })
+
   ## selectdbvars
   observe({
     if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
   })
 
-  ## DMG (Density Mgmt Diagram is set)
   observe({
-    updateRadioButtons(session=session,inputId="YTrans",  
-       selected=if (input$plotType == "DMD") "log10" else "identity")
-    updateRadioButtons(session=session,inputId="XTrans",  
-       selected=if (input$plotType == "DMD") "log10" else "identity")
-  })
-  observe({
-    if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","BA","QMD")) 
+    if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
       updateRadioButtons(session=session,inputId="YUnits",  
        selected=input$yaxis)
-    if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","BA","QMD")) 
+    if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","QMD")) 
       updateRadioButtons(session=session,inputId="XUnits",  
        selected=input$xaxis)
-  })
-  observe({
-    if (input$plotType == "DMD")
-    {
-      if (!is.null (input$YUnits)) 
-        updateRadioButtons(session=session,inputId="yaxis",selected=input$YUnits)
-      if (!is.null (input$YUnits)) 
-        updateRadioButtons(session=session,inputId="xaxis",selected=input$XUnits)
-    }
   })
 
   ## renderPlot
@@ -1132,7 +1150,6 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
     p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
-    p = p + scale_linetype_manual(values=1:nlevels(nd$Legend))
 cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
@@ -1143,10 +1160,9 @@ cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
 cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
-    ### add the DMD's if plotType is DMD
+    DMDguideLines = NULL
     if (input$plotType == "DMD")
     {
-      idrow = 1
       sdis=input$SDIvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
         NULL else unlist(strsplit(sdis,split=xx))
@@ -1168,16 +1184,12 @@ cat("XUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
           lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq == Inf,]
           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          idrow = idrow+1
-          idrow = min(idrow,nrow(lineData))
-          p = p + geom_line(aes(x=xseq,y=yseq),alpha=.4,data=lineData) +
-            annotate(geom="text", x=lineData$xseq[idrow], y=lineData$yseq[idrow], 
-              label=paste0(SDI),size=2,hjust="left")
+          DMDguideLines[[as.character(SDI)]] = lineData
 cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         }
       }
     }
-    ### end DMD.
+    ### end DMD...except for adding annotations, see below.
     brks = function (x,log=FALSE) 
     {
       b = pretty (range(x,na.rm=TRUE), n = 4, min.n = 1)
@@ -1196,6 +1208,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         brkx=brks(rngx)
         p = p + scale_x_continuous(breaks=brkx,limits=rngx)
       }
+cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
     }
     if (!is.factor(nd$Y)) 
     {
@@ -1209,9 +1222,34 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         brky=brks(rngy)
         p = p + scale_y_continuous(breaks=brky,limits=rngy)
       }
-    }
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
-cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
+    }
+    # add the guidelines and annotation here (now that we know the range limits of x and y
+    if (!is.null(DMDguideLines)) 
+    {
+      linetype = 0
+      for (SDI in rev(names(DMDguideLines))) 
+      {
+        linetype = linetype+1
+        p = p + geom_line(aes(x=xseq,y=yseq),linetype=linetype,
+                show.legend=FALSE,alpha=.4,data=DMDguideLines[[SDI]])
+      }
+      sq = seq(.95,0,-.05)
+      sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
+      sq = sq[1:min(length(sq),length(names(DMDguideLines)))]
+      xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
+      guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
+      guidedf$SDI=as.ordered(sort(rep(names(DMDguideLines),2),decreasing=TRUE))
+      linetype = 0
+      for (idrow in seq(1,nrow(guidedf)-1,2)) 
+      {
+        linetype = linetype+1
+        p = p + annotate(geom="text",hjust="left",
+        label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
+        annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],linetype=linetype,
+                           x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],alpha=.4) 
+      }
+    }
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
@@ -4134,10 +4172,10 @@ cat ("Upload new rows\n")
   ## uploadStdTree
   observe({  
     if (is.null(input$uploadStdTree)) return()
-    isolate({      
+    isolate({ 
       indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE))
       unlink(input$uploadStdTree$datapath)
-      if (class(indat) == "try-error" || nrow(indat)==0)
+      if (class(indat) == "try-error" || is.null(indat) || nrow(indat)==0)
       {                       
         output$uploadActionMsg = renderText("Input empty, no data loaded.")
         Sys.sleep(1)
@@ -4216,6 +4254,7 @@ cat ("add column qry=",qry,"\n")
 
       dbBegin(dbGlb$dbIcon)
       err = FALSE
+      insertCount = 0
       for (i in 1:nrow(indat))
       {
         row = indat[i,,drop=FALSE]
@@ -4228,17 +4267,24 @@ cat ("add column qry=",qry,"\n")
                   ") values (",paste0(row[1,],collapse=","),");")
 cat ("insert qry=",qry,"\n")
         res = try(dbExecute(dbGlb$dbIcon,qry))
-        if (class(res) == "try-error") {err=TRUE; break}
+        if (class(res) == "try-error") {err=TRUE; break} else insertCount = insertCount+1
       }
       if (err) 
       {
         dbRollback(dbGlb$dbIcon) 
         output$uploadActionMsg = renderText(paste0("Error processing: ",qry))
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       } else {
-        dbCommit(dbGlb$dbIcon)
-        output$uploadActionMsg = renderText(paste0(nrow(indat)," row(s) inserted into ",
-               input$uploadSelDBtabs))
+cat ("insertCount=",insertCount,"\n")
+        if (insertCount)
+        {
+          dbCommit(dbGlb$dbIcon)
+          output$uploadActionMsg = renderText(paste0(insertCount," row(s) inserted into ",
+                 isolate(input$uploadSelDBtabs)))
+        }
+        rm (indat)
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
       Sys.sleep(1)
@@ -4260,7 +4306,7 @@ cat ("insert qry=",qry,"\n")
         if (keyCol != "Groups")
         {
           dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                            input$uploadSelDBtabs))$Stand_ID
+                                  input$uploadSelDBtabs))$Stand_ID
           if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
           if (dbGlb$rowSelOn && length(dbGlb$sids)) 
             updateSelectInput(session=session, inputId="rowSelector",
@@ -4607,7 +4653,9 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
     {             
       isolate({
 cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
-        inputTbl = matrix(unlist(input$tbl$params$data),
+        dd = lapply(input$tbl$params$data,function (jj) 
+                    lapply(jj,function(x) if (is.null(x)) NA else x))
+        inputTbl = matrix(unlist(dd),
                    ncol=length(input$tbl$params$columns),byrow=TRUE)
         inputTbl[inputTbl=="NA"] = NA
         colnames(inputTbl) = unlist(input$tbl$params$colHeaders)

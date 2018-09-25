@@ -108,9 +108,17 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         value = 7, detail = "Stand_ID and Stand_CN consistent")
       if (nrow(fvsInit))
       {
+        isCN = grep("Stand_CN",names(fvsInit),ignore.case=TRUE)
         if (sID) fvsInit$Stand_ID = 
-          if (sCN) paste0("Stand",1:nrow(fvsInit)) else fvsInit$Stand_CN
-        if (sCN) fvsInit$Stand_CN = fvsInit$Stand_ID
+          if (sCN) paste0("Stand",1:nrow(fvsInit)) else fvsInit[,isCN]
+        isID = grep("Stand_ID",names(fvsInit),ignore.case=TRUE)
+        if (sCN) 
+        {
+          isCN = grep("Stand_CN",names(fvsInit),ignore.case=TRUE)
+          fvsInit[,isCN] = fvsInit[,isID]
+          isID = grep("Stand_ID",names(fvsInit),ignore.case=TRUE)
+          fvsInit[,isCN] = fvsInit[,isID]
+        }
         dbWriteTable(dbGlb$dbIcon,stdInit,fvsInit,overwrite=TRUE)
       }
     }
