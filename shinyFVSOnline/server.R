@@ -2544,9 +2544,21 @@ cat ("keyword file was not created.\n")
           return()
         }          
         dir.create(globals$fvsRun$uuid)
-        locrFVSDir = "rFVS/R"
+        if (isLocal())
+          {
+           locrFVSDir = rFVSDir
+        }
+        else {
+           locrFVSDir = "rFVS/R"
+        }
         if (!file.exists(locrFVSDir)) return()
-        locbinDir = "FVSbin"
+        if (isLocal())
+        {
+          locbinDir = fvsBinDir
+        }
+        else {
+          locbinDir = "FVSbin"
+        }
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
