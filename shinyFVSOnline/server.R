@@ -2506,8 +2506,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
 
   ## Save and Run
   observe({  
-    if (input$saveandrun == 0) return()
-      
+    if (input$saveandrun == 0) return()    
     isolate ({
       if (length(globals$fvsRun$stands) > 0) 
       {
@@ -2544,21 +2543,11 @@ cat ("keyword file was not created.\n")
           return()
         }          
         dir.create(globals$fvsRun$uuid)
-        if (isLocal())
-          {
-           locrFVSDir = rFVSDir
-        }
-        else {
-           locrFVSDir = "rFVS/R"
-        }
+      browser()
+        locrFVSDir = if (isLocal() && exists("rFVSDir") && !is.null(rFVSDir)) rFVSDir else "rFVS/R"
         if (!file.exists(locrFVSDir)) return()
-        if (isLocal())
-        {
-          locbinDir = fvsBinDir
-        }
-        else {
-          locbinDir = "FVSbin"
-        }
+        locbinDir = if (isLocal() && exists("fvsBinDir") && !is.null(fvsBinDir)) fvsBinDir else "FVSbin"
+        if (!file.exists(locbinDir)) return()
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
@@ -4028,23 +4017,28 @@ cat("loaded table=",tab,"\n")
     {
       i = i+1
       progress$set(message = paste0("Setting up index for table ",tb), value=i)
-      if (tb == "FVS_ClimAttr") 
+      if (tolower(tb) == "fvs_climattr") 
       {
         rtn = try(dbExecute(dbGlb$dbIcon,"drop index if exists StdScnIndex"))
         if (class(try)!="try-error") 
         {
           qry = "create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);"
 cat ("index creation, qry=",qry,"\n")
-          dbExecute(dbGlb$dbIcon,qry)
+          try(dbExecute(dbGlb$dbIcon,qry))
         }
-      } else if (tb %in% c("FVS_StandInit","FVS_PlotInit","FVS_TreeInit")) {
-        tbinx = paste0("idx",tb)
-        rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
-        if (class(try)!="try-error") 
+      } else {
+        tbidx = grep(tb,c("FVS_StandInit","FVS_PlotInit","FVS_TreeInit"),
+                     ignore.case=TRUE)                 
+        if (length(tbidx))
         {
-          qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
 cat ("index creation, qry=",qry,"\n")
-          dbExecute(dbGlb$dbIcon,qry)
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
         }
       }
     }
@@ -4088,11 +4082,11 @@ cat ("index creation, qry=",qry,"\n")
     {
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
-      if (tab %in% c("FVS_StandInit","FVS_TreeInit","FVS_PlotInit"))
+      if (tolower(tab) %in% c("fvs_standinit","fvs_treeInit","fvs_plotInit"))
       {
         dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
                     "(select Stand_ID from addnew.",tab,")"))
-      } else if (tab == "FVS_GroupAddFilesAndKeywords") {
+      } else if (tolower(tab) == "fvs_groupaddfilesandkeywords") {
         dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
                     " (select Groups from addnew.",tab,")"))
       }
@@ -4130,11 +4124,11 @@ cat ("homogenize qry=",qry,"\n")
     {
       i = i+1
       progress$set(message = paste0("Setting up index for table ",tb), value=i)
-      if (tb == "FVS_ClimAttr") 
+      if (tolower(tb) == "fvs_climttr") 
       {
         dbExecute(dbGlb$dbIcon,"drop index if exists StdScnIndex")
         dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
-      } else if (tb != "FVS_GroupAddFilesAndKeywords") {
+      } else if (tolower(tb) != "fvs_groupaddfilesandkeywords") {
         tbinx = paste0("idx",tb)
         dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx))
         dbExecute(dbGlb$dbIcon,paste0("create index ",tbinx," on ",tb," (Stand_ID);"))
@@ -4244,10 +4238,10 @@ cat ("add column qry=",qry,"\n")
       cols = na.omit(charmatch(tolower(colnames(indat)),
              tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]][cols]
-      req = switch(input$uploadSelDBtabs,
-         FVS_StandInit = c("Stand_ID","Variant","Inv_Year"),
-         FVS_TreeInit  = c("Stand_ID","Species","DBH"),
-         FVS_GroupAddFilesAndKeywords = c("Groups"),
+      req = switch(tolower(input$uploadSelDBtabs),
+         fvs_standinit = c("Stand_ID","Variant","Inv_Year"),
+         fvs_treeinit  = c("Stand_ID","Species","DBH"),
+         fvs_groupaddfilesandkeywords = c("Groups"),
          NULL)
       if (!is.null(req) && !all(req %in% names(types)))
       {
@@ -4943,10 +4937,9 @@ cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
    })
    observe({
       if (is.null(input$mapUpLayers)) return()
-      curdir = getwd()
       datadir = dirname(isolate(input$mapUpload$datapath))
-
       if (!dir.exists(datadir)) return()
+      curdir = getwd()
       setwd(datadir)
 cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       datadir = dir()
@@ -4954,10 +4947,12 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
       txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers)))
+      setwd(curdir)
       if (class(dbGlb$spd) == "try-error")
       {
         output$mapActionMsg = renderText(paste0("Map read error: ",dbGlb$spd))
         progress$close()
+        setwd(curdir)
         return()
       }
       for (col in colnames(dbGlb$spd@data))
