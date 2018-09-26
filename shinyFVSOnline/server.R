@@ -2543,10 +2543,11 @@ cat ("keyword file was not created.\n")
           return()
         }          
         dir.create(globals$fvsRun$uuid)
-      browser()
-        locrFVSDir = if (isLocal() && exists("rFVSDir") && !is.null(rFVSDir)) rFVSDir else "rFVS/R"
+        locrFVSDir = if (isLocal() && exists("rFVSDir") && 
+                         !is.null(rFVSDir)) rFVSDir else "rFVS/R"
         if (!file.exists(locrFVSDir)) return()
-        locbinDir = if (isLocal() && exists("fvsBinDir") && !is.null(fvsBinDir)) fvsBinDir else "FVSbin"
+        locbinDir = if (isLocal() && exists("fvsBinDir") && 
+                        !is.null(fvsBinDir)) fvsBinDir else "FVSbin"
         if (!file.exists(locbinDir)) return()
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
