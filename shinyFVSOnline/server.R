@@ -3293,36 +3293,41 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
            paste0("select Stand_ID,Latitude,Longitude from ", inInit)))
         if (class(dbGlb$SpatialData)!="try-error")
         {
-          dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
-          dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
-          dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-              dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
-                -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
-          if (nrow(dbGlb$SpatialData) == 0 ||
-            class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
-             "try-error") 
+          idxLng = grep("Longitude",names(dbGlb$SpatialData))
+          idxLat = grep("Latitude",names(dbGlb$SpatialData))
+          if (length(idxLng) && length(idxLat))
           {
-            inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-            dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
-              paste0("select Stand_ID,avg(Latitude) as Latitude, ",
-                     "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
-            if (class(dbGlb$SpatialData)!="try-error")
+            dbGlb$SpatialData[,idxLng] = as.numeric(dbGlb$SpatialData[,idxLng])
+            dbGlb$SpatialData[,idxLat] = as.numeric(dbGlb$SpatialData[,idxLat])
+            dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+                dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
+                  -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
+            if (nrow(dbGlb$SpatialData) == 0 ||
+              class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
+               "try-error") 
             {
-              dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
-              dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
-              dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
-              dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-              dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
-                -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
-              if (nrow(dbGlb$SpatialData) == 0 ||
-                  class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
-                   "try-error")
+              inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+              dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
+                paste0("select Stand_ID,avg(Latitude) as Latitude, ",
+                       "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
+              if (class(dbGlb$SpatialData)!="try-error")
               {
-                output$leafletMessage=renderText("Spatial data needs to be loaded")
-                return()
+                dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
+                dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
+                dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
+                dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+                dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
+                  -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
+                if (nrow(dbGlb$SpatialData) == 0 ||
+                    class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
+                     "try-error")
+                {
+                  output$leafletMessage=renderText("Spatial data needs to be loaded")
+                  return()
+                }
               }
             }
-          }
+          }   
           names(dbGlb$SpatialData) = "Stand_ID"
           proj4string(dbGlb$SpatialData) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
           attr(dbGlb$SpatialData,"MatchesStandID") = "Stand_ID"
@@ -4313,7 +4318,7 @@ cat ("insertCount=",insertCount,"\n")
         if (keyCol != "Groups")
         {
           dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                                  input$uploadSelDBtabs))$Stand_ID
+                                  input$uploadSelDBtabs))[,1]
           if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
           if (dbGlb$rowSelOn && length(dbGlb$sids)) 
             updateSelectInput(session=session, inputId="rowSelector",
@@ -4520,7 +4525,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
       if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
       {
         dbGlb$sids = dbGetQuery(dbGlb$dbIcon,
-          paste0("select distinct Stand_ID from ",dbGlb$tblName))$Stand_ID
+          paste0("select distinct Stand_ID from ",dbGlb$tblName))[,1]
         if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
         if (length(dbGlb$sids) > 0)                                           
         {
@@ -4770,7 +4775,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
                 length(intersect("Stand_ID",dbGlb$tblCols)))
             {
               dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
-                                dbGlb$tblName))$Stand_ID
+                                dbGlb$tblName))[,1]
               if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
               if (dbGlb$rowSelOn && length(dbGlb$sids)) 
                 updateSelectInput(session=session, inputId="rowSelector",
@@ -4779,7 +4784,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             }  
 
             qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
-            qry <- if (length(intersect("Stand_ID",dbGlb$tblCols)) && 
+            qry <- if (length(grep("Stand_ID",dbGlb$tblCols)) && 
                        length(input$rowSelector))
               paste0(qry," where Stand_ID in (",
                     paste0("'",input$rowSelector,"'",collapse=","),");") else
