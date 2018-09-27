@@ -3288,53 +3288,56 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
           file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
+cat ("mapDsRunList trying to use StandInit data\n")
         inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
         dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
            paste0("select Stand_ID,Latitude,Longitude from ", inInit)))
         if (class(dbGlb$SpatialData)!="try-error")
         {
-          idxLng = grep("Longitude",names(dbGlb$SpatialData))
-          idxLat = grep("Latitude",names(dbGlb$SpatialData))
+          idxLng = grep("Longitude",names(dbGlb$SpatialData),ignore.case=TRUE)
+          idxLat = grep("Latitude",names(dbGlb$SpatialData),ignore.case=TRUE)
+cat ("mapDsRunList idxLng=",idxLng," idxLat=",idxLat," names=",names(dbGlb$SpatialData),"\n")
           if (length(idxLng) && length(idxLat))
           {
             dbGlb$SpatialData[,idxLng] = as.numeric(dbGlb$SpatialData[,idxLng])
             dbGlb$SpatialData[,idxLat] = as.numeric(dbGlb$SpatialData[,idxLat])
             dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-                dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
-                  -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
-            if (nrow(dbGlb$SpatialData) == 0 ||
-              class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
-               "try-error") 
+          } else dbGlb$SpatialData = NULL
+          if (is.null(dbGlb$SpatialData) || nrow(dbGlb$SpatialData) == 0)
+          {
+cat ("mapDsRunList trying PlotInit\n")
+            inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+            dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
+              paste0("select Stand_ID,avg(Latitude) as Latitude, ",
+                     "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
+            if (class(dbGlb$SpatialData)!="try-error")
             {
-              inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-              dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
-                paste0("select Stand_ID,avg(Latitude) as Latitude, ",
-                       "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
-              if (class(dbGlb$SpatialData)!="try-error")
-              {
-                dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
-                dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
-                dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
-                dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-                dbGlb$SpatialData$Longitude = ifelse(dbGlb$SpatialData$Longitude>0, 
-                  -dbGlb$SpatialData$Longitude, dbGlb$SpatialData$Longitude)
-                if (nrow(dbGlb$SpatialData) == 0 ||
-                    class(try(coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude)) == 
-                     "try-error")
-                {
-                  output$leafletMessage=renderText("Spatial data needs to be loaded")
-                  return()
-                }
-              }
+              dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
+              dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
+              dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
+              if (nrow(dbGlb$SpatialData) > 0) dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
+              if (nrow(dbGlb$SpatialData) == 0) dbGlb$SpatialData = NULL
             }
-          }   
-          names(dbGlb$SpatialData) = "Stand_ID"
-          proj4string(dbGlb$SpatialData) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-          attr(dbGlb$SpatialData,"MatchesStandID") = "Stand_ID"
-          output$leafletMessage=renderText(paste0("Spatial data are taken from ",inInit))
-        } else {  
+          }
+        }
+        if (class(dbGlb$SpatialData) != "data.frame")
+        {
+          dbGlb$SpatialData = NULL
           output$leafletMessage=renderText("Spatial data needs to be loaded")
-          return()
+          return() 
+        } else {
+cat ("mapDsRunList names(dbGlb$SpatialData)=",names(dbGlb$SpatialData)," class(dbGlb$SpatialData)=",class(dbGlb$SpatialData),"\n")
+          idxLng = grep("Longitude",names(dbGlb$SpatialData),ignore.case=TRUE)
+          idxLat = grep("Latitude",names(dbGlb$SpatialData),ignore.case=TRUE)
+          idxID  = grep("Stand_ID",names(dbGlb$SpatialData),ignore.case=TRUE)
+cat (" idxLng=",idxLng," idxLat=",idxLat," idxID=",idxID,"\n")
+          dbGlb$SpatialData[,idxLng] = ifelse(dbGlb$SpatialData[,idxLng]>0, 
+                  -dbGlb$SpatialData[,idxLng], dbGlb$SpatialData[,idxLng])
+          names(dbGlb$SpatialData)[c(idxID,idxLng,idxLat)] = c("Stand_ID","Longitude","Latitude")
+          coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude
+          proj4string(dbGlb$SpatialData) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")         
+          attr(dbGlb$SpatialData,"MatchesStandID") = names(dbGlb$SpatialData)[idxID]
+          output$leafletMessage=renderText(paste0("Spatial data are taken from ",inInit))
         }
       }
       matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
