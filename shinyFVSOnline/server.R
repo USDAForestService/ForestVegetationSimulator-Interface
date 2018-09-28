@@ -942,6 +942,7 @@ cat ("browsevars\n")
     if (length(input$plotType))
     {
       isolate({
+        if (input$outputRightPan!="Graphs") return()
         if (is.null(input$browsevars) || nrow(fvsOutData$dbData) == 0) return()
         cats = unlist(lapply(fvsOutData$dbData,is.factor))
         cats = names(cats)[cats]
