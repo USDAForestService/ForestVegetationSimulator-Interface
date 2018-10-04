@@ -68,6 +68,8 @@ cat("mailCmd=",mailCmd,"\n")
         output$actionMsg = renderText(msg)
       }
       updateTextInput(session=session, inputId="title", value="")
+      Sys.sleep(.3)
+      unlink(rptFile)
     })
   })
 

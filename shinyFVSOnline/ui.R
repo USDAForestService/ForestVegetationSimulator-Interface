@@ -347,8 +347,8 @@ shinyUI(fixedPage(
           tabPanel("Graphs",
             fixedRow(
               column(width=6,
-                myRadioGroup("plotType","Plot type", 
-                  c("line","scatter","box","bar","DMD"))),
+                myRadioGroup("plotType","Type", 
+                  c("line","scat","box","bar","DMD","StkCht"))),
               column(width=3,
                 myRadioGroup("colBW","", c("Color","B&W"))),
               column(width=2,
@@ -429,16 +429,21 @@ shinyUI(fixedPage(
                fixedRow(
                  column(width=12,
                    myInlineTextInput("SDIvals", 
-                    "SDI values for Density Mgmt Diagram (DMG): ",
-                     "300,500,700", size=25))),
+                    "SDI values for Density Mgmt Diagram (DMG):",
+                     "35%,60%,600", size=25))),
                fixedRow(
                  column(width=6,
                    myRadioGroup("YUnits","DMG Y-Units:",
                       c("Tpa"="Tpa","QMD"="QMD"),selected="Tpa")),
                  column(width=6,
                    myRadioGroup("XUnits","DMG X-Units",
-                      c("Tpa"="Tpa","QMD"="QMD"),selected="QMD")))))
-            ),
+                      c("Tpa"="Tpa","QMD"="QMD"),selected="QMD"))),
+               fixedRow(
+                 column(width=12,
+                   myInlineTextInput("StkCrtvals", 
+                    "Full stocking percentages for Stocking Chart (StkCht):",
+                     "30%,55%,100%,110%", size=25))))
+            )),
             fixedRow(column(width=12, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          
               textOutput("plotMessage"))),

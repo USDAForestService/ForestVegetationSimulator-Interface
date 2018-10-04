@@ -786,7 +786,7 @@ cat ("cmd=",cmd,"\n")
           updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
             selected=levels(mdat$MgmtID))
         if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList"),names(dat))))
-          updateSelectInput(session, "plotType",selected="scatter") else 
+          updateSelectInput(session, "plotType",selected="scat") else 
           if ("StdStk" %in% names(dat)) 
             updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
@@ -879,22 +879,21 @@ cat("filterRows and/or pivot\n")
         !is.null(input$dispVar) && input$dispVar != "None")  
           dat = pivot(dat,input$pivVar,input$dispVar)
     fvsOutData$render = dat    
-    if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]
+    if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]   
     output$table <- renderTable(dat) 
   })
            
   
-  ##browsevars 
+  ##browsevars/plotType 
   observe({
-    if (!is.null(input$browsevars)) 
+    if (!is.null(input$browsevars) && !is.null(input$plotType)) 
     {
-cat ("browsevars\n")
+cat ("browsevars/plotType\n")
       fvsOutData$browseSelVars <- input$browsevars  
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
-      cont = union("Year",setdiff(input$browsevars,cats))
-    
+      cont = union("Year",setdiff(input$browsevars,cats))   
       spiv  = if (length(input$pivVar) && 
                 input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
@@ -905,73 +904,64 @@ cat ("browsevars\n")
       updateSelectInput(session,"pivVar",choices=as.list(c("None",cats)),
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
-                      selected=sdisp)
-      if (isolate(input$plotType) %in% c("line","scatter","DMD"))
-      {
-        sel = if ("Year" %in% cont) "Year" else 
-                if (length(cont) > 0) cont[1] else NULL
-        if (sel=="Year" && isolate(input$plotType) == "scatter" && length(cont) > 1)
-        {
-          sel = setdiff(cont,"Year")
-          sel = if ("DBH" %in% cont) "DBH" else cont[1]
-        }
-        updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
-      } else {
-        sel = if ("Species" %in% cats) "Species" else 
-               if (length(cats) > 0) cats[1] else 1       
-        updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
-        updateSelectInput(session, "yaxis",choices=as.list(cont), selected=1)
-      }
-      sel = setdiff(cont,c(sel,"Year"))
-      sel = if ("DG" %in% cont && isolate(input$plotType=="scatter")) "DG" else sel[1]
-      updateSelectInput(session, "yaxis",choices=as.list(c(cont,cats)),
-                      selected=if (length(sel) > 0) sel else NULL)     
-      sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
-      updateSelectInput(session, "hfacet",choices=as.list(c("None",cats)),
-        selected=sel) 
-      sel = if (length(intersect(cats,"MgmtID")) > 0) "MgmtID" else "None"
-      updateSelectInput(session, "vfacet",choices=as.list(c("None",cats)),
-        selected=sel) 
-      sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
-      updateSelectInput(session, "pltby",choices=as.list(c("None",cats)),
-        selected=sel)                                                                   
-    }
-  })
-  
-  observe({ 
-    if (length(input$plotType))
-    {
+                      selected=sdisp)       
       isolate({
-        if (input$outputRightPan!="Graphs") return()
-        if (is.null(input$browsevars) || nrow(fvsOutData$dbData) == 0) return()
-        cats = unlist(lapply(fvsOutData$dbData,is.factor))
-        cats = names(cats)[cats]
-        cats = intersect(cats,input$browsevars)
-        cont = union("Year",setdiff(input$browsevars,cats))
-        selx = input$xaxis
-        if (input$plotType %in% c("line","scatter","DMD")) 
-          updateSelectInput(session, "xaxis",choices=as.list(cont), 
-            selected=if (selx %in% cont) selx else 1) else # box or bar
-          updateSelectInput(session, "xaxis",choices=as.list(cats), 
-            selected=if (selx %in% cats) selx else 1)         
-        sely = input$yaxis
-        updateSelectInput(session, "yaxis",choices=as.list(cont), 
-            selected=if (sely %in% cont) sely else 1)
-        if (input$plotType == "DMD")
-        {
-          if (!is.null (input$YUnits)) 
-              updateRadioButtons(session=session,inputId="yaxis",selected=input$YUnits)
-          if (!is.null (input$XUnits)) 
-              updateRadioButtons(session=session,inputId="xaxis",selected=input$XUnits)
+        curX = input$xaxis
+        curY = input$yaxis
+        if (input$plotType=="line") {
+          sel = if (is.null(curX)) "Year" else curX
+          sel = if (sel %in% cont) sel else 
+                if (length(cont) > 0) cont[1] else NULL
+          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
+          sel = if (is.null(curY)) "BA" else curY
+          sel = if (sel %in% cont) sel else 
+                if (length(cont) > 0) cont[1] else NULL
+          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+        } else if (input$plotType == "scat") {
+          sel = if (is.null(curX)) "DBH" else curX
+          sel = if (sel %in% cont) sel else 
+                if (length(cont) > 0) cont[1] else NULL
+          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
+          sel = if (is.null(curY)) "DG" else curY
+          sel = if (sel %in% cont) sel else 
+                if (length(cont) > 0) cont[1] else NULL
+          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+        } else if (input$plotType %in% c("box","bar")) {
+          def = if ("Species" %in% cats) "Species" else NULL
+          if (!is.null(def) && "Year" %in% cats) "Year" else cats[1]
+          sel = if (!is.null(curX) && curX %in% cats) curX else def
+          updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
+          sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
+          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+        } else if (input$plotType=="DMD") {
+          updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
+          updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
+          updateRadioButtons(session=session,inputId="YTrans",selected="log10")
+          updateRadioButtons(session=session,inputId="XTrans",selected="log10")          
+          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="QMD")
+          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="Tpa")
+        } else if (input$plotType=="StkCht") {
+          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="Tpa")
+          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="BA")
         }
-       updateRadioButtons(session=session,inputId="YTrans",  
-         selected=if (input$plotType == "DMD") "log10" else "identity")
-       updateRadioButtons(session=session,inputId="XTrans",  
-         selected=if (input$plotType == "DMD") "log10" else "identity")
+        if (input$plotType!="DMD")
+        {
+          updateRadioButtons(session=session,inputId="YTrans",selected="identity")
+          updateRadioButtons(session=session,inputId="XTrans",selected="identity") 
+        }
+        sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
+        updateSelectInput(session, "hfacet",choices=as.list(c("None",cats)),
+          selected=sel) 
+        sel = if (length(intersect(cats,"MgmtID")) > 0) "MgmtID" else "None"
+        updateSelectInput(session, "vfacet",choices=as.list(c("None",cats)),
+          selected=sel) 
+        sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
+        updateSelectInput(session, "pltby",choices=as.list(c("None",cats)),
+          selected=sel)
       })
     }
   })
-
+    
   ## selectdbvars
   observe({
     if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
@@ -1037,6 +1027,7 @@ cat ("renderPlot\n")
     }
 
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
+    if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot())
     if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
@@ -1094,8 +1085,8 @@ cat ("vfacet test hit\n")
     }   
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
-    if (input$xaxis == "Year" && input$plotType != "box" && 
-        input$plotType != "bar") dat$Year = as.numeric(as.character(dat$Year))
+    if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
+        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))
     nd = NULL
     for (v in vars[(nlv+1):length(vars)])
     {
@@ -1104,7 +1095,18 @@ cat ("vfacet test hit\n")
       names(pd)[ncol(pd)] = "Y"
       nd = rbind(nd, data.frame(pd,Legend=v,stringsAsFactors=FALSE))
     }
+    hrvFlag = NULL
+    if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
+    {
+      if (!is.null(dat$Year) && nrow(dat)>1) 
+      {
+        hrvFlag = vector(mode="logical",length=nrow(pd))
+        for (i in 1:(nrow(dat)-1)) hrvFlag[i] = dat$Year[i]==dat$Year[i+1]
+      }
+    }
     nd = na.omit(nd)
+    omits = as.numeric(attr(nd,"na.action"))
+    if (length(omits)) hrvFlag = hrvFlag[-omits]
     if (length(nd) == 0) return(nullPlot())
     rownames(nd)=1:nrow(nd)
     names(nd)[match(input$xaxis,names(nd))] = "X"
@@ -1162,14 +1164,24 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
     DMDguideLines = NULL
-    if (input$plotType == "DMD")
+    if (isolate(input$plotType) == "DMD")
     {
       sdis=input$SDIvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
         NULL else unlist(strsplit(sdis,split=xx))
-      if (length(sdisn <- na.omit(as.numeric(sdis))))
+      if (!is.null(sdis))
       {
-cat("XUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
+        maxSDI = max(na.omit(as.numeric(sdis)))
+        if (maxSDI == -Inf) {maxSDI=700; sdis = c(sdis,as.character(maxSDI))}
+        sdisn = NULL
+        for (xx in sdis)
+        {
+          li = nchar(xx)
+          nv = if (li>1 && substr(xx,li,li)=="%") 
+            as.numeric(substr(xx,1,li-1))*.01*maxSDI else as.numeric(xx)
+          sdisn = c(sdisn,nv)
+        }          
+cat("sdisn=",sdisn,"\nXUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
         seqTpa = seq(5,3000,length.out=50)
         seqQMD = seq(1,80,length.out=50)
         for (SDI in sdisn)
@@ -1177,17 +1189,51 @@ cat("XUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
           xseq = if (input$XUnits=="Tpa") seqTpa else seqQMD
           yseq = if (input$YUnits=="Tpa") 
                    if (input$XUnits=="Tpa") seqTpa else 
-                     # Tpa = f(QMD,SDI)
-                     10**(log10(SDI)-1.605*log10(seqQMD) + 1.605) else
+                     # Tpa = f(QMD,SDI)  
+                     SDI / (seqQMD/10)^1.605 else
                    if (input$XUnits=="QMD") seqQMD else 
                      # QMD = f(Tpa,SDI)
-                     10**((log10(SDI)-log10(seqTpa)+1.605)/1.605)
+                     exp(log(SDI/seqTpa) / 1.605)*10
           lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq == Inf,]
           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
           DMDguideLines[[as.character(SDI)]] = lineData
 cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         }
+      }
+    }
+    StkChtguideLines = NULL
+    if (isolate(input$plotType) == "StkCht")
+    {
+      sdis=input$StkCrtvals
+      for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
+        NULL else unlist(strsplit(sdis,split=xx))
+      if (length(sdis))
+      {
+        sdis = unlist(lapply(sdis,function(x) if(substr(x,nchar(x),nchar(x)) == "%")
+          x else paste0(x,"%")))
+        for (i in 1:length(sdis)) 
+        yptsba  = c(70.2,80.9,89.5,96.5,102.5,107.5,111.9,115.7,119.0,121.8,
+                    124.4,126.6,128.9)
+        xptstpa = c(1430,928,657,492,383,308,253,212,180,155,135,119,105)
+        seqTpa = seq(10,max(3000,nd$X),length.out=100)
+        seqBA = 161.47029555*exp(-.02275259*(seqTpa^.5)) #found using nls()       
+        ymaxlim = range(seqBA)
+        xmaxlim = range(seqTpa)
+        StkChtguideLines = list()
+        for (PCT in sdis)
+        {
+          pct = as.numeric(gsub("%","",PCT))*.01
+          lineData = data.frame(xseq=seqTpa*pct,yseq=seqBA*pct)
+          StkChtguideLines[[as.character(PCT)]] = lineData
+          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+        }
+        pcts = as.numeric(gsub("%","",sdis))*.01
+        pm = min(pcts)
+        px = max(pcts)
+        StkChtrng = data.frame(X=c(xptstpa[1]*pm,xptstpa[1]*px,xptstpa*px,rev(xptstpa)*pm),
+                               Y=c(yptsba[1]*pm,yptsba[1]*px,yptsba*px,rev(yptsba)*pm))
       }
     }
     ### end DMD...except for adding annotations, see below.
@@ -1228,44 +1274,74 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     # add the guidelines and annotation here (now that we know the range limits of x and y
     if (!is.null(DMDguideLines)) 
     {
-      linetype = 0
-      for (SDI in rev(names(DMDguideLines))) 
+      pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
+      for (linetype in 1:length(pltorder)) 
       {
-        linetype = linetype+1
-        p = p + geom_line(aes(x=xseq,y=yseq),linetype=linetype,
-                show.legend=FALSE,alpha=.4,data=DMDguideLines[[SDI]])
+        SDI = names(DMDguideLines)[pltorder[linetype]]
+        p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
+          linetype=linetype,data=DMDguideLines[[SDI]])
       }
       sq = seq(.95,0,-.05)
       sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
-      sq = sq[1:min(length(sq),length(names(DMDguideLines)))]
+      sq = sq[1:min(length(sq),length(pltorder))]
       xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
       guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
-      guidedf$SDI=as.ordered(sort(rep(names(DMDguideLines),2),decreasing=TRUE))
+      guidedf$SDI=unlist(lapply(names(DMDguideLines)[pltorder], function(x) c(x,x)))
       linetype = 0
       for (idrow in seq(1,nrow(guidedf)-1,2)) 
       {
         linetype = linetype+1
         p = p + annotate(geom="text",hjust="left",
-        label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
+          label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
         annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],linetype=linetype,
                            x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],alpha=.4) 
       }
     }
+    if (!is.null(StkChtguideLines)) 
+    {
+      linetype = 1
+      for (PCT in rev(names(StkChtguideLines))) 
+      {
+        linetype = linetype+1
+        p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
+          linetype=if (PCT == "100%") 1 else linetype,data=StkChtguideLines[[PCT]])
+      }
+      sq = seq(.95,0,-.05)
+      sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
+      sq = sq[1:min(length(sq),length(names(StkChtguideLines)))]
+      xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
+      guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
+      guidedf$PCT=unlist(lapply(rev(names(StkChtguideLines)), function (x) c(x,x)))
+      linetype = 1
+      for (idrow in seq(1,nrow(guidedf)-1,2))
+      {
+        linetype = linetype+1
+        p = p + annotate(geom="text",hjust="left",
+          label=paste0(guidedf$PCT[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
+        annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],alpha=.4,
+                           x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],
+                           linetype=if (guidedf$PCT[idrow] == "100%") 1 else linetype) 
+      }
+      p = p + geom_polygon(aes(x=X,y=Y), data = StkChtrng, color="Gray", alpha=.3, 
+                          show.legend = FALSE)
+    }    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    p = p + switch(input$plotType,
+    pltp = isolate(input$plotType) 
+    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+    p = p + switch(pltp,
       line    = if (input$colBW == "B&W") 
         geom_line  (aes(x=X,y=Y,linetype=Legend),alpha=alpha) else
         geom_line  (aes(x=X,y=Y,color=Legend),alpha=alpha),
-      DMD    = if (input$colBW == "B&W") 
+      path   = if (input$colBW == "B&W") 
         geom_path  (aes(x=X,y=Y,linetype=Legend),alpha=alpha,    
            arrow=grid::arrow(angle=20,length=unit(6,"pt"),
            ends="last",type="closed")) else
         geom_path  (aes(x=X,y=Y,color=Legend),alpha=alpha,
            arrow=grid::arrow(angle=20,length=unit(6,"pt"),
            ends="last",type="closed")),
-      scatter = 
+      scat = 
         geom_point (aes(x=X,y=Y,color=Legend,shape=Legend),size=size,alpha=alpha),
       bar     = if (input$colBW == "B&W") 
         geom_bar (aes(x=X,y=Y,fill=Legend),color="black",size=.2,alpha=alpha,
@@ -1276,23 +1352,29 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
         geom_boxplot (aes(x=X,y=Y,linetype=Legend),color="black",size=.6,alpha=alpha) else     
         geom_boxplot (aes(x=X,y=Y,color=Legend),linetype=1,size=.6,alpha=alpha) 
       )
-    if (input$colBW == "B&W" && input$plotType == "bar") 
+    if (!is.null(hrvFlag) && any(hrvFlag)) p = p +
+      if (input$colBW == "B&W") 
+        geom_point(aes(x=X,y=Y), shape=82,  #the letter R
+          data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE) else
+        geom_point(aes(x=X,y=Y,color=Legend), shape=82,  #the letter R
+          data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE)
+    if (input$colBW == "B&W" && isolate(input$plotType) == "bar") 
         p = p + scale_fill_grey(start=.15, end=.85) 
     p = p + theme(text=element_text(size=9),plot.title = element_text(hjust = 0.5))
-    p = p + switch(input$plotType,
+    p = p + switch(pltp,
       line    = if (input$colBW == "B&W") 
         guides(linetype=guide_legend(override.aes = list(alpha=1,size=.8),
                title=legendTitle)) else
         guides(colour=guide_legend(override.aes = list(alpha=1,size=.8),
                title = legendTitle)),
-      DMD    = if (input$colBW == "B&W") # attempt to set the arrow doesn't work.
+      path   = if (input$colBW == "B&W") 
         guides(linetype=guide_legend(override.aes=list(alpha=1,size=.8), 
            arrow=grid::arrow(angle=20,length=unit(5,"pt"),ends="last",type="closed"),
            title=legendTitle)) else
         guides(colour=guide_legend(override.aes=list(alpha=1,size=.8), 
            arrow=grid::arrow(angle=20,length=unit(5,"pt"),ends="last",type="closed"),
            title=legendTitle)),
-      scatter = 
+      scat = 
         guides(shape=guide_legend(override.aes = list(color=colors,alpha=1,size=1),
                title = legendTitle),color="none"),
       bar     = 
