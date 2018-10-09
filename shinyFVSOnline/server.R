@@ -189,6 +189,7 @@ cat ("initTableGraphTools\n")
     fvsOutData$browseVars = character(0)
     fvsOutData$dbSelVars = character(0)
     fvsOutData$browseSelVars = character(0)
+    updateSelectInput(session,"leftPan",selected="Load")
     choices = list()               
     updateSelectInput(session,"pivVar",choices=choices,select="")              
     updateSelectInput(session,"hfacet",choices=choices,select="") 
@@ -1194,7 +1195,7 @@ cat("sdisn=",sdisn,"\nXUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
                    if (input$XUnits=="QMD") seqQMD else 
                      # QMD = f(Tpa,SDI)
                      exp(log(SDI/seqTpa) / 1.605)*10
-          lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq == Inf,]
+          lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq > Inf,]
           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
           DMDguideLines[[as.character(SDI)]] = lineData
@@ -1205,7 +1206,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
     StkChtguideLines = NULL
     if (isolate(input$plotType) == "StkCht")
     {
-      sdis=input$StkCrtvals
+      sdis=input$StkChtvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
         NULL else unlist(strsplit(sdis,split=xx))
       if (length(sdis))
@@ -1216,7 +1217,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         yptsba  = c(70.2,80.9,89.5,96.5,102.5,107.5,111.9,115.7,119.0,121.8,
                     124.4,126.6,128.9)
         xptstpa = c(1430,928,657,492,383,308,253,212,180,155,135,119,105)
-        seqTpa = seq(10,max(3000,nd$X),length.out=100)
+        seqTpa = seq(10,max(2000,nd$X),length.out=100)
         seqBA = 161.47029555*exp(-.02275259*(seqTpa^.5)) #found using nls()       
         ymaxlim = range(seqBA)
         xmaxlim = range(seqTpa)
@@ -1239,9 +1240,14 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
     ### end DMD...except for adding annotations, see below.
     brks = function (x,log=FALSE) 
     {
-      b = pretty (range(x,na.rm=TRUE), n = 4, min.n = 1)
-      b = if (log) ifelse(b<=1,1,b) else b
-      b[!duplicated(b)]
+      b = range(x,na.rm=TRUE)
+      if (log) {
+        b = pretty (log10(b), n = 4, min.n = 1)
+        b = ifelse(b<=.1,.1,b)
+        b = floor(10**b[!duplicated(b)])
+        xx = 10**floor(log10(b))
+        ceiling((b/xx))*xx
+      } else pretty(b, n=4, min.n = 1)
     }
     if (!is.factor(nd$X))
     {
@@ -2608,6 +2614,9 @@ cat("Nulling uiRunPlot at Save and Run\n")
         FVS_Runs = globals$FVS_Runs
         save (FVS_Runs,file="FVS_Runs.RData")
         killIfRunning(globals$fvsRun$uuid)
+        # if rerunning a run that is currently selected in the "View Outputs",
+        # then clear those tools.
+        if (globals$fvsRun$uuid %in% input$runs) initTableGraphTools()
         progress$set(message = "Run preparation: ", 
           detail = "Deleting old ouputs", value = 2)         
         removeFVSRunFiles(globals$fvsRun$uuid)
@@ -3524,7 +3533,7 @@ cat ("Tools hit\n")
         avalFVSp <- sub(shlibsufx,"",avalFVS)
 cat ("avalFVSp=",avalFVSp,"\n")  
       } else {
-        pgmFlip = list("Refresh not supported this system.")
+        pgmFlip = list("Refresh not supported on this system.")
         haveFVSp = NULL
       }
       updateSelectInput(session=session, inputId="FVSprograms", 

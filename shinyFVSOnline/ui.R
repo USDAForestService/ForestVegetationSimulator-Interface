@@ -440,7 +440,7 @@ shinyUI(fixedPage(
                       c("Tpa"="Tpa","QMD"="QMD"),selected="QMD"))),
                fixedRow(
                  column(width=12,
-                   myInlineTextInput("StkCrtvals", 
+                   myInlineTextInput("StkChtvals", 
                     "Full stocking percentages for Stocking Chart (StkCht):",
                      "30%,55%,100%,110%", size=25))))
             )),
