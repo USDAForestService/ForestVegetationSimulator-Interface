@@ -15,7 +15,9 @@ shinyServer(function(input, output, session) {
   output$uivariants <- renderUI(
     checkboxGroupInput("uivariants","Select FVS variants", 
               choices=topick,selected="FVSie",inline=TRUE))
-sink("FVSPrjBldr.log")
+# pop the sink stack
+while(sink.number()) sink()
+try(sink("FVSPrjBldr.log"))
 cat (date(),"\n")
 cat ("length(topick)=",length(topick),"\n")
 
