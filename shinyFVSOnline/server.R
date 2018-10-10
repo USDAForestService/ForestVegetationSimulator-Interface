@@ -5,6 +5,7 @@ library(parallel)
 library(RSQLite)
 library(plyr)
 library(colourpicker)
+options(rgl.useNULL=TRUE)
 library(rgl)
 library(leaflet)
 #library(rgdal) #loaded when it is needed
@@ -23,6 +24,8 @@ shinyServer(function(input, output, session) {
       unlink("FVSOnline.older.log")
       file.rename("FVSOnline.log","FVSOnline.older.log")
     }
+    #make sure the sink stack is empty
+    while (sink.number()) sink()
     sink("FVSOnline.log")
   }
 cat ("FVSOnline/OnLocal interface server start.\n")
@@ -2192,6 +2195,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
       switch (as.character(inCode),
         "mgt" =
         {
+          if (is.null(input$addMgmtCats)) return(NULL)
           titIndx = try(match(input$addMgmtCmps,
                         globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
           if (class(titIndx)=="try-error") return(NULL)

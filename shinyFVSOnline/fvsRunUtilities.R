@@ -1,14 +1,14 @@
- 
-if (exists("mkfvsStd")) rm (mkfvsStd)
+
+if (exists("mkfvsStd",envir=.GlobalEnv)) rm (mkfvsStd,envir=.GlobalEnv)
 mkfvsStd <<- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", invyr = "character",
     grps = "list", cmps = "list",uuid="character"))
 
-if (exists("mkfvsGrp")) rm (mkfvsGrp)
+if (exists("mkfvsGrp",envir=.GlobalEnv)) rm (mkfvsGrp,envir=.GlobalEnv)
 mkfvsGrp <<- setRefClass("fvsGrp",
   fields = list(grp = "character", cmps = "list", uuid="character"))
 
-if (exists("mkfvsCmp")) rm (mkfvsCmp)
+if (exists("mkfvsCmp",envir=.GlobalEnv)) rm (mkfvsCmp,envir=.GlobalEnv)
 mkfvsCmp <<- setRefClass("fvsCmp",
   fields = list(kwds = "character", kwdName = "character", exten="character",
     title="character", variant="character",uuid="character", atag="character", 
@@ -17,7 +17,7 @@ mkfvsCmp <<- setRefClass("fvsCmp",
 # component that is not attached to a specific component. If it is longer than 1
 # character it is the uuid of the related condition
 
-if (exists("mkfvsRun")) rm (mkfvsRun) 
+if (exists("mkfvsRun",envir=.GlobalEnv)) rm (mkfvsRun,envir=.GlobalEnv)
 mkfvsRun <<- setRefClass("fvsRun", 
   fields = list(stands = "list", grps = "list", simcnts = "list",
     selsim = "list", FVSpgm = "character", title = "character", 
@@ -26,7 +26,7 @@ mkfvsRun <<- setRefClass("fvsRun",
     defMgmtID = "character", autoOut = "list", runScript = "character" ,
     uiCustomRunOps = "list", startDisp = "character"))
 
-if (exists("mkGlobals")) rm(mkGlobals)
+if (exists("mkGlobals",envir=.GlobalEnv)) rm(mkGlobals,envir=.GlobalEnv)
 mkGlobals <<- setRefClass("globals", 
   fields = list(activeFVS = "list", activeVariants = "character", 
     activeExtens = "character", schedBoxYrLastUsed = "character",

@@ -1,6 +1,7 @@
 library(shiny)
 library(rhandsontable)
 library(colourpicker)
+options(rgl.useNULL=TRUE)
 library(rgl)
 library(leaflet)
 library(openxlsx)
