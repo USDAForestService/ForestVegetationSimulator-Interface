@@ -137,6 +137,7 @@ End
 "
 
 autoStrClass="
+StrClass
 Database
 StrClass         2
 End
