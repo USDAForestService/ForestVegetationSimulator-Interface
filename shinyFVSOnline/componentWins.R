@@ -159,7 +159,7 @@ ClearcutWin <- function(title, prms, fvsRun, globals)
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
   globals$currentCmdDefs <- c(f1=" ",f2="5",f3="10",ccf4="1",ccf5="30",ccf6="5")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
-    for (name in names(defs)) if(globals$currentEditCmp$reopn[name] != "")  
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
 cat ("in ClearcutWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")    
   # change this global so that the correct prms entry can be found later
