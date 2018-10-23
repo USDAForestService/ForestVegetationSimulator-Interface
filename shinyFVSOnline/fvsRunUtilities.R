@@ -720,13 +720,15 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
         trns = scan(text=trns,what="character",quiet=TRUE)
         inp = if (length(input) < fld) NA else 
             switch (input[fld],
-              "FALSE" = 1, 
-              "TRUE"  = 2,
+              "FALSE" = 0, 
+              "TRUE"  = 1,
               as.numeric(input[fld]))
-        fld = if (is.na(inp)) "*error*" else trns[inp]
+        fld = if (is.na(inp)) "*error*" else 
+          if (inp<=0) trns[1] else if (inp>length(trns)) trns[length(trns)] else 
+             trns[inp+1]
         out = if (nchar(fldw) > 0) paste0(out,sprintf(fldw,fld)) else
               paste0(out,fld)
-        state = 0 
+        state = 0
         next
       }
     }
