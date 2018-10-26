@@ -192,7 +192,6 @@ cat ("initTableGraphTools\n")
     fvsOutData$browseVars = character(0)
     fvsOutData$dbSelVars = character(0)
     fvsOutData$browseSelVars = character(0)
-    updateSelectInput(session,"leftPan",selected="Load")
     choices = list()               
     updateSelectInput(session,"pivVar",choices=choices,select="")              
     updateSelectInput(session,"hfacet",choices=choices,select="") 
@@ -677,7 +676,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
             {
               fix = grep ("Hrv",colnames(dtab))
               if (length(fix)) for (ifx in fix) dtab[[ifx]] = as.numeric(dtab[[ifx]])
-            }                             
+            }
             if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
               dtab <- ddply(dtab,.(CaseID),.fun=setupSummary)
@@ -1102,10 +1101,18 @@ cat ("vfacet test hit\n")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
-      if (!is.null(dat$Year) && nrow(dat)>1) 
+      if (!is.null(dat$Year) && !is.null(dat$RTpa) && nrow(dat)>1) 
       {
         hrvFlag = vector(mode="logical",length=nrow(pd))
-        for (i in 1:(nrow(dat)-1)) hrvFlag[i] = dat$Year[i]==dat$Year[i+1]
+        i = 0
+        while (i < nrow(dat)-1) {
+          i = i+1;
+          if (dat$Year[i]==dat$Year[i+1] && dat$RTpa[i+1]>0)
+          {
+            hrvFlag[i]=TRUE
+            i=i+1
+          }
+        }
       }
     }
     nd = na.omit(nd)
@@ -2829,7 +2836,7 @@ cat ("addNewRun2DB res=",res,"\n")
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
                   Legend=as.factor(Legend))
         width = max(4,nlevels(toplot$hfacet)*2)
-        height = 2.5
+        height = 2
         plt = if (nlevels(toplot$hfacet) < 5)
           ggplot(data = toplot) + facet_grid(.~hfacet) + 
             geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
@@ -2838,7 +2845,7 @@ cat ("addNewRun2DB res=",res,"\n")
                   panel.background = element_rect(fill="gray95"),
                   axis.text = element_text(color="black"))  else
         {
-          width = 3
+          width = 2.5
           toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
           ggplot(data = toplot) +  
             geom_line (aes(x=X,y=Y,color=Legend,alpha=.5)) + 
@@ -2847,7 +2854,7 @@ cat ("addNewRun2DB res=",res,"\n")
                      panel.background = element_rect(fill="gray95"),
                      axis.text = element_text(color="black"))
         }
-        png("quick.png", width=width, height=height, units="in", res=144)
+        png("quick.png", width=width, height=height, units="in", res=150)
         print(plt)
         dev.off()
         output$uiRunPlot <- renderUI(
