@@ -1248,6 +1248,11 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
       }
     }
     ### end DMD...except for adding annotations, see below.
+    if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
+    if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
+    pltp = isolate(input$plotType) 
+    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     brks = function (x,log=FALSE) 
     {
       b = range(x,na.rm=TRUE)
@@ -1269,7 +1274,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
         p = p + scale_x_log10(breaks=brkx,limits=rngx)
       } else {
         brkx=brks(rngx)
-        p = p + scale_x_continuous(breaks=brkx,limits=rngx)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_x_continuous(breaks=brkx,limits=rngx)
       }
 cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
     }
@@ -1283,7 +1288,7 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
         p = p + scale_y_log10(breaks=brky,limits=rngy)
       } else {
         brky=brks(rngy)
-        p = p + scale_y_continuous(breaks=brky,limits=rngy)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,limits=rngy)
       }
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     }
@@ -1346,6 +1351,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
+cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     p = p + switch(pltp,
       line    = if (input$colBW == "B&W") 
         geom_line  (aes(x=X,y=Y,linetype=Legend),alpha=alpha) else
@@ -1374,7 +1380,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
           data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE) else
         geom_point(aes(x=X,y=Y,color=Legend), shape=82,  #the letter R
           data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE)
-    if (input$colBW == "B&W" && isolate(input$plotType) == "bar") 
+    if (input$colBW == "B&W" && pltp == "bar") 
         p = p + scale_fill_grey(start=.15, end=.85) 
     p = p + theme(text=element_text(size=9),plot.title = element_text(hjust = 0.5))
     p = p + switch(pltp,
@@ -1406,7 +1412,6 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
-  
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
