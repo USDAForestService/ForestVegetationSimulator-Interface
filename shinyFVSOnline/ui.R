@@ -416,9 +416,12 @@ shinyUI(fixedPage(
                    myRadioGroup("XlabRot","Rotate X-Labels (degrees)",
                       c("0"="0","45"="45","90"="90")))),
                fixedRow(
-                 column(width=12,
-                   myRadioGroup("legendPlace","Legend placement",
-                      c("Right"="right","Bottom"="bottom","Left"="left",
+                 column(width=6,
+                   myRadioGroup("barPlace","Bars",
+                      c("Side-by-side"="dodge","Stacked"="stack"))),
+                 column(width=6,
+                   myRadioGroup("legendPlace","Legend",
+                      c("R"="right","Bot"="bottom","L"="left",
                         "Top"="top","None"="none")))),
                fixedRow(
                  column(width=6,

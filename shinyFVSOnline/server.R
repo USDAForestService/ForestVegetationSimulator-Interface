@@ -807,21 +807,12 @@ cat ("cmd=",cmd,"\n")
           }
         if (is.null(mdat$Species)) updateSelectInput(session, "species", 
             choices  = list("None loaded"), selected = NULL) else
-          {
-            sel = names(sort(table(mdat$Species),decreasing=TRUE))
-            sel = setdiff(sel,"All")
-            sel = sel[1:min(length(sel),5)]
             updateSelectInput(session, "species",
-              choices=as.list(levels(mdat$Species)), selected=sel)
-          }
+              choices=as.list(levels(mdat$Species)), selected=setdiff(mdat$Species,"All"))
         if (is.null(mdat$DBHClass)) updateSelectInput(session, "dbhclass", 
             choices  = list("None loaded"), selected = NULL) else
           {
-            sel = if ("All" %in% levels(mdat$DBHClass)) "All" else 
-              { 
-                top = names(sort(table(mdat$DBHClass),decreasing=TRUE))
-                top[1:min(length(top),5)]
-              }
+            sel = if ("All" %in% levels(mdat$DBHClass)) "All" else mdat$DBHClass
             updateSelectInput(session, "dbhclass", 
               choices=as.list(levels(mdat$DBHClass)), selected=sel)
           }           
@@ -912,13 +903,18 @@ cat ("browsevars/plotType\n")
         curX = input$xaxis
         curY = input$yaxis
         if (input$plotType=="line") {
-          sel = if (is.null(curX)) "Year" else curX
-          sel = if (sel %in% cont) sel else 
-                if (length(cont) > 0) cont[1] else NULL
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
+          selx = if (is.null(curX)) "Year" else curX
+          selx = if (selx %in% cont) selx else 
+                 if (length(cont) > 0) cont[1] else NULL
+          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=selx)
           sel = if (is.null(curY)) "BA" else curY
           sel = if (sel %in% cont) sel else 
                 if (length(cont) > 0) cont[1] else NULL
+          if (sel == selx && length(cont) > 1) 
+          {
+            sel = grep("BA",cont)[1]
+            sel = if (is.na(sel)) cont[2] else cont[sel]
+          }
           updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
         } else if (input$plotType == "scat") {
           sel = if (is.null(curX)) "DBH" else curX
@@ -935,6 +931,7 @@ cat ("browsevars/plotType\n")
           sel = if (!is.null(curX) && curX %in% cats) curX else def
           updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
+          if (sel=="Year" && length(cont) > 1) sel = cont[2]
           updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
         } else if (input$plotType=="DMD") {
           updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
@@ -947,6 +944,8 @@ cat ("browsevars/plotType\n")
           updateSelectInput(session, "xaxis",choices=as.list(cont), selected="Tpa")
           updateSelectInput(session, "yaxis",choices=as.list(cont), selected="BA")
         }
+        updateSliderInput(session, "transparency",  
+          value = if(input$plotType == "scat") .3 else 0.)
         if (input$plotType!="DMD")
         {
           updateRadioButtons(session=session,inputId="YTrans",selected="identity")
@@ -963,22 +962,64 @@ cat ("browsevars/plotType\n")
           selected=sel)
       })
     }
-  })
-    
+  })    
   ## selectdbvars
   observe({
     if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
   })
-
+  ## yaxis, xaxis regarding the Y- and XUnits for DMD
   observe({
     if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
       updateRadioButtons(session=session,inputId="YUnits",  
        selected=input$yaxis)
     if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","QMD")) 
-      updateRadioButtons(session=session,inputId="XUnits",  
+      updateRadioButtons(session=session,inputId="XUnits",                
        selected=input$xaxis)
   })
-
+  ## Set a tool to "None" if the same level is selected by another tool (doesn't 
+  ## apply to axes selection
+  observe({
+    if (is.null(input$pltby) || input$pltby  == "None") return()
+    isolate({
+      if (input$pltby == input$xaxis || input$pltby == input$yaxis) 
+      {
+        updateSelectInput(session=session, inputId="pltby", selected="None")
+        return()
+      }
+      if (input$pltby == input$vfacet)
+        updateSelectInput(session=session, inputId="vfacet", selected="None")
+      if (input$pltby == input$hfacet)
+        updateSelectInput(session=session, inputId="hfacet", selected="None")
+  }) }) 
+  observe({
+    if (is.null(input$vfacet) || input$vfacet  == "None") return()
+    isolate({
+      if (input$vfacet == input$xaxis || input$vfacet == input$yaxis) 
+      {
+        updateSelectInput(session=session, inputId="vfacet", selected="None")
+        return()
+      }
+      if (input$vfacet == input$pltby)
+        updateSelectInput(session=session, inputId="pltby", selected="None")       
+      if (input$vfacet == input$hfacet)
+        updateSelectInput(session=session, inputId="hfacet", selected="None")
+  }) }) 
+  observe({
+    if (is.null(input$hfacet) || input$hfacet  == "None") return()                 
+    isolate({
+      if (input$hfacet == input$xaxis || input$hfacet == input$yaxis) 
+      {
+        updateSelectInput(session=session, inputId="hfacet", selected="None")
+        return()
+      }
+      if (input$hfacet == input$pltby)
+        updateSelectInput(session=session, inputId="pltby", selected="None")
+      if (input$hfacet == input$vfacet)
+        updateSelectInput(session=session, inputId="vfacet", selected="None")
+  }) }) 
+  
+  
+  
   ## renderPlot
   output$outplot <- renderImage(
   {   
@@ -1003,7 +1044,7 @@ cat ("renderPlot\n")
         add = n%/%length(a)
         if (add) a = rep(a,add)
         add = n%%length(a)
-        if (add) a = c(a,a[1:add])
+        if (add) a = c(a,a[1:add])                                      
       }
       a[1:n]
     } 
@@ -1015,7 +1056,7 @@ cat ("renderPlot\n")
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
 
-    dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else
+    dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else         
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
@@ -1031,61 +1072,18 @@ cat ("renderPlot\n")
 
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
     if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot())
-    if (!is.null(hf) && (nlevels(dat[,hf]) == 1 || nlevels(dat[,hf]) > 8))
+    if (!is.null(hf) && nlevels(dat[,hf]) > 8)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
       updateSelectInput(session=session, inputId="hfacet", selected="None")
       return (nullPlot())
     }
-    if (!is.null(vf) && (nlevels(dat[,vf]) == 1 || nlevels(dat[,vf]) > 8))
+    if (!is.null(vf) && nlevels(dat[,vf]) > 8)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       updateSelectInput(session=session, inputId="vfacet", selected="None")
       return (nullPlot())
-    }
-          
-    if (!is.null(pb) && pb %in% colnames(dat) && 
-         input$pltby %in% c(input$xaxis,input$yaxis,vf,hf))
-    {
-cat ("pb test hit\n")
-      if (input$pltby == input$xaxis)
-        updateSelectInput(session=session, inputId="pltby", selected="None")
-      else if (input$pltby == input$yaxis)
-        updateSelectInput(session=session, inputId="pltby", selected="None")
-      else if (input$pltby == vf)
-        updateSelectInput(session=session, inputId="vfacet", selected="None")
-      else if (input$pltby == hf)
-        updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (nullPlot())
-    }
-    if (!is.null(hf) && hf %in% colnames(dat) && 
-        input$hfacet %in% c(input$xaxis,input$yaxis,pb,vf))
-    {
-cat ("hfacet test hit\n")
-      if (!is.null(input$xaxis) && input$hfacet == input$xaxis)
-        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
-      else if (!is.null(input$yaxis) && input$hfacet == input$yaxis)
-        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
-      else if (input$hfacet == input$pltby)
-        updateSelectInput(session=session, inputId="pltby", selected="None")
-      else if (input$hfacet == vf)
-        updateSelectInput(session=session, inputId="vfacet", selected="None")
-      return (nullPlot())
-    }
-    if (!is.null(vf) && vf %in% colnames(dat) && 
-        input$vfacet %in% c(input$xaxis,input$yaxis,pb,hf))
-    {
-cat ("vfacet test hit\n")
-      if (!is.null(input$xaxis) && input$vfacet == input$xaxis)
-        updateSelectInput(session=session, inputId="xaxis", selected=NULL)
-      else if (!is.null(input$yaxis) && input$vfacet == input$yaxis)
-        updateSelectInput(session=session, inputId="yaxis", selected=NULL)
-      else if (input$vfacet == input$pltby)
-        updateSelectInput(session=session, inputId="pltby", selected="None")
-      else if (input$vfacet == hf)
-        updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (nullPlot())
-    }   
+    }         
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
@@ -1101,13 +1099,14 @@ cat ("vfacet test hit\n")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
-      if (!is.null(dat$Year) && !is.null(dat$RTpa) && nrow(dat)>1) 
+      rtpa = grep ("RTpa",names(dat))[1]
+      if (!is.null(dat$Year) && !is.null(rtpa) && nrow(dat)>1) 
       {
         hrvFlag = vector(mode="logical",length=nrow(pd))
         i = 0
         while (i < nrow(dat)-1) {
           i = i+1;
-          if (dat$Year[i]==dat$Year[i+1] && dat$RTpa[i+1]>0)
+          if (dat$Year[i]==dat$Year[i+1] && dat[i+1,rtpa]>0)
           {
             hrvFlag[i]=TRUE
             i=i+1
@@ -1117,8 +1116,8 @@ cat ("vfacet test hit\n")
     }
     nd = na.omit(nd)
     omits = as.numeric(attr(nd,"na.action"))
-    if (length(omits)) hrvFlag = hrvFlag[-omits]
     if (length(nd) == 0) return(nullPlot())
+    if (length(omits)) hrvFlag = hrvFlag[-omits]
     rownames(nd)=1:nrow(nd)
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
@@ -1130,9 +1129,9 @@ cat ("vfacet test hit\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }      
-    if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=unique(nd$vfacet))
-    if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=unique(nd$hfacet))
-    if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=unique(nd$Legend))
+    if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
+    if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
+    if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
     fg = NULL
     fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
          facet_grid(vfacet~hfacet)
@@ -1347,8 +1346,9 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
                           show.legend = FALSE)
     }    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
-    if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
-    if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
+
+    if (is.factor(nd$X))      nd$X = as.ordered(nd$X)
+    if (is.factor(nd$Y))      nd$Y = as.ordered(nd$Y)
     pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
@@ -1366,19 +1366,19 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       scat = 
         geom_point (aes(x=X,y=Y,color=Legend,shape=Legend),size=size,alpha=alpha),
       bar     = if (input$colBW == "B&W") 
-        geom_bar (aes(x=X,y=Y,fill=Legend),color="black",size=.2,alpha=alpha,
-           position="dodge",stat="identity") else
-        geom_bar (aes(x=X,y=Y,fill=Legend),color="transparent",size=.1,alpha=alpha,
-           position="dodge",stat="identity"),
+        geom_col (aes(x=X,y=Y,fill=Legend),color="black",size=.2,alpha=alpha,
+           position=input$barPlace) else
+        geom_col (aes(x=X,y=Y,fill=Legend),color="transparent",size=.1,alpha=alpha,
+           position=input$barPlace),
       box     = if (input$colBW == "B&W") 
         geom_boxplot (aes(x=X,y=Y,linetype=Legend),color="black",size=.6,alpha=alpha) else     
         geom_boxplot (aes(x=X,y=Y,color=Legend),linetype=1,size=.6,alpha=alpha) 
       )
     if (!is.null(hrvFlag) && any(hrvFlag)) p = p +
       if (input$colBW == "B&W") 
-        geom_point(aes(x=X,y=Y), shape=82,  #the letter R
+        geom_point(aes(x=X,y=Y), shape=82,  #the letter R is code 82
           data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE) else
-        geom_point(aes(x=X,y=Y,color=Legend), shape=82,  #the letter R
+        geom_point(aes(x=X,y=Y,color=Legend), shape=82,  #the letter R is code 82
           data = nd[hrvFlag,], alpha=alpha, show.legend = FALSE)
     if (input$colBW == "B&W" && pltp == "bar") 
         p = p + scale_fill_grey(start=.15, end=.85) 
