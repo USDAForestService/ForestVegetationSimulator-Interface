@@ -5,7 +5,6 @@ library(parallel)
 library(RSQLite)
 library(plyr)
 library(colourpicker)
-options(rgl.useNULL=TRUE)
 library(rgl)
 library(leaflet)
 #library(rgdal) #loaded when it is needed
@@ -3214,7 +3213,6 @@ cat ("SVS3d hit\n")
         selected=0)
       output$SVSImg1 = renderRglwidget(NULL)
       output$SVSImg2 = renderRglwidget(NULL)
-
     }
    })
   observe({
@@ -3249,9 +3247,8 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
   renderSVSImage <- function (id,imgfile)
   {    
     for (dd in rgl.dev.list()) try(rgl.close())
-    open3d()
-    rgl.viewpoint( theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
-
+    open3d(useNULL=TRUE) 
+    rgl.viewpoint(theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
     source("svsTree.R",local=TRUE)
     load("treeforms.RData")    
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
@@ -3275,6 +3272,7 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       } 
       poles = matrix(poles,ncol=3,byrow=TRUE)
       segments3d(poles,col="red",lwd=4,add=TRUE)
+      par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     }
     drawnTrees = list()
     calls = 1
@@ -3305,7 +3303,7 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
     progress$set(message = "Phase 3: Sending image to browser",value = length(svs)+2) 
     output[[id]] <- renderRglwidget(rglwidget(scene3d()))
     Sys.sleep(1)
-    progress$close()    
+    progress$close()
   }
 
   observe({
