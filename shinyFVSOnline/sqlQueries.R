@@ -43,7 +43,7 @@ drop table if exists temp.StdStkAllDBH;
 drop table if exists temp.StdStkAllSp; 
 drop table if exists temp.StdStkAllAll; 
 create table temp.StdStkDBHSp as 
-select CaseID,Year,Species, 
+  select CaseID,Year,Species, 
     subExpression as DBHClass, 
     sum(Tpa)          as LiveTpa, 
     sum(DBH*DBH*.005454154*TPA) as LiveBA, 
@@ -60,7 +60,7 @@ select CaseID,Year,Species,
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
 create table temp.StdStkAllDBH as 
-select CaseID,Year,Species,'All' as DBHClass,
+  select CaseID,Year,Species,'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA, 
     sum(LiveTCuFt)    as LiveTCuFt, 
@@ -75,7 +75,7 @@ select CaseID,Year,Species,'All' as DBHClass,
   group by CaseID,Year,Species
   order by CaseID,Year,Species,DBHClass;
 create table temp.StdStkAllSp as 
-select CaseID,Year,'All' as Species, DBHClass,
+  select CaseID,Year,'All' as Species, DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA, 
     sum(LiveTCuFt)    as LiveTCuFt, 
@@ -90,7 +90,7 @@ select CaseID,Year,'All' as Species, DBHClass,
   group by CaseID,Year,DBHClass
   order by CaseID,Year,Species,DBHClass;
 create table temp.StdStkAllAll as 
-select CaseID,Year,'All' as Species, 'All' as DBHClass,
+  select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(LiveTpa)      as LiveTpa, 
     sum(LiveBA)       as LiveBA,           
     sum(LiveTCuFt)    as LiveTCuFt, 
@@ -115,7 +115,7 @@ drop table if exists temp.HrvStdStkAllDBH;
 drop table if exists temp.HrvStdStkAllSp;
 drop table if exists temp.HrvStdStkAllAll;
 create table temp.HrvStdStk as
-select CaseID,Year,Species, 
+  select CaseID,Year,Species, 
     subExpression as dbhclass, 
     sum(Tpa)          as HrvTPA,
     sum(DBH*DBH*.005454154*Tpa) as HrvBA, 
@@ -126,7 +126,7 @@ select CaseID,Year,Species,
   where CaseID in (select CaseID from temp.Cases)
   group by CaseID,Year,Species,DBHClass;
 create table temp.HrvStdStkAllDBH as 
-select CaseID,Year,Species,'All' as DBHClass,
+  select CaseID,Year,Species,'All' as DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
@@ -135,7 +135,7 @@ select CaseID,Year,Species,'All' as DBHClass,
   from temp.HrvStdStk 
   group by CaseID,Year,Species;
 create table temp.HrvStdStkAllSp as 
-select CaseID,Year,'All' as Species, DBHClass,
+  select CaseID,Year,'All' as Species, DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
@@ -144,7 +144,7 @@ select CaseID,Year,'All' as Species, DBHClass,
   from temp.HrvStdStk 
   group by CaseID,Year,DBHClass;
 create table temp.HrvStdStkAllAll as 
-select CaseID,Year,'All' as Species, 'All' as DBHClass,
+  select CaseID,Year,'All' as Species, 'All' as DBHClass,
     sum(HrvTPA)      as HrvTPA,
     sum(HrvBA)       as HrvBA,
     sum(HrvTCuFt)    as HrvTCuFt,
@@ -193,36 +193,139 @@ create table StdStk as select Year, Species, DBHClass,
                                                                                     
 Create_CmpStdStk = "
 drop table if exists CmpStdStk;                               
-create table CmpStdStk as 
-select MgmtID,Year,Species,DBHClass,
-    round(sum(LiveTPA  *SamplingWt)/sum(SamplingWt),2) as CmpLiveTPA,
-    round(sum(MrtTPA   *SamplingWt)/sum(SamplingWt),2) as CmpMrtTPA,
-    round(sum(HrvTPA   *SamplingWt)/sum(SamplingWt),2) as CmpHrvTPA,
-    round(sum(RsdTPA   *SamplingWt)/sum(SamplingWt),2) as CmpRsdTPA,
-    round(sum(LiveBA   *SamplingWt)/sum(SamplingWt),2) as CmpLiveBA,
-    round(sum(MrtBA    *SamplingWt)/sum(SamplingWt),2) as CmpMrtBA,
-    round(sum(HrvBA    *SamplingWt)/sum(SamplingWt),2) as CmpHrvBA,
-    round(sum(RsdBA    *SamplingWt)/sum(SamplingWt),2) as CmpRsdBA,
-    round(sum(LiveTCuFt*SamplingWt)/sum(SamplingWt),2) as CmpLiveTCuFt,
-    round(sum(MrtTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpMrtTCuFt,
-    round(sum(HrvTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpHrvTCuFt,
-    round(sum(RsdTCuFt *SamplingWt)/sum(SamplingWt),2) as CmpRsdTCuFt,
-    round(sum(LiveMCuFt*SamplingWt)/sum(SamplingWt),2) as CmpLiveMCuFt,
-    round(sum(MrtMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpMrtMCuFt,
-    round(sum(HrvMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpHrvMCuFt,
-    round(sum(RsdMCuFt *SamplingWt)/sum(SamplingWt),2) as CmpRsdMCuFt,
-    round(sum(LiveBdFt *SamplingWt)/sum(SamplingWt),2) as CmpLiveBdFt,
-    round(sum(MrtBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpMrtBdFt,
-    round(sum(HrvBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpHrvBdFt,
-    round(sum(RsdBdFt  *SamplingWt)/sum(SamplingWt),2) as CmpRsdBdFt  
-  from (select * from StdStk where CaseID in (select CaseID from temp.Cases))
+drop table if exists temp.CmpStdStkDBHSp; 
+drop table if exists temp.CmpStdStkAllDBH; 
+drop table if exists temp.CmpStdStkAllSp; 
+drop table if exists temp.CmpStdStkAllAll; 
+create table temp.CmpStdStkDBHSp as 
+  select MgmtID,Year,Species,DBHClass,
+    sum(LiveTPA  *SamplingWt)/sum(SamplingWt) as CmpLiveTPA,
+    sum(MrtTPA   *SamplingWt)/sum(SamplingWt) as CmpMrtTPA,
+    sum(HrvTPA   *SamplingWt)/sum(SamplingWt) as CmpHrvTPA,
+    sum(RsdTPA   *SamplingWt)/sum(SamplingWt) as CmpRsdTPA,
+    sum(LiveBA   *SamplingWt)/sum(SamplingWt) as CmpLiveBA,
+    sum(MrtBA    *SamplingWt)/sum(SamplingWt) as CmpMrtBA,
+    sum(HrvBA    *SamplingWt)/sum(SamplingWt) as CmpHrvBA,
+    sum(RsdBA    *SamplingWt)/sum(SamplingWt) as CmpRsdBA,
+    sum(LiveTCuFt*SamplingWt)/sum(SamplingWt) as CmpLiveTCuFt,
+    sum(MrtTCuFt *SamplingWt)/sum(SamplingWt) as CmpMrtTCuFt,
+    sum(HrvTCuFt *SamplingWt)/sum(SamplingWt) as CmpHrvTCuFt,
+    sum(RsdTCuFt *SamplingWt)/sum(SamplingWt) as CmpRsdTCuFt,
+    sum(LiveMCuFt*SamplingWt)/sum(SamplingWt) as CmpLiveMCuFt,
+    sum(MrtMCuFt *SamplingWt)/sum(SamplingWt) as CmpMrtMCuFt,
+    sum(HrvMCuFt *SamplingWt)/sum(SamplingWt) as CmpHrvMCuFt,
+    sum(RsdMCuFt *SamplingWt)/sum(SamplingWt) as CmpRsdMCuFt,
+    sum(LiveBdFt *SamplingWt)/sum(SamplingWt) as CmpLiveBdFt,
+    sum(MrtBdFt  *SamplingWt)/sum(SamplingWt) as CmpMrtBdFt,
+    sum(HrvBdFt  *SamplingWt)/sum(SamplingWt) as CmpHrvBdFt,
+    sum(RsdBdFt  *SamplingWt)/sum(SamplingWt) as CmpRsdBdFt  
+  from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
+        CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
-  group by MgmtID,Year,Species,DBHClass;"
-
+  group by MgmtID,Year,Species,DBHClass;
+create table temp.CmpStdStkAllDBH as
+  select MgmtID,Year,Species,'All' as DBHClass,
+    round(sum(CmpLiveTPA),2)   as CmpLiveTPA,
+    round(sum(CmpMrtTPA),2)    as CmpMrtTPA,
+    round(sum(CmpHrvTPA),2)    as CmpHrvTPA,
+    round(sum(CmpRsdTPA),2)    as CmpRsdTPA,
+    round(sum(CmpLiveBA),2)    as CmpLiveBA,
+    round(sum(CmpMrtBA),2)     as CmpMrtBA,
+    round(sum(CmpHrvBA),2)     as CmpHrvBA,
+    round(sum(CmpRsdBA),2)     as CmpRsdBA,
+    round(sum(CmpLiveTCuFt),2) as CmpLiveTCuFt,
+    round(sum(CmpMrtTCuFt),2)  as CmpMrtTCuFt,
+    round(sum(CmpHrvTCuFt),2)  as CmpHrvTCuFt,
+    round(sum(CmpRsdTCuFt),2)  as CmpRsdTCuFt,
+    round(sum(CmpLiveMCuFt),2) as CmpLiveMCuFt,
+    round(sum(CmpMrtMCuFt),2)  as CmpMrtMCuFt,
+    round(sum(CmpHrvMCuFt),2)  as CmpHrvMCuFt,
+    round(sum(CmpRsdMCuFt),2)  as CmpRsdMCuFt,
+    round(sum(CmpLiveBdFt),2)  as CmpLiveBdFt,
+    round(sum(CmpMrtBdFt),2)   as CmpMrtBdFt,
+    round(sum(CmpHrvBdFt),2)   as CmpHrvBdFt,
+    round(sum(CmpRsdBdFt),2)   as CmpRsdBdFt 
+  from temp.CmpStdStkDBHSp
+  group by MgmtID,Year,Species;          
+create table temp.CmpStdStkAllSp as
+  select MgmtID,Year,'All' as Species,DBHClass,
+    round(sum(CmpLiveTPA),2)   as CmpLiveTPA,
+    round(sum(CmpMrtTPA),2)    as CmpMrtTPA,
+    round(sum(CmpHrvTPA),2)    as CmpHrvTPA,
+    round(sum(CmpRsdTPA),2)    as CmpRsdTPA,
+    round(sum(CmpLiveBA),2)    as CmpLiveBA,
+    round(sum(CmpMrtBA),2)     as CmpMrtBA,
+    round(sum(CmpHrvBA),2)     as CmpHrvBA,
+    round(sum(CmpRsdBA),2)     as CmpRsdBA,
+    round(sum(CmpLiveTCuFt),2) as CmpLiveTCuFt,
+    round(sum(CmpMrtTCuFt),2)  as CmpMrtTCuFt,
+    round(sum(CmpHrvTCuFt),2)  as CmpHrvTCuFt,
+    round(sum(CmpRsdTCuFt),2)  as CmpRsdTCuFt,
+    round(sum(CmpLiveMCuFt),2) as CmpLiveMCuFt,
+    round(sum(CmpMrtMCuFt),2)  as CmpMrtMCuFt,
+    round(sum(CmpHrvMCuFt),2)  as CmpHrvMCuFt,
+    round(sum(CmpRsdMCuFt),2)  as CmpRsdMCuFt,
+    round(sum(CmpLiveBdFt),2)  as CmpLiveBdFt,
+    round(sum(CmpMrtBdFt),2)   as CmpMrtBdFt,
+    round(sum(CmpHrvBdFt),2)   as CmpHrvBdFt,
+    round(sum(CmpRsdBdFt),2)   as CmpRsdBdFt 
+  from temp.CmpStdStkDBHSp
+  group by MgmtID,Year,DBHClass;
+create table temp.CmpStdStkAllAll as  
+  select MgmtID,Year,'All' as Species,'All' as DBHClass,
+    round(sum(CmpLiveTPA),2)   as CmpLiveTPA,
+    round(sum(CmpMrtTPA),2)    as CmpMrtTPA,
+    round(sum(CmpHrvTPA),2)    as CmpHrvTPA,
+    round(sum(CmpRsdTPA),2)    as CmpRsdTPA,
+    round(sum(CmpLiveBA),2)    as CmpLiveBA,
+    round(sum(CmpMrtBA),2)     as CmpMrtBA,
+    round(sum(CmpHrvBA),2)     as CmpHrvBA,
+    round(sum(CmpRsdBA),2)     as CmpRsdBA,
+    round(sum(CmpLiveTCuFt),2) as CmpLiveTCuFt,
+    round(sum(CmpMrtTCuFt),2)  as CmpMrtTCuFt,
+    round(sum(CmpHrvTCuFt),2)  as CmpHrvTCuFt,
+    round(sum(CmpRsdTCuFt),2)  as CmpRsdTCuFt,
+    round(sum(CmpLiveMCuFt),2) as CmpLiveMCuFt,
+    round(sum(CmpMrtMCuFt),2)  as CmpMrtMCuFt,
+    round(sum(CmpHrvMCuFt),2)  as CmpHrvMCuFt,
+    round(sum(CmpRsdMCuFt),2)  as CmpRsdMCuFt,
+    round(sum(CmpLiveBdFt),2)  as CmpLiveBdFt,
+    round(sum(CmpMrtBdFt),2)   as CmpMrtBdFt,
+    round(sum(CmpHrvBdFt),2)   as CmpHrvBdFt,
+    round(sum(CmpRsdBdFt),2)   as CmpRsdBdFt 
+  from temp.CmpStdStkDBHSp
+  group by MgmtID,Year; 
+create table CmpStdStk as 
+  select MgmtID,Year,Species,DBHClass,
+    round(CmpLiveTPA  ,2) as CmpLiveTPA,
+    round(CmpMrtTPA   ,2) as CmpMrtTPA,
+    round(CmpHrvTPA   ,2) as CmpHrvTPA,
+    round(CmpRsdTPA   ,2) as CmpRsdTPA,
+    round(CmpLiveBA   ,2) as CmpLiveBA,
+    round(CmpMrtBA    ,2) as CmpMrtBA,
+    round(CmpHrvBA    ,2) as CmpHrvBA,
+    round(CmpRsdBA    ,2) as CmpRsdBA,
+    round(CmpLiveTCuFt,2) as CmpLiveTCuFt,
+    round(CmpMrtTCuFt ,2) as CmpMrtTCuFt,
+    round(CmpHrvTCuFt ,2) as CmpHrvTCuFt,
+    round(CmpRsdTCuFt ,2) as CmpRsdTCuFt,
+    round(CmpLiveMCuFt,2) as CmpLiveMCuFt,
+    round(CmpMrtMCuFt ,2) as CmpMrtMCuFt,
+    round(CmpHrvMCuFt ,2) as CmpHrvMCuFt,
+    round(CmpRsdMCuFt ,2) as CmpRsdMCuFt,
+    round(CmpLiveBdFt ,2) as CmpLiveBdFt,
+    round(CmpMrtBdFt  ,2) as CmpMrtBdFt,
+    round(CmpHrvBdFt  ,2) as CmpHrvBdFt,
+    round(CmpRsdBdFt  ,2) as CmpRsdBdFt  
+  from temp.CmpStdStkDBHSp;
+insert into CmpStdStk select * from temp.CmpStdStkAllDBH; 
+insert into CmpStdStk select * from temp.CmpStdStkAllSp; 
+insert into CmpStdStk select * from temp.CmpStdStkAllAll;"   
+  
 Create_CmpSummary = "
 drop table if exists CmpSummary;
 create table CmpSummary as 
-select MgmtID,Year,
+  select MgmtID,Year,
     round(sum(Age    *SamplingWt)/sum(SamplingWt),2) as CmpAge,
     round(sum(Tpa    *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
     round(sum(BA     *SamplingWT)/sum(SamplingWt),2) as CmpBA,
@@ -250,7 +353,7 @@ select MgmtID,Year,
 Create_CmpSummary_East = "
 drop table if exists CmpSummary_East;
 create table CmpSummary_East as 
-select MgmtID,Year,
+  select MgmtID,Year,
     round(sum(Age    *SamplingWt)/sum(SamplingWt),2) as CmpAge,
     round(sum(Tpa    *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
     round(sum(BA     *SamplingWT)/sum(SamplingWt),2) as CmpBA,
