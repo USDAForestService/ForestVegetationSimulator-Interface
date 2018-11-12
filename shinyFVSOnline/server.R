@@ -2915,18 +2915,27 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
          casesToGet = paste0(tmp,".casesToGet")
          dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
          out = list()
+         cmpYes = if ("CmpMetaData" %in% tabs) 
+         { 
+           meta = try(dbReadTable(dbGlb$dbOcon,"CmpMetaData"))
+           class(meta) == "data.frame" && meta$KeywordFile == runuuid
+         } 
          for (tab in tabs)
          {
-           qry = paste0("select * from ",tab," where ",tab,".CaseID in",
-           " (select CaseID from ",casesToGet,") limit 1048576;")
+           qry = if (cmpYes && substr(tab,1,3) == "Cmp")
+             paste0("select * from ",tab," limit 1048576;") else
+             paste0("select * from ",tab," where ",tab,".CaseID in",
+                    " (select CaseID from ",casesToGet,") limit 1048576;")
           dat = try(dbGetQuery(dbGlb$dbOcon,qry))
-          if (class(dat) != "try-error") out[[tab]] = dat
+          if (class(dat) == "try-error") next
+          if (nrow(dat) == 0) next
+          out[[tab]] = dat
 cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
          dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
-  ## Download dlRenderData  
+  ## Download dlRenderData 
   output$dlRenderData <- downloadHandler(
       filename=function() paste0("table",isolate(input$dlRDType)),
       content=function (tf = tempfile())
@@ -2979,21 +2988,28 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
      content = function (tf = tempfile())	
          {
            tempDir = paste0(dirname(tf),"/tozip")
-           dir.create(tempDir)
+           if (dir.exists(tempDir)) lapply(paste0(tempDir,"/",dir(tempDir)),unlink) else
+               dir.create(tempDir)
            for (ele in input$dlZipSet)
            {
              switch (ele,
-               outdb = file.copy(from="FVSOut.db",
-                                 to=paste0(tempDir,"/FVSOut.db")),
+               outdb = {
+                 from="FVSOut.db"
+                 to=paste0(tempDir,"/FVSOut.db")
+                 if (file.exists(from)) file.copy(from=from,to=to) else
+                   cat (file=to,"Output database does not exist.\n")
+               },
                key   = {
                  from=paste0(input$runSel,".key")
-                 if (file.exists(from)) file.copy(from=from,
-                   to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSkeywords.txt"))
+                 to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSkeywords.txt") 
+                 if (file.exists(from)) file.copy(from=from,to=to) else
+                   cat (file=to,"Keyword file not yet created.\n")                   
                },
                out   = {
                  from=paste0(input$runSel,".out")
-                 if (file.exists(from)) file.copy(from=from,
-                   to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt"))
+                 to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt")
+                 if (file.exists(from)) file.copy(from=from,to=to) else
+                   cat (file=to,"Output not yet created.\n")
                },
                subdir= {
                  from=input$runSel
@@ -3003,24 +3019,23 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    dir.create (to)
                    file.copy(from=from,to=to,recursive = TRUE)
                    file.copy(from=paste0(from,"_index.svs"),to=to)
-                 }
+                 } else cat(file=paste0(tempDir,"/emptySVS.txt"),"No SVS files exist.\n")
                },              
                FVS_Data = file.copy(from="FVS_Data.db",
                                     to=paste0(tempDir,"/FVS_Data.db")),
                FVS_Runs = file.copy(from="FVS_Runs.RData",
                                     to=paste0(tempDir,"/FVS_Runs.RData")),
-               customSQL = file.copy(from="customQueries.RData",
-                                    to=paste0(tempDir,"/customQueries.RData")),
-               FVS_kcps = file.copy(from="FVS_kcps.RData",
-                                    to=paste0(tempDir,"/FVS_kcps.RData"))
+               customSQL = if (file.exists("customQueries.RData")) 
+                 file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData")),
+               FVS_kcps = if (file.exists("FVS_kcps.RData"))
+                 file.copy(from="FVS_kcps.RData",to=paste0(tempDir,"/FVS_kcps.RData"))
            )}
            curdir = getwd()
            setwd(tempDir)
            zip(tf,dir())
            unlink(tempDir,recursive = TRUE)
            setwd(curdir)
-         }, contentType="application/zip")
-      
+         }, contentType="application/zip") 
   ## kcpSel
   observe({
     if (length(input$kcpSel) == 0) return()
