@@ -3026,8 +3026,11 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                FVS_Runs = {
                  if (file.exists("FVS_Runs.RData")) 
                    file.copy(from="FVS_Runs.RData",to=paste0(tempDir,"/FVS_Runs.RData"))
+                 rdm=paste0(tempDir,"/ReadMe.txt")
+                 cat (file=rdm,append=TRUE,"Run UUIDs and titles as of:",date(),"\n")
                  for (kn in names(globals$FVS_Runs))
                  {
+                   cat (file=rdm,append=TRUE,"UUID:",kn," Title:",globals$FVS_Runs[[kn]],"\n")
                    fn = paste0(kn,".RData")
                    if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
                  }

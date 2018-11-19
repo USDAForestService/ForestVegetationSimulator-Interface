@@ -38,11 +38,9 @@ zipList <- list(
   "FVS output file for current run" = "out",	
   "SVS output files for current run" = "subdir",	
   "Input data base FVS_Data.db" = "FVS_Data",	
-  "FVS-Online runs archive (FVS_Runs.RData)" = "FVS_Runs",	
-  "Custom SQL query archive (customQueries.RData)" =	
-                                           "customSQL",	
-  "FVS-Online keyword component archive (FVS_kcps.RData)" =	
-                                           "FVS_kcps")	
+  "FVS-Online runs (RData files)" = "FVS_Runs",	
+  "Custom SQL query archive (customQueries.RData)" = "customSQL",	
+  "FVS-Online keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
 selZip <- unlist(zipList[1:4])	
 
 tableList = list()
