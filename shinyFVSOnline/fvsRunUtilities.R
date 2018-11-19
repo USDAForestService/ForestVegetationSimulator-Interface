@@ -330,6 +330,7 @@ mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
   tmpcnts = list()
   tmptags = list()                         
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
+  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL
   start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
   if (!is.null(sels) && length(sels) == 1)
   {

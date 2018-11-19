@@ -3023,8 +3023,15 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                },              
                FVS_Data = file.copy(from="FVS_Data.db",
                                     to=paste0(tempDir,"/FVS_Data.db")),
-               FVS_Runs = file.copy(from="FVS_Runs.RData",
-                                    to=paste0(tempDir,"/FVS_Runs.RData")),
+               FVS_Runs = {
+                 if (file.exists("FVS_Runs.RData")) 
+                   file.copy(from="FVS_Runs.RData",to=paste0(tempDir,"/FVS_Runs.RData"))
+                 for (kn in names(globals$FVS_Runs))
+                 {
+                   fn = paste0(kn,".RData")
+                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
+                 }
+               },
                customSQL = if (file.exists("customQueries.RData")) 
                  file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData")),
                FVS_kcps = if (file.exists("FVS_kcps.RData"))
