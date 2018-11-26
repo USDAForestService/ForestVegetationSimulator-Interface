@@ -77,7 +77,6 @@ cat ("FVSOnline/OnLocal interface server start.\n")
       # delete them from the list of runs. This code does some testing in hopes
       # of clearing up some startup-after failure problems.
       notok = c()
-
       if (length(FVS_Runs)) for (i in 1:length(FVS_Runs))
       {
         rn = names(FVS_Runs)[i]
@@ -85,6 +84,15 @@ cat ("FVSOnline/OnLocal interface server start.\n")
         ok =  !is.null(rn) && !is.null(run) && nchar(rn) && nchar(run) && rn != run && 
               !is.null(attributes(run)$time) && file.exists(paste0(rn,".RData"))
         if (!ok) notok = c(notok,i)
+      }
+      if (!is.null(attr(FVS_Runs,"stdstkParms")))
+      {
+        val = as.numeric(attr(FVS_Runs,"stdstkParms")$sdskwdbh)
+        if (!is.na(val)) updateNumericInput(session=session,inputId="sdskwdbh",
+           value=val)
+        val = as.numeric(attr(FVS_Runs,"stdstkParms")$sdskldbh)
+        if (!is.na(val)) updateNumericInput(session=session, inputId="sdskldbh",
+           value=val)
       }
 cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," notok=",notok,"\n")
       if (length(FVS_Runs) == length(notok))
@@ -168,6 +176,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     {
       saveRun()
       FVS_Runs = globals$FVS_Runs
+      attr(FVS_Runs,"stdstkParms") = isolate(list("sdskwdbh"=input$sdskwdbh,
+                                                  "sdskldbh"=input$sdskldbh))  
       save (file="FVS_Runs.RData",FVS_Runs)
       if (file.exists("projectId.txt"))
       {
@@ -234,17 +244,6 @@ cat ("View Outputs & Load\n")
     }
   })
 
-  #sdskldbh and sdskwdbh
-  observe({
-    if (input$sdskwdbh<1) updateNumericInput(session=session,
-                          inputId="sdskwdbh",value=1)
-    if (input$sdskwdbh>10) updateNumericInput(session=session,
-                           inputId="sdskwdbh",value=10)
-    if (input$sdskldbh < 2*input$sdskwdbh) updateNumericInput(session=session,
-                           inputId="sdskldbh",value=2*input$sdskwdbh)
-cat ("sdskwdbh=",input$sdskwdbh," sdskldbh",input$sdskldbh,"\n")
-  })
-
   ## output run selection
   observe({
     if (input$leftPan != "Load") return()
@@ -287,6 +286,10 @@ cat ("tb=",tb,"\n")
             dbExecute(dbGlb$dbOcon,"drop table StdStk")
           else if (tb == "CmpStdStk")
             dbExecute(dbGlb$dbOcon,"drop table CmpStdStk")
+          else if (tb == "StdStk_East")
+            dbExecute(dbGlb$dbOcon,"drop table StdStk_East")
+          else if (tb == "CmpStdStk_East")
+            dbExecute(dbGlb$dbOcon,"drop table CmpStdStk_East")
           else if (tb == "CmpMetaData")
             dbExecute(dbGlb$dbOcon,"drop table CmpMetaData")
           else if (tb == "CmpCompute")
@@ -340,33 +343,67 @@ cat ("tbs2=",tbs,"\n")
             cmp = cmp[,keep]
             dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
           }
-          tbs = c(tbs,"CmpCompute")
+          tbs = c(tbs,"CmpCompute")    
 cat ("tbs3=",tbs,"\n")
         }
-        if ("FVS_TreeList" %in% tbs)  
+        tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
+        tlprocs = names(tlprocs)[tlprocs]
+        chtoEast = function(cmd)
         {
+          cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
+          cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
+          cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
+          gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
+        }
+        for (tlp in tlprocs)          
+        {
+          if (tlp == "tlwest")
+          {
+            C_StdStkDBHSp  = Create_StdStkDBHSp
+            C_HrvStdStk    = Create_HrvStdStk
+            C_StdStk1Hrv   = Create_StdStk1Hrv
+            C_StdStk1NoHrv = Create_StdStk1NoHrv
+            C_StdStkFinal  = Create_StdStkFinal
+            C_CmpStdStk    = Create_CmpStdStk
+            detail = "Building StdStk from tree lists"
+            stdstk = "StdStk"
+            clname = "FVS_CutList"
+          } else {
+            C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
+            C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
+            C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
+            C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
+            C_StdStkFinal  = chtoEast(Create_StdStkFinal )
+            C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
+            C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
+            C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
+            C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
+            detail = "Building StdStk_East from tree lists"
+            stdstk = "StdStk_East"
+            clname = "FVS_CutList_East"
+          }
           setProgress(message = "Output query", 
-            detail  = "Building StdStk from Treelists", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,subExpression=dbhclassexp)
-          if ("FVS_CutList" %in% tbs)
+            detail  = detail, value = i); i = i+1
+          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp)
+          if (clname %in% tbs)
           {
             setProgress(message = "Output query", 
-              detail  = "Building StdStk from Cutlists", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_HrvStdStk,subExpression=dbhclassexp)
+              detail  = detail, value = i); i = i+1
+            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp)
             setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_StdStk1Hrv,subExpression=dbhclassexp)
+            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp)
           } else {
              setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,subExpression=dbhclassexp)
+            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp)
           }
-          exqury(dbGlb$dbOcon,Create_StdStkFinal)
-          tbs = c(tbs,"StdStk") 
+          exqury(dbGlb$dbOcon,C_StdStkFinal)
+          tbs = c(tbs,stdstk) 
           if (ncases > 1) 
           {
-            exqury(dbGlb$dbOcon,Create_CmpStdStk)
-            tbs = c(tbs,"CmpStdStk")
+            exqury(dbGlb$dbOcon,C_CmpStdStk)
+            tbs = c(tbs,paste0("Cmp",stdstk))
           }
         }
         if (all(Create_View_DWN_Required %in% tbs)) 
@@ -519,7 +556,7 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               if (nrow(res) > 10000) res = res[1:10000,,drop=FALSE]
               output$table <- renderTable(res)
               return()
-            }
+            }        
           }
         }
       })
@@ -634,7 +671,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
               function (x) x[2])))
         if (length(cols) == 0) return()
         tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
-          "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, "FVS_ATRTList"=8,
+          "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, 
+          "CmpStdStk_East"=1, "StdStk_East"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
@@ -642,7 +680,9 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           "FVS_Mortality"=2, "FVS_PotFire_East"=2, "FVS_PotFire"=2, "FVS_SnagSum"=2,
           "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Stnd_Sum"=2, "FVS_DM_Sz_Sum"=2,
           "FVS_RD_Sum"=2, "FVS_RD_Det"=2, "FVS_RD_Beetle"=2, "FVS_StrClass"=2,
-          "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8)
+          "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8,"FVS_ATRTList"=8,
+          "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,
+          "FVS_CutList_East"=8)
         tbg = tbgroup[tbs]
         arena = is.na(tbg)
         if (any(arena))
@@ -708,9 +748,10 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         for (tb in names(dat))      
         {
           #avoid name conflicts with the TreeList table and others.
-          if (tb %in% c("FVS_TreeList","FVS_ATRTList","FVS_CutList"))
+          if (tb %in% c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
+                   "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"))
           {
-            toren = c("TCuFt", "MCuFt", "BdFt", "PrdLen")
+            toren = c("TCuFt","MCuFt","BdFt","PrdLen","SCuFt","SBdFt")
             cols = match(toren,names(dat[[tb]]))
             names(dat[[tb]])[cols] = paste0(if (inch==0) "T." else paste0("T",inch,".",toren))
             inch = inch+1
@@ -787,9 +828,10 @@ cat ("cmd=",cmd,"\n")
             choices  = list("None loaded"), selected = NULL) else 
           updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
             selected=levels(mdat$MgmtID))
-        if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList"),names(dat))))
+        if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
+                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"),names(dat))))
           updateSelectInput(session, "plotType",selected="scat") else 
-          if ("StdStk" %in% names(dat)) 
+          if (length(intersect(c("StdStk","CmpStdStk","StdStk_East","CmpStdStk_East"),names(dat)))) 
             updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
@@ -799,8 +841,10 @@ cat ("cmd=",cmd,"\n")
           {
             sel  = levels(mdat$Year)
             isel = max(1,length(sel) %/% 2)
-            sel =  if (length(intersect(c("FVS_TreeList","StdStk"),names(dat)))) 
-                   sel[isel] else sel 
+            sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
+                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
+                "StdStk","StdStk_East","CmpStdStk","CmpStdStk_East"),names(dat)))) 
+                sel[isel] else sel 
             updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
               selected=sel)
           }
@@ -844,7 +888,7 @@ cat ("cmd=",cmd,"\n")
   {
 cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
     if (!is.null(dat) && nrow(dat) > 0)
-    {
+    {                                 
       dat = lapply(dat,function (x) 
         if (is.factor(x)) levels(x)[as.numeric(x)] else x)
       dat = as.data.frame(dat)
@@ -980,7 +1024,9 @@ cat ("browsevars/plotType\n")
   observe({
     if (is.null(input$pltby) || input$pltby  == "None") return()
     isolate({
-      if (input$pltby == input$xaxis || input$pltby == input$yaxis) 
+      if (all(!c(is.null(input$pltby),is.null(input$xaxis),is.null(input$pltby),
+                 is.null(input$yaxis))) && 
+         (input$pltby == input$xaxis || input$pltby == input$yaxis))
       {
         updateSelectInput(session=session, inputId="pltby", selected="None")
         return()
@@ -1099,7 +1145,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
       rtpa = grep ("RTpa",names(dat))[1]
-      if (!is.null(dat$Year) && !is.null(rtpa) && nrow(dat)>1) 
+      if (!is.null(dat$Year) && !is.null(rtpa) && !is.na(rtpa) && nrow(dat)>1) 
       {
         hrvFlag = vector(mode="logical",length=nrow(pd))
         i = 0
@@ -1640,7 +1686,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       globals$fvsRun$uuid  <- uuidgen()
       globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      FVS_Runs = globals$FVS_Runs
+      FVS_Runs = globals$FVS_Runs     
       save (file="FVS_Runs.RData",FVS_Runs)
       resetGlobals(globals,NULL,prms)
       updateTextInput(session=session, inputId="title", label="", 

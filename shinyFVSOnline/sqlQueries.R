@@ -8,24 +8,30 @@ exqury = function (dbcon,x,subExpression=NULL)
   }
 }   
 
-mkdbhCase = function (smdbh=4,lgdbh=40)
+mkdbhCase = function (stpdbh=4,lgdbh=40)
 {
-  classes = seq(smdbh,lgdbh,smdbh)
-  nc = nchar(as.character(classes[length(classes)])) + 1
-  nc = paste0("%",nc,".",nc,"i")
-  chrclasses = sprintf(nc,as.integer(classes))     
-  subExpression = paste0("case when (dbh <= ",classes[1],") then '", 
-                       chrclasses[1],"'")
-  for (i in 1:(length(classes)-1))
+  stpdbh=if (is.na(stpdbh) || as.numeric(stpdbh)==0 || 
+             as.character(stpdbh)=="") 4 else ceiling(stpdbh)
+  if (is.na(lgdbh ) || as.numeric(lgdbh )==0 || as.character(lgdbh )=="") lgdbh =40
+  if (stpdbh<1)       stpdbh=1
+  if (lgdbh<stpdbh*4) lgdbh=stpdbh*4
+  classes = seq(stpdbh-(stpdbh/2),lgdbh+stpdbh,stpdbh)
+  lb = classes-classes[1]
+  chrclasses = as.character(classes)
+  nc = nchar(as.character(classes[length(classes)]))
+  chrclasses = sprintf(paste0("%",nc,"s"),chrclasses)
+  chrclasses[length(chrclasses)] = paste0(lb[length(lb)],"+")
+  subExpression = paste0("case when (dbh <",lb[2],") then '", 
+                       chrclasses[1],"'")  
+  for (i in 2:(length(classes)-1))
   {
-    subExpression = paste0(subExpression," when (dbh > ",classes[i]," and dbh <= ",
-     classes[i+1],") then '", chrclasses[i+1],"'")
+    subExpression = paste0(subExpression," when (dbh >= ",lb[i]," and dbh < ",
+     lb[i+1],") then '", chrclasses[i],"'")
   }
-  subExpression = paste0(subExpression," else '",sub("0",">",chrclasses[i+1]),
-                       "' end ")
+  subExpression = paste0(subExpression," else '",chrclasses[length(chrclasses)],"' end ")
   subExpression
 }
-
+ 
 Create_CmpMetaData = "
 drop table if exists CmpMetaData; 
 create table CmpMetaData as 

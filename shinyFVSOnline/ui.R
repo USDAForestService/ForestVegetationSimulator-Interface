@@ -252,9 +252,10 @@ shinyUI(fixedPage(
               fixedRow(
                 column(width=7,
                   numericInput("sdskwdbh", "DBH class size", 4, min=1, 
-                                max=10,step=1)),
+                                max=20,step=1)),
                 column(width=5,
-                  numericInput("sdskldbh", "Large DBH", 48))),
+                  numericInput("sdskldbh", "Large DBH", 48, min=4, 
+                                max=100,step=1))),
               actionButton("bldstdsk","Rebuild StdStk"), 
           	  selectInput("selectdbtables", "Database tables to consider", 
       	        choices  = list(), size=8,
