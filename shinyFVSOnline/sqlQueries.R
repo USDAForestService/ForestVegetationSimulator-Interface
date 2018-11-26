@@ -15,20 +15,19 @@ mkdbhCase = function (stpdbh=4,lgdbh=40)
   if (is.na(lgdbh ) || as.numeric(lgdbh )==0 || as.character(lgdbh )=="") lgdbh =40
   if (stpdbh<1)       stpdbh=1
   if (lgdbh<stpdbh*4) lgdbh=stpdbh*4
-  classes = seq(stpdbh-(stpdbh/2),lgdbh+stpdbh,stpdbh)
-  lb = classes-classes[1]
-  chrclasses = as.character(classes)
+  lb = seq(stpdbh-(stpdbh/2),lgdbh+stpdbh,stpdbh)
+  lb[1] = 0
+  classes = seq(stpdbh,lgdbh,stpdbh)
   nc = nchar(as.character(classes[length(classes)]))
-  chrclasses = sprintf(paste0("%",nc,"s"),chrclasses)
-  chrclasses[length(chrclasses)] = paste0(lb[length(lb)],"+")
+  chrclasses = sprintf(paste0("%",nc,".",nc,"d"),classes)
   subExpression = paste0("case when (dbh <",lb[2],") then '", 
                        chrclasses[1],"'")  
-  for (i in 2:(length(classes)-1))
+  for (i in 2:(length(classes)))
   {
     subExpression = paste0(subExpression," when (dbh >= ",lb[i]," and dbh < ",
      lb[i+1],") then '", chrclasses[i],"'")
   }
-  subExpression = paste0(subExpression," else '",chrclasses[length(chrclasses)],"' end ")
+  subExpression = paste0(subExpression," else '",lb[length(lb)],"+' end ")
   subExpression
 }
  
