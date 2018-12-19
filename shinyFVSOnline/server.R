@@ -261,13 +261,33 @@ cat ("runs, tbs=",tbs,"\n")
         i = 1
         setProgress(message = "Output query", 
                     detail  = "Selecting tables", value = i); i = i+1
+        # set an exclusive lock on the database
+        dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = EXCLUSIVE")
+        trycnt=0
+        while (TRUE)
+        {
+          trycnt=trycnt+1
+          setProgress(message = "Getting exclusive lock", 
+                      detail  = paste0("Number of attempts=",trycnt," of 1000"))
+          if (trycnt > 1000) 
+          {
+            dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+            setProgress(value = NULL)
+            return()
+          }
+cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
+          rtn <- try(dbExecute(dbGlb$dbOcon,"create table dummy (dummy int)"))
+          if (class(rtn) != "try-error") break;
+          Sys.sleep (10)
+        } 
+        dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
         # create a temp.Cases table that is a list of CaseIDs and MgmtIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
         dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
-                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))        
+                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet)) 
         for (tb in tbs) 
         {
 cat ("tb=",tb,"\n")
@@ -411,6 +431,7 @@ cat ("tbs3=",tbs,"\n")
           exqury(dbGlb$dbOcon,Create_View_DWN)
           tbs = c(tbs,"View_DWN")
         }
+        dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
 cat ("tbs4=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
@@ -2784,8 +2805,7 @@ cat ("load rFVS cmd=",cmd,"\n")
 cat ("load FVSpgm cmd=",cmd,"\n")          
         rtn = try(eval(parse(text=cmd)))
         if (class(rtn) == "try-error") return()          
-        # if not using the default run script, load the one requested.
-    
+        # if not using the default run script, load the one requested.    
         if (globals$fvsRun$runScript != "fvsRun")
         {
           cmd = paste0("clusterEvalQ(fvschild,",
@@ -4239,7 +4259,24 @@ cat ("index creation, qry=",qry,"\n")
   ## addNewDB
   observe({  
     if (input$addNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return()
+    if (is.null(dbGlb$newFVSData)) return() 
+    # set an exclusive lock on the database
+    dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = EXCLUSIVE")
+    trycnt=0
+    while (TRUE)
+    {
+      trycnt=trycnt+1
+      if (trycnt > 1000) 
+      {
+        dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
+        return()
+      }
+cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
+      rtn <- try(dbExecute(dbGlb$dbIcon,"create table dummy (dummy int)"))
+      if (class(rtn) != "try-error") break;
+      Sys.sleep (10)
+    } 
+    dbExecute(dbGlb$dbIcon,"drop table if exists dummy")    
     oldInds = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='index';")[,1]
     for (idx in oldInds) dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",idx,";"))
     oldtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
@@ -4320,6 +4357,7 @@ cat ("homogenize qry=",qry,"\n")
         dbExecute(dbGlb$dbIcon,paste0("create index ",tbinx," on ",tb," (Stand_ID);"))
       }
     }
+    dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))

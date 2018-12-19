@@ -232,7 +232,7 @@ shinyUI(fixedPage(
                 uiOutput("uiRunPlot"),
                 uiOutput("uiErrorScan"),
             	  selectInput("bkgRuns", "Background run status", 
-        	        choices  = list(), size=2, width = "75%", selected = NULL, selectize=FALSE),
+        	        choices  = list(), size=4, width = "95%", selected = NULL, selectize=FALSE),
                 actionButton("bkgKill","Kill selected background run"),
                 actionButton("bkgRefresh","Refresh list")
               )

@@ -194,9 +194,8 @@ cat("writeKeyFile, num stds=",length(stds),
       ' where Stand_ID in (select RunStds from temp.RunStds)'))
   names(fvsInit) = toupper(names(fvsInit))
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
-  source("autoOutKeys.R")
+  source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
-  if (!is.na(match("mist",extns))) defaultOutMist=NULL
   fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
   cat ("!!uuid: ",fvsRun$uuid,"\n",file=fc)
@@ -233,7 +232,6 @@ cat("writeKeyFile, num stds=",length(stds),
        cat ("TimeInt      ",as.character(i),"      ",ints[i],"\n",file=fc)
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
     cat (defaultOut,file=fc)
-    if (!is.na(match("mist",extns))) cat (defaultOutMist,file=fc)
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
     autos = unlist(fvsRun$autoOut)
     autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else
@@ -996,7 +994,7 @@ cat ("ncases to delete=",nr,"\n")
                      "select CaseID from ",todel,")")
 cat ("qry=",qry,"\n")                      
         dbExecute(dbcon,qry)
-        nr = dbGetQuery(dbcon,paste0("select count(*) from ",tab))[,1]
+        nr = nrow(dbGetQuery(dbcon,paste0("select CaseID from ",tab," limit 1")))
 cat ("nr=",nr,"\n")                      
         if (nr == 0) dbExecute(dbcon,paste0("drop table ",tab))
       } else dbExecute(dbcon,paste0("drop table ",tab)) 
@@ -1006,15 +1004,49 @@ cat ("nr=",nr,"\n")
   dbExecute(dbcon,paste0("detach database '",tmpDel,"'"))
 }
 
+mkDBIndices <- function(dbcon)
+{
+  tabs = dbGetQuery(dbcon,"select * from sqlite_master")[,1:2]
+  if (nrow(tabs)==0) return()
+  fvs=grep("FVS_",tabs$name,fixed=TRUE)
+  if (length(fvs)==0) return()
+  todo=sub("FVS_","",tabs$name[fvs])
+  idx=grep("IDX_",tabs$name,fixed=TRUE)
+  if (length(idx)) todo=setdiff(todo,sub("IDX_","",tabs$name[idx]))
+  for (mk in todo)
+  {
+    qry=paste0("create index IDX_",mk," on FVS_",mk," (CaseID);")
+cat ("qry=",qry,"\n")
+    dbExecute(dbcon,qry)
+  }
+}
 
 addNewRun2DB <- function(runuuid,dbcon)
 {
   # dbcon is the connection to the existing output database
   # runuuid is the uuid of the run that will be merged to the output database
 
-cat ("addNewRun2DB, runuuid=",runuuid,"\n")  
+cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
   if (! (file.exists(fn) && file.size(fn))) return("no new database found")
+  #get and hold an exclusive lock, wait if one can't be obtained.
+  trycnt=0
+  dbExecute(dbcon,"PRAGMA locking_mode = EXCLUSIVE")
+  while (TRUE)
+  {
+    trycnt=trycnt+1
+    if (trycnt > 1000) 
+    {
+      dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
+      return("could not get exclusive lock.")
+    }
+cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
+    rtn <- try(dbExecute(dbcon,"create table dummy (dummy int)"))
+    if (class(rtn) != "try-error") break;
+    Sys.sleep (10)
+  } 
+  dbExecute(dbcon,"drop table if exists dummy")
+  mkDBIndices(dbcon)
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
 cat ("qry=",qry,"\n") 
@@ -1039,9 +1071,7 @@ cat ("nrow(res)=",nrow(res),"\n")
     dbExecute(dbcon,paste0("detach database '",newrun,"'"))
     return("no new cases found in new run")
   }
-
-  deleteRelatedDBRows(runuuid,dbcon)
-   
+  deleteRelatedDBRows(runuuid,dbcon)   
   tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
 cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
@@ -1082,6 +1112,9 @@ cat ("qry=",qry,"\n")
   }    
   dbExecute(dbcon,paste0("detach database '",newrun,"'"))
   unlink(fn)
+  mkDBIndices(dbcon)
+  dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
+  dbExecute(dbcon,"select * from FVS_Cases limit 1") 
   "data inserted"
 }                                                    
 

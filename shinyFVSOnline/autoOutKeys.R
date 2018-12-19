@@ -27,7 +27,7 @@ Cutlist        2
 End
 "
 
-autoCarbon="
+autoCarbon = if ("fire" %in% extns) "
 * FVS_Carbon, FVS_Hrv_Carbon, FVS_Fuels, FVS_Consumption
 FMIn
 CarbRept        2
@@ -41,9 +41,9 @@ CarbRpts        2
 FuelRept        2
 FuelsOut        2
 End
-"
+" else NULL
 
-autoFire="
+autoFire = if ("fire" %in% extns) "
 * FVS_Potfire, FVS_BurnReport, FVS_Mortality
 FMIn
 MortRept        0
@@ -55,9 +55,9 @@ MortRept        2        2
 BurnRept        2
 PotFire         2
 End
-"
+" else NULL
 
-autoDead="
+if ("fire" %in% extns) autoDead="
 *FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
 FMIn
 SnagSum
@@ -69,7 +69,7 @@ SnagSum        2
 DWDVlout       2
 DWDCvOut       2
 End
-"
+" else NULL
 
 autoSVS="
 SVS                3                   2         1        15
@@ -90,51 +90,50 @@ CalbStat
 End
 "
 
-autoClimate="
+if ("climate" %in% extns) autoClimate="
 Database
 Climate
 End
-"
+" else NULL
 
-autoCanProfile="
+if ("fire" %in% extns) autoCanProfile="
 FMIn
 CanfProf
 End
-"
+" else NULL
 
-autoSnagDet="
+if ("fire" %in% extns) autoSnagDet="
 FMIn
 SnagOut
 End
 Database
 SnagOut        2         2
 End
+" else NULL
 
-"
-
-autoDM_Sz_Sum="
+if ("mist" %in% extns) autoDM_Sz_Sum="
 Mistoe
 MistPrt         1
 End
-"
+" else NULL
 
-autoRD_Sum="
+if ("phewrd3" %in% extns) autoRD_Sum="
 Database
 RDSum
 End
-"
+" else NULL
 
-autoRD_Det="
+if ("phewrd3" %in% extns) autoRD_Det="
 Database
 RDDetail
 End
-"
+" else NULL
 
-autoRD_Beetle="
+autoRD_Beetle = if ("phewrd3" %in% extns) "
 Database
 RDBBMort
 End
-"
+" else NULL
 
 autoStrClass="
 StrClass
