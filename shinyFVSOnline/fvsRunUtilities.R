@@ -179,7 +179,7 @@ cat("findCmp, cmp=",cmp,"\n")
 }
 
 
-writeKeyFile <- function (fvsRun,dbIcon,prms)
+writeKeyFile <- function (fvsRun,dbIcon,prms,newSum=TRUE)
 {
   stds = unlist(lapply(fvsRun$stands,function(x) x$sid))
 cat("writeKeyFile, num stds=",length(stds),
@@ -196,6 +196,7 @@ cat("writeKeyFile, num stds=",length(stds),
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
+  if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
   cat ("!!uuid: ",fvsRun$uuid,"\n",file=fc)

@@ -10,11 +10,15 @@
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmout">View Outputs</a> 
 		</p>
+		<li><p style="margin-bottom: 0in"><a href="#outputTables">Output Table Descriptions</a> 
+		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmsvs">SVS3d</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmmaps">Maps</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmin">Import Data</a>
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#inputTables">Input Table Descriptions</a> 
 		</p>
 		<li><p><a href="#tmtool">Tools</a> 
 		</p>
@@ -201,8 +205,9 @@ want to then <b>Explore</b>. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
 you wish to explore. Composite summary statistics tables are created
-for the runs (table name: CmpSummary; composits are weighted averages grouped
-by management ids) and if treelist tables exist,
+for the runs (table name: CmpSummary, CmpSummary2, or the "East" versions of these) 
+where the composites are weighted averages of corresponding FVS_Summary tables grouped
+by management ids. If treelist tables exist,
 stand and stock tables (table name StdStk; CmpStdStk for the composites) 
 are also created. If you wish, you can limit the database columns you want to 
 explore but the default is to select all the columns from selected tables. The system
@@ -269,6 +274,11 @@ joined to tables in the output. A <i>query</i> can
 actually be several queries each separated by a semicolon. They can
 be stored and recovered for later use. Lastly, comments can be included in 
 the query by surrounding it with /*  */ character sequences.
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="outputTables"></a>Available output tables</h4>
+**OUTPUTHTML**
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
@@ -346,7 +356,13 @@ type in the proj4 string into the text box if you know what it is. Note the the
 projection is set or reset here but the spatial data is not reprojected. 
 Any needed reprojection is done automatically.</p>
 
-<p><a href="#contents">Back to contents</a></p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="inputTables"></a>Input tables</h4>
+**INPUTHTML**
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
 <h4><a name="tmtool"></a>Tools</h4>
 
 <p>Use <b>Manage projects</b> to access tools that allow you to delete the runs 

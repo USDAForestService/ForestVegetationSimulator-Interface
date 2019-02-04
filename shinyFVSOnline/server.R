@@ -220,7 +220,7 @@ cat ("initTableGraphTools\n")
     updateSelectInput(session,"species",choices=choices,select=NULL)
     updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
     output$table <- renderTable(NULL)
-  }
+  }                          
 
 cat ("getwd= ",getwd(),"\n")
   
@@ -281,7 +281,7 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
           Sys.sleep (10)
         } 
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
-        # create a temp.Cases table that is a list of CaseIDs and MgmtIDs 
+        # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
@@ -293,27 +293,10 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
 cat ("tb=",tb,"\n")
           cnt = 0
           if (tb == "FVS_Cases") next
-          # lines to delete Composite and Composite_East can be deleted some day!
-          else if (tb == "Composite") 
-            dbExecute(dbGlb$dbOcon,"drop table Composite")
-          else if (tb == "Composite_East")
-            dbExecute(dbGlb$dbOcon,"drop table Composite_East")
-          else if (tb == "CmpSummary")
-            dbExecute(dbGlb$dbOcon,"drop table CmpSummary")
-          else if (tb == "CmpSummary_East")
-            dbExecute(dbGlb$dbOcon,"drop table CmpSummary_East")
-          else if (tb == "StdStk")
-            dbExecute(dbGlb$dbOcon,"drop table StdStk")
-          else if (tb == "CmpStdStk")
-            dbExecute(dbGlb$dbOcon,"drop table CmpStdStk")
-          else if (tb == "StdStk_East")
-            dbExecute(dbGlb$dbOcon,"drop table StdStk_East")
-          else if (tb == "CmpStdStk_East")
-            dbExecute(dbGlb$dbOcon,"drop table CmpStdStk_East")
-          else if (tb == "CmpMetaData")
-            dbExecute(dbGlb$dbOcon,"drop table CmpMetaData")
-          else if (tb == "CmpCompute")
-            dbExecute(dbGlb$dbOcon,"drop table CmpCompute")
+          if (tb %in% c("CmpSummary","CmpSummary_East",
+              "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
+              "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
+              dbExecute(dbGlb$dbOcon,paste0("drop table ",tb))
           else 
           {
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
@@ -343,6 +326,22 @@ cat ("tbs1=",tbs,"\n")
             detail  = "Building CmpSummary_East", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_CmpSummary_East)
           tbs = c(tbs,"CmpSummary_East")
+cat ("tbs2=",tbs,"\n")
+        }
+        if ("FVS_Summary2" %in% tbs && ncases > 1)
+        {
+          setProgress(message = "Output query", 
+            detail  = "Building CmpSummary2", value = i); i = i+1
+          exqury(dbGlb$dbOcon,Create_CmpSummary2)
+          tbs = c(tbs,"CmpSummary2")
+cat ("tbs1=",tbs,"\n")
+        }
+        if ("FVS_Summary2_East" %in% tbs && ncases > 1)
+        {
+          setProgress(message = "Output query", 
+            detail  = "Building CmpSummary2_East", value = i); i = i+1
+          exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
+          tbs = c(tbs,"CmpSummary2_East")
 cat ("tbs2=",tbs,"\n")
         }
         if ("FVS_Compute" %in% tbs && ncases > 1)
@@ -448,11 +447,12 @@ cat ("tbs4=",tbs,"\n")
           
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
         tbs = sort(tbs)
-        sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
+        sel = intersect(tbs, c("FVS_Summary2","FVS_Summary2_East")) #not both!
+        if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
                           selected=sel)
-        setProgress(value = NULL)          
+        setProgress(value = NULL) 
       }, min=1, max=6)
     } else
     {
@@ -692,6 +692,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
               function (x) x[2])))
         if (length(cols) == 0) return()
         tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
+          "CmpSummary2"=1, "CmpSummary2_East"=1,
           "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, 
           "CmpStdStk_East"=1, "StdStk_East"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
@@ -718,14 +719,16 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
-          if (tb == "CmpSummary" || tb == "CmpSummary_East") 
+          if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2","CmpSummary2_East")) 
           {            
-            dtab = dbReadTable(dbGlb$dbOcon,tb)
-            dtab <- ddply(dtab,.(MgmtID),.fun=function (x) 
-                   setupSummary(x,composite=TRUE))
-            dtab$Year=as.factor(dtab$Year) 
-            dtab$MgmtID=as.factor(dtab$MgmtID) 
-            dat[[tb]] = dtab
+            dtab <- dbReadTable(dbGlb$dbOcon,tb)
+            if (tb %in% c("CmpSummary","CmpSummary_East")) 
+              dtab <- ddply(dtab,.(MgmtID),.fun=function (x) 
+                      setupSummary(x,composite=TRUE)) else
+              dtab$RmvCode <- as.factor(dtab$RmvCode)   
+            dtab$Year <- as.factor(dtab$Year) 
+            dtab$MgmtID <- as.factor(dtab$MgmtID) 
+            dat[[tb]] <- dtab
           } else {
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
@@ -743,6 +746,12 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$ForTyp =as.factor(dtab$ForTyp)
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
+            } else if (tb == "FVS_Summary2" || tb == "FVS_Summary2_East") 
+            { 
+              dtab$ForTyp =as.factor(dtab$ForTyp)
+              dtab$SizeCls=as.factor(dtab$SizeCls)
+              dtab$StkCls =as.factor(dtab$StkCls)
+              dtab$RmvCode=as.factor(dtab$RmvCode) 
             } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
@@ -793,8 +802,8 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
         vars = colnames(mdat)
-        sby = intersect(c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-                  "TreeIndex","Species","DBHClass"),vars)
+        sby = intersect(vars,c("MgmtID","StandID","Stand_CN","Year","PtIndex",
+           "TreeIndex","Species","DBHClass"))
         sby = if (length(sby)) 
         {
           cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
@@ -1165,20 +1174,23 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
-      rtpa = grep ("RTpa",names(dat))[1]
-      if (!is.null(dat$Year) && !is.null(rtpa) && !is.na(rtpa) && nrow(dat)>1) 
-      {
-        hrvFlag = vector(mode="logical",length=nrow(pd))
-        i = 0
-        while (i < nrow(dat)-1) {
-          i = i+1;
-          if (dat$Year[i]==dat$Year[i+1] && dat[i+1,rtpa]>0)
-          {
-            hrvFlag[i]=TRUE
-            i=i+1
+      if (is.null(dat[["RmvCode"]]))
+      {                
+        rtpa = grep ("RTpa",names(dat))[1]
+        if (!is.null(dat$Year) && !is.null(rtpa) && !is.na(rtpa) && nrow(dat)>1) 
+        {
+          hrvFlag = vector(mode="logical",length=nrow(pd))
+          i = 0
+          while (i < nrow(dat)-1) {
+            i = i+1;
+            if (dat$Year[i]==dat$Year[i+1] && dat[i+1,rtpa]>0)
+            {
+              hrvFlag[i]=TRUE
+              i=i+1
+            }
           }
-        }
-      }
+        } 
+      } else hrvFlag = dat[["RmvCode"]] == 1
     }
     nd = na.omit(nd)
     omits = as.numeric(attr(nd,"na.action"))
@@ -2550,7 +2562,7 @@ cat ("kwPname=",kwPname,"\n")
                    "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
         } 
         reopn = NULL
-        fn = 0
+        fn = 0              
         repeat
         {
           fn = fn+1
@@ -2688,7 +2700,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
         saveRun()
 cat("Nulling uiRunPlot at Save and Run\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
-        globals$currentQuickPlot = character(0)
+        globals$currentQuickPlot = character(0)                                  
         selChoices = names(globals$FVS_Runs)
         names(selChoices) = globals$FVS_Runs
         updateSelectInput(session=session, inputId="runSel", 
@@ -2705,15 +2717,16 @@ cat("Nulling uiRunPlot at Save and Run\n")
         updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and prepare program", value = 3)
-        writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms)
+          detail = "Write .key file and prepare program", value = 3) 
+        writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=!("FVS_Summary" %in% 
+          dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[[1]]))
         if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
         {
 cat ("keyword file was not created.\n")
           progress$set(message = "Error: Keyword file was not created.",
                       detail = "", value = 3) 
           Sys.sleep(3)
-          progress$close()
+          progress$close()     
           return()
         }          
         dir.create(globals$fvsRun$uuid)
@@ -3924,16 +3937,50 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
   observe(if (input$rpPlotAdd > 0) 
     appendPlotToReport(width =fvsOutData$plotSpecs$width,
                        height=fvsOutData$plotSpecs$width))
-  
+
+  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx")
+  {
+    if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
+    sheets = getSheetNames(xlsxfile)
+    if (tab %in% sheets)
+    {
+      sdat = read.xlsx(xlsxFile=xlsxfile,sheet=tab)
+      html = paste0("<b>",tab,"</b>")
+      html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
+             paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
+      for (i in 1:nrow(sdat)) html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
+          collapse="</TD><TD>"),"</TD></TR>\n")
+      html = paste0(html,"</TABLE><br>")
+      return (html)
+    } else return (NULL)
+  } 
   ##topHelp
   observe({
     if (input$topPan == "Help")
     {
       fn = "fvsOnlineHelp.html"
-      help = readChar(fn, file.info(fn)$size)     
+      help = readChar(fn, file.info(fn)$size) 
+      xlsxfile="databaseDescription.xlsx"
+      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
+      if (class(tabs)!="try-error")
+      {
+        morehtml=xlsx2html(tab="OutputTableDescriptions")
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
+        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                pattern="**OUTPUTHTML**",replacement=morehtml)
+      }
+      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
+      if (class(tabs)!="try-error")                                                         
+      {
+        morehtml=xlsx2html(tab="InputTableDescriptions")
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
+        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                pattern="**INPUTHTML**",replacement=morehtml)
+      }
       output$uiHelpText <- renderUI(HTML(help))
     }
   })
+  
   ##tabDescSel
   observe({
     tab = input$tabDescSel
@@ -3961,6 +4008,7 @@ cat ("tabDescSel, tab=",tab,"\n")
     }
     output$tabDesc <- renderUI(HTML(html))
   })
+
   
   ##### data upload code  
   observe({

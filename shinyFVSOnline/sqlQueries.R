@@ -383,7 +383,182 @@ create table CmpSummary_East as
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
+Create_CmpSummary2 = "
+drop table if exists temp.CmpSummary2A;
+create table temp.CmpSummary2A as 
+ select MgmtID,Year,RmvCode,
+    round(sum(Age      *SamplingWt)/sum(SamplingWt),2) as CmpAge,
+    round(sum(Tpa      *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
+    round(sum(TprdTpa  *SamplingWT)/sum(SamplingWt),2) as CmpTprdTpa,    
+    round(sum(BA       *SamplingWT)/sum(SamplingWt),2) as CmpBA,
+    round(sum(SDI      *SamplingWT)/sum(SamplingWt),2) as CmpSDI,    
+    round(sum(CCF      *SamplingWT)/sum(SamplingWt),2) as CmpCCF,
+    round(sum(TopHt    *SamplingWT)/sum(SamplingWt),2) as CmpTopHt,
+    round(sum(QMD      *SamplingWT)/sum(SamplingWt),2) as CmpQMD,
+    round(sum(TCuFt    *SamplingWT)/sum(SamplingWt),2) as CmpTCuFt,
+    round(sum(TprdTCuFt*SamplingWT)/sum(SamplingWt),2) as CmpTprdTCuFt,
+    round(sum(MCuFt    *SamplingWT)/sum(SamplingWt),2) as CmpMCuFt,
+    round(sum(TprdMCuFt*SamplingWT)/sum(SamplingWt),2) as CmpTprdMCuFt,
+    round(sum(BdFt     *SamplingWT)/sum(SamplingWt),2) as CmpBdFt,
+    round(sum(TprdBdFt *SamplingWT)/sum(SamplingWt),2) as CmpTPrdBdFt,
+    round(sum(RTpa     *SamplingWT)/sum(SamplingWt),2) as CmpRTpa,  
+    round(sum(RTCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRTCuFt,      
+    round(sum(RMCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRMCuFt,
+    round(sum(RBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpRBdFt,
+    round(sum(SamplingWt                          ),2) as CmpSamplingWt
+  from (select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases))
+  join FVS_Cases using (CaseID)   
+  group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
+ 
+drop table if exists temp.CmpSummary2B;
+create table temp.CmpSummary2B as 
+ select MgmtID,Year,RmvCode,max(RmvCode) as newRmv,
+    round(sum(CmpAge      *CmpSamplingWt)/sum(CmpSamplingWt),2) as CmpAge,
+    round(sum(CmpTpa      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTpa,    
+    round(sum(CmpTprdTpa  *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTpa,    
+    round(sum(CmpBA       *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBA,
+    round(sum(CmpSDI      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSDI,    
+    round(sum(CmpCCF      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpCCF,
+    round(sum(CmpTopHt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTopHt,
+    round(sum(CmpQMD      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpQMD,
+    round(sum(CmpTCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTCuFt,
+    round(sum(CmpTprdTCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTCuFt,
+    round(sum(CmpMCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpMCuFt,
+    round(sum(CmpTprdMCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdMCuFt,
+    round(sum(CmpBdFt     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBdFt,
+    round(sum(CmpTprdBdFt *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTPrdBdFt,
+    round(sum(CmpRTpa     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTpa,  
+    round(sum(CmpRTCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTCuFt,      
+    round(sum(CmpRMCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRMCuFt,
+    round(sum(CmpRBdFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRBdFt,
+    round(sum(CmpSamplingWt                          ),2) as CmpSamplingWt
+  from temp.CmpSummary2A where RmvCode in (0,1)
+  group by MgmtID,Year order by MgmtID,Year;
+
+insert into temp.CmpSummary2B 
+ select MgmtID,Year,RmvCode,max(RmvCode) as newRmv,
+    round(sum(CmpAge      *CmpSamplingWt)/sum(CmpSamplingWt),2) as CmpAge,
+    round(sum(CmpTpa      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTpa,    
+    round(sum(CmpTprdTpa  *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTpa,    
+    round(sum(CmpBA       *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBA,
+    round(sum(CmpSDI      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSDI,    
+    round(sum(CmpCCF      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpCCF,
+    round(sum(CmpTopHt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTopHt,
+    round(sum(CmpQMD      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpQMD,
+    round(sum(CmpTCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTCuFt,
+    round(sum(CmpTprdTCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTCuFt,
+    round(sum(CmpMCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpMCuFt,
+    round(sum(CmpTprdMCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdMCuFt,
+    round(sum(CmpBdFt     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBdFt,
+    round(sum(CmpTprdBdFt *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTPrdBdFt,
+    round(sum(CmpRTpa     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTpa,  
+    round(sum(CmpRTCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTCuFt,      
+    round(sum(CmpRMCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRMCuFt,
+    round(sum(CmpRBdFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRBdFt,
+    round(sum(CmpSamplingWt                          ),2) as CmpSamplingWt
+  from temp.CmpSummary2A where RmvCode in (0,2)
+  group by MgmtID,Year order by MgmtID,Year;
   
+drop table if exists CmpSummary2;
+create table CmpSummary2 as 
+  select distinct MgmtID,Year,newRmv as RmvCode,CmpAge,CmpTpa,CmpTprdTpa,  
+    CmpBA,CmpSDI,CmpCCF,CmpTopHt,CmpQMD,CmpTCuFt,
+    CmpTprdTCuFt,CmpMCuFt,CmpTprdMCuFt,CmpBdFt,CmpTPrdBdFt,
+    CmpRTpa,CmpRTCuFt,CmpRMCuFt,CmpRBdFt,CmpSamplingWt
+ from temp.CmpSummary2B
+ order by MgmtID,Year,RmvCode;
+drop table if exists temp.CmpSummary2A;
+drop table if exists temp.CmpSummary2B;"
+
+Create_CmpSummary2_East = "
+drop table if exists temp.CmpSummary2_EastA;
+create table temp.CmpSummary2_EastA as 
+ select MgmtID,Year,RmvCode,
+    round(sum(Age      *SamplingWt)/sum(SamplingWt),2) as CmpAge,
+    round(sum(Tpa      *SamplingWT)/sum(SamplingWt),2) as CmpTpa,    
+    round(sum(TprdTpa  *SamplingWT)/sum(SamplingWt),2) as CmpTprdTpa,    
+    round(sum(BA       *SamplingWT)/sum(SamplingWt),2) as CmpBA,
+    round(sum(SDI      *SamplingWT)/sum(SamplingWt),2) as CmpSDI,    
+    round(sum(CCF      *SamplingWT)/sum(SamplingWt),2) as CmpCCF,
+    round(sum(TopHt    *SamplingWT)/sum(SamplingWt),2) as CmpTopHt,
+    round(sum(QMD      *SamplingWT)/sum(SamplingWt),2) as CmpQMD,
+    round(sum(MCuFt    *SamplingWT)/sum(SamplingWt),2) as CmpMCuFt,
+    round(sum(TprdMCuFt*SamplingWT)/sum(SamplingWt),2) as CmpTprdMCuFt,
+    round(sum(SCuFt    *SamplingWT)/sum(SamplingWt),2) as CmpSCuFt,
+    round(sum(TprdSCuFt*SamplingWT)/sum(SamplingWt),2) as CmpTprdSCuFt,
+    round(sum(SBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpSBdFt,
+    round(sum(TprdSBdFt*SamplingWT)/sum(SamplingWt),2) as CmpTPrdSBdFt,
+    round(sum(RTpa     *SamplingWT)/sum(SamplingWt),2) as CmpRTpa,  
+    round(sum(RMCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRMCuFt,      
+    round(sum(RSCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSCuFt,
+    round(sum(RSBdFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSBdFt,
+    round(sum(SamplingWt                          ),2) as CmpSamplingWt
+  from (select * from FVS_Summary2_East where CaseID in (select CaseID from temp.Cases))
+  join FVS_Cases using (CaseID) 
+  group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
+ 
+drop table if exists temp.CmpSummary2_EastB;
+create table temp.CmpSummary2_EastB as 
+ select MgmtID,Year,RmvCode,
+    max(RmvCode) as newRmv,
+    round(sum(CmpAge      *CmpSamplingWt)/sum(CmpSamplingWt),2) as CmpAge,
+    round(sum(CmpTpa      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTpa,    
+    round(sum(CmpTprdTpa  *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTpa,    
+    round(sum(CmpBA       *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBA,
+    round(sum(CmpSDI      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSDI,    
+    round(sum(CmpCCF      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpCCF,
+    round(sum(CmpTopHt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTopHt,
+    round(sum(CmpQMD      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpQMD,
+    round(sum(CmpMCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpMCuFt,
+    round(sum(CmpTprdMCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdMCuFt,
+    round(sum(CmpSCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSCuFt,
+    round(sum(CmpTprdSCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdSCuFt,
+    round(sum(CmpSBdFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSBdFt,
+    round(sum(CmpTprdSBdFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTPrdSBdFt,
+    round(sum(CmpRTpa     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTpa,  
+    round(sum(CmpRMCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRMCuFt,      
+    round(sum(CmpRSCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRSCuFt,
+    round(sum(CmpRSBdFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRSBdFt,
+    round(sum(CmpSamplingWt                          ),2) as CmpSamplingWt
+  from temp.CmpSummary2_EastA where RmvCode in (0,1)
+  group by MgmtID,Year order by MgmtID,Year;
+
+insert into temp.CmpSummary2_EastB 
+ select MgmtID,Year,RmvCode,max(RmvCode) as newRmv,
+    round(sum(CmpAge      *CmpSamplingWt)/sum(CmpSamplingWt),2) as CmpAge,
+    round(sum(CmpTpa      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTpa,    
+    round(sum(CmpTprdTpa  *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdTpa,    
+    round(sum(CmpBA       *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpBA,
+    round(sum(CmpSDI      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSDI,    
+    round(sum(CmpCCF      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpCCF,
+    round(sum(CmpTopHt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTopHt,
+    round(sum(CmpQMD      *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpQMD,
+    round(sum(CmpMCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpMCuFt,
+    round(sum(CmpTprdMCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdMCuFt,
+    round(sum(CmpSCuFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSCuFt,
+    round(sum(CmpTprdSCuFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTprdSCuFt,
+    round(sum(CmpSBdFt    *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpSBdFt,
+    round(sum(CmpTprdSBdFt*CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpTPrdSBdFt,
+    round(sum(CmpRTpa     *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRTpa,  
+    round(sum(CmpRMCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRMCuFt,      
+    round(sum(CmpRSCuFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRSCuFt,
+    round(sum(CmpRSBdFt   *CmpSamplingWT)/sum(CmpSamplingWt),2) as CmpRSBdFt,
+    round(sum(CmpSamplingWt                          ),2) as CmpSamplingWt
+  from temp.CmpSummary2_EastA where RmvCode in (0,2)
+  group by MgmtID,Year order by MgmtID,Year;
+  
+drop table if exists CmpSummary2_East;
+create table CmpSummary2_East as 
+  select distinct MgmtID,Year,newRmv as RmvCode,CmpAge,CmpTpa,CmpTprdTpa,  
+    CmpBA,CmpSDI,CmpCCF,CmpTopHt,CmpQMD,CmpMCuFt,
+    CmpTprdMCuFt,CmpSCuFt,CmpTprdSCuFt,CmpSBdFt,CmpTPrdSBdFt,
+    CmpRTpa,CmpRMCuFt,CmpRSCuFt,CmpRSBdFt,CmpSamplingWt
+ from temp.CmpSummary2_EastB
+  order by MgmtID,Year,RmvCode;
+drop table if exists temp.CmpSummary2_EastA;
+drop table if exists temp.CmpSummary2_EastB;"
+
+
 Create_CmpCompute = "
 drop table if exists CmpCompute;
 create table CmpCompute as
