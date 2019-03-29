@@ -53,7 +53,9 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       numberBox      = mkTextInput (pkey, pmt, choices, fpvs), 
       intNumberBox   = mkTextInput (pkey, pmt, choices, fpvs), 
       textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
-      longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs), 
+      longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs),
+      forestSelection = mkSelForest(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
+      habPaSelection = mkSelhabPa(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
       fileBrowse     = {
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 
@@ -117,17 +119,71 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
     "radiogroup"=myRadioGroup(inputId,label,
          mklist,selected=sel),
-     myInlineListButton (inputId, label, mklist, selected=sel))
+     myInlineListButton (inputId, label, mklist, selected=sel,deltll=NULL))
 }
-      
 
-mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
+mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
 {
+  forkeys <- prms[[paste0("HabPa_",variant)]]
+  choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
+  addAll = grep ("^blank",choices)
+  if (length(addAll))
+  { 
+    choices = choices[-addAll]
+    if (length(choices)==0) choices=NULL
+    addAll = FALSE
+  } else addAll = TRUE
+  fors = if (addAll) list("All species") else list ()
+  for (f in forkeys) fors <- append(fors,attr(f,"pstring"))
+  dsp = if (addAll) as.list(c("All",unlist(forkeys))) else forkeys
+  if (!is.null(fpvs)) 
+  {
+    if (fpvs == -1) 
+    {
+      sps <- append(sps," ",after=0)
+      dsp <- append(dsp," ",after=0)
+    } else choices = fpvs
+  }
+  names(dsp) = fors
+  spGrp=NULL
+  myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
+}
+
+mkSelForest <- function (pkey,prms,pmt,fpvs,choices,variant)
+{
+forkeys <- prms[[paste0("Forests_",variant)]]
+choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
+addAll = grep ("^blank",choices)
+if (length(addAll))
+{ 
+choices = choices[-addAll]
+if (length(choices)==0) choices=NULL
+addAll = FALSE
+} else addAll = TRUE
+fors = if (addAll) list("All species") else list ()
+for (f in forkeys) fors <- append(fors,attr(f,"pstring"))
+dsp = if (addAll) as.list(c("All",unlist(forkeys))) else forkeys
+if (!is.null(fpvs)) 
+{
+  if (fpvs == -1) 
+  {
+    sps <- append(sps," ",after=0)
+    dsp <- append(dsp," ",after=0)
+  } else choices = fpvs
+}
+names(dsp) = fors
+spGrp=NULL
+myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
+}
+
+    
+mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
+{ spGrp <- as.numeric()
   spkeys <- prms[[paste0("species_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
   addAll = grep ("^deleteAll",choices)
   if (length(addAll))
-  {
+  { spGrp <- 1
     choices = choices[-addAll]
     if (length(choices)==0) choices=NULL
     addAll = FALSE
@@ -142,9 +198,23 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
       sps <- append(sps," ",after=0)
       dsp <- append(dsp," ",after=0)
     } else choices = fpvs
-  } 
+  }
+  if (length(globals$GenGrp)){
+    if (length(globals$GrpNum)){
+      sptitles<-list ()
+      for(spt in 1:length(globals$GrpNum))
+      {
+        sptitles[spt] <- paste0("SpGroup:",globals$GenGrp[spt])
+      }
+      sps <- append(sps,sptitles)
+      dsp <- as.list(c(unlist(dsp),as.character(globals$GenGrp)))
+      names(dsp) = sps
+    }
+  }else
   names(dsp) = sps
-  myInlineListButton (pkey, pmt, dsp, selected = choices)
+  if (!is.null(fpvs)) spGrp=NULL
+  if (!is.null(fpvs) && (addAll)) spGrp <- 2
+  myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
       
 
@@ -250,23 +320,66 @@ myRadioGroup <- function (inputId, label, mklist, selected=NULL)
 }
 
 
-myInlineListButton <- function (inputId, label, mklist, selected=NULL)
+myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
 {
   inputs = NULL
   if (length(mklist))
   {
     if (is.null(selected)) selected = unlist(mklist[1])
+    if ((!length(deltll) && is.null(selected))||(length(deltll) && deltll==2)){
+    # all dropdowns where a blank is not allowed (no deleteAll pkey)
+    # applies to most keywords, and when editing previously saved selections (deltll==2)
     for (item in 1:length(mklist))
-    {
+     {
       inputs = c(inputs, paste0('<option value="',
              gsub('"','',mklist[item]),'" ',
              if (mklist[[item]] == selected) "selected" else "",
              '>',names(mklist)[item],"</option>"))
+     }
     }
+    # editing an already saved selection (deleteAll pkeys)
+    # where previously saved selections are still there
+    # but the first option in all other fields are blank (SpGroup)
+    else if(!length(deltll) && !is.null(selected)){
+    for (item in 1:length(mklist))
+     {if (mklist[[item]] == selected)
+       {# previously saved selections
+        inputs = c(inputs, paste0('<option value="',
+                                  gsub('"','',mklist[item]),'" ',
+                                  if (mklist[[item]] == selected) "selected" else "",
+                                  '>',names(mklist)[item],"</option>"))} 
+        else{# first option in all other fields are blank
+          if (item==1){
+              inputs = c(inputs,'<option value=" "></option>',
+                         paste0('<option value="',
+                         gsub('"','',mklist[item]),'" ',"",
+                         '>',names(mklist)[item],"</option>"))}   
+          else 
+              inputs = c(inputs,paste0('<option value="',
+                         gsub('"','',mklist[item]),'" ',"",
+                         '>',names(mklist)[item],"</option>"))}
+      }
+    } 
+    #initial rendering of the species list dropdown (deleteAll pkeys)
+    # first option is blank (SpGroup, Plant/Natural, etc)
+    else 
+      for (item in 1:length(mklist))
+      {if (item==1){# first option is blank
+        inputs = c(inputs,'<option value=" "></option>',
+                   paste0('<option value="',
+                   gsub('"','',mklist[item]),'" ',"",
+                   '>',names(mklist)[item],"</option>"))} 
+        else 
+        inputs = c(inputs,paste0('<option value="',
+                   gsub('"','',mklist[item]),'" ',"",
+                   '>',names(mklist)[item],"</option>"))
+      }
   }
+
   inputs = if (is.null(inputs)) '<option value=" "></option>' else 
                                  paste0(inputs,collapse="")
   if (length(label)== 0) label=""
+  selected=NULL
   if (nchar(label) > 15)
     HTML(paste0('<div id="',inputId,'" style="width:100%;" class="shiny-input-container">',
       '<label for="',inputId,'" style="max-width:50%;" ><b>',label,'&nbsp;&nbsp;</b></label>',
@@ -312,7 +425,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   names(funcName) = funcDef[indx]    
   eltList <- list(
     tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-    myInlineTextInput("cmdTitle","Component title",title,size=40),          
+    myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
     tags$style(type="text/css", 
       "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
     tags$p(id="freeEditCols", 
@@ -351,11 +464,11 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
        "Mod() Remainder of first argument divided by the second"="Mod()",
        "Sin() Sine (argument in radians)"="Sin()",
        "Sqrt() Square root"="Sqrt()",
-       "Tan() Tangent (argument in radians)"="Tan()"), 0),
-     myInlineListButton ("freeVars","Variables:",varsName),
+       "Tan() Tangent (argument in radians)"="Tan()"), 0, deltll=NULL),
+     myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
      mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
           choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncs","FVS Functions:",funcName),
+     myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
      uiOutput("fvsFuncRender")
   )
   eltList
