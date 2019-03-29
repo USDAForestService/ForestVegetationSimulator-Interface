@@ -34,8 +34,8 @@ mkGlobals <<- setRefClass("globals",
     moutsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
     selVarList = "list", customCmps = "list", selStds = "character",
-    schedBoxPkey = "character", currentCmdPkey = "character",
-    currentCndPkey = "character", winBuildFunction = "character", 
+    schedBoxPkey = "character", currentCmdPkey = "character",GrpNum="numeric",
+    currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
@@ -863,6 +863,7 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
       return(TRUE)
     }
   }
+  cntr <- 0
   # remove a component from a grp... 
   if (length(fvsRun$grps)) for (i in length(fvsRun$grps):1)
   {
@@ -870,6 +871,12 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
     {
       for (j in length(fvsRun$grps[[i]]$cmps):1)
       {
+          spgtest <- grep("^SpGroup",fvsRun$grps[[i]]$cmps[[j]]$kwds)
+          if (length(spgtest) && cntr == 0){
+            globals$GrpNum <- globals$GrpNum[-(length(globals$GrpNum))]
+            globals$GenGrp<- globals$GenGrp[-(length(globals$GenGrp))]
+            cntr <- cntr +1
+            }
         if ((!is.null(item) && fvsRun$grps[[i]]$cmps[[j]]$uuid == item) || 
             (!is.null(atag) && fvsRun$grps[[i]]$cmps[[j]]$atag == atag))
         {
@@ -891,6 +898,12 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
     if (length(fvsRun$stands[[i]]$cmps)) 
       for (j in length(fvsRun$stands[[i]]$cmps):1)
       {
+        spgtest <- grep("^SpGroup",fvsRun$grps[[i]]$cmps[[j]]$kwds)
+        if (length(spgtest) && cntr == 0){
+          globals$GrpNum <- globals$GrpNum[-(length(globals$GrpNum))]
+          globals$GenGrp<- globals$GenGrp[-(length(globals$GenGrp))]
+          cntr <- cntr +1
+        }
         if ((!is.null(item) && fvsRun$stands[[i]]$cmps[[j]]$uuid == item) || 
             (!is.null(atag) && fvsRun$stands[[i]]$cmps[[j]]$atag == atag))
         {
@@ -915,6 +928,24 @@ pasteComponent <- function(fvsRun,sel,topaste)
   if (!is.null(idx)) 
   {
     fvsRun$grps[[idx]]$cmps <- append(fvsRun$grps[[idx]]$cmps,topaste)
+    # test to see if the SpGroup needs to be added back to the species dropdown lists after pasting
+    spgtest <- grep("^SpGroup",globals$pastelist[[1]]$kwds)
+    if (length(spgtest)){
+      test <- globals$pastelist[[1]]$kwds
+      spgname <- list()
+      spgname<- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
+                                            split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+      if(!length(globals$GrpNum)){
+        globals$GrpNum[1] <- 1
+      }else
+        globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+      
+      spgname <- gsub(" ","", spgname)
+      tmpk <- match(spgname, globals$GenGrp)
+      if (!is.na(tmpk)){
+        globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+      }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+    }
     return(idx)
   } 
   if (is.null(idx))
