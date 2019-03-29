@@ -1657,11 +1657,13 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
+      if (length(globals$GenGrp)) globals$GenGrp <- list()
+      if (length(globals$GrpNum)) globals$GrpNum <- as.numeric()
       loadVarData(globals,prms,dbGlb$dbIcon)
-      updateTextInput(session=session, inputId="title", label="", 
-                      value=globals$fvsRun$title) 
+      updateTextInput(session=session, inputId="title", label="Run title",
+                      value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
-                     value=globals$fvsRun$defMgmtID)
+                      value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont", 
           choices=list(), selected=NULL)
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
@@ -1685,22 +1687,22 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
       isolate ({
-        if (!is.null(input$inVars)) 
+        if (!is.null(input$inVars))
         {
           selVarListUse <- intersect(globals$activeVariants,names(globals$selVarList))
-          if (length(selVarListUse)) 
+          if (length(selVarListUse))
           {
             selVarListUse <- globals$selVarList[selVarListUse]
             vlst <- as.list (names(selVarListUse))
             names(vlst) = selVarListUse
-            updateSelectInput(session=session, inputId="inVars", NULL, 
+            updateSelectInput(session=session, inputId="inVars", NULL,
                           vlst, vlst[[1]])
           } else updateSelectInput(session=session, inputId="inVars", NULL, list())
           updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
           if (input$rightPan != "Stands")
           {
-            updateTabsetPanel(session=session, inputId="rightPan", 
+            updateTabsetPanel(session=session, inputId="rightPan",
                selected="Stands")
           }
         }
@@ -1768,6 +1770,37 @@ cat("setting uiRunPlot to NULL\n")
         session$reload()
       } 
       globals$fvsRun = saveFvsRun
+      if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
+      {
+        if (length(saveFvsRun$stands[[i]]$grps) > 0)
+          for (j in 1:length(saveFvsRun$stands[[i]]$grps))
+          { 
+            if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
+              for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
+              {
+                test <- saveFvsRun$grps[[j]]$cmps[[k]]$kwds
+                spgtest <- grep("^SpGroup",saveFvsRun$grps[[j]]$cmps[[k]]$kwds)
+                cntr <- 0
+                spgname <- list()
+                if (length(spgtest)){
+                  cntr<-cntr+1
+                  spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
+                  split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+
+                  if(!length(globals$GrpNum)){
+                    globals$GrpNum[1] <- 1
+                  }else
+                  globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+                  
+                  spgname[1] <- gsub(" ","", spgname[1])
+                  tmpk <- match(spgname[1], globals$GenGrp)
+                  if (!is.na(tmpk)){
+                    globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+                  }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+                } 
+              }
+          }
+      }
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -2052,7 +2085,7 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
   observe({
     if (input$cutCmp == 0) return()
     isolate ({
-cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")     
+cat ("Cut length(input$simCont) = ",length(input$simCont),"\n") 
       if (length(input$simCont) == 0) return
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {   
@@ -2109,7 +2142,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
               atag=topaste$atag,title=topaste$title,reopn=topaste$reopn)
       idx = pasteComponent(globals$fvsRun,input$simCont[1],topaste)
       if (!is.null(idx))
-      { 
+      {
         mkSimCnts(globals$fvsRun)   
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2456,7 +2489,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
   observe({  
     # command Save in run 
     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return()
-    isolate ({  
+    isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
          globals$currentCndPkey == "0" && globals$currentCmdPkey == "0") return()
       if (length(globals$currentEditCmp$reopn) && 
@@ -2590,6 +2623,34 @@ cat ("kwPname=",kwPname,"\n")
                    "\nThen")
           }
         } else kwds = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]) 
+        gensps <- grep("SpGroup", kwds)
+        if(length(gensps)) { cntr <- 0
+        if(!length(globals$GrpNum)){
+          globals$GrpNum[1] <- 1
+        }else
+        globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+        grlist <- list()
+        for (spg in 1:length(reopn))if(try(reopn[spg])!=" ")
+        {
+          cntr<-cntr+1
+          grlist[cntr]<-reopn[spg]
+        }
+
+# prevent duplicate SpGroup names due to editing & saving non-name changes
+        grlist[1] <- gsub(" ","", grlist[1])
+        tmpk <- match(grlist[1], globals$GenGrp)
+          if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)){
+          globals$GenGrp[length(globals$GrpNum)]<-grlist
+          }
+          if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+            globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+            globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
+            globals$GenGrp[length(globals$GrpNum)]<-grlist
+          }
+          if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+            globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+          }
+        } 
       }
 cat ("Save, kwds=",kwds,"\n")      
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -3262,6 +3323,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   observe({  
     if (is.null(input$kcpUpload)) return()
     data=scan(file=input$kcpUpload$datapath,sep="\n",what="",quiet=TRUE)
+    if (input$kcpUpload$name=="FVS_kcps.RData") data <- data[4:length(data)]
     if (length(data)==0) return()
     isolate ({
       addnl = TRUE
