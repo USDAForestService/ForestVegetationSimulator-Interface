@@ -363,7 +363,8 @@ ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session)
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  globals$currentCmdDefs <- c(f1=" ",tbf2="300",tbf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  globals$currentCmdDefs <- c(f1=" ",tbf2="1",tbf3="0",tbf4="0",tbf5="0",tbf6="0",tbf7="0",
+                              f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
       if(globals$currentEditCmp$reopn[name] != "")  globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
@@ -373,12 +374,29 @@ cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("tbf2", "Specify residual density ",globals$currentCmdDefs["tbf2"]),
-      radioButtons("tbf3","in terms of: ",
-        choices=list("Trees per acre "="1","Basal area per acre "="2",
-                     "Percent of trees per acre at year of thin"="3",
-                     "Percent of basal area at year of thin"="4"),
-        selected=globals$currentCmdDefs["tbf3"],inline=FALSE),
+      HTML(paste0("<b>","Specify residual density","</b>")),
+      fixedRow(
+        tags$head(tags$script(HTML('
+             Shiny.addCustomMessageHandler("jsCode",
+               function(message) {
+                 eval(message.code);
+               }
+            );
+          '))),
+        column(width=5,       
+               radioButtons("tbf2","",
+                            choices=list("Trees per acre"="1","Trees spacing (feet)"="2",
+                            "Basal area per acre "="3",
+                            "Percent of trees per acre at year of thin"="4",
+                            "Percent of basal area at year of thin"="5"),
+                            selected=globals$currentCmdDefs["tbf2"],inline=FALSE)
+               ),
+        column(width=5,      
+               myInlineTextInput("tbf3","", globals$currentCmdDefs["tbf3"], size=10),
+               myInlineTextInput("tbf4","", globals$currentCmdDefs["tbf4"], size=10),
+               myInlineTextInput("tbf5","", globals$currentCmdDefs["tbf5"], size=10),
+               myInlineTextInput("tbf6","", globals$currentCmdDefs["tbf6"], size=10),
+               myInlineTextInput("tbf7","", globals$currentCmdDefs["tbf7"], size=10))),
       myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", globals$currentCmdDefs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
       myInlineTextInput("f5","Diameter lower limits (inches) ",globals$currentCmdDefs["f5"]),
@@ -388,38 +406,100 @@ cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
     ),
   list(br()))
   ans
-} 
+}
 
-observe({
-  if(length(input$tbf3)==0) return()
-  updateTextInput(session=session,inputId ="tbf2",value=
-    switch(input$tbf3,"1"="300","2"="250","3"="70","4"="50"))
-})
-  
+  observe({
+    if(length(input$tbf2)==0) return()
+    if(input$tbf2 == "1" || input$tbf2 == "2") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf3').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf4').prop('disabled',false)"))
+      
+      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 <= 0){
+        updateTextInput(session=session,inputId ="tbf4",
+                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
+      }
+      if(input$tbf2 == "2" && input$tbf3 <= 0 && input$tbf4 > 0){
+        updateTextInput(session=session,inputId ="tbf3",
+                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
+      }
+      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 >0){
+        updateTextInput(session=session,inputId ="tbf4",
+                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
+      }
+      if(input$tbf2 == "2" && input$tbf3 > 0 && input$tbf4 >0){
+        updateTextInput(session=session,inputId ="tbf3",
+                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
+      }
 
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf3').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf4').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "3") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf5').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf5').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "4") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf6').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf6').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "5") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf7').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf7').prop('disabled',true)"))
+    }
+  })
+ 
 ThinFromBelowWin.mkKeyWrd <- function(input,output)
 {
   cat ("in ThinFromBelowWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$tbf2,
-      f3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
-  list(ex="base",
-       kwds = if (input$tbf3 == "1") sprintf(
+      f3=(switch(input$tbf2,"1"=input$tbf3,"2"=input$tbf4,"3"=input$tbf5,"4"=input$tbf6,"5"=input$tbf7)),
+        f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
+  ans<- list(ex="base",
+       kwds = if (input$tbf2 == "1") sprintf(
          paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$tbf3 == "2")
+         input$f1, input$tbf3, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+         else if(input$tbf2 == "2")
+         sprintf(paste0("ThinBTA   %10s%10s%10s%10s%10s%10s%10s\n"),
+         input$f1, round(43560/(as.numeric(input$tbf4)^2),digits=2), 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+         else if(input$tbf2 == "3")
          sprintf(paste0("ThinBBA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$tbf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$tbf3 == "3")
+         input$f1, input$tbf5, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+         else if(input$tbf2 == "4")
          sprintf(paste0("ThinBTA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
+         input$f1, as.numeric(input$tbf6)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8)
+         else 
          sprintf(paste0("ThinBBA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$tbf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
-       reopn = c(f1=input$f1,tbf2=input$tbf2,tbf3=input$tbf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+         input$f1, as.numeric(input$tbf7)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),
+       reopn = c(f1=input$f1,tbf2=input$tbf2,
+                 tbf3=(switch(input$tbf2,"1"=input$tbf3,"2"=input$tbf4,"3"=input$tbf5,"4"=input$tbf6,"5"=input$tbf7)),
+                 f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+
   )
+  list(br())
+  varc <- switch(input$tbf2,"1"="tbf3","2"="tbf4","3"="tbf5","4"="tbf6","5"="tbf7")
+  names(ans$reopn)[3] <- varc
+  as.list(ans)
 }
 
 ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session) 
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
-  globals$currentCmdDefs <- c(f1=" ",taf2="300",taf3="1",f4="0",f5="0",f6="999",f7="0",f8="999")
+  globals$currentCmdDefs <- c(f1=" ",taf2="1",taf3="0",taf4="0",taf5="0",taf6="0",taf7="0",
+                              f4="0",f5="0",f6="999",f7="0",f8="999")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in intersect(names(globals$currentCmdDefs),names(globals$currentEditCmp$reopn))) 
       if(globals$currentEditCmp$reopn[name] != "") globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
@@ -430,14 +510,30 @@ cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
     list(
       myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
-      myInlineTextInput("taf2", "Specify residual density ",globals$currentCmdDefs["taf2"]),
-      radioButtons("taf3","in terms of: ",
-        choices=list("Trees per acre "="1","Basal area per acre "="2",
-                     "Percent of trees per acre at year of thin"="3",
-                     "Percent of basal area at year of thin"="4"),
-        selected=globals$currentCmdDefs["taf3"],inline=FALSE),
-      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", 
-                        globals$currentCmdDefs["f4"]),
+      HTML(paste0("<b>","Specify residual density","</b>")),
+      fixedRow(
+        tags$head(tags$script(HTML('
+             Shiny.addCustomMessageHandler("jsCode",
+             function(message) {
+             eval(message.code);
+             }
+             );
+             '))),
+        column(width=5,       
+               radioButtons("taf2","",
+                            choices=list("Trees per acre"="1","Trees spacing (feet)"="2",
+                                         "Basal area per acre "="3",
+                                         "Percent of trees per acre at year of thin"="4",
+                                         "Percent of basal area at year of thin"="5"),
+                            selected=globals$currentCmdDefs["taf2"],inline=FALSE)
+        ),
+        column(width=5,      
+               myInlineTextInput("taf3","", globals$currentCmdDefs["taf3"], size=10),
+               myInlineTextInput("taf4","", globals$currentCmdDefs["taf4"], size=10),
+               myInlineTextInput("taf5","", globals$currentCmdDefs["taf5"], size=10),
+               myInlineTextInput("taf6","", globals$currentCmdDefs["taf6"], size=10),
+               myInlineTextInput("taf7","", globals$currentCmdDefs["taf7"], size=10))),
+      myInlineTextInput("f4", "Proportion of trees left (spacing adjusdment, 1-CutEff) ", globals$currentCmdDefs["f4"]),
       HTML(paste0("<b>","Specify tree size limits of thinning","</b>")),
       myInlineTextInput("f5","Diameter lower limits (inches) ",globals$currentCmdDefs["f5"]),
       myInlineTextInput("f6", "Diameter upper limits (inches) ", globals$currentCmdDefs["f6"]),
@@ -448,30 +544,91 @@ cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
   ans
 } 
 
-
 observe({
-  if(length(input$taf3)==0) return()
-  updateTextInput(session=session,inputId ="taf2",value=
-                    switch(input$taf3,"1"="300","2"="250","3"="70","4"="50"))
+  if(length(input$taf2)==0) return()
+  if(input$taf2 == "1" || input$taf2 == "2") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf3').prop('disabled',false)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf4').prop('disabled',false)"))
+    
+    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 <= 0){
+      updateTextInput(session=session,inputId ="taf4",
+                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
+    }
+    if(input$taf2 == "2" && input$taf3 <= 0 && input$taf4 > 0){
+      updateTextInput(session=session,inputId ="taf3",
+                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
+    }
+    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 >0){
+      updateTextInput(session=session,inputId ="taf4",
+                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
+    }
+    if(input$taf2 == "2" && input$taf3 > 0 && input$taf4 >0){
+      updateTextInput(session=session,inputId ="taf3",
+                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
+    }
+    
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf3').prop('disabled',true)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf4').prop('disabled',true)"))
+  }
+  if(input$taf2 == "3") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf5').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf5').prop('disabled',true)"))
+  }
+  if(input$taf2 == "4") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf6').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf6').prop('disabled',true)"))
+  }
+  if(input$taf2 == "5") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf7').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf7').prop('disabled',true)"))
+  }
 })
 
 
 ThinFromAboveWin.mkKeyWrd <- function(input,output)
 {
   cat ("in ThinFromAboveWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$taf2,
-                                                f3=input$taf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
-  list(ex="base",
-       kwds = if (input$taf3 == "1") sprintf(
-         paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$taf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "2")
-         sprintf(paste0("ThinABA   %10s%10s%10s%10s%10s%10s%10s\n"),
-         input$f1, input$taf2, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else if(input$taf3 == "3")
-         sprintf(paste0("ThinATA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$taf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) else
-         sprintf(paste0("ThinABA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
-         input$f1, as.numeric(input$taf2)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),  
-       reopn = c(f1=input$f1,taf2=input$taf2,taf3=input$taf3,f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+                                                f3=(switch(input$taf2,"1"=input$taf3,"2"=input$taf4,"3"=input$taf5,"4"=input$taf6,"5"=input$taf7)),
+                                                f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
+  ans<- list(ex="base",
+             kwds = if (input$taf2 == "1") sprintf(
+               paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
+               input$f1, input$taf3, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+             else if(input$taf2 == "2")
+               sprintf(paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
+                       input$f1, round(43560/(as.numeric(input$taf4)^2),digits=2), 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+             else if(input$taf2 == "3")
+               sprintf(paste0("ThinABA   %10s%10s%10s%10s%10s%10s%10s\n"),
+                       input$f1, input$taf5, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8) 
+             else if(input$taf2 == "4")
+               sprintf(paste0("ThinATA   %10s  Parms(BTPA*%s,%s,%s,%s,%s,%s)\n"),
+                       input$f1, as.numeric(input$taf6)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8)
+             else 
+               sprintf(paste0("ThinABA   %10s  Parms(BBA*%s,%s,%s,%s,%s,%s)\n"),
+                       input$f1, as.numeric(input$taf7)/100, 1-as.numeric(input$f4), input$f5, input$f6, input$f7, input$f8),
+             reopn = c(f1=input$f1,taf2=input$taf2,
+                       taf3=(switch(input$taf2,"1"=input$taf3,"2"=input$taf4,"3"=input$taf5,"4"=input$taf6,"5"=input$taf7)),
+                       f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8)
+             
   )
+  list(br())
+  varc <- switch(input$taf2,"1"="taf3","2"="taf4","3"="taf5","4"="taf6","5"="taf7")
+  names(ans$reopn)[3] <- varc
+  as.list(ans)
 }
 
 ##-----------------------------------Seed Tree-----------------------------------------------##
