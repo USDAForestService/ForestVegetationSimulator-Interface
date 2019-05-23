@@ -29,6 +29,8 @@ checkMinColumnDefs <- function(dbGlb,progress=NULL)
   # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
   stdInit <- getTableName(dbGlb$dbIcon,"FVS_StandInit")
+  stdInit_cond <- getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+  if (!is.null(stdInit_cond))return("Uploaded database installed")
   if (is.null(stdInit))   
   {
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)

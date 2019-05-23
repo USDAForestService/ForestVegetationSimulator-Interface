@@ -39,7 +39,41 @@ mkGlobals <<- setRefClass("globals",
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
-    reloadAppIsSet = "numeric", hostname= "character", toggleind="character" ))
+    reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
+    selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
+    condKeyCntr="numeric"))
+
+loadStandTableData <- function (globals, dbIcon)
+{
+  globals$selStandTableList = list()
+  ith <- 1
+  stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+  if (!is.null(stdInit)){
+    globals$selStandTableList[ith] <- stdInit
+    ith <- ith +1
+  }
+  plotInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+  if (!is.null(plotInit)){
+    globals$selStandTableList[ith] <- plotInit
+    ith <- ith +1
+  }
+  stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+  if (!is.null(stdInit_cond)){
+    globals$selStandTableList[ith] <- stdInit_cond
+    ith <- ith +1
+  }
+  stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
+  if (!is.null(stdInit_plot)){
+    globals$selStandTableList[ith] <- stdInit_plot
+    ith <- ith +1
+  }
+  plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
+  if (!is.null(plotInit_plot)){
+    globals$selStandTableList[ith] <- plotInit_plot
+    ith <- ith +1
+  }
+  globals$selStandTableList <- subset(globals$selStandTableList,!is.na(globals$selStandTableList))
+} 
 
 loadVarData <- function(globals,prms,dbIcon)
 {
@@ -54,6 +88,32 @@ loadVarData <- function(globals,prms,dbIcon)
         function (x) strsplit(x," "))))))
       globals$selVarList <- lapply(selVars,function (x,pk) 
           paste(x,":",getPstring(pk,x)),prms$variants)
+      names(globals$selVarList) <- selVars
+    }
+  }
+  stdInit_cond = getTableName(dbIcon,"FVS_StandInit_Cond")
+  if (!is.null(stdInit_cond)) 
+  {
+    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_cond)))
+    if (class(vars) != "try-error")
+    {
+      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+        function (x) strsplit(x," "))))))
+      globals$selVarList <- lapply(selVars,function (x,pk) 
+        paste(x,":",getPstring(pk,x)),prms$variants)
+      names(globals$selVarList) <- selVars
+    }
+  }
+  stdInit_plot = getTableName(dbIcon,"FVS_StandInit_Plot")
+  if (!is.null(stdInit_plot)) 
+  {
+    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
+    if (class(vars) != "try-error")
+    {
+      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+        function (x) strsplit(x," "))))))
+      globals$selVarList <- lapply(selVars,function (x,pk) 
+        paste(x,":",getPstring(pk,x)),prms$variants)
       names(globals$selVarList) <- selVars
     }
   }
@@ -188,11 +248,37 @@ cat("writeKeyFile, num stds=",length(stds),
   dbExecute(dbIcon,'drop table if exists temp.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
   stdInit = getTableName(dbIcon,"FVS_StandInit")
-  if (is.null(stdInit)) return()
-  fvsInit = dbGetQuery(dbIcon,
-    paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
-      ' where Stand_ID in (select RunStds from temp.RunStds)'))
-  names(fvsInit) = toupper(names(fvsInit))
+  plotInit = getTableName(dbIcon,"FVS_PlotInit")
+  stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+  stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
+  plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
+  if (is.na(stdInit) && (is.na(stdInit_cond) || is.na(stdInit_plot))) return()
+  if (!is.na(stdInit) && input$inTabs !="FVS_PlotInit"){
+    fvsInit = dbGetQuery(dbIcon,
+               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
+                      ' where Stand_ID in (select RunStds from temp.RunStds)'))
+    names(fvsInit) = toupper(names(fvsInit))
+  }else if (!is.na(plotInit) && input$inTabs !="FVS_StandInit"){ 
+    fvsInit = dbGetQuery(dbIcon,
+              paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit,
+                     ' where StandPlot_ID in (select RunStds from temp.RunStds)'))
+    names(fvsInit) = toupper(names(fvsInit))
+  }else if (!is.na(stdInit_cond) && (input$inTabs !="FVS_StandInit_Plot" && input$inTabs !="FVS_PlotInit_Plot")){ 
+    fvsInit = dbGetQuery(dbIcon,
+                         paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_cond,
+                                ' where Stand_ID in (select RunStds from temp.RunStds)'))
+    names(fvsInit) = toupper(names(fvsInit))
+  }else if (!is.na(stdInit_plot) && (input$inTabs !="FVS_StandInit_Cond" && input$inTabs !="FVS_PlotInit_Plot")){ 
+    fvsInit = dbGetQuery(dbIcon,
+                         paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_plot,
+                                ' where Stand_ID in (select RunStds from temp.RunStds)'))
+    names(fvsInit) = toupper(names(fvsInit))
+  }else{ 
+    fvsInit = dbGetQuery(dbIcon,
+                         paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit_plot,
+                                ' where StandPlot_ID in (select RunStds from temp.RunStds)'))
+    names(fvsInit) = toupper(names(fvsInit))}
+
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
@@ -211,13 +297,17 @@ cat("writeKeyFile, num stds=",length(stds),
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
   for (std in fvsRun$stands)
   {
-    sRow = match (std$sid, fvsInit$STAND_ID)
-    if (is.na(sRow)) next
+    sRows = match (std$sid, fvsInit$STAND_ID)
+    sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
+    if (is.na(sRows) && is.na(sRowp)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
-    if (!is.null(fvsInit$STAND_CN[sRow]) && !is.na(fvsInit$STAND_CN[sRow]) && 
-        fvsInit$STAND_CN[sRow] != " ") 
-      cat ("StandCN\n",fvsInit$STAND_CN[sRow],"\n",file=fc,sep="") else
-      cat ("StandCN\n",std$sid,"\n",file=fc,sep="") 
+    if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
+        fvsInit$STAND_CN[sRows] != " "){ 
+      cat ("StandCN\n",fvsInit$STAND_CN[sRows],"\n",file=fc,sep="")
+    }else if (!is.null(fvsInit$STANDPLOT_CN[sRowp]) && !is.na(fvsInit$STANDPLOT_CN[sRowp]) && 
+        fvsInit$STANDPLOT_CN[sRowp] != " "){ 
+      cat ("StandCN\n",fvsInit$STANDPLOT_CN[sRowp],"\n",file=fc,sep="")
+      }else cat ("StandCN\n",std$sid,"\n",file=fc,sep="")
     cat ("MgmtId\n",fvsRun$defMgmtID,"\n",file=fc,sep="")                       
     if (length(std$invyr) == 0) std$invyr = as.character(thisYr) 
     ninvyr = as.numeric(std$invyr)
@@ -437,6 +527,8 @@ paste0("list n=",length(list)) else sels,"\n")
     }
     if (length(selset) == 0) selset <- grep(" Grp: All_",tmpcnts)
     if (length(selset) == 0) selset <- grep(" Grp: All",tmpcnts)
+    if (length(selset) == 0) selset <- grep(" Grp: FIA_",tmpcnts)
+    if (length(selset) == 0) selset <- grep(" Grp: FIA",tmpcnts)
     if (length(selset) == 0) fvsRun$selsim <- list() else
     {
        fvsRun$selsim <- tmptags[selset]
@@ -1060,7 +1152,13 @@ addNewRun2DB <- function(runuuid,dbcon)
 
 cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
-  if (! (file.exists(fn) && file.size(fn))) return("no new database found")
+  # breaking these two clauses allows for Windows to see that the new db has a size greater than 0
+  if (!file.exists((fn))){
+    ids = try(file.size(fn))
+    if (class(ids) == "try-error"){
+      return("no new database found")
+    }else return("no new database found")
+  }
   #get and hold an exclusive lock, wait if one can't be obtained.
   trycnt=0
   dbExecute(dbcon,"PRAGMA locking_mode = EXCLUSIVE")
@@ -1163,7 +1261,6 @@ addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 cat ("in addStandsToRun, selType=",selType,"\n")
   isolate({
     if (length(input$inStds)+length(input$inGrps) == 0) return()
-        
     v <- scan(text=input$inVars,what=" ",sep=" ",quiet=TRUE)
     for (i in 1:length(globals$activeFVS))
     {
@@ -1174,6 +1271,8 @@ cat ("in addStandsToRun, selType=",selType,"\n")
       }
     }            
     resetGlobals(globals,globals$fvsRun,prms) 
+    updateSelectInput(session=session, inputId="inTabs", NULL,
+                      input$inTabs)
     extn <- extnslist[globals$activeExtens]
     selVarListUse <- globals$selVarList[globals$activeVariants]    
     vlst <- as.list (names(selVarListUse))
@@ -1183,15 +1282,40 @@ cat ("in addStandsToRun, selType=",selType,"\n")
     globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
     stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-    if (is.null(stdInit)) 
+    plotInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+    stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+    stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
+    plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
+    if (is.null(stdInit) && (is.null(stdInit_cond) || is.null(stdInit_plot) ||
+                             is.null(plotInit) && is.null(plotInit_plot))) 
     {
 cat ("error: stdInit is null\n")
       return()
     }
-    fields = dbListFields(dbGlb$dbIcon,stdInit)
-    needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
+    if (input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)){
+      fields = dbListFields(dbGlb$dbIcon,stdInit)
+      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
+                         "AddFiles","FVSKeywords"))
+      fields = intersect(toupper(fields),toupper(needFs))
+    }else if (input$inTabs =="FVS_PlotInit" && !is.null(input$inTabs)){
+      fields = dbListFields(dbGlb$dbIcon,plotInit)
+      needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
+                         "AddFiles","FVSKeywords"))
+      fields = intersect(toupper(fields),toupper(needFs))
+    }else if (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs)){
+      fields = dbListFields(dbGlb$dbIcon,stdInit_cond)
+      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
+                         "AddFiles","FVSKeywords"))
+      fields = intersect(toupper(fields),toupper(needFs))
+    }else if (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)){
+      fields = dbListFields(dbGlb$dbIcon,stdInit_plot)
+      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
+                         "AddFiles","FVSKeywords"))
+      fields = intersect(toupper(fields),toupper(needFs))
+    }else {fields = dbListFields(dbGlb$dbIcon,plotInit_plot)
+    needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
                        "AddFiles","FVSKeywords"))
-    fields = intersect(toupper(fields),toupper(needFs)) 
+    fields = intersect(toupper(fields),toupper(needFs))}
 
     dbQ = NULL
     if (selType == "inAdd")
@@ -1200,14 +1324,39 @@ cat ("error: stdInit is null\n")
       if (length(input$inStds))
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-          paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-            ' where Stand_ID in (select SelStds from temp.Stds)')))
+        if (input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)){
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+                           ' where Stand_ID in (select SelStds from temp.Stds)')))
+        }else if (input$inTabs =="FVS_PlotInit" && !is.null(input$inTabs)){
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
+                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
+        }else if (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs)){
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
+                           ' where Stand_ID in (select SelStds from temp.Stds)')))
+        }else if (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)){
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
+                           ' where Stand_ID in (select SelStds from temp.Stds)')))
+        }else 
+          dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
+                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
       } else return()
     } else {
-      # use if inAddGrp 
-      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
-           'where Grp in (select SelGrps from temp.SGrps)')))
+      # use if inAddGrp
+      if ((input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)) ||
+          (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs))||
+          (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)))
+      {
+        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
+                   'where Grp in (select SelGrps from temp.SGrps)')))
+      }else { 
+        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID from temp.Grps ',
+                        'where Grp in (select SelGrps from temp.SGrps)')))
+      }
       if (class(stds) == "try-error") return()                                                             
       if (nrow(stds) == 0) return()
       stds = stds[,1]
@@ -1219,9 +1368,26 @@ cat ("error: stdInit is null\n")
       if (length(stds) == 0) return()  
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
-      dbQ = try(dbSendQuery(dbGlb$dbIcon,
-          paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-            ' where Stand_ID in (select SelStds from temp.Stds)')))
+      if (!is.null(stdInit) && input$inTabs=="FVS_StandInit"){
+        dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
+      }else if (!is.null(plotInit) && input$inTabs=="FVS_PlotInit"){
+        dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
+                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
+      }else if (!is.null(stdInit_cond) && input$inTabs=="FVS_StandInit_Cond"){
+        dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
+                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
+      }else if (!is.null(stdInit_plot) && input$inTabs=="FVS_StandInit_Plot"){
+        dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
+                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
+      }else 
+        dbQ = try(dbSendQuery(dbGlb$dbIcon,
+                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
+                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
     }       
     if (is.null(dbQ) || class(dbQ) == "try-error") return()
     fvsInit = dbFetch(dbQ,n=-1)
@@ -1239,7 +1405,9 @@ cat ("error: stdInit is null\n")
         msgVal = msgVal+1
         progress$set(value = msgVal)
       }
-      sid = fvsInit[row,"STAND_ID"]
+      if (input$inTabs=="FVS_PlotInit" || input$inTabs=="FVS_PlotInit_Plot") {
+        sid = fvsInit[row,"STANDPLOT_ID"]  
+      } else sid = fvsInit[row,"STAND_ID"]
       newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
       addfiles <- fvsInit[row,"ADDFILES"]
       if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
@@ -1322,7 +1490,7 @@ cat ("error: stdInit is null\n")
       choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
     output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
       length(globals$fvsRun$stands)," stand(s)<br>",
-      length(globals$fvsRun$grps)," group(s)")))        
+      length(globals$fvsRun$grps)," group(s)")))
     progress$close()
   })
 }
@@ -1391,8 +1559,12 @@ mkFileNameUnique <- function(fn)
 getTableName <- function(dbcon,basename)
 {
   tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-  itab <- match(tolower(basename),tolower(tbs)) 
-  if (is.na(itab)) itab <- grep (tolower(basename),tolower(tbs)) 
-  if (length(itab) == 1) return(tbs[itab]) else return(NULL)
+  itab1 <- match(tolower(basename),tolower(tbs)) 
+  if (is.na(itab1)) itab2 <- grep (tolower(basename),tolower(tbs)) 
+  if (length(itab1) == 1){ 
+    return(tbs[itab1])
+  }else if (length(itab2) == 1){
+    return(tbs[itab2])  
+  }else return(NULL)
 }
 

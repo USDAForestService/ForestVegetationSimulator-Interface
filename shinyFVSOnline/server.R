@@ -229,7 +229,6 @@ cat ("getwd= ",getwd(),"\n")
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
     {
 cat ("View Outputs & Load\n")
-      initTableGraphTools()
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
@@ -491,7 +490,7 @@ cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")
   ## Custom Query
   observe({  
     if (input$leftPan == "Custom Query")
-    { 
+    {
 cat("Custom Query\n")        
       initTableGraphTools()
       if (length(globals$customQueries) == 0) 
@@ -613,7 +612,7 @@ cat ("sqlSave\n")
   })
    
   ## sqlSel
-  observe({  
+  observe({
 cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
  is.null(input$sqlSel),"\n")
     updateTextInput(session=session, inputId="sqlTitle", value="") 
@@ -673,7 +672,7 @@ cat ("sqlNew\n")
   ## Explore
   observe({ 
     if (input$leftPan == "Explore")
-    { 
+    {
 cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
       if (length(fvsOutData$dbSelVars) == 0) 
       {
@@ -752,7 +751,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
-            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
+            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
@@ -1025,17 +1024,17 @@ cat ("browsevars/plotType\n")
           updateRadioButtons(session=session,inputId="XTrans",selected="identity") 
         }
         sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
-        updateSelectInput(session, "hfacet",choices=as.list(c("None",cats)),
+        updateSelectInput(session=session, inputId="hfacet",choices=as.list(c("None",cats)),
           selected=sel) 
         sel = if (length(intersect(cats,"MgmtID")) > 0) "MgmtID" else "None"
-        updateSelectInput(session, "vfacet",choices=as.list(c("None",cats)),
+        updateSelectInput(session=session, inputId="vfacet",choices=as.list(c("None",cats)),
           selected=sel) 
         sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
-        updateSelectInput(session, "pltby",choices=as.list(c("None",cats)),
+        updateSelectInput(session=session, inputId="pltby",choices=as.list(c("None",cats)),
           selected=sel)
       })
     }
-  })    
+  })   
   ## selectdbvars
   observe({
     if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
@@ -1097,7 +1096,7 @@ cat ("browsevars/plotType\n")
   
   ## renderPlot
   output$outplot <- renderImage(
-  {   
+  {
 cat ("renderPlot\n")    
     nullPlot <- function ()
     {
@@ -1508,13 +1507,29 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     {
 cat ("Stands\n")     
       initNewInputDB()
+      loadStandTableData(globals, dbGlb$dbIcon)
+      updateStandTableSelection()
       loadVarData(globals,prms,dbGlb$dbIcon)                                              
       updateVarSelection()
     }
   })
   
+  updateStandTableSelection <- function ()
+  {
+    cat ("in updateStandTableSelection\n")   
+    updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
+    selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)
+  }
+  
+  ## inTabs has changed
+  observe({
+    if (is.null(input$inTabs)) return()
+    reloadStandSelection()
+    cat ("inTabs\n")
+  })
+  
   updateVarSelection <- function ()
-  { 
+  {
 cat ("in updateVarSelection\n")   
     if (length(globals$fvsRun$FVSpgm) == 0) 
     {
@@ -1545,9 +1560,27 @@ cat ("inVars\n")
   {
 cat ("in reloadStandSelection\n")
     stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-    grps = if (!is.null(stdInit)) 
+    plotInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+    stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+    stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
+    plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
+    grps = if (input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)) {
       try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
-        stdInit,' where lower(variant) like "%',input$inVars,'%"'))) else NULL
+        stdInit,' where lower(variant) like "%',input$inVars,'%"')))
+      }else if(input$inTabs =="FVS_PlotInit" && !is.null(input$inTabs)){
+        try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID,Groups from ',
+        plotInit,' where lower(variant) like "%',input$inVars,'%"')))
+      }else if(input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs)){
+        try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
+        stdInit_cond,' where lower(variant) like "%',input$inVars,'%"')))
+      }else if(input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)){
+        try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID,Groups from ',
+        stdInit_plot,' where lower(variant) like "%',input$inVars,'%"')))
+      }else if(input$inTabs =="FVS_PlotInit_Plot" && !is.null(input$inTabs)){
+        try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID,Groups from ',
+        plotInit_plot,' where lower(variant) like "%',input$inVars,'%"')))
+      }else NULL
+      
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
@@ -1565,7 +1598,10 @@ cat ("in reloadStandSelection\n")
         })
       dd = lapply(dd,function(x) matrix(unlist(x),ncol=2))
       dd = do.call(rbind,dd)
-      colnames(dd) = c("Stand_ID","Grp")
+      if (input$inTabs =="FVS_StandInit" || input$inTabs =="FVS_StandInit_Cond"||
+          input$inTabs =="FVS_StandInit_Plot"){
+        colnames(dd) = c("Stand_ID","Grp")
+      }else colnames(dd) = c("StandPlot_ID","Grp")
       dd = as.data.frame(dd)
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
@@ -1594,10 +1630,15 @@ cat ("inGrps inAnyAll inStdFindBut\n")
       } else {  
          dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
          dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),
-           data.frame(SelGrps = input$inGrps))      
-        stds = try(dbGetQuery(dbGlb$dbIcon,
-          paste0('select Stand_ID from temp.Grps ',
-                 'where Grp in (select SelGrps from temp.SGrps)')))
+           data.frame(SelGrps = input$inGrps))
+         if ((input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)) ||
+             (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs))||
+             (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)))
+         {
+           stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
+                      'where Grp in (select SelGrps from temp.SGrps)')))
+         }else  stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID from temp.Grps ',
+                       'where Grp in (select SelGrps from temp.SGrps)')))
         if (class(stds) == "try-error") return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         globals$selStds = stds[,1]
@@ -1687,8 +1728,11 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
       isolate ({
-        if (!is.null(input$inVars))
+        if (!is.null(input$inVars) && !is.null(input$inTabs))
         {
+          loadStandTableData(globals, dbGlb$dbIcon)
+          updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
+          selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
           selVarListUse <- intersect(globals$activeVariants,names(globals$selVarList))
           if (length(selVarListUse))
           {
@@ -1797,10 +1841,22 @@ cat("setting uiRunPlot to NULL\n")
                   if (!is.na(tmpk)){
                     globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
                   }else globals$GenGrp[length(globals$GrpNum)]<-spgname
-                } 
+                }
+                if (length(grep("FVS_StandInit",saveFvsRun$grps[[j]]$cmps[[k]]$kwds))){
+                  globals$selStandTableList[[1]] <- "FVS_StandInit"}
+                if (length(grep("FVS_PlotInit",saveFvsRun$grps[[j]]$cmps[[k]]$kwds))){
+                  globals$selStandTableList[[1]] <- "FVS_PlotInit"}
+                if (length(grep("FVS_StandInit_Cond",saveFvsRun$grps[[j]]$cmps[[k]]$kwds))){
+                  globals$selStandTableList[[1]] <- "FVS_StandInit_Cond"}
+                if (length(grep("FVS_StandInit_Plot",saveFvsRun$grps[[j]]$cmps[[k]]$kwds))){
+                  globals$selStandTableList[[1]] <- "FVS_StandInit_Plot"}
+                if (length(grep("FVS_PlotInit_Plot",saveFvsRun$grps[[j]]$cmps[[k]]$kwds))){
+                  globals$selStandTableList[[1]] <- "FVS_PlotInit_Plot"}
               }
           }
-      }
+        updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[1]],
+        selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)
+        }
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -1846,6 +1902,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      # updateStandTableSelection()
       updateVarSelection()
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
@@ -1901,7 +1958,6 @@ cat (" input$inAddGrp=",input$inAddGrp,"\n")
     if (input$inStdFindBut > 0) 
     {
 cat ("input$inStdFindBut=",input$inStdFindBut,"\n")
-
     }
   })  
   
@@ -2320,7 +2376,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
         {
           if (is.null(input$addMgmtCats)) return(NULL)
           titIndx = try(match(input$addMgmtCmps,
-                        globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
+                              globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
           if (class(titIndx)=="try-error") return(NULL)
           title = names(globals$mgmtsel[[as.numeric(input$addMgmtCats)]])[titIndx]
           globals$currentCmdPkey = globals$mgmtsel[[as.numeric(input$addMgmtCats)]][titIndx]
@@ -2749,7 +2805,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   observe(globals$fvsRun$cycleat  <- input$cycleat)
 
   ## Save and Run
-  observe({  
+  observe({
     if (input$saveandrun == 0) return()    
     isolate ({
       if (length(globals$fvsRun$stands) > 0) 
@@ -2868,6 +2924,7 @@ cat ("cmd=",cmd,"\n")
           progress$close()
           return()
         }
+
         fvschild = makePSOCKcluster(1)
         cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",locrFVSDir,
           "')) source(paste0('",locrFVSDir,"','/',rf)))")
@@ -2903,7 +2960,7 @@ cat ("load run cmd=",cmd,"\n")
 cat ("exiting, stop fvschild\n")          
           try(stopCluster(fvschild))
         }) 
-        #####
+
 cat ("at for start\n") 
         allSum = list()
         for (i in 1:length(globals$fvsRun$stands))
@@ -2958,10 +3015,10 @@ cat ("rtn,class=",class(rtn),"\n")
 cat ("length(allSum)=",length(allSum),"\n")
         if (length(allSum) == 0) {Sys.sleep(.4); return()}
         progress$set(message = "FVS finished",  
-                     detail = "Merging output to master database",
-                     value = length(globals$fvsRun$stands)+6)
+             detail = "Merging output to master database",
+             value = length(globals$fvsRun$stands)+6)
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
-cat ("addNewRun2DB res=",res,"\n")
+        cat ("addNewRun2DB res=",res,"\n")
         unlink(paste0(globals$fvsRun$uuid,".db"))
         X = vector("numeric",0)
         hfacet = vector("character",0)
@@ -3217,16 +3274,25 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
+        topaste = findCmp(globals$fvsRun,input$simCont[1])
+        if (is.null(topaste)) return()
+        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
+        updateTextInput(session=session, inputId="kcpEdit", value=
+          paste0(customCmps,"ENDIF\n"))
+          customCmps <-as.list(paste0(customCmps,"ENDIF\n"))
+          names(customCmps) <- names(globals$customCmps)
+          globals$customCmps = customCmps
+          }
         save(file="FVS_kcps.RData",customCmps)
-        updateSelectInput(session=session, inputId="kcpSel", 
+        updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
            selected=newTit)
       })
       mkSimCnts(globals$fvsRun,input$simCont[[1]])
-      updateSelectInput(session=session, inputId="simCont", 
+      updateSelectInput(session=session, inputId="simCont",
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       closeCmp()
-
+      
     }
   })
   
@@ -3240,7 +3306,7 @@ cat ("kcpSaveInRun\n")
         {
           newTit = paste0("Freeform: Component ",length(globals$customCmps)+1) 
           updateTextInput(session=session, inputId="kcpTitle", value=newTit)
-        } else newTit = paste0("Freeform: ",trim(input$kcpTitle))
+        } else newTit = paste0("Addfile: ",trim(input$kcpTitle))
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
              variant=globals$activeVariants[1],kwdName=character(0),
              title=newTit,reopn=character(0))
@@ -3314,6 +3380,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         updateSelectInput(session=session, inputId="kcpSel", selected = 0)
         updateTextInput(session=session, inputId="kcpTitle", value="")
         updateTextInput(session=session, inputId="kcpEdit", value="")
+        globals$kcpAppendConts <- list()
       })
 cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     }
@@ -3353,6 +3420,37 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         updateTextInput(session=session, inputId="kcpEdit", value=
           paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
         session$sendCustomMessage(type="refocus", "kcpEdit")
+        indx <- match(input$simCont,globals$fvsRun$simcnts)
+        if (!length(globals$kcpAppendConts)){
+          globals$kcpAppendConts[1] <- globals$fvsRun$simcnts[indx]
+          names(globals$kcpAppendConts)[1] <- names(globals$fvsRun$simcnts)[indx]
+        }else
+          globals$kcpAppendConts[(length(globals$kcpAppendConts)+1)] <- globals$fvsRun$simcnts[indx]
+          names(globals$kcpAppendConts)[length(globals$kcpAppendConts)] <- names(globals$fvsRun$simcnts)[indx]
+          # first conditional added
+        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
+            (!length(globals$opencond) || globals$opencond==0)){
+          globals$opencond <- 1
+          globals$condKeyCntr <- 0
+        }
+        # fisrt conditional keyword added
+        if (length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
+          globals$condKeyCntr <- globals$condKeyCntr + 1
+          }
+        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
+            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
+          globals$opencond <- 0
+          globals$condKeyCntr <- 0
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
+          }
+        if (length(grep("^-> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))&&
+            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
+          globals$opencond <- 0
+          globals$condKeyCntr <- 0
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
+        }  
       })
     }
   })
@@ -3844,15 +3942,17 @@ cat ("delete all outputs\n")
                   message = "Delete all runs and outputs?"))
     }
   })
-  observe({  
+  observe({
     if (input$deleteAllRunsDlgBtn == 0) return()
     isolate({
 cat ("delete all runs and outputs\n")
       rmfiles=dir(pattern="[.]pidStatus$")      
       for (tokill in rmfiles) killIfRunning(sub(".pidStatus","",tokill))
+      dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon)
       unlink("FVSOut.db")
       unlink("FVS_Runs.RData")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")
       globals$saveOnExit = FALSE
       globals$reloadAppIsSet=1
       session$reload()
@@ -4125,7 +4225,7 @@ cat ("Replace existing database\n")
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
   ## Upload new database
-  observe({  
+  observe({
     if (is.null(input$uploadNewDB)) return()
     fext = tools::file_ext(basename(input$uploadNewDB$name))
 cat ("fext=",fext,"\n")
@@ -4206,8 +4306,13 @@ cat ("cmd=",cmd,"\n")
           tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
           cknt = NULL
           if      (length(grep("FVS_STANDINIT",tblName,ignore.case=TRUE))) cknt = standNT
+          else if (length(grep("FVS_STANDINIT_COND",tblName,ignore.case=TRUE))) cknt = standNT
+          else if (length(grep("FVS_STANDINIT_PLOT",tblName,ignore.case=TRUE))) cknt = standNT
           else if (length(grep("FVS_TREEINIT", tblName,ignore.case=TRUE))) cknt = treeNT
+          else if (length(grep("FVS_TREEINIT_COND", tblName,ignore.case=TRUE))) cknt = treeNT
+          else if (length(grep("FVS_TREEINIT_PLOT", tblName,ignore.case=TRUE))) cknt = treeNT
           else if (length(grep("FVS_PLOTINIT", tblName,ignore.case=TRUE))) cknt = plotNT
+          else if (length(grep("FVS_PLOTINIT_PLOT", tblName,ignore.case=TRUE))) cknt = plotNT
           next
         }
         if (substring(schema[i],1,2)  == ");") next
@@ -4318,7 +4423,7 @@ cat("loaded table=",tab,"\n")
     progress$close()    
   })
   ## installNewDB
-  observe({  
+  observe({
     if (input$installNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
     dbDisconnect(dbGlb$dbIcon)
@@ -4342,8 +4447,82 @@ cat("loaded table=",tab,"\n")
 cat ("index creation, qry=",qry,"\n")
           try(dbExecute(dbGlb$dbIcon,qry))
         }
-      } else {
-        tbidx = grep(tb,c("FVS_StandInit","FVS_PlotInit","FVS_TreeInit"),
+      }else if (tolower(tb) == "fvs_standinit_cond" || tolower(tb) == "fvs_treeinit_cond")
+        {
+        tbidx = grep(tb,c("FVS_StandInit_Cond","FVS_TreeInit_Cond"),ignore.case=TRUE)                 
+        if (length(tbidx))
+        {
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
+            cat ("index creation, qry=",qry,"\n")
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
+        }
+      }else if (tolower(tb) == "fvs_standinit_plot")
+      {
+        tbidx = grep(tb,c("FVS_StandInit_Plot","FVS_TreeInit_Plot"),ignore.case=TRUE)                 
+        if (length(tbidx))
+        {
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
+            cat ("index creation, qry=",qry,"\n")
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
+        }
+      }else if (tolower(tb) == "fvs_plotinit_plot")
+      {
+        tbidx = grep(tb,c("FVS_PlotInit_Plot"),
+                     ignore.case=TRUE)                 
+        if (length(tbidx))
+        {
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (StandPlot_ID);")
+            cat ("index creation, qry=",qry,"\n")
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
+        }
+      }
+      else if (tolower(tb) == "fvs_treeinit_plot")
+      {
+        tbidx = grep(tb,c("FVS_TreeInit_Plot"),
+                     ignore.case=TRUE)                 
+        if (length(tbidx))
+        {
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (StandPlot_ID);")
+            cat ("index creation, qry=",qry,"\n")
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
+        }
+      }else if (tolower(tb) == "fvs_plotinit")
+      {
+        tbidx = grep(tb,c("FVS_PlotInit","FVS_TreeInit"),
+                     ignore.case=TRUE)                 
+        if (length(tbidx))
+        {
+          tbinx = paste0("idx",tb)
+          rtn = try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+          if (class(try)!="try-error") 
+          {
+            qry = paste0("create index ",tbinx," on ",tb," (StandPlot_ID);")
+            cat ("index creation, qry=",qry,"\n")
+            try(dbExecute(dbGlb$dbIcon,qry))
+          }
+        }
+      }else {
+        tbidx = grep(tb,c("FVS_StandInit","FVS_TreeInit"),
                      ignore.case=TRUE)                 
         if (length(tbidx))
         {
@@ -4362,7 +4541,7 @@ cat ("index creation, qry=",qry,"\n")
     fixFVSKeywords(dbGlb,progress) 
     msg = checkMinColumnDefs(dbGlb,progress)
     output$replaceActionMsg <- renderText(msg)
-    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+    loadVarData(globals,prms,dbGlb$dbIcon)
     initNewInputDB()
     progress$close()
   }) 
@@ -5440,7 +5619,7 @@ cat ("Projects hit\n")
   })
 
  
-  ## PrjNew
+  ## Make New Project (PrjNew)
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
