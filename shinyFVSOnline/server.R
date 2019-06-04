@@ -3162,15 +3162,29 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
+  
   ## DownLoad
-  output$dlFVSRunout <- downloadHandler(filename=function ()
-      paste0(globals$fvsRun$title,"_FVSoutput.txt"),
+  if(.Platform$OS.type == "windows" && !isLocal()){
+    output$dlFVSRunout <- downloadHandler(filename=function ()
+      paste0(globals$fvsRun$title,"_FVSoutput.tx"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Output not yet created.\n")
       }, contentType="text")
+    mainOutputWin <- paste0(output$dlFVSRunout,"t")
+    cmd <- paste0("more /P <",output$dlFVSRunout,">",mainOutputWin,"")
+    system(cmd)
+  }else output$dlFVSRunout <- downloadHandler(filename=function ()
+    paste0(globals$fvsRun$title,"_FVSoutput.txt"),
+    content=function (tf = tempfile())
+    {
+      sfile = paste0(input$runSel,".out")
+      if (file.exists(sfile)) file.copy(sfile,tf) else
+        cat (file=tf,"Output not yet created.\n")
+    }, contentType="text")
+  
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
       paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
