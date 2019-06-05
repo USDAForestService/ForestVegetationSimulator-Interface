@@ -3164,7 +3164,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       }, contentType="zip")
   
   ## DownLoad
-  if(.Platform$OS.type == "windows" && !isLocal()){
+  if(!isLocal()){
     output$dlFVSRunout <- downloadHandler(filename=function ()
       paste0(globals$fvsRun$title,"_FVSoutput.tx"),
       content=function (tf = tempfile())
