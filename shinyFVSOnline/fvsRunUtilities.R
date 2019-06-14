@@ -24,7 +24,8 @@ mkfvsRun <<- setRefClass("fvsRun",
     startyr = "character", endyr = "character", cyclelen = "character",
     cycleat = "character", refreshDB = "character", uuid="character",
     defMgmtID = "character", autoOut = "list", runScript = "character" ,
-    uiCustomRunOps = "list", startDisp = "character"))
+    uiCustomRunOps = "list", startDisp = "character",origDBname="list",
+    dbSize="numeric"))
 
 if (exists("mkGlobals",envir=.GlobalEnv)) rm(mkGlobals,envir=.GlobalEnv)
 mkGlobals <<- setRefClass("globals", 
@@ -41,7 +42,7 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric"))
+    condKeyCntr="numeric",prevDBname="list"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -166,6 +167,8 @@ cat("resetfvsRun\n")
   uiCustomRunOps = list()
   fvsRun$uuid = uuidgen()
   fvsRun$startDisp = character(0)
+  fvsRun$origDBname = list()
+  fvsRun$dbSize <- as.numeric()
 }
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
@@ -253,30 +256,66 @@ cat("writeKeyFile, num stds=",length(stds),
   stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
   plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
   if (is.na(stdInit) && (is.na(stdInit_cond) || is.na(stdInit_plot))) return()
+  #fvsRun$grps[[1]]$cmps[[1]]$kwds
   if (!is.na(stdInit) && input$inTabs !="FVS_PlotInit"){
-    fvsInit = dbGetQuery(dbIcon,
+    SCD <- try(dbGetQuery(dbIcon,
                paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
-                      ' where Stand_ID in (select RunStds from temp.RunStds)'))
+                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    if(class(SCD)=="try-error"){
+    SCD <- try(dbGetQuery(dbIcon,
+               paste0('select Stand_ID,Groups,Inv_Year from ',stdInit,
+                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    }           
+    if(class(SCD)=="try-error") return("Stand_ID Not Found")
+    fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.na(plotInit) && input$inTabs !="FVS_StandInit"){ 
-    fvsInit = dbGetQuery(dbIcon,
-              paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit,
-                     ' where StandPlot_ID in (select RunStds from temp.RunStds)'))
+  }else if (!is.na(plotInit) && input$inTabs !="FVS_StandInit"){
+    SCD <- try(dbGetQuery(dbIcon,
+               paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit,
+                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
+    if(class(SCD)=="try-error"){
+    SCD <- try(dbGetQuery(dbIcon,
+               paste0('select StandPlot_ID,Groups,Inv_Year from ',plotInit,
+                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
+    }           
+    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
+    fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
   }else if (!is.na(stdInit_cond) && (input$inTabs !="FVS_StandInit_Plot" && input$inTabs !="FVS_PlotInit_Plot")){ 
-    fvsInit = dbGetQuery(dbIcon,
-                         paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_cond,
-                                ' where Stand_ID in (select RunStds from temp.RunStds)'))
+    SCD <- try(dbGetQuery(dbIcon,
+               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_cond,
+                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    if(class(SCD)=="try-error"){
+      SCD <- try(dbGetQuery(dbIcon,
+               paste0('select Stand_ID,Groups,Inv_Year from ',stdInit_cond,
+                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    }           
+    if(class(SCD)=="try-error") return("Stand_ID Not Found")
+    fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
   }else if (!is.na(stdInit_plot) && (input$inTabs !="FVS_StandInit_Cond" && input$inTabs !="FVS_PlotInit_Plot")){ 
-    fvsInit = dbGetQuery(dbIcon,
-                         paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_plot,
-                                ' where Stand_ID in (select RunStds from temp.RunStds)'))
+    SCD <- try(dbGetQuery(dbIcon,
+            paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_plot,
+                   ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    if(class(SCD)=="try-error"){
+      SCD <- try(dbGetQuery(dbIcon,
+              paste0('select Stand_ID,Groups,Inv_Year from ',stdInit_plot,
+                     ' where Stand_ID in (select RunStds from temp.RunStds)')))
+    }           
+    if(class(SCD)=="try-error") return("Stand_ID Not Found")
+    fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
   }else{ 
-    fvsInit = dbGetQuery(dbIcon,
-                         paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit_plot,
-                                ' where StandPlot_ID in (select RunStds from temp.RunStds)'))
+    SCD <- try(dbGetQuery(dbIcon,
+            paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit_plot,
+                   ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
+    if(class(SCD)=="try-error"){
+      SCD <- try(dbGetQuery(dbIcon,
+              paste0('select StandPlot_ID,Groups,Inv_Year from ',plotInit_plot,
+                     ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
+    }           
+    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
+    fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))}
 
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")

@@ -114,7 +114,7 @@ shinyUI(fixedPage(
             tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
             tabsetPanel(id = "rightPan",
               tabPanel("Stands",
-                selectInput("inTabs","Stand Table", NULL, NULL, 
+                selectInput("inTabs","Inventory Data Tables", NULL, NULL, 
                           multiple=FALSE, selectize=FALSE),
                 selectInput("inVars","Variants", NULL, NULL, 
                           multiple=FALSE, selectize=FALSE),
@@ -224,7 +224,7 @@ shinyUI(fixedPage(
                       c("Wait for run","Run in background")),
                     actionButton("saveandrun","Save and Run"),
                     h6(),
-                    downloadButton("dlFVSRunout","FVS output"),
+                    downloadButton("dlFVSRunout","FVS Main Output File"),
                     h4()
                   ),
                   column(width=9,

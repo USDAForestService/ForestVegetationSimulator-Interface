@@ -190,6 +190,10 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
+    if (isLocal()){
+      file.copy(paste0("C:/FVSOnlocal/",basename(getwd()),"/projectId.txt"),
+                "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+    }
   })
   
   initTableGraphTools <- function ()
@@ -1768,7 +1772,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       FVS_Runs = globals$FVS_Runs     
       save (file="FVS_Runs.RData",FVS_Runs)
       resetGlobals(globals,NULL,prms)
-      updateTextInput(session=session, inputId="title", label="", 
+      updateTextInput(session=session, inputId="title", label="Run title", 
                       value=globals$fvsRun$title) 
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
@@ -1791,6 +1795,8 @@ cat("setting uiRunPlot to NULL\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)
       }
+      incase <- list()
+      if (length(globals$fvsRun$origDBname)) incase <- globals$fvsRun$origDBname 
       progress <- shiny::Progress$new(session,min=1,max=5)
       progress$set(message = "Loading selected run",value = 1)
       resetGlobals(globals,NULL,prms)
@@ -1815,7 +1821,7 @@ cat("setting uiRunPlot to NULL\n")
       } 
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
-      {
+      { 
         if (length(saveFvsRun$stands[[i]]$grps) > 0)
           for (j in 1:length(saveFvsRun$stands[[i]]$grps))
           { 
@@ -1902,7 +1908,6 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-      # updateStandTableSelection()
       updateVarSelection()
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
@@ -1916,8 +1921,27 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
           selected=globals$fvsRun$runScript)
       if (callCustom) customRunOps()
       progress$close()
+      if (globals$fvsRun$dbSize == file.info("FVS_Data.db")$size 
+          && length (globals$fvsRun$dbSize)) globals$prevDBname [1] <- globals$fvsRun$origDBname
+      if (globals$fvsRun$dbSize != file.info("FVS_Data.db")$size 
+          && length (globals$fvsRun$dbSize) && length(incase)) globals$prevDBname [1] <- incase
     }
   })
+  
+  # Message to user about need to re-upload database that is no longer the active one after
+  # selecting a run created with a previous database
+  observe(
+    if (!is.null(input$runSel) && length(globals$prevDBname)){
+      if (is.na(match(globals$prevDBname[1],globals$fvsRun$origDBname[1]))
+          && globals$fvsRun$dbSize != file.info("FVS_Data.db")$size){
+        session$sendCustomMessage(type = "infomessage",
+        message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
+                  globals$fvsRun$title," is no longer active due to another database having been uploaded. Import the ",
+                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
+        updateTabsetPanel(session=session,inputId="topPan",selected="Import Data")
+      }
+    }
+  )
 
   ##autoOut
   observe(globals$fvsRun$autoOut<-as.list(input$autoOut))
@@ -1927,6 +1951,22 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     if (input$saveRun > 0)                  
     {
 cat ("saveRun\n")
+      if (!length(globals$fvsRun$origDBname) && !is.null(globals$prevDBname) && !length(globals$prevDBname)){
+        globals$fvsRun$origDBname[1] <- "Regional Training"
+        try(file.info("FVS_Data.db")$size)
+        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+      }
+      if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]!="Regional Training"){
+        globals$fvsRun$origDBname[1] <- globals$prevDBname[1]
+        try(file.info("FVS_Data.db")$size)
+        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+      }
+      if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]=="Regional Training"){ 
+        globals$fvsRun$origDBname[1] <- "Regional Training"
+        try(file.info("FVS_Data.db")$size)
+        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+      }
+      if (!length(globals$prevDBname)) globals$prevDBname [1] <- globals$fvsRun$origDBname
       saveRun()
       selChoices = names(globals$FVS_Runs) 
       names(selChoices) = globals$FVS_Runs
@@ -2144,9 +2184,14 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
 cat ("Cut length(input$simCont) = ",length(input$simCont),"\n") 
       if (length(input$simCont) == 0) return
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
-      {   
+      {
         globals$foundStand=0L 
-        updateReps(globals) 
+        spgkeep <- 0
+        for (i in 1:length(globals$pastelist)){
+          if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
+            spgkeep <- spgkeep+1
+        }
+        if (!length(spgkeep))updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2305,7 +2350,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
             label="Keywords", choices=list())
         output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
-      "Custom"   = 
+      "Addfile"   = 
       {
         customCmps = NULL
         if (length(globals$customCmps) == 0 && file.exists("FVS_kcps.RData")) 
@@ -2813,8 +2858,34 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
         progress <- shiny::Progress$new(session,min=1,
                            max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
-          detail = "Saving FVS Runs", value = 1)         
+          detail = "Saving FVS Runs", value = 1)
+        if (!length(globals$fvsRun$origDBname) && !is.null(globals$prevDBname) && !length(globals$prevDBname)){
+          globals$fvsRun$origDBname[1] <- "Regional Training"
+          try(file.info("FVS_Data.db")$size)
+          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+        }
+        if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]!="Regional Training"){
+          globals$fvsRun$origDBname[1] <- globals$prevDBname[1]
+          try(file.info("FVS_Data.db")$size)
+          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+        }
+        if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]=="Regional Training"){ 
+          globals$fvsRun$origDBname[1] <- "Regional Training"
+          try(file.info("FVS_Data.db")$size)
+          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
+        }
+        if (!length(globals$prevDBname) && !length(globals$FVS_Runs)) globals$prevDBname [1] <- globals$fvsRun$origDBname
+        if (globals$fvsRun$dbSize == file.info("FVS_Data.db")$size 
+            && length (globals$fvsRun$dbSize)) globals$prevDBname [1] <- globals$fvsRun$origDBname
         saveRun()
+        if (is.na(match(globals$prevDBname[1],globals$fvsRun$origDBname[1]))
+            && globals$fvsRun$dbSize != file.info("FVS_Data.db")$size){
+          progress$close
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
+                                    globals$fvsRun$title," is no longer active due to another database having been uploaded. Re-upload the ",
+                                    globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
+          isolate(updateTabsetPanel(session=session,inputId="topPan",selected="Import Data"))}
 cat("Nulling uiRunPlot at Save and Run\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)                                  
@@ -3164,7 +3235,19 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       }, contentType="zip")
   
   ## DownLoad
+  if(!isLocal()){
   output$dlFVSRunout <- downloadHandler(filename=function ()
+      paste0(globals$fvsRun$title,"_FVSoutput.tx"),
+      content=function (tf = tempfile())
+      {
+        sfile = paste0(input$runSel,".out")
+        if (file.exists(sfile)) file.copy(sfile,tf) else
+          cat (file=tf,"Output not yet created.\n")
+      }, contentType="text")
+  mainOutputWin <- paste0(almost,"t")
+  cmd <- paste0("more /P <",almost,">",mainOutputWin,"")
+  system(cmd)
+  }else output$dlFVSRunout <- downloadHandler(filename=function ()
     paste0(globals$fvsRun$title,"_FVSoutput.txt"),
     content=function (tf = tempfile())
     {
@@ -3172,7 +3255,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       if (file.exists(sfile)) file.copy(sfile,tf) else
         cat (file=tf,"Output not yet created.\n")
     }, contentType="text")
-  
+
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
       paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
@@ -3182,6 +3265,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Keywords not yet created.\n")
       }, contentType="text")
+  
   ## Download FVSData.zip  
   output$dlFVSRunZip <- downloadHandler(filename="FVSData.zip",	
      content = function (tf = tempfile())	
@@ -3245,6 +3329,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
            unlink(tempDir,recursive = TRUE)
            setwd(curdir)
          }, contentType="application/zip") 
+  
   ## kcpSel
   observe({
     if (length(input$kcpSel) == 0) return()
@@ -3935,6 +4020,7 @@ cat ("delete all outputs\n")
       dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")    
     })  
   })
+  
   ## deleteAllRuns
   observe({
     if(input$deleteAllRuns > 0)
@@ -4122,26 +4208,31 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
   observe({
     if (input$topPan == "Help")
     {
+      progress <- shiny::Progress$new(session,min=1,max=12)
+      progress$set(message = "Loading Help File", value = 2)
       fn = "fvsOnlineHelp.html"
       help = readChar(fn, file.info(fn)$size) 
       xlsxfile="databaseDescription.xlsx"
+      progress$set(message = "Loading Help File", value = 5)
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-      if (class(tabs)!="try-error")
-      {
-        morehtml=xlsx2html(tab="OutputTableDescriptions")
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**OUTPUTHTML**",replacement=morehtml)
-      }
+        if (class(tabs)!="try-error")
+        {
+          morehtml=xlsx2html(tab="OutputTableDescriptions")
+          for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**OUTPUTHTML**",replacement=morehtml)
+        }
+      progress$set(message = "Loading Table Descriptions", value = 8)
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-      if (class(tabs)!="try-error")                                                         
-      {
-        morehtml=xlsx2html(tab="InputTableDescriptions")
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**INPUTHTML**",replacement=morehtml)
-      }
+        if (class(tabs)!="try-error")                                                         
+        {
+          morehtml=xlsx2html(tab="InputTableDescriptions")
+          for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**INPUTHTML**",replacement=morehtml)
+        }
       output$uiHelpText <- renderUI(HTML(help))
+      progress$close()
     }
   })
   
@@ -4210,7 +4301,7 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Training database installed")
+    output$replaceActionMsg <- renderText("Regional Training database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4230,6 +4321,7 @@ cat ("Replace existing database\n")
   observe({
     if (is.null(input$uploadNewDB)) return()
     fext = tools::file_ext(basename(input$uploadNewDB$name))
+    globals$prevDBname[1] <- input$uploadNewDB$name
 cat ("fext=",fext,"\n")
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
@@ -4421,7 +4513,7 @@ cat("loaded table=",tab,"\n")
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
     session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-    setwd(curDir)      
+    setwd(curDir)
     progress$close()    
   })
   ## installNewDB
@@ -5625,6 +5717,8 @@ cat ("Projects hit\n")
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
+      progress <- shiny::Progress$new(session,min=1,max=12)
+      progress$set(message = "Saving current run",value = 1)
       saveRun()
       curdir = getwd()
       basedir = basename(curdir)
@@ -5638,6 +5732,7 @@ cat ("Projects hit\n")
         updateTextInput(inputId=PrjNewTitle,session=session,value="")
         return()
       }
+      progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -5656,11 +5751,13 @@ cat ("Projects hit\n")
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
       unlink("projectId.txt")
       cat ("title= ",fn,"\n",file="projectId.txt")
+      progress$set(message = "Saving new prohect",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
       if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
       globals$saveOnExit = FALSE
       globals$reloadAppIsSet=1
+      progress$close()
       session$reload()                        
     })
   })    
@@ -5675,6 +5772,10 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
         if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
         if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
         setwd(input$PrjSelect)
+        if (isLocal()){
+          file.copy(paste0("C:/FVSOnlocal/",basename(input$PrjSelect),"/projectId.txt"),
+                    "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+        }
         globals$saveOnExit = FALSE
         globals$reloadAppIsSet=1
         session$reload()
@@ -5705,7 +5806,7 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
       }
       # remove excess images that maybe created in Maps.
       delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
-      if (length(delList)) lapply(delList,function(x) unlink(x))      
+      if (length(delList)) lapply(delList,function(x) unlink(x))  
 cat ("leaving saveRun, saveTheRun=",saveTheRun,"\n") 
     }) 
   }
