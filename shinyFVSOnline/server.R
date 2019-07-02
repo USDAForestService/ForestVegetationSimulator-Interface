@@ -1821,7 +1821,7 @@ cat("setting uiRunPlot to NULL\n")
       } 
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
-      { 
+      {
         if (length(saveFvsRun$stands[[i]]$grps) > 0)
           for (j in 1:length(saveFvsRun$stands[[i]]$grps))
           { 
@@ -3233,29 +3233,15 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
-  
   ## DownLoad
-  if(!isLocal()){
   output$dlFVSRunout <- downloadHandler(filename=function ()
-      paste0(globals$fvsRun$title,"_FVSoutput.tx"),
+      paste0(globals$fvsRun$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Output not yet created.\n")
       }, contentType="text")
-  mainOutputWin <- paste0(almost,"t")
-  cmd <- paste0("more /P <",almost,">",mainOutputWin,"")
-  system(cmd)
-  }else output$dlFVSRunout <- downloadHandler(filename=function ()
-    paste0(globals$fvsRun$title,"_FVSoutput.txt"),
-    content=function (tf = tempfile())
-    {
-      sfile = paste0(input$runSel,".out")
-      if (file.exists(sfile)) file.copy(sfile,tf) else
-        cat (file=tf,"Output not yet created.\n")
-    }, contentType="text")
-
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
       paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
