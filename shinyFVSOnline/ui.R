@@ -52,6 +52,7 @@ if (file.exists("databaseDescription.xlsx"))
 }
 
 shinyUI(fixedPage(
+  if(file.exists("app.css")) includeCSS("app.css"),
   tags$style(HTML(paste0(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
@@ -130,7 +131,20 @@ shinyUI(fixedPage(
                 actionButton("inAddGrp","Add stands in selected groups"), 
                 myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
                 actionButton("inStdFindBut","Find")
-              ),                                           
+              ), 
+              tabPanel("Time",
+                       textInput("startyr",  "Common starting year", ""), 
+                       textInput("endyr",    "Common ending year",   ""), 
+                       textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
+                       tags$style(type="text/css", "#cycleat { width: 90%; }"),
+                       textInput("cycleat", "Additional output reporting years", ""),
+                       h4("Projection Timing Summary"),
+                       HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common 
+                             starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS 
+                             will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),' 
+                             years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
+                             '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+              ),
               tabPanel("Components",          
                 tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
                 tabsetPanel(id = "compTabSet",
@@ -181,13 +195,6 @@ shinyUI(fixedPage(
                uiOutput("cmdBuild"),
                uiOutput("cmdBuildDesc")
               ),
-              tabPanel("Time",
-                textInput("startyr",  "Common starting year", ""), 
-                textInput("endyr",    "Common ending year",   ""), 
-                textInput("cyclelen", "Common cycle length",  ""), 
-                tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                textInput("cycleat", "Include cycles at these years", "") 
-              ),
               tabPanel("Select Outputs",
                     h4("Select outputs"),
                     HTML("Note that all outputs are put in output database except for the SVS data.<br>
@@ -215,7 +222,7 @@ shinyUI(fixedPage(
                         selected=1,multiple=FALSE,selectize=FALSE),
                         h5(),uiOutput("tabDesc")
               ),
-              tabPanel("Run",
+              tabPanel(title=htmlOutput("contChange"),
                 fixedRow(
                   column(width=3,
                     tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
@@ -506,6 +513,13 @@ shinyUI(fixedPage(
                $(id).css("visibility", "hidden");});'
         ),       
         fixedRow(
+          tags$head(tags$script(HTML('
+             Shiny.addCustomMessageHandler("jsCode",
+                                     function(message) {
+                                     eval(message.code);
+                                     }
+          );
+          '))),
         column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
@@ -513,16 +527,45 @@ shinyUI(fixedPage(
               h6(),
               fileInput("uploadNewDB",paste0("Step 1: Upload FVS-Ready database ",
                         "(.accdb, .mdb, .db (SQLite3), .sqlite, .xlsx, or .zip that contains one of these)"),
-                        width="90%"), 
-              #h5("Step 2: Following upload, you must do one of the following"),
+                        width="90%"),
               p(strong("Step 2: Following upload, you must do one of the following")),
               tags$style(type="text/css","#installNewDB{font-size: 120%; color:green;}"),
               tags$style(type="text/css","#addNewDB{font-size: 120%; color:green;}"),
-              actionButton("installNewDB","Install uploaded database"),
-              actionButton("addNewDB","Add new database to existing database"),h6(),
+              modalTriggerButton("installNewDB", "#installNewDBDlg", 
+                                 "Install uploaded database"),
+              modalDialog(id="installNewDBDlg", footer=list(
+                modalTriggerButton("installNewDBDlgBtn", "#installNewDBDlg", 
+                                   "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                            'data-dismiss' = "modal", "No"))),
+              # actionButton("installNewDB","Install uploaded database"),
+              modalTriggerButton("addNewDB", "#addNewDBDlg", 
+                                 "Add new database to existing database"),
+              modalDialog(id="addNewDBDlg", footer=list(
+                modalTriggerButton("addNewDBDlgBtn", "#addNewDBDlg", 
+                                   "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                            'data-dismiss' = "modal", "No"))),
+              # actionButton("addNewDB","Add new database to existing database"),
+              h6(),
               p(strong("Other options")),
-              actionButton("installTrainDB","Install regional training database"),h6(),
-              actionButton("installEmptyDB","Install blank database"),h6(),
+              modalTriggerButton("installTrainDB", "#installTrainDBDlg", 
+                                 "Install regional training database"),
+              modalDialog(id="installTrainDBDlg", footer=list(
+                modalTriggerButton("installTrainDBDlgBtn", "#installTrainDBDlg", 
+                                   "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                            'data-dismiss' = "modal", "No"))),
+              # actionButton("installTrainDB","Install regional training database"),
+              h6(),
+              modalTriggerButton("installEmptyDB", "#installEmptyDBDlg", 
+                                 "Install blank database"),
+              modalDialog(id="installEmptyDBDlg", footer=list(
+                modalTriggerButton("installEmptyDBDlgBtn", "#installEmptyDBDlg", 
+                                   "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                            'data-dismiss' = "modal", "No"))),
+              # actionButton("installEmptyDB","Install blank database"),h6(),
               tags$style(type="text/css","#replaceActionMsg{color:darkred;}"), 
               textOutput("replaceActionMsg")
       	    ),

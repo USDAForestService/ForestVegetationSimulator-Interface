@@ -41,7 +41,7 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric",prevDBname="list"))
+    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -325,10 +325,88 @@ cat("writeKeyFile, num stds=",length(stds),
   cat ("!!built:",format(Sys.time(), 
         "%Y-%m-%d_%H:%M:%S"),"\n",file=fc)
   thisYr = as.numeric(format(Sys.time(), "%Y"))
+  globals$timeissue <- 0
+  # Start year checks
+  for(i in 1:length(globals$fvsRun$stands)){
+    if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
+         ((input$startyr !="") && nchar(input$startyr) > 4))){
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common starting year of ",input$startyr," is more than 50 years from the current year of ", thisYr))
+      globals$timeissue <- 1
+      return()
+    }
+    if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common starting year of ",input$startyr," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+      globals$timeissue <- 1
+      return()
+    }
+    if (input$startyr =="") {
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common starting year is blank."))
+      globals$timeissue <- 1
+      return()
+    }
+  }
+  # End year checks
+  for(i in 1:length(globals$fvsRun$stands)){
+    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (thisYr + 400))) ||
+         ((input$endyr !="") && nchar(input$endyr) > 4))){
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common ending year of ", input$endyr," is more than 400 years from the current year of ", thisYr))
+      globals$timeissue <- 1
+      return()
+    }
+    if ((input$endyr !="") && (input$endyr < globals$fvsRun$stands[[i]]$invyr)){
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common ending year of ", input$endyr," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+      globals$timeissue <- 1
+      return()
+    }
+    if (input$endyr =="") {
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("The common ending year is blank."))
+      globals$timeissue <- 1
+      return()
+    }
+  }
+  # Cycle length checks
+  if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
+       ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
+    session$sendCustomMessage(type = "infomessage",
+            message = paste0("The growth interval of ", input$cyclelen," years is greater than the maximum 50 years"))
+    globals$timeissue <- 1
+    return()
+  }
+  if (input$cyclelen =="") {
+    session$sendCustomMessage(type = "infomessage",
+            message = paste0("The growth interval is blank."))
+    globals$timeissue <- 1
+    return()
+  }
   baseCycles = seq(as.numeric(fvsRun$startyr),as.numeric(fvsRun$endyr),
                    as.numeric(fvsRun$cyclelen))
   cycleat = scan(text=gsub(";"," ",gsub(","," ",fvsRun$cycleat)),
                  what=0,quiet=TRUE)
+  # Cycle break checks
+  if (length(cycleat)){
+  for(i in 1:length(globals$fvsRun$stands)){
+    for(j in 1:length(cycleat)){
+      if ((cycleat[j] > (thisYr + 400))){
+        session$sendCustomMessage(type = "infomessage",
+                message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
+        globals$timeissue <- 1
+        return()
+      }
+      if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+        session$sendCustomMessage(type = "infomessage",
+                message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+        globals$timeissue <- 1
+        return()
+      }
+    }
+  }
+  }
   cycleat = sort(union(baseCycles,cycleat))
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
   for (std in fvsRun$stands)
@@ -344,7 +422,7 @@ cat("writeKeyFile, num stds=",length(stds),
         fvsInit$STANDPLOT_CN[sRowp] != " "){ 
       cat ("StandCN\n",fvsInit$STANDPLOT_CN[sRowp],"\n",file=fc,sep="")
       }else cat ("StandCN\n",std$sid,"\n",file=fc,sep="")
-    cat ("MgmtId\n",fvsRun$defMgmtID,"\n",file=fc,sep="")                       
+    cat ("MgmtId\n",fvsRun$defMgmtID,"\n",file=fc,sep="") 
     if (length(std$invyr) == 0) std$invyr = as.character(thisYr) 
     ninvyr = as.numeric(std$invyr)
     cat ("InvYear       ",std$invyr,"\n",file=fc,sep="")
@@ -690,7 +768,8 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$currentCmdPkey <- "0"
   globals$currentCndPkey <- "0"
   globals$winBuildFunction <- character(0)
-  globals$foundStand=0L  
+  globals$foundStand=0L 
+  globals$changeind <- 0
 }
 
 
@@ -1527,6 +1606,10 @@ cat ("error: stdInit is null\n")
     output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
       length(globals$fvsRun$stands)," stand(s)<br>",
       length(globals$fvsRun$grps)," group(s)")))
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
     progress$close()
   })
 }

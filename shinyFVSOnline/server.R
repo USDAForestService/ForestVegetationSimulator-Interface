@@ -55,11 +55,6 @@ cat ("FVSOnline/OnLocal interface server start.\n")
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()
-    if (.Platform$OS.type == "windows")
-    {
-      Sys.setenv("sqlite3"= "C:/FVSbin/FVSProjects/SQLite/sqlite3.exe")
-      sqlite3 = Sys.getenv("sqlite3")
-    } else sqlite3 = "sqlite3"
     if (!file.exists("FVS_Runs.RData"))
     {
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
@@ -1714,12 +1709,38 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
     updateSelectInput(session=session, inputId="inStds", 
          choices=as.list(stds))   
   })
-        
+  
+  ## Save saveRun  
+  observe({
+    if (input$saveRun > 0 || ((input$installNewDBDlgBtn > 0 || input$installTrainDBDlgBtn > 0) && 
+                              length(globals$fvsRun$simcnts)))                  
+    {
+      cat ("saveRun\n")
+      saveRun()
+      selChoices = names(globals$FVS_Runs) 
+      names(selChoices) = globals$FVS_Runs
+      updateSelectInput(session=session, inputId="runSel", 
+                        choices=selChoices,selected=selChoices[[1]])
+      FVS_Runs = globals$FVS_Runs
+      save (FVS_Runs,file="FVS_Runs.RData")
+    } 
+  })
 
   ## New run    
   observe({
-    if (input$newRun > 0)
+    if (input$newRun > 0 || input$installNewDBDlgBtn > 0 || input$addNewDBDlgBtn > 0 || 
+        input$installTrainDBDlgBtn > 0 || input$installEmptyDBDlgBtn > 0 )
     {
+      if (input$installNewDBDlgBtn > 0 || input$addNewDBDlgBtn > 0 || input$installTrainDBDlgBtn > 0) {
+        updateTabsetPanel(session=session,inputId="topPan",selected="Runs") 
+        updateTabsetPanel(session=session,inputId="rightPan",selected="Stands") 
+        if(!length(globals$fvsRun$simcnts)) return()
+      }
+      if (input$installEmptyDBDlgBtn > 0){
+        updateTabsetPanel(session=session,inputId="topPan",selected="Upload Data")
+        updateTabsetPanel(session=session,inputId="inputDBPan",selected="View and edit existing tables")
+        if(!length(globals$fvsRun$simcnts)) return()
+      }
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
@@ -1776,6 +1797,8 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
           }
         }
       })
+      globals$changeind <- 0
+      output$contChange <- renderUI("Run")
     }
   })    
       
@@ -1892,7 +1915,7 @@ cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$u
 cat ("globals$fvsRun$uiCustomRunOps is empty\n")
 
       isolate({
-        if (input$rightPan != "Run" && length(globals$fvsRun$simcnts)>0)
+        if ((globals$changeind==0 && !length(globals$currentQuickPlot)) && length(globals$fvsRun$simcnts)>0)
         {
           if (input$rightPan != "Components" && length(globals$fvsRun$simcnts)>0)
           {
@@ -1949,22 +1972,15 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
 #                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
 
   ##autoOut
-  observe(globals$fvsRun$autoOut<-as.list(input$autoOut))
-  
-  ## Save saveRun  
-  observe({
-    if (input$saveRun > 0)                  
-    {
-cat ("saveRun\n")
-      saveRun()
-      selChoices = names(globals$FVS_Runs) 
-      names(selChoices) = globals$FVS_Runs
-      updateSelectInput(session=session, inputId="runSel", 
-          choices=selChoices,selected=selChoices[[1]])
-      FVS_Runs = globals$FVS_Runs
-      save (FVS_Runs,file="FVS_Runs.RData")
-    } 
-  })
+   observe({
+    if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
+    globals$fvsRun$autoOut<-as.list(input$autoOut)
+    updateCheckboxGroupInput(session=session, inputId="autoOut", selected=globals$fvsRun$autoOut)
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
+   })
 
   ## inAdd:    Add Selected Stands
   observe({
@@ -2192,6 +2208,10 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           selected=if (length(globals$pastelistShadow)) 
               globals$pastelistShadow[[1]] else 0)
       }
+      globals$changeind <- 1
+      output$contChange <- renderText({
+        HTML(paste0("<b>","*Run*","</b>"))
+      })
     })
   })
 
@@ -2241,6 +2261,10 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           length(globals$fvsRun$grps)," group(s)")))
       }
       globals$foundStand=0L 
+      globals$changeind <- 1
+      output$contChange <- renderText({
+        HTML(paste0("<b>","*Run*","</b>"))
+      })
     })
   })
 
@@ -2827,16 +2851,74 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       mkSimCnts(globals$fvsRun,input$simCont[[1]])
       updateSelectInput(session=session, inputId="simCont", 
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      globals$changeind <- 1
+      output$contChange <- renderText({
+        HTML(paste0("<b>","*Run*","</b>"))
+      })
       closeCmp()
       globals$schedBoxPkey <- character(0)
     })
   })
 
-  ## time
-  observe(globals$fvsRun$startyr  <- input$startyr)
-  observe(globals$fvsRun$endyr    <- input$endyr)
-  observe(globals$fvsRun$cyclelen <- input$cyclelen)
-  observe(globals$fvsRun$cycleat  <- input$cycleat)
+  observe({
+    cat ("changeind=",globals$changeind,"\n")
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
+  
+  ## time--start year
+  observe({
+    if(!length(input$simCont) || globals$fvsRun$startyr==input$startyr) return()
+    globals$fvsRun$startyr  <- input$startyr
+    updateTextInput(session=session, inputId="startyr", value= input$startyr)
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
+  })
+  ## time--end year
+  observe({
+    if(!length(input$simCont) || globals$fvsRun$endyr==input$endyr) return()
+    globals$fvsRun$endyr <- input$endyr
+    updateTextInput(session=session, inputId="endyr", value= input$endyr)
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
+  })
+  ## time--cycle length
+  observe({
+    if(!length(input$simCont) || globals$fvsRun$cyclelen==input$cyclelen) return()
+    globals$fvsRun$cyclelen <- input$cyclelen
+    updateTextInput(session=session, inputId="cyclelen", value= input$cyclelen)
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
+  }) 
+  ## time--cycle breaks
+  observe({
+    if(!length(input$simCont) || (length(globals$fvsRun$cycleat) && 
+                                  length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
+    globals$fvsRun$cycleat  <- input$cycleat
+    globals$changeind <- 1
+    output$contChange <- renderText({
+      HTML(paste0("<b>","*Run*","</b>"))
+    })
+  })
 
   ## Save and Run
   observe({
@@ -2871,6 +2953,10 @@ cat("Nulling uiRunPlot at Save and Run\n")
           detail = "Write .key file and prepare program", value = 3) 
         writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=!("FVS_Summary" %in% 
           dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[[1]]))
+        if(globals$timeissue==1){
+          progress$close()
+          isolate(updateTabsetPanel(session=session,inputId="rightPan",selected="Time"))
+        }
         if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
         {
 cat ("keyword file was not created.\n")
@@ -3098,6 +3184,8 @@ cat ("length(allSum)=",length(allSum),"\n")
                 height=(height+1)*144), deleteFile=TRUE)
 cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
         globals$currentQuickPlot = globals$fvsRun$uuid
+        globals$changeind <- 0
+        output$contChange <- renderUI("Run")
       }
     })
   })
@@ -4341,7 +4429,10 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Regional Training database installed")
+    session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "installTrainDBDlg",
+            message = "Training database installed. Do you want to create a new run now?"))
+    # output$replaceActionMsg <- renderText("Regional Training database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4352,7 +4443,10 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Empty database installed")
+    session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "installEmptyDBDlg",
+            message = "Empty database installed. Do you want to start inputting data?"))
+    # output$replaceActionMsg <- renderText("Empty database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4362,11 +4456,20 @@ cat ("Replace existing database\n")
     if (is.null(input$uploadNewDB)) return()
     fext = tools::file_ext(basename(input$uploadNewDB$name))
 cat ("fext=",fext,"\n")
+    session$sendCustomMessage(type="jsCode",
+                          list(code= "$('#input$installNewDB').prop('disabled',true)"))
+    session$sendCustomMessage(type="jsCode",
+                          list(code= "$('#input$addNewDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
-      output$replaceActionMsg  = renderText("Uploaded file is not suitable.")
+      output$replaceActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
       return()
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installNewDB').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#addNewDB').prop('disabled',true)"))
     }
     fdir = dirname(input$uploadNewDB$datapath)
     if (fext == "zip") 
@@ -4386,7 +4489,7 @@ cat ("fext=",fext,"\n")
       fext = tools::file_ext(fname)
       if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx"))) 
       {
-        output$replaceActionMsg = renderText(".zip did not contain a suitable file.")
+        output$replaceActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         return()
       }
@@ -4547,11 +4650,16 @@ cat("loaded table=",tab,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("Uploaded data: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg = renderText(msg)
+    session$sendCustomMessage(type = "infomessage", message = msg)
+    # output$replaceActionMsg = renderText(msg)
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
     session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#installNewDB').prop('disabled',false)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#addNewDB').prop('disabled',false)"))
     setwd(curDir)
     progress$close()    
   })
@@ -4673,7 +4781,10 @@ cat ("index creation, qry=",qry,"\n")
     progress$set(message = "Checking database query keywords", value = i+1)
     fixFVSKeywords(dbGlb,progress) 
     msg = checkMinColumnDefs(dbGlb,progress)
-    output$replaceActionMsg <- renderText(msg)
+    session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "installNewDBDlg",
+            message = paste0(msg,". Do you want to create a new run now?")))
+    # output$replaceActionMsg <- renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon)
     initNewInputDB()
     progress$close()
@@ -4784,7 +4895,10 @@ cat ("homogenize qry=",qry,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("New database: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg <- renderText(msg)
+    session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "installNewDBDlg",
+            message = paste0(msg,". Do you want to create a new run now?")))
+    # output$replaceActionMsg <- renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon) 
     initNewInputDB()
     progress$close()
