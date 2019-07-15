@@ -403,3 +403,29 @@ circle3D <- function (x0=0,y0=0,z0=0,r=1,n=60,col="gray",alpha=.5,...)
   polygon3d(x,y,z,color=col,alpha=alpha,...)
 }
 
+matRotat <- function(mat,xa=0,ya=0,za=0)
+{
+  x = 0.01745329  # x = pi/180
+  sinxa = sin(xa*x)
+  sinya = sin(ya*x)
+  sinza = sin(za*x)
+  cosxa = cos(xa*x)
+  cosya = cos(ya*x)
+  cosza = cos(za*x)
+  mx = matrix(c(1,0,0,0,cosxa,-sinxa,0,sinxa,cosxa),nrow=3,byrow=TRUE)
+  my = matrix(c(cosya,0,sinya,0,1,0,-sinya,0,cosya),nrow=3,byrow=TRUE)
+  mz = matrix(c(cosza,-sinza,0,sinza,cosza,0,0,0,1),nrow=3,byrow=TRUE)  
+  rm = mx %*% my %*% mz
+  mat %*% rm
+}
+
+matRotateZ180 <- function(mat,offset)
+{
+  mat[,1] = mat[,1]-offset
+  mat[,2] = mat[,2]-offset
+  mat = mat %*% diag(c(-1,-1,1))
+  mat[,1] = mat[,1]+offset
+  mat[,2] = mat[,2]+offset
+  mat
+}
+  

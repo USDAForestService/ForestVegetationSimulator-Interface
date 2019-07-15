@@ -233,6 +233,7 @@ cat ("getwd= ",getwd(),"\n")
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
     {
 cat ("View Outputs & Load\n")
+      initTableGraphTools()
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]      
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
@@ -1209,7 +1210,27 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       legendTitle = pb
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
-    }      
+    }
+    # attempt to reduce/modify the by variable set
+    bys = setdiff(names(nd),c("X","Y",pb,"hfacet","vfacet"))
+cat ("before summing logic, plotType=",input$plotType," names(nd)=",
+     names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
+    if (input$plotType %in% c("line","box","bar")) for (byy in bys)
+    {
+      tt=table(nd[,c("X",byy)])
+cat ("byy=",byy," ncol(tt)=",tt,"\n")
+      if (ncol(tt))
+      {
+        dd=by(data=nd,INDICES=list(nd$X,nd[[byy]]),FUN=function (x)
+          {
+            an=x[1,,drop=FALSE]
+            an$Y=sum(x$Y)
+            an
+          })
+        nd = do.call(rbind,dd)
+      }     
+cat ("after summing logic names(nd)=",names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
+    }
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
@@ -1529,7 +1550,7 @@ cat ("Stands\n")
   observe({
     if (is.null(input$inTabs)) return()
     reloadStandSelection()
-    cat ("inTabs\n")
+cat ("inTabs\n")
   })
   
   updateVarSelection <- function ()
@@ -1795,8 +1816,6 @@ cat("setting uiRunPlot to NULL\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)
       }
-      incase <- list()
-      if (length(globals$fvsRun$origDBname)) incase <- globals$fvsRun$origDBname 
       progress <- shiny::Progress$new(session,min=1,max=5)
       progress$set(message = "Loading selected run",value = 1)
       resetGlobals(globals,NULL,prms)
@@ -1921,27 +1940,13 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
           selected=globals$fvsRun$runScript)
       if (callCustom) customRunOps()
       progress$close()
-      if (globals$fvsRun$dbSize == file.info("FVS_Data.db")$size 
-          && length (globals$fvsRun$dbSize)) globals$prevDBname [1] <- globals$fvsRun$origDBname
-      if (globals$fvsRun$dbSize != file.info("FVS_Data.db")$size 
-          && length (globals$fvsRun$dbSize) && length(incase)) globals$prevDBname [1] <- incase
     }
   })
   
-  # Message to user about need to re-upload database that is no longer the active one after
-  # selecting a run created with a previous database
-  observe(
-    if (!is.null(input$runSel) && length(globals$prevDBname)){
-      if (is.na(match(globals$prevDBname[1],globals$fvsRun$origDBname[1]))
-          && globals$fvsRun$dbSize != file.info("FVS_Data.db")$size){
-        session$sendCustomMessage(type = "infomessage",
-        message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
-                  globals$fvsRun$title," is no longer active due to another database having been uploaded. Import the ",
-                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
-        updateTabsetPanel(session=session,inputId="topPan",selected="Import Data")
-      }
-    }
-  )
+#session$sendCustomMessage(type = "infomessage",
+#        message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
+#                  globals$fvsRun$title," is no longer active due to another database having been uploaded. Import the ",
+#                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
 
   ##autoOut
   observe(globals$fvsRun$autoOut<-as.list(input$autoOut))
@@ -1951,22 +1956,6 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     if (input$saveRun > 0)                  
     {
 cat ("saveRun\n")
-      if (!length(globals$fvsRun$origDBname) && !is.null(globals$prevDBname) && !length(globals$prevDBname)){
-        globals$fvsRun$origDBname[1] <- "Regional Training"
-        try(file.info("FVS_Data.db")$size)
-        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-      }
-      if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]!="Regional Training"){
-        globals$fvsRun$origDBname[1] <- globals$prevDBname[1]
-        try(file.info("FVS_Data.db")$size)
-        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-      }
-      if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]=="Regional Training"){ 
-        globals$fvsRun$origDBname[1] <- "Regional Training"
-        try(file.info("FVS_Data.db")$size)
-        globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-      }
-      if (!length(globals$prevDBname)) globals$prevDBname [1] <- globals$fvsRun$origDBname
       saveRun()
       selChoices = names(globals$FVS_Runs) 
       names(selChoices) = globals$FVS_Runs
@@ -2858,34 +2847,8 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
         progress <- shiny::Progress$new(session,min=1,
                            max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
-          detail = "Saving FVS Runs", value = 1)
-        if (!length(globals$fvsRun$origDBname) && !is.null(globals$prevDBname) && !length(globals$prevDBname)){
-          globals$fvsRun$origDBname[1] <- "Regional Training"
-          try(file.info("FVS_Data.db")$size)
-          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-        }
-        if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]!="Regional Training"){
-          globals$fvsRun$origDBname[1] <- globals$prevDBname[1]
-          try(file.info("FVS_Data.db")$size)
-          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-        }
-        if (!length(globals$fvsRun$origDBname) && globals$prevDBname[1]=="Regional Training"){ 
-          globals$fvsRun$origDBname[1] <- "Regional Training"
-          try(file.info("FVS_Data.db")$size)
-          globals$fvsRun$dbSize <- file.info("FVS_Data.db")$size
-        }
-        if (!length(globals$prevDBname) && !length(globals$FVS_Runs)) globals$prevDBname [1] <- globals$fvsRun$origDBname
-        if (globals$fvsRun$dbSize == file.info("FVS_Data.db")$size 
-            && length (globals$fvsRun$dbSize)) globals$prevDBname [1] <- globals$fvsRun$origDBname
+          detail = "Saving FVS Runs", value = 1)         
         saveRun()
-        if (is.na(match(globals$prevDBname[1],globals$fvsRun$origDBname[1]))
-            && globals$fvsRun$dbSize != file.info("FVS_Data.db")$size){
-          progress$close
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
-                                    globals$fvsRun$title," is no longer active due to another database having been uploaded. Re-upload the ",
-                                    globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
-          isolate(updateTabsetPanel(session=session,inputId="topPan",selected="Import Data"))}
 cat("Nulling uiRunPlot at Save and Run\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)                                  
@@ -3506,7 +3469,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
           globals$opencond <- 1
           globals$condKeyCntr <- 0
         }
-        # fisrt conditional keyword added
+        # first conditional keyword added
         if (length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
           globals$condKeyCntr <- globals$condKeyCntr + 1
           }
@@ -3585,7 +3548,8 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
   {    
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
-    rgl.viewpoint(theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
+    rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
+ ##   rgl.viewpoint(theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
     source("svsTree.R",local=TRUE)
     load("treeforms.RData")    
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
@@ -3596,8 +3560,52 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
     if (length(rcirc)) 
     {
       args = as.numeric(scan(text=svs[rcirc],what="character",quiet=TRUE)[2:4])
-      circle3D(x0=args[1],y0=args[2],r=args[3],alpha=0.5,)
-    } else {}  # what if it is not a circle???????                                                                        
+cat ("args=",args,"\n")
+      circle3D(x0=args[1],y0=args[2],r=args[3],alpha=0.5)
+    } else {return()}  # what if it is not a circle???????  
+    fireline = grep("^#FIRE_LINE",svs)
+cat ("length(fireline)=",length(fireline),"\n")
+    if (length(fireline))
+    {
+      fl = as.numeric(scan(text=substring(svs[fireline],11),what="numeric",quiet=TRUE))
+      xx = seq(0,args[3]*2,length.out=length(fl))
+      r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
+      k = r<args[3]
+      if (sum(k)>1)
+      {
+        nn=500
+        fl = fl[k]
+        xx = xx[k]
+        fireline = matrix(c(xx,fl,rep(0,length(fl))),ncol=3,byrow=FALSE)
+        lines3d(fireline,col="red",lwd=4,add=TRUE)
+        fls  = approx(xx,fl,rule=2,n=nn)
+        fls$y = jitter(fls$y,amount=5)
+        fls$z = runif(nn)*3
+        fls = matrix(c(fls$x,fls$y,fls$z),ncol=3,byrow=FALSE)
+        fls = t(apply(fls,1,function (x) c(x[1]-x[3],x[2],0,x[1],x[2],x[3]*3,
+                                           x[1]+x[3],x[2],0)))
+        verts = NULL
+        for (row in 1:nrow(fls)) 
+        {
+          tlt=runif(1)*40
+          rot=runif(1)*360
+          mat = matrix(fls[row,],ncol=3,byrow=TRUE)
+          xs = max(mat[,1])-(diff(range(mat[,1]))*.5)
+          ys = max(mat[,2])-(diff(range(mat[,2]))*.5)
+          zs = max(mat[,3])-(diff(range(mat[,3]))*.5)
+          mat[,1] = mat[,1]-xs
+          mat[,2] = mat[,2]-ys
+          mat[,3] = mat[,3]-zs
+          mat = matRotat(mat,tlt,tlt,rot)
+          mat[,1] = mat[,1]+xs
+          mat[,2] = mat[,2]+ys
+          mat[,3] = mat[,3]+zs
+          mat[,3] = ifelse(mat[,3]<0,0,mat[,3])
+          verts = rbind(verts,mat) 
+        } 
+        triangles3d(verts,col="red")
+      }
+    }
     rpols = grep("^RANGEPOLE",svs)
     if (length(rpols))
     {
@@ -3611,15 +3619,57 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       segments3d(poles,col="red",lwd=4,add=TRUE)
       par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     }
+    calls = 0
+    progress <- shiny::Progress$new(session,min=1,max=length(svs)+4)
+    flames = grep("^@flame.eob",svs)
+cat("N flames=",length(flames),"\n")
+    if (length(flames))
+    {
+      calls = calls+1
+      progress$set(message = "Generate flames",value = calls)
+      allv = NULL
+      nflsm = 5
+      tmp=NULL
+      for (fl in svs[flames])
+      {
+        fdat = as.numeric(scan(text=substring(fl,30),what="numeric",quiet=TRUE))
+        # ht,tilt,rotation,width,x,y,z
+        fdat = fdat[c(1,2,3,5,15,16,17)]
+        names(fdat)=c("ht","tlt","rot","wid","x","y","z")
+        tmp=rbind(tmp,fdat[c("x","y","z")])
+        hw=fdat["wid"]*.5
+        hwr=rnorm(nflsm,hw,.5)
+        hwr=ifelse(hwr<(hw*.1),hw*.1,hw)
+        ht=fdat["ht"]
+        htr=rnorm(nflsm,ht,1)
+        htr=ifelse(ht<(htr*.1),ht*.1,ht)
+        tlt=runif(nflsm)*2*fdat["tlt"]
+        fbr=rnorm(nflsm,fdat["z"],.5)
+        fbr=ifelse(fbr<0,0,fbr)
+        rot=runif(nflsm)*360
+        for (i in 1:nflsm)
+        {
+#cat ("i=",i," hw=",hwr[i]," ht=",htr[i]," tlt=",tlt[i]," rot=",rot[i],"\n")
+          verts = cbind(x=c(-hwr[i],hwr[i],0),
+                        y=c(0,0,0),
+                        z=c(0,0,htr[i]))
+          verts = matRotat(verts,xa=tlt[i],ya=tlt[i],za=rot[i])
+          verts[,1]=verts[,1]+fdat["x"]
+          verts[,2]=verts[,2]+fdat["y"]
+          verts[,3]=verts[,3]+rnorm(1,fbr[i],1)
+          allv = rbind(allv,verts)
+        }
+      }
+      triangles3d(allv[,1],allv[,2],allv[,3],col=c("yellow","red")) 
+      svs = svs[-flames]
+    }
+cat("Residual length of svs=",length(svs),"\n")
     drawnTrees = list()
-    calls = 1
-    progress <- shiny::Progress$new(session,min=1,max=length(svs)+3)
     trees = list()
-    drawnTrees = list()
     for (line in svs)
     {
       calls = calls+1
-      progress$set(message = "Phase 1: Generate trees",value = calls)
+      progress$set(message = "Generate trees",value = calls)
       c1 = substr(line,1,1) 
       if (c1 == "#" || c1 == ";") next                                                      
       tree = scan(text=line,what="character",quiet=TRUE)
@@ -3632,12 +3682,16 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
                       "CrD4","Cr4","Ex","Mk","Xloc","Yloc","Z")
       tree = as.list(tree[c(2,3,4,5,6,7,8,10,11,20,21)])
       tree$sp = sp
-      drawn = svsTree(tree,treeform) 
+      ll = matrix(c(tree$Xloc,tree$Yloc,0),nrow=1)
+      tree$Xloc = ll[1,1]
+      tree$Yloc = ll[1,2]
+      drawn = svsTree(tree,treeform)
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
+####TESTING     if (calls > 60) break
     }
-    progress$set(message = "Phase 2: Display trees",value = length(svs)+1) 
+    progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
-    progress$set(message = "Phase 3: Sending image to browser",value = length(svs)+2) 
+    progress$set(message = "Sending image to browser",value = length(svs)+2) 
     output[[id]] <- renderRglwidget(rglwidget(scene3d()))
     Sys.sleep(1)
     progress$close()
@@ -4201,22 +4255,22 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       xlsxfile="databaseDescription.xlsx"
       progress$set(message = "Loading Help File", value = 5)
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-        if (class(tabs)!="try-error")
-        {
-          morehtml=xlsx2html(tab="OutputTableDescriptions")
-          for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**OUTPUTHTML**",replacement=morehtml)
-        }
+      if (class(tabs)!="try-error")
+      {
+        morehtml=xlsx2html(tab="OutputTableDescriptions")
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
+        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                pattern="**OUTPUTHTML**",replacement=morehtml)
+      }
       progress$set(message = "Loading Table Descriptions", value = 8)
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-        if (class(tabs)!="try-error")                                                         
-        {
-          morehtml=xlsx2html(tab="InputTableDescriptions")
-          for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**INPUTHTML**",replacement=morehtml)
-        }
+      if (class(tabs)!="try-error")                                                         
+      {
+        morehtml=xlsx2html(tab="InputTableDescriptions")
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
+        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                pattern="**INPUTHTML**",replacement=morehtml)
+      }
       output$uiHelpText <- renderUI(HTML(help))
       progress$close()
     }
@@ -4307,7 +4361,6 @@ cat ("Replace existing database\n")
   observe({
     if (is.null(input$uploadNewDB)) return()
     fext = tools::file_ext(basename(input$uploadNewDB$name))
-    globals$prevDBname[1] <- input$uploadNewDB$name
 cat ("fext=",fext,"\n")
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {

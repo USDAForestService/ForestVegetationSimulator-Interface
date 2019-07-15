@@ -24,8 +24,7 @@ mkfvsRun <<- setRefClass("fvsRun",
     startyr = "character", endyr = "character", cyclelen = "character",
     cycleat = "character", refreshDB = "character", uuid="character",
     defMgmtID = "character", autoOut = "list", runScript = "character" ,
-    uiCustomRunOps = "list", startDisp = "character",origDBname="list",
-    dbSize="numeric"))
+    uiCustomRunOps = "list", startDisp = "character"))
 
 if (exists("mkGlobals",envir=.GlobalEnv)) rm(mkGlobals,envir=.GlobalEnv)
 mkGlobals <<- setRefClass("globals", 
@@ -167,8 +166,6 @@ cat("resetfvsRun\n")
   uiCustomRunOps = list()
   fvsRun$uuid = uuidgen()
   fvsRun$startDisp = character(0)
-  fvsRun$origDBname = list()
-  fvsRun$dbSize <- as.numeric()
 }
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
