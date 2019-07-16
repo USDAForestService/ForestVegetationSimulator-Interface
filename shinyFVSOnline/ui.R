@@ -52,7 +52,7 @@ if (file.exists("databaseDescription.xlsx"))
 }
 
 shinyUI(fixedPage(
-  if(file.exists("app.css")) includeCSS("app.css"),
+  tags$style(type="text/css", ".progress-bar {color: transparent!important}"),
   tags$style(HTML(paste0(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
