@@ -52,6 +52,8 @@ if (file.exists("databaseDescription.xlsx"))
 }
 
 shinyUI(fixedPage(
+  tags$head(tags$style(HTML(".shiny-notification {height: 80px;width: 500px;
+              position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
   tags$style(type="text/css", ".progress-bar {color: transparent!important}"),
   tags$style(HTML(paste0(
     ".nav>li>a {padding:3px;}",
