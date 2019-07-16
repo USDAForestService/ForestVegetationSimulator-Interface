@@ -41,7 +41,7 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric"))
+    condKeyCntr="numeric",changeind="numeric",timeissue="numeric"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
