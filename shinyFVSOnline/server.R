@@ -3658,7 +3658,7 @@ cat ("length(fireline)=",length(fireline),"\n")
       fl = as.numeric(scan(text=substring(svs[fireline],11),what="numeric",quiet=TRUE))
       xx = seq(0,args[3]*2,length.out=length(fl))
       r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
-      k = r<args[3]
+      k = r<=args[3]
       if (sum(k)>1)
       {
         nn=500
