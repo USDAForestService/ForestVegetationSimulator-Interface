@@ -1712,8 +1712,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
   
   ## Save saveRun  
   observe({
-    if (input$saveRun > 0 || ((input$installNewDBDlgBtn > 0 || input$installTrainDBDlgBtn > 0) && 
-                              length(globals$fvsRun$simcnts)))                  
+    if (input$saveRun > 0)                  
     {
       cat ("saveRun\n")
       saveRun()
@@ -1728,19 +1727,8 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
 
   ## New run    
   observe({
-    if (input$newRun > 0 || input$installNewDBDlgBtn > 0 || input$addNewDBDlgBtn > 0 || 
-        input$installTrainDBDlgBtn > 0 || input$installEmptyDBDlgBtn > 0 )
+    if (input$newRun > 0)
     {
-      if (input$installNewDBDlgBtn > 0 || input$addNewDBDlgBtn > 0 || input$installTrainDBDlgBtn > 0) {
-        updateTabsetPanel(session=session,inputId="topPan",selected="Runs") 
-        updateTabsetPanel(session=session,inputId="rightPan",selected="Stands") 
-        if(!length(globals$fvsRun$simcnts)) return()
-      }
-      if (input$installEmptyDBDlgBtn > 0){
-        updateTabsetPanel(session=session,inputId="topPan",selected="Upload Data")
-        updateTabsetPanel(session=session,inputId="inputDBPan",selected="View and edit existing tables")
-        if(!length(globals$fvsRun$simcnts)) return()
-      }
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
@@ -4429,10 +4417,7 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "installTrainDBDlg",
-            message = "Training database installed. Do you want to create a new run now?"))
-    # output$replaceActionMsg <- renderText("Regional Training database installed")
+    output$replaceActionMsg <- renderText("Training database installed")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4443,10 +4428,7 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
-    session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "installEmptyDBDlg",
-            message = "Empty database installed. Do you want to start inputting data?"))
-    # output$replaceActionMsg <- renderText("Empty database installed")
+    output$replaceActionMsg <- renderText("Empty database installed. Click on the View and edit existing tables to start imputting data.")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4460,6 +4442,10 @@ cat ("fext=",fext,"\n")
                           list(code= "$('#input$installNewDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
                           list(code= "$('#input$addNewDB').prop('disabled',true)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#installTrainDB').prop('disabled',true)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#installEmptyDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
       output$replaceActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
@@ -4470,6 +4456,10 @@ cat ("fext=",fext,"\n")
                                 list(code= "$('#installNewDB').prop('disabled',true)"))
       session$sendCustomMessage(type="jsCode",
                                 list(code= "$('#addNewDB').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installTrainDB').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installEmptyDB').prop('disabled',true)"))
     }
     fdir = dirname(input$uploadNewDB$datapath)
     if (fext == "zip") 
@@ -4650,8 +4640,7 @@ cat("loaded table=",tab,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("Uploaded data: ",paste0(msg,collapse="; "))
-    session$sendCustomMessage(type = "infomessage", message = msg)
-    # output$replaceActionMsg = renderText(msg)
+    output$replaceActionMsg = renderText(msg)
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
@@ -4660,6 +4649,10 @@ cat("loaded table=",tab,"\n")
                               list(code= "$('#installNewDB').prop('disabled',false)"))
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#addNewDB').prop('disabled',false)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#installTrainDB').prop('disabled',false)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#installEmptyDB').prop('disabled',false)"))
     setwd(curDir)
     progress$close()    
   })
@@ -4781,10 +4774,11 @@ cat ("index creation, qry=",qry,"\n")
     progress$set(message = "Checking database query keywords", value = i+1)
     fixFVSKeywords(dbGlb,progress) 
     msg = checkMinColumnDefs(dbGlb,progress)
-    session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "installNewDBDlg",
-            message = paste0(msg,". Do you want to create a new run now?")))
-    # output$replaceActionMsg <- renderText(msg)
+    if (length(globals$FVS_Runs) && length(globals$fvsRun$simcnts)){
+      session$sendCustomMessage(type = "infomessage",
+                                message = "WARNING: if the other runs in this project were created using a different database than the one just installed, you will need to re-upload the associated database to run them again.")
+      output$replaceActionMsg = renderText(msg)
+    }else output$replaceActionMsg = renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon)
     initNewInputDB()
     progress$close()
@@ -4895,10 +4889,7 @@ cat ("homogenize qry=",qry,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("New database: ",paste0(msg,collapse="; "))
-    session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "installNewDBDlg",
-            message = paste0(msg,". Do you want to create a new run now?")))
-    # output$replaceActionMsg <- renderText(msg)
+    output$replaceActionMsg <- renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon) 
     initNewInputDB()
     progress$close()
