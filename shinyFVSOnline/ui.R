@@ -542,9 +542,7 @@ shinyUI(fixedPage(
               p(strong("Other options")),
               actionButton("installTrainDB","Install regional training database"),
               h6(),
-              actionButton("installEmptyDB","Install blank database"),h6(),
-              tags$style(type="text/css","#replaceActionMsg{color:darkred;}"), 
-              textOutput("replaceActionMsg")
+              actionButton("installEmptyDB","Install blank database"),h6()
       	    ),
             tabPanel("Upload and add new rows to existing tables (.csv)", 
               h4(),             
