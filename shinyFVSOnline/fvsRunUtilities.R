@@ -41,36 +41,41 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric",changeind="numeric",timeissue="numeric"))
+    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
-  globals$selStandTableList = list()
+   globals$selStandTableList = list()
   ith <- 1
-  stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-  if (!is.null(stdInit)){
-    globals$selStandTableList[ith] <- stdInit
-    ith <- ith +1
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+   if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+   globals$selStandTableList[ith] <- "Stands (FVS_StandInit)"
+   ith <- ith +1
+   }
   }
-  plotInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-  if (!is.null(plotInit)){
-    globals$selStandTableList[ith] <- plotInit
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit")))){
+      globals$selStandTableList[ith] <- "Plots within stands (FVS_PlotInit)"
     ith <- ith +1
+    }
   }
-  stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
-  if (!is.null(stdInit_cond)){
-    globals$selStandTableList[ith] <- stdInit_cond
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Plot")))){
+      globals$selStandTableList[ith] <- "Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"
     ith <- ith +1
+    }
   }
-  stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
-  if (!is.null(stdInit_plot)){
-    globals$selStandTableList[ith] <- stdInit_plot
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit_Plot")))){
+      globals$selStandTableList[ith] <- "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"
     ith <- ith +1
+    }
   }
-  plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
-  if (!is.null(plotInit_plot)){
-    globals$selStandTableList[ith] <- plotInit_plot
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+      globals$selStandTableList[ith] <- "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"
     ith <- ith +1
+    }
   }
   globals$selStandTableList <- subset(globals$selStandTableList,!is.na(globals$selStandTableList))
 } 
@@ -78,43 +83,46 @@ loadStandTableData <- function (globals, dbIcon)
 loadVarData <- function(globals,prms,dbIcon)
 {
   globals$selVarList = list()
-  stdInit = getTableName(dbIcon,"FVS_StandInit")
-  if (!is.null(stdInit)) 
-  {
-    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
-    if (class(vars) != "try-error")
-    {
-      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-        function (x) strsplit(x," "))))))
-      globals$selVarList <- lapply(selVars,function (x,pk) 
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+      stdInit <-  dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
+      if (class(vars) != "try-error")
+      {
+        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+                                                       function (x) strsplit(x," "))))))
+        globals$selVarList <- lapply(selVars,function (x,pk) 
           paste(x,":",getPstring(pk,x)),prms$variants)
-      names(globals$selVarList) <- selVars
+        names(globals$selVarList) <- selVars
+      }
     }
   }
-  stdInit_cond = getTableName(dbIcon,"FVS_StandInit_Cond")
-  if (!is.null(stdInit_cond)) 
-  {
-    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_cond)))
-    if (class(vars) != "try-error")
-    {
-      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-        function (x) strsplit(x," "))))))
-      globals$selVarList <- lapply(selVars,function (x,pk) 
-        paste(x,":",getPstring(pk,x)),prms$variants)
-      names(globals$selVarList) <- selVars
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+      stdInit_cond <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_cond)))
+      if (class(vars) != "try-error")
+      {
+        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+                                                       function (x) strsplit(x," "))))))
+        globals$selVarList <- lapply(selVars,function (x,pk) 
+          paste(x,":",getPstring(pk,x)),prms$variants)
+        names(globals$selVarList) <- selVars
+      }
     }
   }
-  stdInit_plot = getTableName(dbIcon,"FVS_StandInit_Plot")
-  if (!is.null(stdInit_plot)) 
-  {
-    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
-    if (class(vars) != "try-error")
-    {
-      selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-        function (x) strsplit(x," "))))))
-      globals$selVarList <- lapply(selVars,function (x,pk) 
-        paste(x,":",getPstring(pk,x)),prms$variants)
-      names(globals$selVarList) <- selVars
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Plot")))){
+      stdInit_plot <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_plot)))
+      if (class(vars) != "try-error")
+      {
+        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
+                                                       function (x) strsplit(x," "))))))
+        globals$selVarList <- lapply(selVars,function (x,pk) 
+          paste(x,":",getPstring(pk,x)),prms$variants)
+        names(globals$selVarList) <- selVars
+      }
     }
   }
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
@@ -125,7 +133,6 @@ loadVarData <- function(globals,prms,dbIcon)
           toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
   } 
 }
-
 
 reorderFVSRuns <- function(FVS_Runs)
 {
@@ -247,14 +254,40 @@ cat("writeKeyFile, num stds=",length(stds),
   if (length(stds)==0) return()
   dbExecute(dbIcon,'drop table if exists temp.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
-  stdInit = getTableName(dbIcon,"FVS_StandInit")
-  plotInit = getTableName(dbIcon,"FVS_PlotInit")
-  stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
-  stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
-  plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
-  if (is.na(stdInit) && (is.na(stdInit_cond) || is.na(stdInit_plot))) return()
-  #fvsRun$grps[[1]]$cmps[[1]]$kwds
-  if (!is.na(stdInit) && input$inTabs !="FVS_PlotInit"){
+  stdInit <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+      stdInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  plotInit <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit")))){
+      plotInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  stdInit_cond <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+      stdInit_cond <-dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  stdInit_plot <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Plot")))){
+      stdInit_plot <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  plotInit_plot <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit_Plot")))){
+      plotInit_plot <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && 
+      (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) ||
+      is.na(!is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))))) return()
+  if (!is.null(stdInit) && is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)"))){
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit,
                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -266,7 +299,7 @@ cat("writeKeyFile, num stds=",length(stds),
     if(class(SCD)=="try-error") return("Stand_ID Not Found")
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.na(plotInit) && input$inTabs !="FVS_StandInit"){
+  }else if (!is.null(plotInit) && is.na(match(input$inTabs,"Stands (FVS_StandInit)"))){
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year from ',plotInit,
                       ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
@@ -278,7 +311,9 @@ cat("writeKeyFile, num stds=",length(stds),
     if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.na(stdInit_cond) && (input$inTabs !="FVS_StandInit_Plot" && input$inTabs !="FVS_PlotInit_Plot")){ 
+  }else if (!is.null(stdInit_cond) && 
+            (is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))
+             && is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_cond,
                        ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -290,7 +325,9 @@ cat("writeKeyFile, num stds=",length(stds),
     if(class(SCD)=="try-error") return("Stand_ID Not Found")
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.na(stdInit_plot) && (input$inTabs !="FVS_StandInit_Cond" && input$inTabs !="FVS_PlotInit_Plot")){ 
+  }else if (!is.null(stdInit_plot) && 
+            (is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
+             && is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
     SCD <- try(dbGetQuery(dbIcon,
             paste0('select Stand_ID,Stand_CN,Groups,Inv_Year from ',stdInit_plot,
                    ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -350,10 +387,10 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   # End year checks
   for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (thisYr + 400))) ||
+    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (as.numeric(input$cyclelen) * 40 + as.numeric(input$endyr)))) ||
          ((input$endyr !="") && nchar(input$endyr) > 4))){
       session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr," is more than 400 years from the current year of ", thisYr))
+              message = paste0("The common ending year of ", input$endyr," is more than 40 growth cycles from the current year of ", thisYr))
       globals$timeissue <- 1
       return()
     }
@@ -526,7 +563,6 @@ cat("writeKeyFile, num stds=",length(stds),
   cat ("Stop\n",file=fc)    
   close(fc)
 }
-
 
 mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
 {
@@ -1396,33 +1432,58 @@ cat ("in addStandsToRun, selType=",selType,"\n")
                       vlst, vlst[[1]])
     globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
-    stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-    plotInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-    stdInit_cond = getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
-    stdInit_plot = getTableName(dbGlb$dbIcon,"FVS_StandInit_Plot")
-    plotInit_plot = getTableName(dbGlb$dbIcon,"FVS_PlotInit_Plot")
+    stdInit <- NULL
+    for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+      if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+        stdInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      }
+    }
+    plotInit <- NULL
+    for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+      if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit")))){
+        plotInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      }
+    }
+    stdInit_cond <- NULL
+    for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+      if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+        stdInit_cond <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      }
+    }
+    stdInit_plot <- NULL
+    for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+      if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Plot")))){
+        stdInit_plot <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      }
+    }
+    plotInit_plot <- NULL
+    for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+      if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit_Plot")))){
+        plotInit_plot <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+      }
+    }
     if (is.null(stdInit) && (is.null(stdInit_cond) || is.null(stdInit_plot) ||
                              is.null(plotInit) && is.null(plotInit_plot))) 
     {
 cat ("error: stdInit is null\n")
       return()
     }
-    if (input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)){
+    if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit)
       needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                          "AddFiles","FVSKeywords"))
       fields = intersect(toupper(fields),toupper(needFs))
-    }else if (input$inTabs =="FVS_PlotInit" && !is.null(input$inTabs)){
+    }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,plotInit)
       needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
                          "AddFiles","FVSKeywords"))
       fields = intersect(toupper(fields),toupper(needFs))
-    }else if (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs)){
+    }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit_cond)
       needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                          "AddFiles","FVSKeywords"))
       fields = intersect(toupper(fields),toupper(needFs))
-    }else if (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)){
+    }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit_plot)
       needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
                          "AddFiles","FVSKeywords"))
@@ -1431,7 +1492,6 @@ cat ("error: stdInit is null\n")
     needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
                        "AddFiles","FVSKeywords"))
     fields = intersect(toupper(fields),toupper(needFs))}
-
     dbQ = NULL
     if (selType == "inAdd")
     {
@@ -1439,19 +1499,19 @@ cat ("error: stdInit is null\n")
       if (length(input$inStds))
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
-        if (input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)){
+        if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
           dbQ = try(dbSendQuery(dbGlb$dbIcon,
                     paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
                            ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (input$inTabs =="FVS_PlotInit" && !is.null(input$inTabs)){
+        }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
           dbQ = try(dbSendQuery(dbGlb$dbIcon,
                     paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
                            ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-        }else if (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs)){
+        }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
           dbQ = try(dbSendQuery(dbGlb$dbIcon,
                     paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
                            ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)){
+        }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
           dbQ = try(dbSendQuery(dbGlb$dbIcon,
                     paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
                            ' where Stand_ID in (select SelStds from temp.Stds)')))
@@ -1462,9 +1522,9 @@ cat ("error: stdInit is null\n")
       } else return()
     } else {
       # use if inAddGrp
-      if ((input$inTabs =="FVS_StandInit" && !is.null(input$inTabs)) ||
-          (input$inTabs =="FVS_StandInit_Cond" && !is.null(input$inTabs))||
-          (input$inTabs =="FVS_StandInit_Plot" && !is.null(input$inTabs)))
+      if ((!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)) ||
+          (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs))||
+          (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)))
       {
         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
                    'where Grp in (select SelGrps from temp.SGrps)')))
@@ -1483,19 +1543,19 @@ cat ("error: stdInit is null\n")
       if (length(stds) == 0) return()  
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
-      if (!is.null(stdInit) && input$inTabs=="FVS_StandInit"){
+      if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)"))){
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
                               paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
                                      ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.null(plotInit) && input$inTabs=="FVS_PlotInit"){
+      }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)"))){
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
                               paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
                                      ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.null(stdInit_cond) && input$inTabs=="FVS_StandInit_Cond"){
+      }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))){
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
                               paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
                                      ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.null(stdInit_plot) && input$inTabs=="FVS_StandInit_Plot"){
+      }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))){
         dbQ = try(dbSendQuery(dbGlb$dbIcon,
                               paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
                                      ' where Stand_ID in (select SelStds from temp.Stds)')))
@@ -1520,7 +1580,8 @@ cat ("error: stdInit is null\n")
         msgVal = msgVal+1
         progress$set(value = msgVal)
       }
-      if (input$inTabs=="FVS_PlotInit" || input$inTabs=="FVS_PlotInit_Plot") {
+      if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) 
+          || !is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))) {
         sid = fvsInit[row,"STANDPLOT_ID"]  
       } else sid = fvsInit[row,"STAND_ID"]
       newstd <- mkfvsStd(sid=sid,uuid=uuidgen())

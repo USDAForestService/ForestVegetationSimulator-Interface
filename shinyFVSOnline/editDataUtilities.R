@@ -28,8 +28,18 @@ checkMinColumnDefs <- function(dbGlb,progress=NULL)
   #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
   # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
-  stdInit <- getTableName(dbGlb$dbIcon,"FVS_StandInit")
-  stdInit_cond <- getTableName(dbGlb$dbIcon,"FVS_StandInit_Cond")
+  stdInit <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+      stdInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
+  stdInit_cond <- NULL
+  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+      stdInit_cond <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
   if (!is.null(stdInit_cond))return("Uploaded database installed")
   if (is.null(stdInit))   
   {

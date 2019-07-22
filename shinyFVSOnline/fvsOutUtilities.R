@@ -253,7 +253,7 @@ errorScan <- function (outfile)
       errs[unlist(lapply(errs,nchar)) == 0] <- NULL
       paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
     } else "No errors found")
-  if (!foundSum) outerrs <- append(errs,"Fun failure, likely due to the database associated with this run not being active.")
+  if (!foundSum) outerrs <- append(errs,"Run failure, likely due to the database associated with this run not being active.")
   outerrs
 }
 
