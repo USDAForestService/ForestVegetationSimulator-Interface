@@ -1199,37 +1199,37 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     names(nd)[match(input$xaxis,names(nd))] = "X"
     if (!is.null(vf)) names(nd)[match(vf,names(nd))] = "vfacet"
     if (!is.null(hf)) names(nd)[match(hf,names(nd))] = "hfacet" 
-    legendTitle = "Legend"
+    legendTitle = "Legend"                                                                    
     if (!is.null(pb) && !is.null(nd$Legend)) 
     {
       legendTitle = pb
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }
-    # attempt to reduce/modify the by variable set
-    bys = setdiff(names(nd),c("X","Y",pb,"hfacet","vfacet"))
-cat ("before summing logic, plotType=",input$plotType," names(nd)=",
-     names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-    if (input$plotType %in% c("line","box","bar")) for (byy in bys)
-    {
-      tt=table(nd[,c("X",byy)])
-cat ("byy=",byy," ncol(tt)=",tt,"\n")
-      if (ncol(tt))
-      {
-        dd=by(data=nd,INDICES=list(nd$X,nd[[byy]]),FUN=function (x)
-          {
-            an=x[1,,drop=FALSE]
-            an$Y=sum(x$Y)
-            an
-          })
-        nd = do.call(rbind,dd)
-      }     
-cat ("after summing logic names(nd)=",names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-    }
+#    # attempt to reduce/modify the by variable set
+#    bys = setdiff(names(nd),c("X","Y",pb,"hfacet","vfacet"))
+#cat ("before summing logic, plotType=",input$plotType," names(nd)=",
+#     names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
+#    if (input$plotType %in% c("line","box","bar")) for (byy in bys)
+#    {
+#      tt=table(nd[,c("X",byy)])
+#cat ("byy=",byy," ncol(tt)=",tt,"\n")
+#      if (ncol(tt))
+#      {
+#        dd=by(data=nd,INDICES=list(nd$X,nd[[byy]]),FUN=function (x)
+#          {
+#            an=x[1,,drop=FALSE]
+#            an$Y=sum(x$Y)
+#            an
+#          })
+#        nd = do.call(rbind,dd)
+#      }     
+#cat ("after summing logic names(nd)=",names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
+#    }
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
-    fg = NULL
+    fg = NULL                                                                                  
     fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
          facet_grid(vfacet~hfacet)
     fg = if (is.null(fg)         && !is.null(nd$hfacet)) 
