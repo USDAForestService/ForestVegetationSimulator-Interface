@@ -671,10 +671,13 @@ shinyUI(fixedPage(
               modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
                 "Refresh this interface software"),
               modalDialog(id="interfaceRefreshDlg", footer=list(
-              modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
+                modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
                   "Yes"),
-             tags$button(type = "button", class = "btn btn-primary", 
-                'data-dismiss' = "modal", "Cancel")))
+                tags$button(type = "button", class = "btn btn-primary", 
+                  'data-dismiss' = "modal", "Cancel"))),
+              myRadioGroup("interfaceRefreshSource","Interface source: ", 	
+                           c("Production code (recommended)"="Prod",
+                             "Development code (testers only)"="Dev"),selected="Prod")
             )  #END tabPanel                                         
           ) #END tabsetPanel
         ) ) #END column and fixed row   

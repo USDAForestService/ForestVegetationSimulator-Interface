@@ -4211,37 +4211,36 @@ cat ("delete all runs and outputs\n")
   
   ## interfaceRefresh
   observe({
-    if(input$interfaceRefresh > 0)
-    {
-      if (exists("fvsOnlineDir") && !is.null(fvsOnlineDir) && file.exists(fvsOnlineDir) &&
-        .Platform$OS.type != "windows") 
-      {
+    if(input$interfaceRefresh > 0 && exists("fvsOnlineDir") && 
+                                file.exists( fvsOnlineDir))
         session$sendCustomMessage(type = "dialogContentUpdate",
           message = list(id = "interfaceRefreshDlg",
                     message = "Are you sure?"))
-      } else {
-        session$sendCustomMessage(type="infomessage",
-                message="The interface can not be refreshed on this system.")
-      }
-    }
   })
-  observe({  
-    if (input$interfaceRefreshDlgBtn == 0) return()
-cat ("interfaceRefreshDlgBtn\n") 
-## TODO: set this up so that it works "ONlocal" and with windows.
-    if (exists("fvsOnlineDir") && !is.null(fvsOnlineDir) && file.exists(fvsOnlineDir) &&
-        .Platform$OS.type != "windows") 
+  observe({
+    if (length(input$interfaceRefreshDlgBtn) && 
+        input$interfaceRefreshDlgBtn > 0) 
     {
-      # shiny code, etc
-      needed=paste(paste0(fvsOnlineDir,FVSOnlineNeeded),collapse=" ") 
-      cmd = paste0("cp -R ",needed," .")
-cat ("interfaceRefreshDlgBtn, cmd = ",cmd,"\n")           
-      system (cmd)
-      globals$reloadAppIsSet=1
-      session$reload()
-    } else {
-      session$sendCustomMessage(type="infomessage",
-              message="The interface can not be refreshed on this system.")
+cat ("input$interfaceRefreshDlgBtn=",input$interfaceRefreshDlgBtn,
+' exists2("fvsOnlineDir")=',exists("fvsOnlineDir"),
+' exists("FVSOnlineNeeded")=',exists("FVSOnlineNeeded"),"\n")
+      if (exists("fvsOnlineDir") && exists("FVSOnlineNeeded"))
+      {
+        ffdir = if (isolate(input$interfaceRefreshSource == "Dev")) 
+          paste0(fvsOnlineDir,"Dev") else fvsOnlineDir
+cat ("ffdir=",ffdir,"\n")
+        if (file.exists(ffdir)) 
+        {
+          lapply(FVSOnlineNeeded,function(x,fd) {
+              frm=paste0(fd,"/",x)
+cat ("Refresh interface file=",frm,"\n")
+              if (file.exists(frm)) file.copy(from=frm,to=x,overwrite=TRUE,recursive=TRUE)
+              },ffdir)
+          globals$reloadAppIsSet=1
+          session$reload()
+        }
+      } else session$sendCustomMessage(type="infomessage",
+             message="The interface can not be refreshed on this system.")
     }
   }) 
 
