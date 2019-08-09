@@ -383,7 +383,7 @@ shinyUI(fixedPage(
     	              choices = list("None","StandID","MgmtID","Year","Species"),
     	              selected="None", selectize=FALSE)),
               column(width=3,
-    	          selectInput("pltby", "Plot by code",
+    	          selectInput("pltby", "Plot-by code",
     	              choices = list("None","StandID","MgmtID","Year","Species"),
     	              selected="None", selectize=FALSE)),
               column(width=6,

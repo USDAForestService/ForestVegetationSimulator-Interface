@@ -1098,7 +1098,7 @@ cat ("browsevars/plotType\n")
   output$outplot <- renderImage(
   {
 cat ("renderPlot\n")    
-    nullPlot <- function ()
+    nullPlot <- function (msg="Select different data, variables, plot type, or facet settings.")
     {
       outfile = "nullPlot.png"
       if (!file.exists(outfile))
@@ -1108,7 +1108,7 @@ cat ("renderPlot\n")
         text(x=.5,y=.5,"Nothing to graph",col="red")
         dev.off()
       }
-      output$plotMessage=renderText("Pick different variables, change plot type, or change facet settings.")
+      output$plotMessage=renderText(msg)
       list(src = outfile)
     }
     autorecycle <- function(a,n)
@@ -1129,7 +1129,7 @@ cat ("renderPlot\n")
     vf = if (input$vfacet == "None") NULL else input$vfacet
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
-
+    needVars = unique(c(vf,hf,pb,input$xaxis,input$yaxis))
     dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else         
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
@@ -1143,33 +1143,63 @@ cat ("renderPlot\n")
         levels(dat$Groups)[il] = newl
       }      
     }
-
+    if (length(setdiff(needVars,names(dat)))) return(nullPlot())
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
-    if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot())
+    if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot("Select both X- and Y-axes"))
     if (!is.null(hf) && nlevels(dat[,hf]) > 8)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
-      updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (nullPlot())
+      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf])," > 8")))
     }
     if (!is.null(vf) && nlevels(dat[,vf]) > 8)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
-      updateSelectInput(session=session, inputId="vfacet", selected="None")
-      return (nullPlot())
-    }         
+      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
+    }
+    for (v in c("MgmtID","StandID","Year")) 
+    { 
+      if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
+          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
+        return(nullPlot(paste0("Variable ",v," has ",nlevels(dat[[v]])," levels and ",
+                               " therefore must be an axis, plot-by code, or a facet.")))
+    }
+    if (input$xaxis == "Year") dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
         isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))
     nd = NULL
+    sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
+                    nlevels(dat$Species)>1 
+    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) && 
+                    nlevels(dat$DBHClass)>1   
     for (v in vars[(nlv+1):length(vars)])
     {
       if (is.na(v) || !v %in% names(dat)) return(nullPlot())
       pd = dat[,c(vars[1:nlv],v),drop=FALSE]
       names(pd)[ncol(pd)] = "Y"
+      if (sumOnSpecies) pd = cbind(pd,Species =dat$Species)
+      if (sumOnDBHClass)pd = cbind(pd,DBHClass=dat$DBHClass)
       nd = rbind(nd, data.frame(pd,Legend=v,stringsAsFactors=FALSE))
     }
+cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n") 
+    if (sumOnSpecies) 
+    {
+      nd=subset(nd,Species!="All")
+      nd$Species="Sum"
+    }
+    if (sumOnDBHClass) 
+    {
+      nd=subset(nd,DBHClass!="All")
+      nd$DBHClass="Sum"
+    }
+    if (sumOnSpecies||sumOnDBHClass) 
+    {
+      nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
+      names(nd)[ncol(nd)]="Y"
+    }
+    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) != "90") 
+      updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
@@ -1206,26 +1236,6 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }
-#    # attempt to reduce/modify the by variable set
-#    bys = setdiff(names(nd),c("X","Y",pb,"hfacet","vfacet"))
-#cat ("before summing logic, plotType=",input$plotType," names(nd)=",
-#     names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-#    if (input$plotType %in% c("line","box","bar")) for (byy in bys)
-#    {
-#      tt=table(nd[,c("X",byy)])
-#cat ("byy=",byy," ncol(tt)=",tt,"\n")
-#      if (ncol(tt))
-#      {
-#        dd=by(data=nd,INDICES=list(nd$X,nd[[byy]]),FUN=function (x)
-#          {
-#            an=x[1,,drop=FALSE]
-#            an$Y=sum(x$Y)
-#            an
-#          })
-#        nd = do.call(rbind,dd)
-#      }     
-#cat ("after summing logic names(nd)=",names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-#    }
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
@@ -2000,12 +2010,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
   })
   
-#session$sendCustomMessage(type = "infomessage",
-#        message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
-#                  globals$fvsRun$title," is no longer active due to another database having been uploaded. Import the ",
-#                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
-
-  ##autoOut
+   ##autoOut
    observe({
     if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
     globals$fvsRun$autoOut<-as.list(input$autoOut)
