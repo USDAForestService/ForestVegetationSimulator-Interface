@@ -3329,8 +3329,12 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
-        if (file.exists(sfile)) file.copy(sfile,tf) else
-          cat (file=tf,"Output not yet created.\n")
+        if (file.exists(sfile))
+        {
+          file.copy(sfile,tf)
+          # use perl to change line endings, ignore if an error is detected
+          if (!isLocal()) try(system(paste0("perl -pi -e 's/\\n/\\r\\n/' ",tf)))
+        } else cat (file=tf,"Output not yet created.\n")
       }, contentType="text")
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
