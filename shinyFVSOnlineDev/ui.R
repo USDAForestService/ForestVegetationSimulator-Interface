@@ -131,6 +131,7 @@ shinyUI(fixedPage(
                 uiOutput("stdSelMsg"),
                 actionButton("inAdd",   "Add selected stands"),
                 actionButton("inAddGrp","Add stands in selected groups"), 
+                myInlineTextInput("inReps", "Number of replicates of each added stand ", value = "1", size="5%"),            
                 myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
                 actionButton("inStdFindBut","Find")
               ), 
