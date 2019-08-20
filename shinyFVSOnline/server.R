@@ -4226,8 +4226,13 @@ cat ("input$interfaceRefreshDlgBtn=",input$interfaceRefreshDlgBtn,
 ' exists("FVSOnlineNeeded")=',exists("FVSOnlineNeeded"),"\n")
       if (exists("fvsOnlineDir") && exists("FVSOnlineNeeded"))
       {
-        ffdir = if (isolate(input$interfaceRefreshSource == "Dev")) 
-          paste0(fvsOnlineDir,"Dev") else fvsOnlineDir
+        ffdir = fvsOnlineDir
+        if (isolate(input$interfaceRefreshSource == "Dev"))        
+        {
+          es = if (substr(ffdir,nchar(ffdir),nchar(ffdir))=="/") "/" else ""
+          if (nchar(es)) ffdir = substr(ffdir,1,nchar(ffdir)-1)
+          ffdir = paste0(ffdir,"Dev",es)
+        } 
 cat ("ffdir=",ffdir,"\n")
         if (file.exists(ffdir)) 
         {
