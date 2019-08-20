@@ -1584,66 +1584,72 @@ cat ("error: stdInit is null\n")
           || !is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))) {
         sid = fvsInit[row,"STANDPLOT_ID"]  
       } else sid = fvsInit[row,"STAND_ID"]
-      newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
-      addfiles <- fvsInit[row,"ADDFILES"]
-      if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
+      nreps = as.numeric(input$inReps)
+      if (is.na(nreps) || is.null(nreps) || nreps < 1) nreps = 1
+cat ("nreps=",nreps,"\n")
+      for (rep in 1:nreps)
       {
-        fns=scan(text=addfiles,what="character",quiet=TRUE)
-        for (fn in fns)
-        {
-          if (file.exists(fn))
+        newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
+        addfiles <- fvsInit[row,"ADDFILES"]
+        if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
+        {           
+          fns=scan(text=addfiles,what="character",quiet=TRUE)
+          for (fn in fns)
           {
-            addkeys = paste0("Open        133.\n",fn,
-                           "\nAddFile     133.\nClose       133.\n")
-            newstd$cmps <- append(newstd$cmps,
-                 mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                   exten="base", atag="k",kwdName=paste0("From AddFile: ",fn),
-                    title=paste0("From AddFile: ",fn)))                    
+            if (file.exists(fn))
+            {
+              addkeys = paste0("Open        133.\n",fn,
+                             "\nAddFile     133.\nClose       133.\n")
+              newstd$cmps <- append(newstd$cmps,
+                   mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+                     exten="base", atag="k",kwdName=paste0("From AddFile: ",fn),
+                      title=paste0("From AddFile: ",fn)))                    
+            }
           }
         }
-      }
-      addkeys <- fvsInit[row,"FVSKEYWORDS"]
-      if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
-        newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                 exten="base", atag="k",kwdName=paste0("From: ",stdInit), 
-                 title=paste0("From: ",stdInit)))
-      grps <- if (!is.null(fvsInit$GROUPS))
-         scan(text=fvsInit[row,"GROUPS"],
-              what=" ",quiet=TRUE) else c("All All_Stands")
-      requ <- unlist(grps[grep("^All",grps)])
-      grps <- sort(union(intersect(input$inGrps,grps),requ))
-      have <- unlist(lapply(globals$fvsRun$grps,function(x) 
-              if (x$grp != "") x$grp else NULL))
-      need <- setdiff(grps, have)
-      for (grp in need) 
-      {
-        newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
-        grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
-          grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
-               fixed=TRUE) else c()   
-        if (length(grprow) > 0) 
+        addkeys <- fvsInit[row,"FVSKEYWORDS"]
+        if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
+          newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+                   exten="base", atag="k",kwdName=paste0("From: ",stdInit), 
+                   title=paste0("From: ",stdInit)))
+        grps <- if (!is.null(fvsInit$GROUPS))
+           scan(text=fvsInit[row,"GROUPS"],
+                what=" ",quiet=TRUE) else c("All All_Stands")
+        requ <- unlist(grps[grep("^All",grps)])
+        grps <- sort(union(intersect(input$inGrps,grps),requ))
+        have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+                if (x$grp != "") x$grp else NULL))
+        need <- setdiff(grps, have)
+        for (grp in need) 
         {
-          addkeys <- globals$inData$
-                     FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
-          if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
-             mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
-                      kwdName="From: FVS_GroupAddFilesAndKeywords",
-                        title="From: FVS_GroupAddFilesAndKeywords")
+          newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
+          grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
+            grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
+                 fixed=TRUE) else c()   
+          if (length(grprow) > 0) 
+          {
+            addkeys <- globals$inData$
+                       FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
+            if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
+               mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
+                        kwdName="From: FVS_GroupAddFilesAndKeywords",
+                          title="From: FVS_GroupAddFilesAndKeywords")
+          }
+          globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
         }
-        globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
+        invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
+        if (invyr > curstartyr) 
+        {
+          curstartyr <- invyr
+          globals$fvsRun$startyr <- as.character(curstartyr)
+        }
+        newstd$invyr <- as.character(invyr)
+        have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+                if (x$grp != "") x$grp else NULL))
+        newstd$grps <- globals$fvsRun$grps[sort(match(grps,have))]
+        globals$fvsRun$stands <- append(globals$fvsRun$stands,newstd)
       }
-      invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
-      if (invyr > curstartyr) 
-      {
-        curstartyr <- invyr
-        globals$fvsRun$startyr <- as.character(curstartyr)
-      }
-      newstd$invyr <- as.character(invyr)
-      have <- unlist(lapply(globals$fvsRun$grps,function(x) 
-              if (x$grp != "") x$grp else NULL))
-      newstd$grps <- globals$fvsRun$grps[sort(match(grps,have))]
-      globals$fvsRun$stands <- append(globals$fvsRun$stands,newstd)
-    }
+    } 
     globals$fvsRun$endyr <- as.character(as.numeric(globals$fvsRun$startyr) +
                       as.numeric(getPstring(prms$timing,"simLength",
                                  globals$activeVariants[1])))
