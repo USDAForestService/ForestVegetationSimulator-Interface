@@ -278,21 +278,36 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
           rtn <- try(dbExecute(dbGlb$dbOcon,"create table dummy (dummy int)"))
           if (class(rtn) != "try-error") break;
           Sys.sleep (10)
-        } 
+        }                    
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
         # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
-                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet)) 
+        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
+## orig query
+#        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
+#                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet)) 
+        # fix up sampling weights for reps...       
+        dbExecute(dbGlb$dbOcon,"drop table if exists temp.C1")
+        dbExecute(dbGlb$dbOcon,"drop table if exists temp.C2")
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.C1 as select * ",
+                "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.C2 as select StandID,MgmtID,",
+                "SamplingWt/count(StandID) as SamplingWt from temp.C1 group by MgmtID,StandID"))  
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID,",
+                "Stand_CN,StandID,MgmtID,RunTitle,KeywordFile,",
+                "temp.C2.SamplingWt,Variant,Version,RV,Groups, ",
+                "RunDateTime from temp.C1 join temp.C2 using (MgmtID,StandID)"))
+#browser()
+#dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases")
+         
         for (tb in tbs) 
-        {
-cat ("tb=",tb,"\n")
+        {                     
+cat ("tb=",tb,"\n")                             
           cnt = 0
           if (tb == "FVS_Cases") next
-          if (tb %in% c("CmpSummary","CmpSummary_East",
+          if (tb %in% c("CmpSummary","CmpSummary_East",                 
               "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
               "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
               dbExecute(dbGlb$dbOcon,paste0("drop table ",tb))
@@ -310,7 +325,7 @@ cat ("tb=",tb,"\n")
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
         if (ncases > 1) exqury(dbGlb$dbOcon,Create_CmpMetaData)
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$bldstdsk # force this section to be reactive to this input     
+        input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
         if ("FVS_Summary" %in% tbs && ncases > 1)
         {
           setProgress(message = "Output query", 
@@ -443,7 +458,6 @@ cat ("tbs4=",tbs,"\n")
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
-          
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
         tbs = sort(tbs)
         sel = intersect(tbs, c("FVS_Summary2","FVS_Summary2_East")) #not both!
@@ -713,11 +727,24 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         }
         if (max(tbg) > 1 && ! ("FVS_Cases" %in% tbs)) tbg = c("FVS_Cases"=2,tbg)
         dat=NULL
-        for (tb in names(sort(tbg)))       
+        for (tb in names(sort(tbg)))
         {
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
+          if (tb == "FVS_Cases") 
+          {
+            # actually fetch the temporary version as it has just the needed
+            # cases and it has adjusted sampling weights when there are reps
+            dtab = dbReadTable(dbGlb$dbOcon,name="Cases",schema="temp")
+            dtab$RunTitle <- as.factor(trim(dtab$RunTitle))
+            dtab$CaseID <- as.factor(dtab$CaseID)
+            dtab$StandID <- as.factor(dtab$StandID)
+            dtab$MgmtID <- as.factor(dtab$MgmtID)
+            dtab$Groups <- as.factor(dtab$Groups)
+            dat[[tb]] <- dtab
+            next
+          }
           if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2","CmpSummary2_East")) 
           {            
             dtab <- dbReadTable(dbGlb$dbOcon,tb)
@@ -751,7 +778,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
-            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)
+            } 
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
@@ -796,7 +823,28 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
-        } 
+        }
+        # do rep assignments
+        newSid = as.character(fvsOutData$dbData$StandID)
+        icid = as.integer(fvsOutData$dbData$CaseID)
+        imid = as.integer(fvsOutData$dbData$MgmtID)
+        isid = as.integer(fvsOutData$dbData$StandID)+as.integer(imid*1000000)
+        sidch = FALSE
+        for (id in unique(isid))
+        {
+          nq = unique(icid[isid==id])
+          if (length(nq)==1) next
+          mq = unique(imid[isid==id])
+          sidch = TRUE
+          rep = 0
+          for (iq in nq) 
+          {
+            rep = rep+1
+            chng = icid==iq
+            newSid[chng] = sprintf("%s r%03i",newSid[chng],rep)
+          }
+        }
+        if (sidch) fvsOutData$dbData$StandID = as.factor(newSid)
         iprg = iprg+1                                      
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
@@ -1163,7 +1211,8 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
         return(nullPlot(paste0("Variable ",v," has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
-    if (input$xaxis == "Year") dat$Year = as.numeric(as.character(dat$Year))
+    pltp = isolate(input$plotType) 
+    if (input$xaxis == "Year" && pltp != "box") dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
@@ -1239,13 +1288,17 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
-    fg = NULL                                                                                  
-    fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
-         facet_grid(vfacet~hfacet)
-    fg = if (is.null(fg)         && !is.null(nd$hfacet)) 
-         facet_grid(.~hfacet) else fg
-    fg = if (is.null(fg)         && !is.null(nd$vfacet)) 
-         facet_grid(vfacet~.) else fg
+    fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) facet_grid(vfacet~hfacet) else NULL
+    if (input$facetWrap == "Off")
+    {
+      fg = if (is.null(fg) && !is.null(nd$hfacet)) facet_grid(.~hfacet) else fg
+      fg = if (is.null(fg) && !is.null(nd$vfacet)) facet_grid(vfacet~.) else fg
+    } else {
+      fg = if (is.null(fg) && !is.null(nd$hfacet)) 
+           facet_wrap(~hfacet,ncol=ceiling(sqrt(nlevels(nd$hfacet))),strip.position="top") else fg
+      fg = if (is.null(fg) && !is.null(nd$vfacet)) 
+           facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
+    }
     p = ggplot(data=nd) + fg + labs(
           x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
@@ -1253,6 +1306,9 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
             theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
+    if (!is.null(fg)) p = p + 
+      theme(strip.text.x = element_text(margin = margin(.025, .01, .025, .01, "in"))) +
+      theme(strip.text.y = element_text(margin = margin(.025, .01, .025, .01, "in")))
     colors = if (input$colBW == "B&W") 
       unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else
         {
@@ -1356,7 +1412,6 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
     ### end DMD...except for adding annotations, see below.
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     brks = function (x,log=FALSE) 
@@ -1453,9 +1508,9 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
                           show.legend = FALSE)
     }    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
-
-    if (is.factor(nd$X))      nd$X = as.ordered(nd$X)
-    if (is.factor(nd$Y))      nd$Y = as.ordered(nd$Y)
+ 
+    if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
+    if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
@@ -2235,7 +2290,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
             spgkeep <- spgkeep+1
         }
-        if (!length(spgkeep))updateReps(globals) 
+        updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -3185,6 +3240,19 @@ cat ("length(allSum)=",length(allSum),"\n")
         Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
+        modn = names(allSum)
+        toch = unique(modn)
+        if (length(toch) != length(modn)) 
+        {
+          for (chg in toch)
+          {
+            chrr = chg == modn
+            if ((nch <- sum(chrr)) < 2) next
+            chg = unlist(strsplit(chg,";"))
+            modn[chrr] = paste0(chg[1]," rep ",1:nch,";",chg[2])
+          }
+          names(allSum) = modn
+        }
         for (i in 1:length(allSum)) 
         {
           X = c(X,rep(allSum[[i]][,"Year"],2))
@@ -3195,16 +3263,20 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
                   Legend=as.factor(Legend))
-        width = max(4,nlevels(toplot$hfacet)*2)
-        height = 2
-        plt = if (nlevels(toplot$hfacet) < 5)
-          ggplot(data = toplot) + facet_grid(.~hfacet) + 
+        nlvs = nlevels(toplot$hfacet)
+        plt = if (nlvs < 7)
+        {
+          height = ceiling(nlvs/2)*1.25
+          width = 3.5
+          ggplot(data = toplot) + facet_wrap(~hfacet,ncol=2) + 
+            theme(strip.text.x = element_text(size = 5,margin = margin(.01, 0, .01, 0, "in"))) + 
             geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
             labs(x="Year", y="Total cubic volume per acre") + 
             theme(text = element_text(size=9), legend.position="none",
                   panel.background = element_rect(fill="gray95"),
-                  axis.text = element_text(color="black"))  else
-        {
+                  axis.text = element_text(color="black"))  
+        } else {
+          height = 2
           width = 2.5
           toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
           ggplot(data = toplot) +  

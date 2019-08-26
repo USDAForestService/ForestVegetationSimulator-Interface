@@ -442,6 +442,10 @@ shinyUI(fixedPage(
                    myRadioGroup("XTrans","Transform X",
                       c("identity"="identity","log10"="log10")))),
                fixedRow(
+                 column(width=6,
+                   myRadioGroup("facetWrap","Automatic facet wrap",
+                      c("On"="On","Off"="Off")))),
+               fixedRow(
                  column(width=12,
                    myInlineTextInput("SDIvals", 
                     "SDI values for Density Mgmt Diagram (DMG):",

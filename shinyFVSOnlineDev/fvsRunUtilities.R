@@ -604,7 +604,7 @@ paste0("list n=",length(list)) else sels,"\n")
   {
     tmpcnts<-append(tmpcnts, 
       if (length(fvsRun$stands[[i]]$rep) == 0) fvsRun$stands[[i]]$sid else 
-          paste(fvsRun$stands[[i]]$sid,"rep",fvsRun$stands[[i]]$rep))
+          sprintf("%s r%03i",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep))
     tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
     if (length(fvsRun$stands[[i]]$grps) > 0)
       for (j in 1:length(fvsRun$stands[[i]]$grps))
