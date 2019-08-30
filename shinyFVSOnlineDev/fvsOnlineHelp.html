@@ -278,6 +278,31 @@ the query by surrounding it with /*  */ character sequences.
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a name="outputTables"></a>Available output tables</h4>
+<p>The tables output generated from FVS are selected prior making a run using the 
+<b>Select Outputs</b> menu item under the <b>Tabs</b> tab. The available tables are 
+listed below, and below this list there is a set of addition tables that describe
+the detailed contents of each of the tables.
+</p>
+<p>FVSOnline generates some <i>composite</i> tables by taking a weighted average over
+the individual stands from the selected runs you selected in the <b>Runs to consider</b> 
+list box. The weights used in this calculation are the individual stand sampling weights
+as specified in the input database. The names of these composite tables start with 
+<b>Cmp</b> and are listed below.
+</p>
+<p>Computing the composites is done by grouping all the stands accross all selected
+runs by unique <i>management ID</i> (which can be set in the Runs tab or by using an 
+FVS Keyword). Individual stands that have the same stand ID, run using the same 
+management ID, are considered replications of the stand. Prior to computing the weighted 
+averages, the sampling weights for the  are adjusted by dividing each by 
+the number of replications. This is a temporary adjustment that is recomputed every 
+time outputs are explored. The adjusted weights are reported as the <i>SamplingWt</i>
+in the FVS_Cases table (described below). Remember that the number of replications for 
+each stand can change depending on how the management IDs are assigned and by which 
+runs are considered. Generally, however, unique management IDs are used for each run
+and when that is the case, the replication counts will not change when different runs
+are selected. 
+</p>
+
 **OUTPUTHTML**
 </p>
 <p><a href="#contents">Back to contents</a> 
