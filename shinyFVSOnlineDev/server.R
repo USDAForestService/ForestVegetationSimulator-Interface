@@ -299,7 +299,6 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
                 "Stand_CN,StandID,MgmtID,RunTitle,KeywordFile,",
                 "temp.C2.SamplingWt,Variant,Version,RV,Groups, ",
                 "RunDateTime from temp.C1 join temp.C2 using (MgmtID,StandID)"))
-#browser()
 #dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases")
          
         for (tb in tbs) 
@@ -3249,7 +3248,7 @@ cat ("length(allSum)=",length(allSum),"\n")
             chrr = chg == modn
             if ((nch <- sum(chrr)) < 2) next
             chg = unlist(strsplit(chg,";"))
-            modn[chrr] = paste0(chg[1]," rep ",1:nch,";",chg[2])
+            modn[chrr] = sprintf("%s r%03i;%s",chg[1],1:nch,chg[2])
           }
           names(allSum) = modn
         }
@@ -3941,10 +3940,12 @@ cat ("Maps hit\n")
     {
 cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
       cases = dbGetQuery(dbGlb$dbOcon,
-          paste0("select CaseID from FVS_Cases where KeywordFile = '",
+          paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
                  input$mapDsRunList,"'"))
+      # if there are reps (same stand more than once), just use the first rep, ignore the others
+      cases = cases[!duplicated(cases$StandID),]
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),data.frame(cases))
+      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
       tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1],
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
