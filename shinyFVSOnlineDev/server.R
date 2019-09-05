@@ -5829,7 +5829,8 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
-      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers)))
+      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers,
+                                                   drop_unsupported_fields=TRUE)))
       setwd(curdir)
       if (class(dbGlb$spd) == "try-error")
       {
