@@ -8,7 +8,7 @@ function(vars)
   for (name in vars)
   {
     nch =nchar(name)
-    ans = .Fortran("fvsTreeAttr",name,nch,action,ntrees,atr,as.integer(0))
+    ans = .C("CfvsTreeAttr",name,nch,action,ntrees,atr,as.integer(0))
     if (ans[[6]] == 0) 
     {
       all = append(all,list(ans[[5]]))

@@ -8,7 +8,7 @@ function(vars)
   for (name in vars)
   {
     nch =nchar(name)
-    ans = .Fortran("fvsSpeciesAttr",name,nch,action,atr,as.integer(0))
+    ans = .C("CfvsSpeciesAttr",name,nch,action,atr,as.integer(0))
     if (ans[[5]] == 0) all[[name]] = ans[[4]]
   }
   as.data.frame(all)

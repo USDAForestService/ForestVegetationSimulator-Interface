@@ -2,7 +2,7 @@ sdir = "../R"
 for (rf in dir (sdir)) source (paste(sdir,rf,sep="/"))
 
 # load the FVS library
-fvsLoad("FVSie")
+fvsLoad("qFVSie")
 
 # specify the keyword file
 
