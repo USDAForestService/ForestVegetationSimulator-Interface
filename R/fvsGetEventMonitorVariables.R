@@ -8,7 +8,7 @@ function(vars)
   for (name in vars)
   {
     nch = as.integer(nchar(name))
-    ans = .C("CfvsEvmonAttr",tolower(name),nch,"get",
+    ans = .Fortran("fvsEvmonAttr",tolower(name),nch,"get",
                 as.double(0),as.integer(0))
     all = c(all,if (ans[[5]] == 0) ans[[4]] else NA)
   }
@@ -27,7 +27,7 @@ function(vars)
   for (name in names(vars))
   {
     nch = as.integer(nchar(name))
-    ans = .C("CfvsEvmonAttr",tolower(name),nch,"set",
+    ans = .Fortran("fvsEvmonAttr",tolower(name),nch,"set",
                 as.double(vars[name]),as.integer(0))
     all = c(all,if (ans[[5]] == 0) ans[[4]] else NA)
   }

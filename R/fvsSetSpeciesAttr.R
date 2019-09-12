@@ -20,7 +20,7 @@ function(vars)
       next
     }
     nch =nchar(name)
-    ans = .C("CfvsSpeciesAttr",name,nch,action,atr,as.integer(0))
+    ans = .Fortran("fvsSpeciesAttr",name,nch,action,atr,as.integer(0))
     if (ans[[5]] != 0) 
     {
       rtn = if (ans[[5]] > rtn) ans[[5]] else rtn

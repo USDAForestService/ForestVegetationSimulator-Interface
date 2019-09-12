@@ -2,9 +2,9 @@ fvsSetTreeAttrs <-
 function(vars)
 {
   ntrees = fvsGetDims()["ntrees"]
+  action = "set"
   if (!is.list(vars)) stop("vars must be a list")
   if (is.null(names(vars))) stop ("vars must have names")
-  action = "set"
   rtn = 0
   for (name in names(vars))
   {
@@ -20,7 +20,7 @@ function(vars)
       next
     }
     nch =nchar(name)
-    ans = .C("CfvsTreeAttr",name,nch,action,ntrees,atr,as.integer(0))
+    ans = .Fortran("fvsTreeAttr",name,nch,action,ntrees,atr,as.integer(0))
     if (ans[[6]] != 0) 
     {
       rtn = if (ans[[6]] > rtn) ans[[6]] else rtn
