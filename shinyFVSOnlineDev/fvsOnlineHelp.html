@@ -204,18 +204,26 @@ steps, the first is to <b>Load</b> outputs for the runs and output tables you
 want to then <b>Explore</b>. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
-you wish to explore. Composite summary statistics tables are created
-for the runs (table name: CmpSummary, CmpSummary2, or the "East" versions of these) 
-where the composites are weighted averages of corresponding FVS_Summary tables grouped
-by management ids. If treelist tables exist,
-stand and stock tables (table name StdStk; CmpStdStk for the composites) 
-are also created. If you wish, you can limit the database columns you want to 
+you wish to explore. If you wish, you can limit the database columns you want to 
 explore but the default is to select all the columns from selected tables. The system
 automatically merges (joins) the data from the selected tables so you
 can explore variables from different tables when you <b>Explore</b> the
 data you selected. The data can be displayed as <b>Tables</b>
 or <b>Graphs</b> depending on the selections on the right-hand
 secondary menu.</p>
+<p>Composite summary statistics tables are created for the runs (table name: CmpSummary, 
+CmpSummary2, or the "East" versions of these) where the composites are weighted averages 
+of corresponding tables grouped by <b>management ids</b> (not by run because  
+more than one run can have the same management id, 
+more than one management id can be within one run, or both). 
+If treelist tables exist, stand and stock tables are also created (table name StdStk; 
+CmpStdStk for the composites, also grouped by management id). </p>
+<p>The weights used in computing the averages are the sampling weights found in the 
+input data. When replications of a stand exists in the output (the same stand is
+in the output data multiple times with the same management id), the sampling weights of each
+stand replicate are divided by the number of replicates and the quotients are used
+as weights. Furthermore, replications are identified by adding a temporary suffix to
+the stand id showing the replicate number.</p>
 <p><b>Explore Data </b>menu item is used to further control which
 data are being explored. Use the selection tools on the left to limit
 the data used in the tables or graphs to specific runs, groups,
