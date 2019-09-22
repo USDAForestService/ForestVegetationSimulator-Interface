@@ -4077,7 +4077,7 @@ cat ("matchVar=",matchVar,"\n")
         output$leafletMessage=renderText("No StandIDs match polygons")
         return()
       }
-      output$textOutput=renderText(paste0(length(subset)," StandIds match polygons"))
+      output$textOutput=renderText(paste0(length(subset)," StandIDs match polygons"))
       polys = spTransform(dbGlb$SpatialData[subset,],CRS("+init=epsg:4326"))
       uids = unique(dispData$StandID)
       progress <- shiny::Progress$new(session,min=1,max=length(uids))
@@ -4087,7 +4087,7 @@ cat ("matchVar=",matchVar,"\n")
           progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
           if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
           {
-            HTML(paste0("<p style=LINE-HEIGHT:1>StandID=",sid,"<br>",
+            HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
                paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x) 
                paste0(paste0(x,collapse=" "))),collapse="<br>"),"</p>",collapse=""))
           } else {
@@ -4095,12 +4095,15 @@ cat ("matchVar=",matchVar,"\n")
             tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
             pfile=paste0("www/s",sid,".png")
 cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
-            png(file=pfile,height=1.7,width=2.3,units="in",res=100) 
+            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent") 
             p = ggplot(tab, if (!is.null(extra))
                  aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
                  aes_string(x="Year",y=input$mapDsVar)) +
                  geom_line()+geom_point()+
-                 ggtitle(sid)+theme(text = element_text(size=8))
+                 ggtitle(sid)+theme(text = element_text(size=8)) +
+                 theme (
+                   panel.background = element_rect(fill = grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
+                   plot.background  = element_rect(fill = grDevices::rgb(1, 1, 1, .5, maxColorValue = 1)))
             print(p)
             dev.off()
             pfile=paste0("s",sid,".png")
@@ -4113,13 +4116,17 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
               addTiles(urlTemplate = 
                 paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
                        "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
+      lops = labelOptions(opacity=.7)
+      pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE)
       if (class(polys) == "SpatialPointsDataFrame")         
         map = map %>% addCircleMarkers(radius = 6, color="red", 
-                        stroke = FALSE, fillOpacity = 0.5, label=labs)  else
+                        stroke = FALSE, fillOpacity = 0.5, 
+                        popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
         map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-              opacity = .3, fillOpacity = 0.1, label=labs,   
+              opacity = .3, fillOpacity = 0.1, 
+              popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
               highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-                fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+              fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })

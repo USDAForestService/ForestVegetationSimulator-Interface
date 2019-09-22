@@ -59,7 +59,9 @@ shinyUI(fixedPage(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:5px}"))),  
+    ".form-group {margin-bottom:5px}",
+    ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
+    ))),  
   fixedRow(
     column(width=5,offset=0,
       HTML(paste0('<title>FVS-',headstr,'</title>',
