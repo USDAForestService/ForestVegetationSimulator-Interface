@@ -4099,11 +4099,12 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             p = ggplot(tab, if (!is.null(extra))
                  aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
                  aes_string(x="Year",y=input$mapDsVar)) +
-                 geom_line()+geom_point()+
-                 ggtitle(sid)+theme(text = element_text(size=8)) +
-                 theme (
-                   panel.background = element_rect(fill = grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
-                   plot.background  = element_rect(fill = grDevices::rgb(1, 1, 1, .5, maxColorValue = 1)))
+                 geom_line()+geom_point()+ggtitle(sid)+
+                 theme(
+                   text=element_text(size=8),axis.text=element_text(face="bold"),
+                   panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
+                   plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1))
+                 )
             print(p)
             dev.off()
             pfile=paste0("s",sid,".png")
@@ -4117,7 +4118,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                 paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
                        "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
       lops = labelOptions(opacity=.7)
-      pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE)
+      pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
       if (class(polys) == "SpatialPointsDataFrame")         
         map = map %>% addCircleMarkers(radius = 6, color="red", 
                         stroke = FALSE, fillOpacity = 0.5, 
