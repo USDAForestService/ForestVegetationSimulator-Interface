@@ -3757,6 +3757,11 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
     treeform = tolower(unlist(strsplit(unlist(strsplit(svs[2],
                split=" ",fixed=TRUE))[2],split=".",fixed=TRUE))[1])
+    if (! (treeform %in% names(treeforms))) 
+    {
+      output[[id]] <- NULL
+      return()
+    }
     treeform = treeforms[[treeform]]
     rcirc = grep ("^#CIRCLE",svs)
     if (length(rcirc)) 

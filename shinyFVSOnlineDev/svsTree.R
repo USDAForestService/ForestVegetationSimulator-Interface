@@ -91,7 +91,7 @@ svsTree <- function(tree,treeform)
   {
     branchList = list()
     # single leader
-    if (tr$PlFrm <= 1) 
+    if (tr$PlFrm <= 1 && tr$Sp != "YP") 
     {
       # single leader, then ignore the nwhorl and nbran data from treeform
 #      nwhorl = max(5,floor(CL*.5))
@@ -107,7 +107,7 @@ svsTree <- function(tree,treeform)
         nbran = max(3,floor(nbran/nwhorl))  # branches per whorl
         xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
         ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
-        distfun <- approxfun(xtap,ytap,rule=2)
+        distfun <- approxfun(xtap,ytap,rule=2,ties="ordered")
         rsc = runif(nwhorl)*min(1/nwhorl,.05)
         z <- rep((seq(0,1,length=nwhorl)+rsc),each=nbran)
         z[z>1] = 1
@@ -175,7 +175,7 @@ cat ("svsTree, multiple leader, nbran == 0, tree not drawn.\n")
       }
       xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
       ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
-      distfun <- approxfun(xtap,ytap,rule=2)
+      distfun <- approxfun(xtap,ytap,rule=2,ties="ordered")
       rsc = runif(nbran)*min(1/nbran,.05)
       z <- rep(seq(0,1,length=nbran)+rsc)
       z[z>1] = 1
