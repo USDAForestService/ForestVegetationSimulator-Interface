@@ -2289,7 +2289,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
             spgkeep <- spgkeep+1
         }
-        updateReps(globals) 
+        if (!length(spgkeep))updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2952,25 +2952,25 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-
-  observe({
-    cat ("changeind=",globals$changeind,"\n")
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
-  })
+  # save this for later!!!! Will come back to it. Needs work.
+  # observe({
+  #   cat ("changeind=",globals$changeind,"\n")
+  #   if (globals$changeind == 0){
+  #     output$contChange <- renderUI("Run")
+  #     output$srtYr <-renderUI({
+  #       HTML(paste0("<b>",input$startyr,"</b>"))
+  #     })
+  #     output$eYr <-renderUI({
+  #       HTML(paste0("<b>",input$endyr,"</b>"))
+  #     })
+  #     output$cyLen <-renderUI({
+  #       HTML(paste0("<b>",input$cyclelen,"</b>"))
+  #     })
+  #     output$cyAt <-renderUI({
+  #       HTML(paste0("<b>",input$cycleat,"</b>"))
+  #     })
+  #   }
+  # })
   
   ## time--start year
   observe({
@@ -3581,6 +3581,10 @@ cat ("kcpSaveInRun\n")
         mkSimCnts(globals$fvsRun,input$simCont[[1]])
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        globals$changeind <- 1
+        output$contChange <- renderText({
+          HTML(paste0("<b>","*Run*","</b>"))
+        })
         closeCmp()
         globals$schedBoxPkey <- character(0)
       })
@@ -4204,7 +4208,7 @@ cat ("copy frm=",frm," tto=",tto,"\n")
         }
       } else {
         session$sendCustomMessage(type="infomessage",
-                                  message="FVS programs can not be refreshed on this system.")
+        message="FVS software cannot be refreshed in the local configuration. This feature is only relevant in the Online setting.")
         return()
       }
       session$sendCustomMessage(type="infomessage",
@@ -4644,12 +4648,14 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
-              fname," --schema"),type="cmd2") else
-         paste0("java -jar '",curDir,"/access2csv.jar' ",
-              fname," --schema")
-cat ("cmd=",cmd,"\n")
-      schema = system(cmd,intern = TRUE)
+        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',
+                fname,'" --schema'),type='cmd2') else
+        paste0('java -jar "',curDir,'/access2csv.jar" "',
+                fname,'" --schema')
+      cat ("cmd=",cmd,"\n")
+      cmd = if (.Platform$OS.type == "windows"){
+        schema = shell(cmd,intern=TRUE)
+      }else schema = system(cmd,intern=TRUE)
       if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
@@ -4709,12 +4715,14 @@ cat ("cmd=",cmd,"\n")
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3)            
       cmd = if (.Platform$OS.type == "windows") 
-         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",fname),type="cmd2") else
-         paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
-cat ("cmd=",cmd,"\n")       
-      system(cmd)  
+        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
+          paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
+cat ("cmd=",cmd,"\n") 
+      if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
-      cmd = paste0("sqlite3 ","FVS_Data.db < schema")
+      if (isLocal()){
+        cmd = paste0("C:/FVSOnlocal/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+      }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
       fix = grep ("CREATE TABLE",schema)
@@ -4729,7 +4737,9 @@ cat ("cmd=",cmd,"\n")
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
-        cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
+        if (isLocal()){
+          cmd = paste0("C:/FVSOnlocal/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+        }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("s=",s," cmd=",cmd,"; ")
         if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")

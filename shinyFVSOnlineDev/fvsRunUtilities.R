@@ -387,14 +387,14 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   # End year checks
   for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (as.numeric(input$cyclelen) * 40 + as.numeric(input$endyr)))) ||
+    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
          ((input$endyr !="") && nchar(input$endyr) > 4))){
       session$sendCustomMessage(type = "infomessage",
               message = paste0("The common ending year of ", input$endyr," is more than 40 growth cycles from the current year of ", thisYr))
       globals$timeissue <- 1
       return()
     }
-    if ((input$endyr !="") && (input$endyr < globals$fvsRun$stands[[i]]$invyr)){
+    if ((input$endyr !="") && ((as.numeric(input$endyr) < as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
       session$sendCustomMessage(type = "infomessage",
               message = paste0("The common ending year of ", input$endyr," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
       globals$timeissue <- 1
@@ -1412,6 +1412,8 @@ addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 cat ("in addStandsToRun, selType=",selType,"\n")
   isolate({
     if (length(input$inStds)+length(input$inGrps) == 0) return()
+    timescale <- 0
+    if(length(globals$fvsRun$stands))timescale <- 1
     v <- scan(text=input$inVars,what=" ",sep=" ",quiet=TRUE)
     for (i in 1:length(globals$activeFVS))
     {
@@ -1656,12 +1658,13 @@ cat ("nreps=",nreps,"\n")
     globals$fvsRun$cyclelen <- as.character(getPstring(
                                  prms$timing,"cycleLength",
                                  globals$activeVariants[1]))
+    if (timescale==0){
     updateTextInput(session=session, inputId="startyr",  
                     value=globals$fvsRun$startyr)
     updateTextInput(session=session, inputId="endyr",    
                     value=globals$fvsRun$endyr)
     updateTextInput(session=session, inputId="cyclelen", 
-                    value=globals$fvsRun$cyclelen)
+                    value=globals$fvsRun$cyclelen)}
     msgVal = msgVal+1
     progress$set(detail="Updating reps tags",value = msgVal)
     updateReps(globals)
