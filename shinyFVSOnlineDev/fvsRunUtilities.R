@@ -350,7 +350,8 @@ cat("writeKeyFile, num stds=",length(stds),
     }           
     if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
     fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))}
+    names(fvsInit) = toupper(names(fvsInit))
+  }
 
   extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
   source("autoOutKeys.R",local=TRUE)
@@ -1413,7 +1414,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
   isolate({
     if (length(input$inStds)+length(input$inGrps) == 0) return()
     timescale <- 0
-    if(length(globals$fvsRun$stands))timescale <- 1
+    if(length(globals$fvsRun$stands)) timescale <- 1
     v <- scan(text=input$inVars,what=" ",sep=" ",quiet=TRUE)
     for (i in 1:length(globals$activeFVS))
     {
@@ -1472,28 +1473,21 @@ cat ("error: stdInit is null\n")
     }
     if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit)
-      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
-                         "AddFiles","FVSKeywords"))
-      fields = intersect(toupper(fields),toupper(needFs))
+      needFs = c("Stand_ID","Stand_CN","Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
     }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,plotInit)
-      needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
-                         "AddFiles","FVSKeywords"))
-      fields = intersect(toupper(fields),toupper(needFs))
+      needFs = c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
     }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit_cond)
-      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
-                         "AddFiles","FVSKeywords"))
-      fields = intersect(toupper(fields),toupper(needFs))
+      needFs = c("Stand_ID","Stand_CN","Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
     }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit_plot)
-      needFs = toupper(c("Stand_ID","Stand_CN","Groups","Inv_Year",
-                         "AddFiles","FVSKeywords"))
-      fields = intersect(toupper(fields),toupper(needFs))
-    }else {fields = dbListFields(dbGlb$dbIcon,plotInit_plot)
-    needFs = toupper(c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year",
-                       "AddFiles","FVSKeywords"))
-    fields = intersect(toupper(fields),toupper(needFs))}
+      needFs = c("Stand_ID","Stand_CN","Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
+    }else {
+      fields = dbListFields(dbGlb$dbIcon,plotInit_plot)
+      needFs = c("StandPlot_ID","StandPlot_CN","Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
+    }
+    fields = intersect(toupper(fields),toupper(needFs))
     dbQ = NULL
     if (selType == "inAdd")
     {
@@ -1658,13 +1652,15 @@ cat ("nreps=",nreps,"\n")
     globals$fvsRun$cyclelen <- as.character(getPstring(
                                  prms$timing,"cycleLength",
                                  globals$activeVariants[1]))
-    if (timescale==0){
-    updateTextInput(session=session, inputId="startyr",  
-                    value=globals$fvsRun$startyr)
-    updateTextInput(session=session, inputId="endyr",    
-                    value=globals$fvsRun$endyr)
-    updateTextInput(session=session, inputId="cyclelen", 
-                    value=globals$fvsRun$cyclelen)}
+    if (timescale==0)
+    {
+      updateTextInput(session=session, inputId="startyr",  
+                      value=globals$fvsRun$startyr)
+      updateTextInput(session=session, inputId="endyr",    
+                      value=globals$fvsRun$endyr)
+      updateTextInput(session=session, inputId="cyclelen", 
+                      value=globals$fvsRun$cyclelen)
+    }
     msgVal = msgVal+1
     progress$set(detail="Updating reps tags",value = msgVal)
     updateReps(globals)

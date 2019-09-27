@@ -2289,7 +2289,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
             spgkeep <- spgkeep+1
         }
-        if (!length(spgkeep))updateReps(globals) 
+        updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -4208,7 +4208,7 @@ cat ("copy frm=",frm," tto=",tto,"\n")
         }
       } else {
         session$sendCustomMessage(type="infomessage",
-        message="FVS software cannot be refreshed in the local configuration. This feature is only relevant in the Online setting.")
+          message="FVS software cannot be refreshed in the local configuration. This feature is only relevant in the Online setting.")
         return()
       }
       session$sendCustomMessage(type="infomessage",
