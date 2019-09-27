@@ -11,7 +11,7 @@ library(leaflet)
 library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
+options(shiny.maxRequestSize=5000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
 
 shinyServer(function(input, output, session) {
@@ -2284,11 +2284,11 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {
         globals$foundStand=0L 
-        spgkeep <- 0
-        for (i in 1:length(globals$pastelist)){
-          if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
-            spgkeep <- spgkeep+1
-        }
+        # spgkeep <- 0
+        # for (i in 1:length(globals$pastelist)){
+        #   if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
+        #     spgkeep <- spgkeep+1
+        # }
         updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
