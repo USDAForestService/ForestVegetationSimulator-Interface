@@ -11,7 +11,7 @@ library(leaflet)
 library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=5000*1024^2,shiny.trace = FALSE,
+options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
 
 shinyServer(function(input, output, session) {
@@ -137,7 +137,8 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
     if (!file.exists("FVS_Data.db")) 
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    
+    globals$changeind <- 0
+    output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     setProgress(value = NULL)          
@@ -250,7 +251,7 @@ cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
-cat ("runs, tbs=",tbs,"\n")
+cat ("tbs related to the run",tbs,"\n")
       if (length(tbs) == 0) 
       {
         updateSelectInput(session, "selectdbtables", choices=list())
@@ -285,22 +286,8 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
         # filter records selected from selected tables.
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-## orig query
-#        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
-#                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet)) 
-        # fix up sampling weights for reps...       
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.C1")
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.C2")
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.C1 as select * ",
-                "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.C2 as select StandID,MgmtID,",
-                "SamplingWt/count(StandID) as SamplingWt from temp.C1 group by MgmtID,StandID"))  
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID,",
-                "Stand_CN,StandID,MgmtID,RunTitle,KeywordFile,",
-                "temp.C2.SamplingWt,Variant,Version,RV,Groups, ",
-                "RunDateTime from temp.C1 join temp.C2 using (MgmtID,StandID)"))
-#dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases")
-         
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
+                       "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))          
         for (tb in tbs) 
         {                     
 cat ("tb=",tb,"\n")                             
@@ -320,7 +307,6 @@ cat ("tb=",tb,"\n")
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
-        dbExecute(dbGlb$dbOcon, "drop table if exists CmpMetaData;")
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
         if (ncases > 1) exqury(dbGlb$dbOcon,Create_CmpMetaData)
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
@@ -347,7 +333,7 @@ cat ("tbs2=",tbs,"\n")
             detail  = "Building CmpSummary2", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_CmpSummary2)
           tbs = c(tbs,"CmpSummary2")
-cat ("tbs1=",tbs,"\n")
+cat ("tbs3=",tbs,"\n")
         }
         if ("FVS_Summary2_East" %in% tbs && ncases > 1)
         {
@@ -355,7 +341,7 @@ cat ("tbs1=",tbs,"\n")
             detail  = "Building CmpSummary2_East", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
           tbs = c(tbs,"CmpSummary2_East")
-cat ("tbs2=",tbs,"\n")
+cat ("tbs4=",tbs,"\n")
         }
         if ("FVS_Compute" %in% tbs && ncases > 1)
         {
@@ -376,7 +362,7 @@ cat ("tbs2=",tbs,"\n")
             dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
           }
           tbs = c(tbs,"CmpCompute")    
-cat ("tbs3=",tbs,"\n")
+cat ("tbs5=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
         tlprocs = names(tlprocs)[tlprocs]
@@ -731,19 +717,6 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
-          if (tb == "FVS_Cases") 
-          {
-            # actually fetch the temporary version as it has just the needed
-            # cases and it has adjusted sampling weights when there are reps
-            dtab = dbReadTable(dbGlb$dbOcon,name="Cases",schema="temp")
-            dtab$RunTitle <- as.factor(trim(dtab$RunTitle))
-            dtab$CaseID <- as.factor(dtab$CaseID)
-            dtab$StandID <- as.factor(dtab$StandID)
-            dtab$MgmtID <- as.factor(dtab$MgmtID)
-            dtab$Groups <- as.factor(dtab$Groups)
-            dat[[tb]] <- dtab
-            next
-          }
           if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2","CmpSummary2_East")) 
           {            
             dtab <- dbReadTable(dbGlb$dbOcon,tb)
@@ -777,7 +750,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
-            } 
+            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
@@ -2284,11 +2257,11 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {
         globals$foundStand=0L 
-        # spgkeep <- 0
-        # for (i in 1:length(globals$pastelist)){
-        #   if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
-        #     spgkeep <- spgkeep+1
-        # }
+        spgkeep <- 0
+        for (i in 1:length(globals$pastelist)){
+          if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
+            spgkeep <- spgkeep+1
+        }
         updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
@@ -3582,9 +3555,7 @@ cat ("kcpSaveInRun\n")
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
-        output$contChange <- renderText({
-          HTML(paste0("<b>","*Run*","</b>"))
-        })
+        output$contChange <- renderText(HTML(paste0("<b>","*Run*","</b>")))
         closeCmp()
         globals$schedBoxPkey <- character(0)
       })

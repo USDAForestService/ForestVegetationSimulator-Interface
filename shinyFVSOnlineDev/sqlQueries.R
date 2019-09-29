@@ -37,7 +37,7 @@ create table CmpMetaData as
  select RunTitle,RunDateTime,Variant,
    sum(SamplingWt) as TotalSamplingWt,
    count(*)        as NumOfCases,
-   Version, RV, KeywordFile from temp.Cases   
+   Version, RV, KeywordFile from FVS_Cases   
    where CaseID in (select CaseID from temp.Cases)
  group by KeywordFile
  order by RunTitle, RunDateTime;"
@@ -226,7 +226,7 @@ create table temp.CmpStdStkDBHSp as
     sum(RsdBdFt  *SamplingWt)/sum(SamplingWt) as CmpRsdBdFt  
   from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
         CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID)
+  join FVS_Cases using (CaseID)
   group by MgmtID,Year,Species,DBHClass;
 create table temp.CmpStdStkAllDBH as
   select MgmtID,Year,Species,'All' as DBHClass,
@@ -352,7 +352,7 @@ create table CmpSummary as
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
   from (select * from FVS_Summary where CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID)
+  join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
 Create_CmpSummary_East = "
@@ -380,7 +380,7 @@ create table CmpSummary_East as
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
   from (select * from FVS_Summary_East where CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID)
+  join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
 Create_CmpSummary2 = "
@@ -407,7 +407,7 @@ create table temp.CmpSummary2A as
     round(sum(RBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpRBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
   from (select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID)   
+  join FVS_Cases using (CaseID)   
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
 drop table if exists temp.CmpSummary2B;
@@ -494,7 +494,7 @@ create table temp.CmpSummary2_EastA as
     round(sum(RSBdFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
   from (select * from FVS_Summary2_East where CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID) 
+  join FVS_Cases using (CaseID) 
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
 drop table if exists temp.CmpSummary2_EastB;
@@ -565,7 +565,7 @@ create table CmpCompute as
   select MgmtID,Year,subExpression,
   round(sum(SamplingWt),2) as CmpSamplingWt
   from (select * from FVS_Compute where CaseID in (select CaseID from temp.Cases))
-  join temp.Cases using (CaseID)
+  join FVS_Cases using (CaseID)
   group by MgmtID,Year;" 
   
 Create_View_DWN_Required = c("FVS_Down_Wood_Cov","FVS_Down_Wood_Vol")
