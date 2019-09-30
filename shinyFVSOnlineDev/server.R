@@ -4179,7 +4179,7 @@ cat ("copy frm=",frm," tto=",tto,"\n")
         }
       } else {
         session$sendCustomMessage(type="infomessage",
-          message="FVS software cannot be refreshed in the local configuration. This feature is only relevant in the Online setting.")
+          message="FVS software cannot be refreshed in the local configuration. Check the FVS Software page for updates to FVSOnlocal https://www.fs.fed.us/fvs/software/index.shtml.")
         return()
       }
       session$sendCustomMessage(type="infomessage",

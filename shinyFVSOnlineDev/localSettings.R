@@ -1,8 +1,12 @@
 # these two variables can be set to the source directories of fvsBin and rFVS
+
+if (isLocal()){
+  fvsBinDir=paste0(getwd(),"/FVSbin")
+  rFVSDir  =paste0(getwd(),"/R")
+}else {
 fvsBinDir=NULL
 rFVSDir  =NULL
-#fvsBinDir    = ".../trunk/bin/"  (set as needed)
-#rFVSDir      = ".../rFVS/R/"     (set as needed)
+}
 
 #when fvsBinDir is NULL (or when the directory does not exist), 
 #then the following url is tried. If the url is NULL it is not tried.
