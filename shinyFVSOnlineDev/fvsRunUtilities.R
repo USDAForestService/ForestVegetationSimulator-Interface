@@ -625,12 +625,15 @@ mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
 cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
 " sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
 paste0("list n=",length(list)) else sels,"\n")
-  if (length(fvsRun$stands)) for (i in start:end)
+  if (length(fvsRun$stands)) for (i in start:end) 
   {
+    ## these two lines are needed to deal with old runs that may not have these elements in the stand class
+    if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
+    if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
     tmpcnts<-append(tmpcnts, 
-      if (length(fvsRun$stands[[i]]$rep) == 0) fvsRun$stands[[i]]$sid else 
-        if (fvsRun$stands[[i]]$rep) sprintf("%s r%03i",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep) else
-            fvsRun$stands[[i]]$sid) 
+      if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
+          sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
+                  fvsRun$stands[[i]]$repwt))          
     tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
     if (length(fvsRun$stands[[i]]$grps) > 0)
       for (j in 1:length(fvsRun$stands[[i]]$grps))
