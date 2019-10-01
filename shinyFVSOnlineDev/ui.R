@@ -38,9 +38,9 @@ zipList <- list(
   "FVS output file for current run" = "out",	
   "SVS output files for current run" = "subdir",	
   "Input data base FVS_Data.db" = "FVS_Data",	
-  "FVS-Online runs (RData files)" = "FVS_Runs",	
+  "FVS runs (RData files)" = "FVS_Runs",	
   "Custom SQL query archive (customQueries.RData)" = "customSQL",	
-  "FVS-Online keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
+  "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
 selZip <- unlist(zipList[1:4])	
 
 tableList = list()
@@ -64,7 +64,7 @@ shinyUI(fixedPage(
     ))),  
   fixedRow(
     column(width=5,offset=0,
-      HTML(paste0('<title>FVS-',headstr,'</title>',
+      HTML(paste0('<title>FVS',headstr,'</title>',
              '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
     column(width=5,offset=.5,uiOutput("projectTitle")),
