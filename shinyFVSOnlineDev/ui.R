@@ -9,7 +9,7 @@ library(openxlsx)
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
-headstr = if (isLocal()) "Onlocal" else "Online"
+headstr = if (isLocal()) "" else "Online"
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))

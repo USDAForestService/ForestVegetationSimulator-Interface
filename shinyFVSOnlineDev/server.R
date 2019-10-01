@@ -187,8 +187,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     } 
     globals$reloadAppIsSet == 0
     if (isLocal()){
-      file.copy(paste0("C:/FVSOnlocal/",basename(getwd()),"/projectId.txt"),
-                "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
+                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
     }
   })
   
@@ -4181,7 +4181,7 @@ cat ("copy frm=",frm," tto=",tto,"\n")
         }
       } else {
         session$sendCustomMessage(type="infomessage",
-          message="FVS software cannot be refreshed in the local configuration. Check the FVS Software page for updates to FVSOnlocal https://www.fs.fed.us/fvs/software/index.shtml.")
+          message="FVS software cannot be refreshed in the local configuration. Check the FVS Software page for updates to FVS https://www.fs.fed.us/fvs/software/index.shtml.")
         return()
       }
       session$sendCustomMessage(type="infomessage",
@@ -4694,7 +4694,7 @@ cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
       if (isLocal()){
-        cmd = paste0("C:/FVSOnlocal/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+        cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
       }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
@@ -4711,7 +4711,7 @@ cat ("cmd=",cmd,"\n")
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
         if (isLocal()){
-          cmd = paste0("C:/FVSOnlocal/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+          cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
         }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("s=",s," cmd=",cmd,"; ")
         if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
@@ -6046,8 +6046,8 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
         if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
         setwd(input$PrjSelect)
         if (isLocal()){
-          file.copy(paste0("C:/FVSOnlocal/",basename(input$PrjSelect),"/projectId.txt"),
-                    "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
+                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
         }
         globals$saveOnExit = FALSE
         globals$reloadAppIsSet=1
