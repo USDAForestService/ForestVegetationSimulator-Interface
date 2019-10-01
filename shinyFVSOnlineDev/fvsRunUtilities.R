@@ -574,7 +574,9 @@ cat("writeKeyFile, num stds=",length(stds),
       swt=as.numeric(fvsInit$SAM_WT[sRows])
       if (is.na(swt)) swt=1
       swt=swt*wtofix[[std$sid]][std$rep]
-      cat ("Design",strrep(" ",58),swt,"\n",file=fc,sep="")
+      cswt=sprintf("%10s",as.character(swt))
+      if (nchar(cswt)>10) cswt=sprintf("%9.5g",swt)
+      cat ("Design",strrep(" ",53),cswt,"\n",file=fc,sep="")
     } 
     cat ("SPLabel\n",file=fc,sep="")
     for (i in 1:length(std$grps))

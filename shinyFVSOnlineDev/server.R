@@ -1849,6 +1849,8 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
                       value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat", 
                       value=globals$fvsRun$cycleat)
+      updateTextInput(session=session, inputId="inReps",value="1") 
+      updateTextInput(session=session, inputId="inRwts",value="1") 
       output$runProgress <- renderUI(NULL)
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management")
