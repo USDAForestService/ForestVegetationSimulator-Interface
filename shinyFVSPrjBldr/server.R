@@ -56,7 +56,7 @@ cat("email=",emailnew,"\ntitle=",input$title,"\n")
       link = paste0("http://forest.moscowfsl.wsu.edu/FVSwork/",uuid)
       cat (file=con,"Here is a link to the project named:",input$title,"\n\n")
       cat (file=con,link,"\n\n")
-      cat (file=con,"Note that this may be removed",
+      cat (file=con,"Note that this project may be removed",
            "from the system 2 months after the last access.")
       close(con)
 
