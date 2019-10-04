@@ -3,8 +3,10 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
   ## This funciton needs to be customized a noted below!
   
   # Send an Email of the projects associated with an email address 
-  # to the email address. The Email address must be an exact match to 
-  # the one sepecified when the project was created. 
+  # to the email address. The Email address must be a match (case insensitive) 
+  # to the one sepecified when the project was created. 
+  
+  trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
   if (missing(queryEmail)) stop("queryEmail must be specified")
   # insure a single token, no blanks
@@ -45,8 +47,8 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
     id = unlist(ids[i])
     nam = names(ids[i])
     if (is.null(id)) next
-    email = scan(text=id[1],what="character",quiet=TRUE)[2]
-    if (email == queryEmail)
+    email = trim(scan(text=id[1],what="character",quiet=TRUE)[2])
+    if (tolower(email) == tolower(queryEmail))
     {  
       nprjs = nprjs+1
       cat (file=con,"\n",id[1],"\n",id[2],"\n")
