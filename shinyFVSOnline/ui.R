@@ -9,7 +9,7 @@ library(openxlsx)
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
-headstr = if (isLocal()) "Onlocal" else "Online"
+headstr = if (isLocal()) "" else "Online"
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -38,9 +38,9 @@ zipList <- list(
   "FVS output file for current run" = "out",	
   "SVS output files for current run" = "subdir",	
   "Input data base FVS_Data.db" = "FVS_Data",	
-  "FVS-Online runs (RData files)" = "FVS_Runs",	
+  "FVS runs (RData files)" = "FVS_Runs",	
   "Custom SQL query archive (customQueries.RData)" = "customSQL",	
-  "FVS-Online keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
+  "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
 selZip <- unlist(zipList[1:4])	
 
 tableList = list()
@@ -59,10 +59,12 @@ shinyUI(fixedPage(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:5px}"))),  
+    ".form-group {margin-bottom:5px}",
+    ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
+    ))),  
   fixedRow(
     column(width=5,offset=0,
-      HTML(paste0('<title>FVS-',headstr,'</title>',
+      HTML(paste0('<title>FVS',headstr,'</title>',
              '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
     column(width=5,offset=.5,uiOutput("projectTitle")),
@@ -89,11 +91,10 @@ shinyUI(fixedPage(
             actionButton("saveRun","Save"),
             actionButton("dupRun","Duplicate"),
             modalTriggerButton("deleteRun", "#deleteRunDlg", "Delete"),
-            #tags$style(type="text/css", "#deleteRun {color:red;}"),
             modalDialog(id="deleteRunDlg", footer=list(
-            modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
-              tags$button(type = "button", class = "btn btn-primary", 
-               'data-dismiss' = "modal", "Cancel"))),        
+              modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 
+                 'data-dismiss' = "modal", "Cancel"))),        
             h6(),
             tags$style(type="text/css", "#title { width: 90%; }"),
             textInput("title", "Run title", ""), 
@@ -129,8 +130,12 @@ shinyUI(fixedPage(
                 selectInput("inStds", NULL, NULL, NULL, 
                           multiple=TRUE, selectize=FALSE),
                 uiOutput("stdSelMsg"),
+                myInlineTextInput("inReps", "Number of replicates of each added stand ", value = "1", size="5%"),            
+                myInlineTextInput("inRwts", "Relative weights of each replicate ", value = "1", size="20%"), 
+                h6(),
                 actionButton("inAdd",   "Add selected stands"),
                 actionButton("inAddGrp","Add stands in selected groups"), 
+                h6(),
                 myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
                 actionButton("inStdFindBut","Find")
               ), 
@@ -139,13 +144,14 @@ shinyUI(fixedPage(
                        textInput("endyr",    "Common ending year",   ""), 
                        textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
                        tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                       textInput("cycleat", "Additional output reporting years", ""),
-                       h4("Projection Timing Summary"),
-                       HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common 
-                             starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS 
-                             will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),' 
-                             years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
-                             '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+                       textInput("cycleat", "Additional output reporting years", "")
+                       # save this for later!!!! Will come back to it. Needs work.
+                       # h4("Projection Timing Summary"),
+                       # HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common 
+                       #       starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS 
+                       #       will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),' 
+                       #       years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
+                       #       '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
               ),
               tabPanel("Components",          
                 tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
@@ -218,6 +224,9 @@ shinyUI(fixedPage(
                         "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
                         "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
                         "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
+                        "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
+                        "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
+                         AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
                         ),width="100%",inline=FALSE),
                    selectInput("tabDescSel","Describe tables",choices=tableList,
@@ -383,7 +392,7 @@ shinyUI(fixedPage(
     	              choices = list("None","StandID","MgmtID","Year","Species"),
     	              selected="None", selectize=FALSE)),
               column(width=3,
-    	          selectInput("pltby", "Plot by code",
+    	          selectInput("pltby", "Plot-by code",
     	              choices = list("None","StandID","MgmtID","Year","Species"),
     	              selected="None", selectize=FALSE)),
               column(width=6,
@@ -440,6 +449,10 @@ shinyUI(fixedPage(
                  column(width=6,
                    myRadioGroup("XTrans","Transform X",
                       c("identity"="identity","log10"="log10")))),
+               fixedRow(
+                 column(width=6,
+                   myRadioGroup("facetWrap","Automatic facet wrap",
+                      c("On"="On","Off"="Off")))),
                fixedRow(
                  column(width=12,
                    myInlineTextInput("SDIvals", 

@@ -137,7 +137,8 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
     if (!file.exists("FVS_Data.db")) 
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    
+    globals$changeind <- 0
+    output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     setProgress(value = NULL)          
@@ -186,8 +187,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     } 
     globals$reloadAppIsSet == 0
     if (isLocal()){
-      file.copy(paste0("C:/FVSOnlocal/",basename(getwd()),"/projectId.txt"),
-                "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
+                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
     }
   })
   
@@ -250,7 +251,7 @@ cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
       tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
-cat ("runs, tbs=",tbs,"\n")
+cat ("tbs related to the run",tbs,"\n")
       if (length(tbs) == 0) 
       {
         updateSelectInput(session, "selectdbtables", choices=list())
@@ -278,21 +279,21 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
           rtn <- try(dbExecute(dbGlb$dbOcon,"create table dummy (dummy int)"))
           if (class(rtn) != "try-error") break;
           Sys.sleep (10)
-        } 
+        }                    
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
         # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
+        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
         dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
-                     "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet)) 
+                       "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))          
         for (tb in tbs) 
-        {
-cat ("tb=",tb,"\n")
+        {                     
+cat ("tb=",tb,"\n")                             
           cnt = 0
           if (tb == "FVS_Cases") next
-          if (tb %in% c("CmpSummary","CmpSummary_East",
+          if (tb %in% c("CmpSummary","CmpSummary_East",                 
               "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
               "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
               dbExecute(dbGlb$dbOcon,paste0("drop table ",tb))
@@ -306,11 +307,10 @@ cat ("tb=",tb,"\n")
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
-        dbExecute(dbGlb$dbOcon, "drop table if exists CmpMetaData;")
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
         if (ncases > 1) exqury(dbGlb$dbOcon,Create_CmpMetaData)
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$bldstdsk # force this section to be reactive to this input     
+        input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
         if ("FVS_Summary" %in% tbs && ncases > 1)
         {
           setProgress(message = "Output query", 
@@ -333,7 +333,7 @@ cat ("tbs2=",tbs,"\n")
             detail  = "Building CmpSummary2", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_CmpSummary2)
           tbs = c(tbs,"CmpSummary2")
-cat ("tbs1=",tbs,"\n")
+cat ("tbs3=",tbs,"\n")
         }
         if ("FVS_Summary2_East" %in% tbs && ncases > 1)
         {
@@ -341,7 +341,7 @@ cat ("tbs1=",tbs,"\n")
             detail  = "Building CmpSummary2_East", value = i); i = i+1
           exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
           tbs = c(tbs,"CmpSummary2_East")
-cat ("tbs2=",tbs,"\n")
+cat ("tbs4=",tbs,"\n")
         }
         if ("FVS_Compute" %in% tbs && ncases > 1)
         {
@@ -362,7 +362,7 @@ cat ("tbs2=",tbs,"\n")
             dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
           }
           tbs = c(tbs,"CmpCompute")    
-cat ("tbs3=",tbs,"\n")
+cat ("tbs5=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
         tlprocs = names(tlprocs)[tlprocs]
@@ -443,7 +443,6 @@ cat ("tbs4=",tbs,"\n")
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
-          
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
         tbs = sort(tbs)
         sel = intersect(tbs, c("FVS_Summary2","FVS_Summary2_East")) #not both!
@@ -713,7 +712,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         }
         if (max(tbg) > 1 && ! ("FVS_Cases" %in% tbs)) tbg = c("FVS_Cases"=2,tbg)
         dat=NULL
-        for (tb in names(sort(tbg)))       
+        for (tb in names(sort(tbg)))
         {
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
@@ -751,7 +750,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
-            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)
+            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
@@ -796,7 +795,28 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
           fvsOutData$dbData = mdat
-        } 
+        }
+        # do rep assignments
+        newSid = as.character(fvsOutData$dbData$StandID)
+        icid = as.integer(fvsOutData$dbData$CaseID)
+        imid = as.integer(fvsOutData$dbData$MgmtID)
+        isid = as.integer(fvsOutData$dbData$StandID)+as.integer(imid*1000000)
+        sidch = FALSE
+        for (id in unique(isid))
+        {
+          nq = unique(icid[isid==id])
+          if (length(nq)==1) next
+          mq = unique(imid[isid==id])
+          sidch = TRUE
+          rep = 0
+          for (iq in nq) 
+          {
+            rep = rep+1
+            chng = icid==iq
+            newSid[chng] = sprintf("%s r%03i",newSid[chng],rep)
+          }
+        }
+        if (sidch) fvsOutData$dbData$StandID = as.factor(newSid)
         iprg = iprg+1                                      
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
@@ -1098,7 +1118,7 @@ cat ("browsevars/plotType\n")
   output$outplot <- renderImage(
   {
 cat ("renderPlot\n")    
-    nullPlot <- function ()
+    nullPlot <- function (msg="Select different data, variables, plot type, or facet settings.")
     {
       outfile = "nullPlot.png"
       if (!file.exists(outfile))
@@ -1108,7 +1128,7 @@ cat ("renderPlot\n")
         text(x=.5,y=.5,"Nothing to graph",col="red")
         dev.off()
       }
-      output$plotMessage=renderText("Pick different variables, change plot type, or change facet settings.")
+      output$plotMessage=renderText(msg)
       list(src = outfile)
     }
     autorecycle <- function(a,n)
@@ -1129,7 +1149,7 @@ cat ("renderPlot\n")
     vf = if (input$vfacet == "None") NULL else input$vfacet
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
-
+    needVars = unique(c(vf,hf,pb,input$xaxis,input$yaxis))
     dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else         
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
@@ -1143,33 +1163,64 @@ cat ("renderPlot\n")
         levels(dat$Groups)[il] = newl
       }      
     }
-
+    if (length(setdiff(needVars,names(dat)))) return(nullPlot())
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
-    if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot())
+    if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot("Select both X- and Y-axes"))
     if (!is.null(hf) && nlevels(dat[,hf]) > 8)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
-      updateSelectInput(session=session, inputId="hfacet", selected="None")
-      return (nullPlot())
+      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf])," > 8")))
     }
     if (!is.null(vf) && nlevels(dat[,vf]) > 8)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
-      updateSelectInput(session=session, inputId="vfacet", selected="None")
-      return (nullPlot())
-    }         
+      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
+    }
+    for (v in c("MgmtID","StandID","Year")) 
+    { 
+      if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
+          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
+        return(nullPlot(paste0("Variable ",v," has ",nlevels(dat[[v]])," levels and ",
+                               " therefore must be an axis, plot-by code, or a facet.")))
+    }
+    pltp = isolate(input$plotType) 
+    if (input$xaxis == "Year" && pltp != "box") dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
         isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))
     nd = NULL
+    sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
+                    nlevels(dat$Species)>1 
+    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) && 
+                    nlevels(dat$DBHClass)>1   
     for (v in vars[(nlv+1):length(vars)])
     {
       if (is.na(v) || !v %in% names(dat)) return(nullPlot())
       pd = dat[,c(vars[1:nlv],v),drop=FALSE]
       names(pd)[ncol(pd)] = "Y"
+      if (sumOnSpecies) pd = cbind(pd,Species =dat$Species)
+      if (sumOnDBHClass)pd = cbind(pd,DBHClass=dat$DBHClass)
       nd = rbind(nd, data.frame(pd,Legend=v,stringsAsFactors=FALSE))
     }
+cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n") 
+    if (sumOnSpecies) 
+    {
+      nd=subset(nd,Species!="All")
+      nd$Species="Sum"
+    }
+    if (sumOnDBHClass) 
+    {
+      nd=subset(nd,DBHClass!="All")
+      nd$DBHClass="Sum"
+    }
+    if (sumOnSpecies||sumOnDBHClass) 
+    {
+      nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
+      names(nd)[ncol(nd)]="Y"
+    }
+    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) != "90") 
+      updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
     {
@@ -1206,36 +1257,20 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }
-#    # attempt to reduce/modify the by variable set
-#    bys = setdiff(names(nd),c("X","Y",pb,"hfacet","vfacet"))
-#cat ("before summing logic, plotType=",input$plotType," names(nd)=",
-#     names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-#    if (input$plotType %in% c("line","box","bar")) for (byy in bys)
-#    {
-#      tt=table(nd[,c("X",byy)])
-#cat ("byy=",byy," ncol(tt)=",tt,"\n")
-#      if (ncol(tt))
-#      {
-#        dd=by(data=nd,INDICES=list(nd$X,nd[[byy]]),FUN=function (x)
-#          {
-#            an=x[1,,drop=FALSE]
-#            an$Y=sum(x$Y)
-#            an
-#          })
-#        nd = do.call(rbind,dd)
-#      }     
-#cat ("after summing logic names(nd)=",names(nd)," nrow(nd)=",nrow(nd)," bys=",bys,"\n")
-#    }
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
-    fg = NULL                                                                                  
-    fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) 
-         facet_grid(vfacet~hfacet)
-    fg = if (is.null(fg)         && !is.null(nd$hfacet)) 
-         facet_grid(.~hfacet) else fg
-    fg = if (is.null(fg)         && !is.null(nd$vfacet)) 
-         facet_grid(vfacet~.) else fg
+    fg = if (!is.null(nd$vfacet) && !is.null(nd$hfacet)) facet_grid(vfacet~hfacet) else NULL
+    if (input$facetWrap == "Off")
+    {
+      fg = if (is.null(fg) && !is.null(nd$hfacet)) facet_grid(.~hfacet) else fg
+      fg = if (is.null(fg) && !is.null(nd$vfacet)) facet_grid(vfacet~.) else fg
+    } else {
+      fg = if (is.null(fg) && !is.null(nd$hfacet)) 
+           facet_wrap(~hfacet,ncol=ceiling(sqrt(nlevels(nd$hfacet))),strip.position="top") else fg
+      fg = if (is.null(fg) && !is.null(nd$vfacet)) 
+           facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
+    }
     p = ggplot(data=nd) + fg + labs(
           x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
@@ -1243,6 +1278,9 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
             theme(text = element_text(size=9),
             panel.background = element_rect(fill="gray95"),
             axis.text = element_text(color="black"))
+    if (!is.null(fg)) p = p + 
+      theme(strip.text.x = element_text(margin = margin(.025, .01, .025, .01, "in"))) +
+      theme(strip.text.y = element_text(margin = margin(.025, .01, .025, .01, "in")))
     colors = if (input$colBW == "B&W") 
       unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else
         {
@@ -1346,7 +1384,6 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
     ### end DMD...except for adding annotations, see below.
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     brks = function (x,log=FALSE) 
@@ -1443,9 +1480,9 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
                           show.legend = FALSE)
     }    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
-
-    if (is.factor(nd$X))      nd$X = as.ordered(nd$X)
-    if (is.factor(nd$Y))      nd$Y = as.ordered(nd$Y)
+ 
+    if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
+    if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     pltp = isolate(input$plotType) 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
@@ -1812,6 +1849,8 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
                       value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat", 
                       value=globals$fvsRun$cycleat)
+      updateTextInput(session=session, inputId="inReps",value="1") 
+      updateTextInput(session=session, inputId="inRwts",value="1") 
       output$runProgress <- renderUI(NULL)
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management")
@@ -2000,12 +2039,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
   })
   
-#session$sendCustomMessage(type = "infomessage",
-#        message = paste0("WARNING: the ",globals$fvsRun$origDBname," database associated with ", 
-#                  globals$fvsRun$title," is no longer active due to another database having been uploaded. Import the ",
-#                  globals$fvsRun$origDBname," database before attempting to re-run ",globals$fvsRun$title," ."))
-
-  ##autoOut
+   ##autoOut
    observe({
     if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
     globals$fvsRun$autoOut<-as.list(input$autoOut)
@@ -2230,7 +2264,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
           if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
             spgkeep <- spgkeep+1
         }
-        if (!length(spgkeep))updateReps(globals) 
+        updateReps(globals) 
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2893,25 +2927,25 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-
-  observe({
-    cat ("changeind=",globals$changeind,"\n")
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
-  })
+  # save this for later!!!! Will come back to it. Needs work.
+  # observe({
+  #   cat ("changeind=",globals$changeind,"\n")
+  #   if (globals$changeind == 0){
+  #     output$contChange <- renderUI("Run")
+  #     output$srtYr <-renderUI({
+  #       HTML(paste0("<b>",input$startyr,"</b>"))
+  #     })
+  #     output$eYr <-renderUI({
+  #       HTML(paste0("<b>",input$endyr,"</b>"))
+  #     })
+  #     output$cyLen <-renderUI({
+  #       HTML(paste0("<b>",input$cyclelen,"</b>"))
+  #     })
+  #     output$cyAt <-renderUI({
+  #       HTML(paste0("<b>",input$cycleat,"</b>"))
+  #     })
+  #   }
+  # })
   
   ## time--start year
   observe({
@@ -3180,6 +3214,19 @@ cat ("length(allSum)=",length(allSum),"\n")
         Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
+        modn = names(allSum)
+        toch = unique(modn)
+        if (length(toch) != length(modn)) 
+        {
+          for (chg in toch)
+          {
+            chrr = chg == modn
+            if ((nch <- sum(chrr)) < 2) next
+            chg = unlist(strsplit(chg,";"))
+            modn[chrr] = sprintf("%s r%03i;%s",chg[1],1:nch,chg[2])
+          }
+          names(allSum) = modn
+        }
         for (i in 1:length(allSum)) 
         {
           X = c(X,rep(allSum[[i]][,"Year"],2))
@@ -3190,16 +3237,20 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
                   Legend=as.factor(Legend))
-        width = max(4,nlevels(toplot$hfacet)*2)
-        height = 2
-        plt = if (nlevels(toplot$hfacet) < 5)
-          ggplot(data = toplot) + facet_grid(.~hfacet) + 
+        nlvs = nlevels(toplot$hfacet)
+        plt = if (nlvs < 7)
+        {
+          height = ceiling(nlvs/2)*1.25
+          width = 3.5
+          ggplot(data = toplot) + facet_wrap(~hfacet,ncol=2) + 
+            theme(strip.text.x = element_text(size = 5,margin = margin(.01, 0, .01, 0, "in"))) + 
             geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
             labs(x="Year", y="Total cubic volume per acre") + 
             theme(text = element_text(size=9), legend.position="none",
                   panel.background = element_rect(fill="gray95"),
-                  axis.text = element_text(color="black"))  else
-        {
+                  axis.text = element_text(color="black"))  
+        } else {
+          height = 2
           width = 2.5
           toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
           ggplot(data = toplot) +  
@@ -3324,8 +3375,12 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
-        if (file.exists(sfile)) file.copy(sfile,tf) else
-          cat (file=tf,"Output not yet created.\n")
+        if (file.exists(sfile))
+        {
+          file.copy(sfile,tf)
+          # use perl to change line endings, ignore if an error is detected
+          if (!isLocal()) try(system(paste0("perl -pi -e 's/\\n/\\r\\n/' ",tf)))
+        } else cat (file=tf,"Output not yet created.\n")
       }, contentType="text")
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(filename=function ()
@@ -3501,6 +3556,8 @@ cat ("kcpSaveInRun\n")
         mkSimCnts(globals$fvsRun,input$simCont[[1]])
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        globals$changeind <- 1
+        output$contChange <- renderText(HTML(paste0("<b>","*Run*","</b>")))
         closeCmp()
         globals$schedBoxPkey <- character(0)
       })
@@ -3677,6 +3734,11 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
     treeform = tolower(unlist(strsplit(unlist(strsplit(svs[2],
                split=" ",fixed=TRUE))[2],split=".",fixed=TRUE))[1])
+    if (! (treeform %in% names(treeforms))) 
+    {
+      output[[id]] <- NULL
+      return()
+    }
     treeform = treeforms[[treeform]]
     rcirc = grep ("^#CIRCLE",svs)
     if (length(rcirc)) 
@@ -3860,10 +3922,12 @@ cat ("Maps hit\n")
     {
 cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
       cases = dbGetQuery(dbGlb$dbOcon,
-          paste0("select CaseID from FVS_Cases where KeywordFile = '",
+          paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
                  input$mapDsRunList,"'"))
+      # if there are reps (same stand more than once), just use the first rep, ignore the others
+      cases = cases[!duplicated(cases$StandID),]
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),data.frame(cases))
+      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
       tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1],
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
@@ -3995,7 +4059,7 @@ cat ("matchVar=",matchVar,"\n")
         output$leafletMessage=renderText("No StandIDs match polygons")
         return()
       }
-      output$textOutput=renderText(paste0(length(subset)," StandIds match polygons"))
+      output$textOutput=renderText(paste0(length(subset)," StandIDs match polygons"))
       polys = spTransform(dbGlb$SpatialData[subset,],CRS("+init=epsg:4326"))
       uids = unique(dispData$StandID)
       progress <- shiny::Progress$new(session,min=1,max=length(uids))
@@ -4005,7 +4069,7 @@ cat ("matchVar=",matchVar,"\n")
           progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
           if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
           {
-            HTML(paste0("<p style=LINE-HEIGHT:1>StandID=",sid,"<br>",
+            HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
                paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x) 
                paste0(paste0(x,collapse=" "))),collapse="<br>"),"</p>",collapse=""))
           } else {
@@ -4013,12 +4077,16 @@ cat ("matchVar=",matchVar,"\n")
             tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
             pfile=paste0("www/s",sid,".png")
 cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
-            png(file=pfile,height=1.7,width=2.3,units="in",res=100) 
+            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent") 
             p = ggplot(tab, if (!is.null(extra))
                  aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
                  aes_string(x="Year",y=input$mapDsVar)) +
-                 geom_line()+geom_point()+
-                 ggtitle(sid)+theme(text = element_text(size=8))
+                 geom_line()+geom_point()+ggtitle(sid)+
+                 theme(
+                   text=element_text(size=8),axis.text=element_text(face="bold"),
+                   panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
+                   plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1))
+                 )
             print(p)
             dev.off()
             pfile=paste0("s",sid,".png")
@@ -4031,13 +4099,17 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
               addTiles(urlTemplate = 
                 paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
                        "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
+      lops = labelOptions(opacity=.7)
+      pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
       if (class(polys) == "SpatialPointsDataFrame")         
         map = map %>% addCircleMarkers(radius = 6, color="red", 
-                        stroke = FALSE, fillOpacity = 0.5, label=labs)  else
+                        stroke = FALSE, fillOpacity = 0.5, 
+                        popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
         map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-              opacity = .3, fillOpacity = 0.1, label=labs,   
+              opacity = .3, fillOpacity = 0.1, 
+              popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
               highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-                fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+              fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })
@@ -4109,7 +4181,7 @@ cat ("copy frm=",frm," tto=",tto,"\n")
         }
       } else {
         session$sendCustomMessage(type="infomessage",
-                                  message="FVS programs can not be refreshed on this system.")
+          message="FVS software cannot be refreshed in the local configuration. Check the FVS Software page for updates to FVS https://www.fs.fed.us/fvs/software/index.shtml.")
         return()
       }
       session$sendCustomMessage(type="infomessage",
@@ -4549,12 +4621,14 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",
-              fname," --schema"),type="cmd2") else
-         paste0("java -jar '",curDir,"/access2csv.jar' ",
-              fname," --schema")
-cat ("cmd=",cmd,"\n")
-      schema = system(cmd,intern = TRUE)
+        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',
+                fname,'" --schema'),type='cmd2') else
+        paste0('java -jar "',curDir,'/access2csv.jar" "',
+                fname,'" --schema')
+      cat ("cmd=",cmd,"\n")
+      cmd = if (.Platform$OS.type == "windows"){
+        schema = shell(cmd,intern=TRUE)
+      }else schema = system(cmd,intern=TRUE)
       if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
@@ -4614,12 +4688,14 @@ cat ("cmd=",cmd,"\n")
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3)            
       cmd = if (.Platform$OS.type == "windows") 
-         shQuote(paste0("java -jar ",curDir,"/access2csv.jar ",fname),type="cmd2") else
-         paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
-cat ("cmd=",cmd,"\n")       
-      system(cmd)  
+        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
+          paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
+cat ("cmd=",cmd,"\n") 
+      if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
-      cmd = paste0("sqlite3 ","FVS_Data.db < schema")
+      if (isLocal()){
+        cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+      }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
       fix = grep ("CREATE TABLE",schema)
@@ -4634,7 +4710,9 @@ cat ("cmd=",cmd,"\n")
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
-        cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
+        if (isLocal()){
+          cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
+        }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("s=",s," cmd=",cmd,"; ")
         if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
@@ -5747,7 +5825,8 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
-      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers)))
+      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers,
+                                                   drop_unsupported_fields=TRUE)))
       setwd(curdir)
       if (class(dbGlb$spd) == "try-error")
       {
@@ -5967,8 +6046,8 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
         if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
         setwd(input$PrjSelect)
         if (isLocal()){
-          file.copy(paste0("C:/FVSOnlocal/",basename(input$PrjSelect),"/projectId.txt"),
-                    "C:/FVSOnlocal/lastAccessedProject.txt",overwrite=TRUE)
+          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
+                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
         }
         globals$saveOnExit = FALSE
         globals$reloadAppIsSet=1

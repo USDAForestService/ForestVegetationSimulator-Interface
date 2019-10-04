@@ -6,7 +6,7 @@ DSNOut
 FVSOut.db
 * FVS_Summary, FVS_Compute, Mistletoe
 Summary        2
-Compute            0         0
+Compute            0         1
 MisRpts        2
 End
 "
@@ -87,6 +87,18 @@ End
 autoCalibStats="
 Database
 CalbStat
+End
+"
+autoInvStats="
+Stats
+Database
+InvStats
+End
+"
+
+autoRegen="
+Database
+REGREPTS
 End
 "
 

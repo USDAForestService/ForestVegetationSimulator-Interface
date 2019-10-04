@@ -47,55 +47,48 @@ svsTree <- function(tree,treeform)
   #    99 - WILD CARD, WE DON'T USE THIS CODE...IT IS A GREEN
   #         TREE (STANDING OR RECENTLY CUT TREE)
                                                    
-  colors=c(rgb(210,  66, 14, maxColorValue=256),
-           rgb(163, 117,  0, maxColorValue=256),
-           rgb(119,  42, 24, maxColorValue=256),
-           rgb( 98,  98, 98, maxColorValue=256),
-           rgb(112, 153,  0, maxColorValue=256),
-           rgb(  0,  86, 26, maxColorValue=256),
-           rgb( 20,  66, 42, maxColorValue=256),
-           rgb(  0,  76,  0, maxColorValue=256),
-           rgb( 62,  45, 45, maxColorValue=256),
-           rgb( 98,  18,  0, maxColorValue=256),
-           rgb( 88,  55, 57, maxColorValue=256),
-           rgb( 52, 149, 64, maxColorValue=256),
-           rgb(  0,  58, 44, maxColorValue=256),
-           rgb( 90,  64, 38, maxColorValue=256),
-           rgb(115,  82,  0, maxColorValue=256),
-           rgb(137, 137,  0, maxColorValue=256),
-           rgb( 69,  72, 72, maxColorValue=256),
-           rgb( 86,  64, 16, maxColorValue=256),
-           rgb(  0, 107,  0, maxColorValue=256),
-           rgb( 76,  46,  0, maxColorValue=256))
+  colors=c(rgb(210,  66, 14, maxColorValue=255),
+           rgb(163, 117,  0, maxColorValue=255),
+           rgb(119,  42, 24, maxColorValue=255),
+           rgb( 98,  98, 98, maxColorValue=255),
+           rgb(112, 153,  0, maxColorValue=255),
+           rgb(  0,  86, 26, maxColorValue=255),
+           rgb( 20,  66, 42, maxColorValue=255),
+           rgb(  0,  76,  0, maxColorValue=255),
+           rgb( 62,  45, 45, maxColorValue=255),
+           rgb( 98,  18,  0, maxColorValue=255),
+           rgb( 88,  55, 57, maxColorValue=255),
+           rgb( 52, 149, 64, maxColorValue=255),
+           rgb(  0,  58, 44, maxColorValue=255),
+           rgb( 90,  64, 38, maxColorValue=255),
+           rgb(115,  82,  0, maxColorValue=255),
+           rgb(137, 137,  0, maxColorValue=255),
+           rgb( 69,  72, 72, maxColorValue=255),
+           rgb( 86,  64, 16, maxColorValue=255),
+           rgb(  0, 107,  0, maxColorValue=255),
+           rgb( 76,  46,  0, maxColorValue=255))
            
-    # modify the intensity of the color...
-#  hsv = rgb2hsv(col2rgb(colors))           
-#  hsv["v",] = hsv["v",]+((1-hsv["v",])*.3)
-#  colors = apply(hsv,2,function(x) hsv(x[1],x[2],x[3]))
-
-  if (tree$DBH == 0) return(NULL)
+  if (any(is.na(tree))) return(NULL)
+  if (tree$DBH == 0) return(NULL)                                                             
   tree$DBH = tree$DBH/12
   CL = tree$Ht*tree$Cr1
   fallangle=tree$Fang
   HCB = tree$Ht*(1-tree$Cr1)
- 
-  if (tree$TrCl == 0) tree$TrCl = 99
-  tr = subset(treeform,Sp == tree$sp & TrCl == tree$TrCl)
+  ttcl = if (tree$TrCl == 0) 99 else tree$TrCl  
+  tr = subset(treeform,Sp == tree$sp & TrCl == ttcl)
   tr = as.list(tr[1,])
   tltslp = diff(c(tr$BaseUp,tr$TopUp))
   tree$crowncolor= c(colors[tr$FlCol1+1],colors[tr$FlCol2+1])  
   tree$crowncolor= tree$crowncolor[!duplicated(tree$crowncolor)]
   tree$stemcolor = colors[tr$StemC+1]
-                                                      
+                                                                                            
   if (tree$Cr1 && tree$Crd1 && HCB && CL) 
   {
     branchList = list()
     # single leader
-    if (tr$PlFrm <= 1) 
+    if (tr$PlFrm == 0)
     {
       # single leader, then ignore the nwhorl and nbran data from treeform
-#      nwhorl = max(5,floor(CL*.5))
-#      nbran  = 3+floor(max(1,log(tree$DBH*12))) #*2)
       nwhorl = tr$Nwhorls
       nbran  = tr$Nbrchs  # total number
       # limit the number of branches to 4 per foot of crown length
@@ -107,7 +100,7 @@ svsTree <- function(tree,treeform)
         nbran = max(3,floor(nbran/nwhorl))  # branches per whorl
         xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
         ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
-        distfun <- approxfun(xtap,ytap,rule=2)
+        distfun <- approxfun(xtap,ytap,rule=2,ties="ordered")
         rsc = runif(nwhorl)*min(1/nwhorl,.05)
         z <- rep((seq(0,1,length=nwhorl)+rsc),each=nbran)
         z[z>1] = 1
@@ -175,7 +168,7 @@ cat ("svsTree, multiple leader, nbran == 0, tree not drawn.\n")
       }
       xtap = c(HCB,HCB+CL*tr$LoY,HCB+CL*tr$HiY,tree$Ht)
       ytap = c(0,tree$Crd1*tr$LoX,tree$Crd1*tr$HiX,0) 
-      distfun <- approxfun(xtap,ytap,rule=2)
+      distfun <- approxfun(xtap,ytap,rule=2,ties="ordered")
       rsc = runif(nbran)*min(1/nbran,.05)
       z <- rep(seq(0,1,length=nbran)+rsc)
       z[z>1] = 1

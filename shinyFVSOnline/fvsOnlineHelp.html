@@ -108,15 +108,35 @@ FVS keywords</a> (also called commands) that that instruct FVS to invoke
 options or to simulate management activities. The stands and
 components will be added to the <b>Contents</b> list on the left. 
 </p>
-<p>The first step in building a run is to select the FVS variant you
-wish to use. Only those stands that can be run with the selected
-variant will be listed as possible choices. Select one or more groups
-and then select the stands from the selected groups. You can add
-individually selected stands or all the stands from selected groups
-using the buttons found below the list of stands. If you add the same
-stand more than once, its identity is modified to account for the
-repetition. 
-</p>
+<p>The first step in building a run is to select the FVS variant you wish to
+use. Only those stands that can be run with the selected variant will be listed
+as possible choices. Select one or more groups and then select the stands from
+the selected groups. You can add individually selected stands or all the stands
+from selected groups using the buttons found below the list of stands. </p>
+<p>Once stands are added, you can make a run using the Run tab on the right end
+of the second level menu bar. Alternatively, before you make the run, you can
+add run <i>components</i> control the simulation. Or do both, make a run and
+then change it and run it again. Or, make a run and duplicate it, then modify
+the duplicate. Once you make both runs, you can compare the outputs of the two
+(or several, as you desire).</p>
+<p>Note that you can add the same stand more than once and each is considered a
+replicate. This can be done by selecting and adding the same stand more than
+once or by specifying the number of replicates in the input box found below the
+list of available stands. You can also specify a set
+of relative weights of each replicate. These weights are used to modify the
+stand sampling weights specified in the input database. Often these sampling
+weights are stand sizes or the size of the land area represented by the stand.
+The set of weights you enter is <i>recycled</i> if necessary so that each
+replicate gets a weight. For example, if you say you want 5 replications of each
+stand, and you enter 1,2 for the weights, the resulting set will be 1,2,1,2,1.
+The logic includes a <i>normalization</i> step such that each weight is divided
+by the sum of the weights. Note that this normalization happens when the run is
+made using the Run tab. The normalized weights are then multiplied by the
+sampling weight entered in the database and the results are entered into FVS so
+that the sampling weights for each replicate are correctly reported in the FVS
+output. Lastly note that there is no way to modify the weights once they are 
+entered. If you make a mistake, delete the entered stands and then redo the 
+process of adding them to the run.</p>
 <p>New <b>Components</b> are added by selecting them, filling out the
 associated form, and then saving them. Components are accessed by
 first selecting component type:</p>
@@ -204,18 +224,20 @@ steps, the first is to <b>Load</b> outputs for the runs and output tables you
 want to then <b>Explore</b>. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
-you wish to explore. Composite summary statistics tables are created
-for the runs (table name: CmpSummary, CmpSummary2, or the "East" versions of these) 
-where the composites are weighted averages of corresponding FVS_Summary tables grouped
-by management ids. If treelist tables exist,
-stand and stock tables (table name StdStk; CmpStdStk for the composites) 
-are also created. If you wish, you can limit the database columns you want to 
+you wish to explore. If you wish, you can limit the database columns you want to 
 explore but the default is to select all the columns from selected tables. The system
 automatically merges (joins) the data from the selected tables so you
 can explore variables from different tables when you <b>Explore</b> the
 data you selected. The data can be displayed as <b>Tables</b>
 or <b>Graphs</b> depending on the selections on the right-hand
 secondary menu.</p>
+<p>Composite summary statistics tables are created for the runs (table name: CmpSummary, 
+CmpSummary2, or the "East" versions of these) where the composites are weighted averages 
+of corresponding tables grouped by <b>management ids</b> (not by run because  
+more than one run can have the same management id, 
+more than one management id can be within one run, or both). 
+If treelist tables exist, stand and stock tables are also created (table name StdStk; 
+CmpStdStk for the composites, also grouped by management id).</p>
 <p><b>Explore Data </b>menu item is used to further control which
 data are being explored. Use the selection tools on the left to limit
 the data used in the tables or graphs to specific runs, groups,
@@ -239,7 +261,7 @@ access to graphing tools that operate on the data displayed in the
 table. FVSOnline contains limited logic to preselect settings
 depending on the data being analyzed. Your changes are kept until you
 go back are reselect the data you want to analyze. The best way to
-learn how the graphing tool works it to experiment. Note that making
+learn how the graphing tool works is to experiment. Note that making
 some selections sometimes changes others. For example, if you change
 the vertical facet to the same setting as the horizontal facet, your
 selection will be automatically adjusted to <i>None</i>.
@@ -251,7 +273,7 @@ If you want to keep a graph you can cut-and-paste it from your
 browser to some other software, or add it to a custom report,
 described next. If you want high resolution graphs, or otherwise 
 customize the apperance of a graph, then <i>Show</i> more controls and
-change the values as needed.
+change the values as needed. Note that there are several ways to customize graphs.
 </p>
 <p style="font-variant: normal; font-style: normal"><b>Reports</b> provides access to
 a report building feature. A report is a set of
@@ -278,6 +300,31 @@ the query by surrounding it with /*  */ character sequences.
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a name="outputTables"></a>Available output tables</h4>
+<p>The tables output generated from FVS are selected prior making a run using the 
+<b>Select Outputs</b> menu item under the <b>Tabs</b> tab. The available tables are 
+listed below, and below this list there is a set of addition tables that describe
+the detailed contents of each of the tables.
+</p>
+<p>FVSOnline generates some <i>composite</i> tables by taking a weighted average over
+the individual stands from the selected runs you selected in the <b>Runs to consider</b> 
+list box. The weights used in this calculation are the individual stand sampling weights
+as specified in the input database. The names of these composite tables start with 
+<b>Cmp</b> and are listed below.
+</p>
+<p>Computing the composites is done by grouping all the stands accross all selected
+runs by unique <i>management ID</i> (which can be set in the Runs tab or by using an 
+FVS Keyword). Individual stands that have the same stand ID, run using the same 
+management ID, are considered replications of the stand. Prior to computing the weighted 
+averages, the sampling weights for the  are adjusted by dividing each by 
+the number of replications. This is a temporary adjustment that is recomputed every 
+time outputs are explored. The adjusted weights are reported as the <i>SamplingWt</i>
+in the FVS_Cases table (described below). Remember that the number of replications for 
+each stand can change depending on how the management IDs are assigned and by which 
+runs are considered. Generally, however, unique management IDs are used for each run
+and when that is the case, the replication counts will not change when different runs
+are selected. 
+</p>
+
 **OUTPUTHTML**
 </p>
 <p><a href="#contents">Back to contents</a> 
