@@ -4621,7 +4621,7 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',
+        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',
                 fname,'" --schema'),type='cmd2') else
         paste0('java -jar "',curDir,'/access2csv.jar" "',
                 fname,'" --schema')
@@ -4688,7 +4688,7 @@ cat("curDir=",curDir," input dir=",getwd(),"\n")
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3)            
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
+        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
           paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
 cat ("cmd=",cmd,"\n") 
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
@@ -6041,17 +6041,27 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
-        saveRun()        
-        if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-        if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-        setwd(input$PrjSelect)
         if (isLocal()){
           file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
                     "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
+          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+          pres <- grep(basename(input$PrjSelect),scan("C:/FVS/lastAccessedProject.txt",what="",sep="\n",quiet=TRUE))
+          if (length(pres) && pres > 0){
+            shell("C:/FVS/FVS_Icon.VBS")
+          }
+          Sys.sleep(3)
+          saveRun()
+          session$sendCustomMessage(type = "closeWindow"," ")
+        }else{
+          saveRun()
+          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+          setwd(input$PrjSelect)
+          globals$saveOnExit = FALSE
+          globals$reloadAppIsSet=1
+          session$reload()
         }
-        globals$saveOnExit = FALSE
-        globals$reloadAppIsSet=1
-        session$reload()
       }
     })
   })
