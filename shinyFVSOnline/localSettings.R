@@ -1,6 +1,6 @@
 # these two variables can be set to the source directories of fvsBin and rFVS
 
-if (isLocal()){
+if (isLocal() && .Platform$OS.type == "windows") {
   fvsBinDir=paste0(getwd(),"/FVSbin")
   rFVSDir  =paste0(getwd(),"/R")
 }else {
