@@ -11,8 +11,6 @@ library(openxlsx)
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
-headstr = if (isLocal()) "" else "Online"
-
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
 {  
@@ -65,17 +63,19 @@ shinyUI(fixedPage(
     ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
     ))),  
   fixedRow(
-    column(width=5,offset=0,
-      HTML(paste0('<title>FVS',headstr,'</title>',
+    column(width=4,offset=0,
+      HTML(paste0(
              '<h4><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
-    column(width=5,offset=.5,uiOutput("projectTitle")),
+             '&nbsp;Forest Vegetation Simulator</h4>'))),
+    column(width=4,offset=.5,uiOutput("projectTitle")),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-      uiOutput("contCnts"),
+      uiOutput("contCnts")),
+    column(width=2,
+      uiOutput("serverDate"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
   ) ),
   fixedRow(column(width=12,offset=0,

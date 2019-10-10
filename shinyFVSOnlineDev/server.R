@@ -31,8 +31,8 @@ shinyServer(function(input, output, session) {
   }
 cat ("FVSOnline/OnLocal interface server start.\n")
 serverID=" $Id$ "
-cat ("Server id=",serverID,"\n")
-      
+cat ("Server id=",serverID,"\n") 
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -108,6 +108,8 @@ cat ("serious start up error\n")
     }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
+    output$serverDate=renderText(HTML(paste0('RV:',serverDate,
+        '<br>',if (isLocal()) 'Onlocal' else 'Online'))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
