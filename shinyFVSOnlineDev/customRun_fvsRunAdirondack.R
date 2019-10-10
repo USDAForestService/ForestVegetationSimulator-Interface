@@ -1,3 +1,5 @@
+# $Id$
+
 
 #load Adirondack growth functions
 source("AdirondackFunctionsV1.R")

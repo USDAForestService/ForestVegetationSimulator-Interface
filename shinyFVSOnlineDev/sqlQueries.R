@@ -1,3 +1,5 @@
+# $Id$
+
 exqury = function (dbcon,x,subExpression=NULL) 
 {
   for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))

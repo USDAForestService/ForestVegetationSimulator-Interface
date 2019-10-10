@@ -1,3 +1,5 @@
+# $Id$
+
 keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
 {
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")

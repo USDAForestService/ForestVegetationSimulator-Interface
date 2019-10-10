@@ -1,3 +1,5 @@
+# $Id$
+
 mkStdSel <- function (dbGlb)
 {
   if (length(dbGlb$sids) > 1000) return(renderUI(NULL))

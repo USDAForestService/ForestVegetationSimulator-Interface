@@ -1,3 +1,5 @@
+# $Id$
+
 rdparms <- function(pdir="parms") 
 {
 #  options(warn=2)

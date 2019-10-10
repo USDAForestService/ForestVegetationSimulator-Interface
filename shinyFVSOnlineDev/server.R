@@ -1,3 +1,5 @@
+# $Id$
+
 library(shiny)
 library(rhandsontable)
 library(ggplot2)
@@ -28,7 +30,9 @@ shinyServer(function(input, output, session) {
     sink("FVSOnline.log")
   }
 cat ("FVSOnline/OnLocal interface server start.\n")
-       
+serverID=" $Id$ "
+cat ("Server id=",serverID,"\n")
+      
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -3190,7 +3194,8 @@ cat ("rtn,class=",class(rtn),"\n")
         if (class(errScan) == "try-error") errScan = 
           "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
-          h5("FVS output error scan"),
+          h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
+          h5("FVS error scan: "),
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(paste(errScan,"<br>"))))
@@ -4625,10 +4630,9 @@ cat("curDir=",curDir," input dir=",getwd(),"\n")
                 fname,'" --schema'),type='cmd2') else
         paste0('java -jar "',curDir,'/access2csv.jar" "',
                 fname,'" --schema')
-      cat ("cmd=",cmd,"\n")
-      cmd = if (.Platform$OS.type == "windows"){
-        schema = shell(cmd,intern=TRUE)
-      }else schema = system(cmd,intern=TRUE)
+cat ("cmd=",cmd,"\n")
+      schema = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else 
+                                                   system(cmd,intern=TRUE)
       if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 

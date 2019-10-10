@@ -1,3 +1,5 @@
+# $Id$
+
 
 if (exists("mkfvsStd",envir=.GlobalEnv)) rm (mkfvsStd,envir=.GlobalEnv)
 mkfvsStd <<- setRefClass("fvsStd",

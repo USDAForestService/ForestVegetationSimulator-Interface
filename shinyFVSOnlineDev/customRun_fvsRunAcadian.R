@@ -1,3 +1,5 @@
+# $Id$
+
 
 #load Acadian growth functions
 source("AcadianGY.R")
