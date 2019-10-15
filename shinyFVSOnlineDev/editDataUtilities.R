@@ -25,21 +25,21 @@ cat("in fixEmptyTable, dbGlb$tblName=",dbGlb$tblName,"\n")
 }
 
     
-checkMinColumnDefs <- function(dbGlb,progress=NULL)
+checkMinColumnDefs <- function(dbo,progress=NULL)
 {
   #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
   # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
   stdInit <- NULL
-  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
-    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
-      stdInit <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
+      stdInit <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
     }
   }
   stdInit_cond <- NULL
-  for (i in 1:length(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1])){
-    if (!is.na(match(toupper(dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
-      stdInit_cond <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[[1]][i]
+  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
+      stdInit_cond <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
     }
   }
   if (!is.null(stdInit_cond))return("Uploaded database installed")
@@ -48,7 +48,7 @@ cat ("in checkMinColumnDefs\n")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
     return("FVS_StandInit not found, training data installed.")
   }
-  fields = try(dbListFields(dbGlb$dbIcon,stdInit))
+  fields = try(dbListFields(dbo,stdInit))
   # if this is an error, then FVS_StandInit does not exist and this is an error
   # where the standard fixup in this case is to try recovery of the database.
   if (class(fields) == "try-error")
@@ -60,13 +60,13 @@ cat ("in checkMinColumnDefs\n")
   sID = FALSE
   sCN = FALSE
   grp = FALSE
-  # make sure groups are defined, if missing set one to "All"
+  # make sure groups are defined, if missing set one to "All_Stands"
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
     value = 2, detail = "Groups")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
-    if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
+    dbExecute(dbo,paste0("alter table ",stdInit,
        " add column Groups text not null default 'All_Stands'"))
     grp = TRUE
   }
@@ -75,8 +75,8 @@ cat ("in checkMinColumnDefs\n")
     value = 3, detail = "Stand_ID")
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
   {
-    if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
+    dbExecute(dbo,paste0("alter table ",stdInit,
       " add column Stand_ID text"))      
     sID = TRUE
   }
@@ -85,8 +85,8 @@ cat ("in checkMinColumnDefs\n")
     value = 4, detail = "Stand_CN")
   if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
   {
-    if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
-    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
+    dbExecute(dbo,paste0("alter table ",stdInit,
       " add column Stand_CN text"))
     sCN = TRUE
   }
@@ -95,9 +95,9 @@ cat ("in checkMinColumnDefs\n")
     value = 5, detail = "Inv_Year ")
   if (length(grep("Inv_Year",fields,ignore.case=TRUE)) == 0)
   {
-    if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
     year=substring(as.character(Sys.time()),1,4)
-    dbExecute(dbGlb$dbIcon,paste0(paste0("alter table ",stdInit,
+    dbExecute(dbo,paste0(paste0("alter table ",stdInit,
       " add column Inv_Year integer not null default ",year)))      
   }
   # make sure FVSKeywords is defined
@@ -105,21 +105,31 @@ cat ("in checkMinColumnDefs\n")
     value = 6, detail = "FVSKeywords ")
   if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
   {
-    if (!modStarted) {modStarted=TRUE; dbBegin(dbGlb$dbIcon)}
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
     year=substring(as.character(Sys.time()),1,4)
-    dbExecute(dbGlb$dbIcon,paste0("alter table ",stdInit,
+    dbExecute(dbo,paste0("alter table ",stdInit,
       " add column FVSKeywords text"))
+  }
+  # make sure Sam_Wt is defined
+  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
+    value = 7, detail = "Sam_Wt")
+  if (length(grep("Sam_Wt",fields,ignore.case=TRUE)) == 0)
+  {
+    if (!modStarted) {modStarted=TRUE; dbBegin(dbo)}
+    year=substring(as.character(Sys.time()),1,4)
+    dbExecute(dbo,paste0("alter table ",stdInit,
+      " add column Sam_Wt real not null default 1"))
   }
 cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
      " sCN=",sCN,"\n")
   if (modStarted)
   {                                             
-    dbCommit(dbGlb$dbIcon)
+    dbCommit(dbo)
     if (sID || sCN) 
     {
-      fvsInit = dbReadTable(dbGlb$dbIcon,stdInit)
+      fvsInit = dbReadTable(dbo,stdInit)
       if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-        value = 7, detail = "Stand_ID and Stand_CN consistent")
+        value = 8, detail = "Stand_ID and Stand_CN consistent")
       if (nrow(fvsInit))
       {
         isCN = grep("Stand_CN",names(fvsInit),ignore.case=TRUE)
@@ -133,7 +143,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
           isID = grep("Stand_ID",names(fvsInit),ignore.case=TRUE)
           fvsInit[,isCN] = fvsInit[,isID]
         }
-        dbWriteTable(dbGlb$dbIcon,stdInit,fvsInit,overwrite=TRUE)
+        dbWriteTable(dbo,stdInit,fvsInit,overwrite=TRUE)
       }
     }
   }
@@ -141,20 +151,20 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   if (!grp)
   {
     if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-        value = 8, detail = "Groups content")
-    grps = dbGetQuery(dbGlb$dbIcon,paste0("select Groups from ",stdInit))
+        value = 9, detail = "Groups content")
+    grps = dbGetQuery(dbo,paste0("select Groups from ",stdInit))
     names(grps) = toupper(names(grps))
     if (is.null(grps$GROUPS) || any(is.na(grps$GROUPS)) || any(grps$GROUPS == "")) 
-      dbExecute(dbGlb$dbIcon,paste0("update ",stdInit,
+      dbExecute(dbo,paste0("update ",stdInit,
          " set Groups = 'All_Stands' where Groups = ''"))
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-      value = 9, detail = "FVS_GroupAddFilesAndKeywords")
-  addkeys = getTableName(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords")
+      value = 10, detail = "FVS_GroupAddFilesAndKeywords")
+  addkeys = getTableName(dbo,"FVS_GroupAddFilesAndKeywords")
   if (is.null(addkeys)) need = TRUE else
   {
-    gtab = try(dbReadTable(dbGlb$dbIcon,addkeys))
+    gtab = try(dbReadTable(dbo,addkeys))
     need = class(gtab) == "try-error"
     if (!need) need = nrow(gtab) == 0
     names(gtab) = toupper(names(gtab))
@@ -163,7 +173,7 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   }
   if (need)
   {
-    treeInit = getTableName(dbGlb$dbIcon,"FVS_TreeInit")
+    treeInit = getTableName(dbo,"FVS_TreeInit")
     if (is.null(treeInit)) treeInit = "FVS_TreeInit"
     dfin = data.frame(Groups = "All All_Stands",Addfiles = "",
       FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
@@ -171,19 +181,18 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
         "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
         "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
     )
-    dbWriteTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
+    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
   } 
-  return("Uploaded database installed")  
 }
 
 
-fixFVSKeywords <- function(dbGlb,progress=NULL)
+fixFVSKeywords <- function(dbo)
 {
-  tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
+  tbs <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
   for (tb in tbs)
   {
 cat ("in fixFVSKeywords, tb=",tb,"\n")
-    flds <- dbListFields(dbGlb$dbIcon, tb)
+    flds <- dbListFields(dbo, tb)
     kwdsIdxs <- grep ("keywords",flds,ignore.case = TRUE)
     if (length(kwdsIdxs) == 0) next
     for (kwdname in flds[kwdsIdxs])
@@ -191,10 +200,8 @@ cat ("in fixFVSKeywords, tb=",tb,"\n")
       qry = paste0("select _ROWID_,",kwdname," from ",tb,
         " where ",kwdname," is not null and ",kwdname," != '';")
 cat ("qry=",qry,"\n")              
-      kwdf <- dbGetQuery(dbGlb$dbIcon,qry)
+      kwdf <- dbGetQuery(dbo,qry)
 cat ("result nrow=",nrow(kwdf),"\n")      
-      if (!is.null(progress)) progress$set(detail = 
-        paste0("Table=",tb," Field=",kwdname," Rows to process=",nrow(kwdf)))
       if (nrow(kwdf))
       {
         for (row in 1:nrow(kwdf))
@@ -211,16 +218,16 @@ cat ("result nrow=",nrow(kwdf),"\n")
         kwdf = subset(kwdf,rowid > 0)
         if (nrow(kwdf) > 0)
         {
-          dbBegin(dbGlb$dbIcon)
+          dbBegin(dbo)
           for (row in 1:nrow(kwdf))
           {
             qut <- if (length(grep("'",kwdf[row,2],fixed=TRUE))) "\"" else "'"
             qry <- paste0("update ",tb," set ",kwdname," = ",qut,
               kwdf[row,2],qut," where _ROWID_ = ",kwdf[row,1],";")
 cat ("qry=",qry,"\n")              
-             dbExecute(dbGlb$dbIcon,qry)              
+             dbExecute(dbo,qry)              
           }
-          dbCommit(dbGlb$dbIcon)
+          dbCommit(dbo)
         }
       }
     }

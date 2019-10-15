@@ -109,7 +109,8 @@ cat ("serious start up error\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0('RV:',serverDate,
-        '<br>',if (isLocal()) 'Onlocal' else 'Online'))) 
+        '<br>',if (isLocal()) 'Onlocal' else 'Online', 
+        '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -2051,9 +2052,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     globals$fvsRun$autoOut<-as.list(input$autoOut)
     updateCheckboxGroupInput(session=session, inputId="autoOut", selected=globals$fvsRun$autoOut)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
    })
 
   ## inAdd:    Add Selected Stands
@@ -2959,9 +2958,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
     globals$fvsRun$startyr  <- input$startyr
     updateTextInput(session=session, inputId="startyr", value= input$startyr)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
   ## time--end year
   observe({
@@ -2969,9 +2966,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
     globals$fvsRun$endyr <- input$endyr
     updateTextInput(session=session, inputId="endyr", value= input$endyr)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
   ## time--cycle length
   observe({
@@ -2979,9 +2974,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
     globals$fvsRun$cyclelen <- input$cyclelen
     updateTextInput(session=session, inputId="cyclelen", value= input$cyclelen)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   }) 
   ## time--cycle breaks
   observe({
@@ -2989,9 +2982,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
                                   length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
     globals$fvsRun$cycleat  <- input$cycleat
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
 
   ## Save and Run
@@ -4516,14 +4507,16 @@ cat ("tabDescSel, tab=",tab,"\n")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Replace existing database")
-      output$replaceActionMsg <- renderText("")
+      output$step1ActionMsg <- NULL
+      output$step2ActionMsg <- NULL
     }
   })
   observe({
     if(input$inputDBPan == "Replace existing database") 
     {
 cat ("Replace existing database\n")
-      output$replaceActionMsg <- renderText("")
+      output$step1ActionMsg <- NULL
+      output$step2ActionMsg <- NULL
     }
   })
   
@@ -4546,7 +4539,8 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Training database installed")
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- renderText(HTML("<b>Training database installed</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4557,7 +4551,8 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Empty database installed. Click on the View and edit existing tables to start inputting data.")
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- renderText(HTML("<b>Empty database installed</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4565,6 +4560,8 @@ cat ("Replace existing database\n")
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
 cat ("fext=",fext,"\n")
     session$sendCustomMessage(type="jsCode",
@@ -4577,7 +4574,7 @@ cat ("fext=",fext,"\n")
                               list(code= "$('#installEmptyDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
-      output$replaceActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
+      output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
       return()
     } else {
@@ -4598,7 +4595,7 @@ cat ("fext=",fext,"\n")
       fname = dir(dirname(input$uploadNewDB$datapath))
       if (length(fname)>1) 
       {
-        output$replaceActionMsg = renderText(".zip contains more than one file.")
+        output$step1ActionMsg = renderText(".zip contains more than one file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         return()
       } else if (length(fname) == 0) {
@@ -4608,7 +4605,7 @@ cat ("fext=",fext,"\n")
       fext = tools::file_ext(fname)
       if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx"))) 
       {
-        output$replaceActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
+        output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         return()
       }
@@ -4639,7 +4636,7 @@ cat ("cmd=",cmd,"\n")
       {
         setwd(curDir) 
         progress$close()     
-        output$replaceActionMsg = renderText("'schema' not created, no data loaded.")
+        output$step1ActionMsg = renderText("'schema' not created, no data loaded.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
@@ -4699,7 +4696,7 @@ cat ("cmd=",cmd,"\n")
 cat ("cmd=",cmd,"\n") 
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
-      if (isLocal()){
+      if (.Platform$OS.type == "windows"){
         cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
       }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
@@ -4716,7 +4713,7 @@ cat ("cmd=",cmd,"\n")
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
-        if (isLocal()){
+        if (.Platform$OS.type == "windows"){
           cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
         }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("s=",s," cmd=",cmd,"; ")
@@ -4726,7 +4723,7 @@ cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
     } else if (fext == "xlsx") {
       sheets = getSheetNames(fname)
-      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+3)
+      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
       i = 0
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
@@ -4770,11 +4767,74 @@ cat("loaded table=",tab,"\n")
       if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
     }
     tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
+    ltabs = tolower(tabs)
+    fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
+    # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
+    grpmsg=NULL
+    if (!is.na(match("fvs_groupaddfilesandkeywords",ltabs)))
+    {
+      addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
+      if (class(addgrps)!="try-error")
+      {
+        addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+        for (idx in fixTabs)
+        {
+          tab2fix=tabs[idx]
+          grps=try(dbGetQuery(dbo,paste0('select distinct groups from ',tab2fix)))
+          if (class(grps)=="try-error") next
+          grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+          if (all(is.na(match(addgrps,grps)))) 
+          {
+            Tb=dbReadTable(dbo,tab2fix)
+            idx=match("groups",tolower(names(Tb)))
+            if (!is.na(idx)) 
+            {
+              Tb[,idx]=paste0(addgrps," ",Tb[,idx])
+              dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)
+              grpmsg=c(grpmsg,tab2fix)
+            }
+          }
+        }
+      }
+    }
+    # loop over tables and make "stand_ID" fields unique by adding a sequence number
+    sidmsg=NULL
+    newID=NULL
+    for (idx in fixTabs)
+    {
+      tab2fix=tabs[idx]
+      sidTb=dbGetQuery(dbo,paste0("select stand_id from ",tab2fix))
+      dups = duplicated(sidTb[,1])
+      if (all(!dups)) next
+      newID=sidTb[,1]
+      dtab = table(dups,sidTb[,1])
+      dups = names(dtab[2,])[dtab[2,] > 0]
+      for (did in dups)
+      {
+        locs=(did==sidTb[,1])
+        vals=sprintf("%0.2d",1:sum(locs))
+        newID[locs]=paste0(newID[locs],"*",vals)
+      }
+      if (!is.null(newID))
+      {
+        sidTb=dbReadTable(dbo,tab2fix)
+        idx=match("stand_id",tolower(names(sidTb)))
+        if (!is.na(idx)) sidTb[,idx]=newID
+        dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
+      }
+      sidmsg=c(sidmsg,tab2fix)
+    }    
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
-    msg = paste0("Uploaded data: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg = renderText(msg)
+    msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
+    if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
+      paste0(grpmsg,collapse=", "))
+    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID values were modified in table(s): ",
+      paste0(sidmsg,collapse=", "))
+    fixFVSKeywords(dbo) 
+    checkMinColumnDefs(dbo,progress)
+    output$step1ActionMsg = renderText(HTML(msg))
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
@@ -4800,7 +4860,7 @@ cat("loaded table=",tab,"\n")
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+1)
+    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
     i = 0
     for (tb in tabs)
     {
@@ -4905,22 +4965,21 @@ cat ("index creation, qry=",qry,"\n")
         }
       }
     }
-    progress$set(message = "Checking database query keywords", value = i+1)
-    fixFVSKeywords(dbGlb,progress) 
-    msg = checkMinColumnDefs(dbGlb,progress)
-    if (length(globals$FVS_Runs) && length(globals$fvsRun$simcnts)){
-      session$sendCustomMessage(type = "infomessage",
-                                message = "WARNING: if the other runs in this project were created using a different database than the one just installed, you will need to re-upload the associated database to run them again.")
-    output$replaceActionMsg <- renderText(msg)
-    }else output$replaceActionMsg = renderText(msg)
+    progress$set(message = "Load variant data", value = i+1)
     loadVarData(globals,prms,dbGlb$dbIcon)
+    output$step2ActionMsg = renderText(HTML(paste0("<br>Uploaded data installed.<br>",
+      "<b>WARNING:</b> If existing runs in this project were created using input ",
+      "data that are not present in the database just installed, ",
+      "you will need to re-load theose data to run them again.<br>",
+      "Note that the output from the previous runs will remain in the output database.")))
     initNewInputDB()
     progress$close()
   }) 
   ## addNewDB
   observe({  
-    if (input$addNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return() 
+    if (input$addNewDB == 0) return()  
+    output$step2ActionMsg <- NULL
+    if (is.null(dbGlb$newFVSData)) {output$step1ActionMsg<-NULL;return()}
     # set an exclusive lock on the database
     dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = EXCLUSIVE")
     trycnt=0
@@ -4930,6 +4989,7 @@ cat ("index creation, qry=",qry,"\n")
       if (trycnt > 1000) 
       {
         dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
+        output$step2ActionMsg <- renderText("Error: Exclusive lock was not obtained.")
         return()
       }
 cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
@@ -4949,7 +5009,7 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
     attach = try(dbExecute(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
     if (class(attach) == "try-error")
     {
-      output$replaceActionMsg <- renderText("New data could not be loaded")
+      output$step2ActionMsg <- renderText("New data could not be added")
       unlink(dbGlb$newFVSData)
       dbGlb$newFVSData=NULL
     }
@@ -5023,7 +5083,7 @@ cat ("homogenize qry=",qry,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("New database: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg <- renderText(msg)
+    output$step2ActionMsg <- renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon) 
     initNewInputDB()
     progress$close()
@@ -5055,8 +5115,8 @@ cat ("Upload new rows\n")
           selected=tbs[idx])
       } else updateSelectInput(session=session, inputId="uploadSelDBtabs",  
                choices=list())
-      output$replaceActionMsg <- renderText(if (length(tbs)) "" else 
-        "No tables in existing database. Use 'Replace existing' to install a new one.")        
+      output$step2ActionMsg <- renderText(if (length(tbs)) "" else 
+        "No tables in existing database.")        
       initNewInputDB()
     }
   })
@@ -5398,7 +5458,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     {         
       dbGlb$tblName <- input$editSelDBtabs
       fixEmptyTable(dbGlb)                                
-      checkMinColumnDefs(dbGlb)
+      checkMinColumnDefs(dbGlb$dbIcon)
       dbGlb$tbl <- NULL                                           
       dbGlb$tblCols <- names(dbGlb$tbsCTypes[[dbGlb$tblName]])
       if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
