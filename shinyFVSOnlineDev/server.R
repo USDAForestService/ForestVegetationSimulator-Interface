@@ -2932,31 +2932,30 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-  # save this for later!!!! Will come back to it. Needs work.
-  # observe({
-  #   cat ("changeind=",globals$changeind,"\n")
-  #   if (globals$changeind == 0){
-  #     output$contChange <- renderUI("Run")
-  #     output$srtYr <-renderUI({
-  #       HTML(paste0("<b>",input$startyr,"</b>"))
-  #     })
-  #     output$eYr <-renderUI({
-  #       HTML(paste0("<b>",input$endyr,"</b>"))
-  #     })
-  #     output$cyLen <-renderUI({
-  #       HTML(paste0("<b>",input$cyclelen,"</b>"))
-  #     })
-  #     output$cyAt <-renderUI({
-  #       HTML(paste0("<b>",input$cycleat,"</b>"))
-  #     })
-  #   }
-  # })
+
+  observe({
+    cat ("changeind=",globals$changeind,"\n")
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
   
   ## time--start year
   observe({
     if(!length(input$simCont) || globals$fvsRun$startyr==input$startyr) return()
     globals$fvsRun$startyr  <- input$startyr
-    updateTextInput(session=session, inputId="startyr", value= input$startyr)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
@@ -2964,7 +2963,6 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   observe({
     if(!length(input$simCont) || globals$fvsRun$endyr==input$endyr) return()
     globals$fvsRun$endyr <- input$endyr
-    updateTextInput(session=session, inputId="endyr", value= input$endyr)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
@@ -2972,14 +2970,13 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
   observe({
     if(!length(input$simCont) || globals$fvsRun$cyclelen==input$cyclelen) return()
     globals$fvsRun$cyclelen <- input$cyclelen
-    updateTextInput(session=session, inputId="cyclelen", value= input$cyclelen)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
   }) 
   ## time--cycle breaks
   observe({
     if(!length(input$simCont) || (length(globals$fvsRun$cycleat) && 
-                                  length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
+       length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
     globals$fvsRun$cycleat  <- input$cycleat
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))

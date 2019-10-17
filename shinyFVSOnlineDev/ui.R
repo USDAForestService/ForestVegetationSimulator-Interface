@@ -146,14 +146,13 @@ shinyUI(fixedPage(
                        textInput("endyr",    "Common ending year",   ""), 
                        textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
                        tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                       textInput("cycleat", "Additional output reporting years", "")
-                       # save this for later!!!! Will come back to it. Needs work.
-                       # h4("Projection Timing Summary"),
-                       # HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common 
-                       #       starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS 
-                       #       will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),' 
-                       #       years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
-                       #       '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+                       textInput("cycleat", "Additional output reporting years", ""),
+                       h4("Projection Timing Summary"),
+                       HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common
+                             starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS
+                             will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),'
+                             years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
+                             '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
               ),
               tabPanel("Components",          
                 tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
