@@ -293,7 +293,7 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
         # filter records selected from selected tables.
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select _RowID_,CaseID ",
                        "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))          
         for (tb in tbs) 
         {                     
@@ -801,9 +801,13 @@ cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n")
 cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
-          fvsOutData$dbData = mdat
         }
+        mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
+        mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
+        fvsOutData$dbData = mdat
+        iprg = iprg+1
         # do rep assignments
+        setProgress(message = "Setting stand reps", detail  = "", value = iprg)
         newSid = as.character(fvsOutData$dbData$StandID)
         icid = as.integer(fvsOutData$dbData$CaseID)
         imid = as.integer(fvsOutData$dbData$MgmtID)
@@ -935,7 +939,7 @@ cat ("cmd=",cmd,"\n")
         fvsOutData$browseVars    <- vars
         fvsOutData$browseSelVars <- selVars
         setProgress(value = NULL)          
-      }, min=1, max=10)
+      }, min=1, max=12)
     } 
   })
   
@@ -1184,10 +1188,11 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
     }
     for (v in c("MgmtID","StandID","Year")) 
-    { 
+    {
+      if (isolate(input$plotType) %in% c("DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
-        return(nullPlot(paste0("Variable ",v," has ",nlevels(dat[[v]])," levels and ",
+        return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
     pltp = isolate(input$plotType) 
@@ -3233,25 +3238,22 @@ cat ("length(allSum)=",length(allSum),"\n")
         toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
                   Legend=as.factor(Legend))
         nlvs = nlevels(toplot$hfacet)
+        height = 3
+        width = 3.5
+        plt = ggplot(data = toplot)
         plt = if (nlvs < 7)
         {
-          height = ceiling(nlvs/2)*1.25
-          width = 3.5
-          ggplot(data = toplot) + facet_wrap(~hfacet,ncol=2) + 
+          plt + facet_wrap(~hfacet,ncol=2) + 
             theme(strip.text.x = element_text(size = 5,margin = margin(.01, 0, .01, 0, "in"))) + 
             geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
-            labs(x="Year", y="Total cubic volume per acre") + 
-            theme(text = element_text(size=9), legend.position="none",
+            labs(x="Year", y="Cubic volume") + 
+            theme(text = element_text(size=6), legend.position="bottom",
                   panel.background = element_rect(fill="gray95"),
                   axis.text = element_text(color="black"))  
         } else {
-          height = 2
-          width = 2.5
-          toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
-          ggplot(data = toplot) +  
-            geom_line (aes(x=X,y=Y,color=Legend,alpha=.5)) + 
-            labs(x="Year", y="Total cubic volume per acre") + 
-               theme(text = element_text(size=9), legend.position="none",
+          plt + geom_line (aes(x=X,y=Y,color=hfacet,linetype=Legend)) + 
+            labs(x="Year", y="Cubic volume\n(standing and total production)") + 
+               theme(text = element_text(size=6), legend.position="none",
                      panel.background = element_rect(fill="gray95"),
                      axis.text = element_text(color="black"))
         }
