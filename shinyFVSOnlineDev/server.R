@@ -802,8 +802,12 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
         }
-        mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
-        mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
+        if (!is.null(mdat$CaseID))
+        {
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
+          mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
+          mdat$rowid=NULL
+        }
         fvsOutData$dbData = mdat
         iprg = iprg+1
         # do rep assignments
