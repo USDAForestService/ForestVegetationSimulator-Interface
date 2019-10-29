@@ -1174,12 +1174,6 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
     if (length(fvsRun$stands[[i]]$cmps)) 
       for (j in length(fvsRun$stands[[i]]$cmps):1)
       {
-        spgtest <- grep("^SpGroup",fvsRun$grps[[i]]$cmps[[j]]$kwds)
-        if (length(spgtest) && cntr == 0){
-          globals$GrpNum <- globals$GrpNum[-(length(globals$GrpNum))]
-          globals$GenGrp<- globals$GenGrp[-(length(globals$GenGrp))]
-          cntr <- cntr +1
-        }
         if ((!is.null(item) && fvsRun$stands[[i]]$cmps[[j]]$uuid == item) || 
             (!is.null(atag) && fvsRun$stands[[i]]$cmps[[j]]$atag == atag))
         {

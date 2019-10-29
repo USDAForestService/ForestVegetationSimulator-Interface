@@ -1191,16 +1191,9 @@ cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
     }
-#    for (v in c("MgmtID","StandID","Year")) 
-#    {
-#      if (isolate(input$plotType) %in% c("DMD","StkCht") && v=="Year") next
-#      if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
-#          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
-#        return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
-#                               " therefore must be an axis, plot-by code, or a facet.")))
-#    }
-    for (v in c("MgmtID","StandID")) 
+    for (v in c("MgmtID","StandID","Year")) 
     {
+      if (isolate(input$plotType) %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
@@ -1211,7 +1204,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
-        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))
+        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))             
     nd = NULL
     sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
                     nlevels(dat$Species)>1 
@@ -1320,7 +1313,7 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
       hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
-    p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
+    p = p + scale_shape_manual(values=1:nlevels(nd$Legend)) 
 cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
@@ -1453,7 +1446,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     {
       pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
       for (linetype in 1:length(pltorder)) 
-      {
+      {                                                
         SDI = names(DMDguideLines)[pltorder[linetype]]
         p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
           linetype=linetype,data=DMDguideLines[[SDI]])
@@ -1569,6 +1562,10 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
+#browser()
+#ggbld <- ggplot_build(p)
+#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.major_source
+#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.labels
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -3219,10 +3216,6 @@ cat ("length(allSum)=",length(allSum),"\n")
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
         cat ("addNewRun2DB res=",res,"\n")
         unlink(paste0(globals$fvsRun$uuid,".db"))
-        X = vector("numeric",0)
-        hfacet = vector("character",0)
-        Y = vector("numeric",0)
-        Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
         modn = names(allSum)
@@ -3238,36 +3231,25 @@ cat ("length(allSum)=",length(allSum),"\n")
           }
           names(allSum) = modn
         }
+        X <- Y <- Stand <- NULL
         for (i in 1:length(allSum)) 
-        {
-          X = c(X,rep(allSum[[i]][,"Year"],2))
-          hfacet = c(hfacet,rep(names(allSum)[i],nrow(allSum[[i]])*2))
-          Y = c(Y,c(allSum[[i]][,"TCuFt"],allSum[[i]][,"TPrdTCuFt"]))
-          Legend=c(Legend,c(rep("TCuFt",nrow(allSum[[i]])),
-                                  rep("TPrdTCuFt",nrow(allSum[[i]]))))
+        { 
+          X = c(X,allSum[[i]][,"Year"])
+          Y = c(Y,allSum[[i]][,"TCuFt"])
+          ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
+          ltag = gsub(x=ltag,pattern="^SId=",replacement="")
+          Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
         }
-        toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
-                  Legend=as.factor(Legend))
-        nlvs = nlevels(toplot$hfacet)
-        height = 3
-        width = 3.5
-        plt = ggplot(data = toplot)
-        plt = if (nlvs < 7)
-        {
-          plt + facet_wrap(~hfacet,ncol=2) + 
-            theme(strip.text.x = element_text(size = 5,margin = margin(.01, 0, .01, 0, "in"))) + 
-            geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
-            labs(x="Year", y="Cubic volume") + 
-            theme(text = element_text(size=6), legend.position="bottom",
-                  panel.background = element_rect(fill="gray95"),
-                  axis.text = element_text(color="black"))  
-        } else {
-          plt + geom_line (aes(x=X,y=Y,color=hfacet,linetype=Legend)) + 
-            labs(x="Year", y="Cubic volume\n(standing and total production)") + 
-               theme(text = element_text(size=6), legend.position="none",
-                     panel.background = element_rect(fill="gray95"),
-                     axis.text = element_text(color="black"))
-        }
+        toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
+        toMany = nlevels(toplot$Legend) > 9 
+        plt = ggplot(data = toplot) + 
+            geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
+            labs(x="Year", y="Total cubic volume") + 
+            theme(text = element_text(size=6), 
+              legend.position=if (toMany) "none" else "right",
+              axis.text = element_text(color="black")) 
+        width=if (toMany) 3 else 4
+        height=2.5
         png("quick.png", width=width, height=height, units="in", res=150)
         print(plt)
         dev.off()
