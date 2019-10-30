@@ -193,7 +193,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
-    if (isLocal()){
+    if (isLocal() && .Platform$OS.type == "windows"){
       file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
                 "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
     }
@@ -1973,15 +1973,14 @@ cat("setting uiRunPlot to NULL\n")
             if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
               for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
               {
-                test <- saveFvsRun$grps[[j]]$cmps[[k]]$kwds
-                spgtest <- grep("^SpGroup",saveFvsRun$grps[[j]]$cmps[[k]]$kwds)
+                test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
+                spgtest <- grep("^SpGroup",test)
                 cntr <- 0
                 spgname <- list()
                 if (length(spgtest)){
                   cntr<-cntr+1
                   spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
                   split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-
                   if(!length(globals$GrpNum)){
                     globals$GrpNum[1] <- 1
                   }else
@@ -4042,16 +4041,15 @@ cat ("matchVar=",matchVar,"\n")
       if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
           format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
       dispData = dispData[,c("StandID","Year",extra,input$mapDsVar)]
-      subset=match(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
-      subset=na.omit(subset)
-      if (length(subset) == 0) 
+      uids=intersect(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
+      if (length(uids) == 0) 
       {
         output$leafletMessage=renderText("No StandIDs match polygons")
         return()
       }
-      output$textOutput=renderText(paste0(length(subset)," StandIDs match polygons"))
-      polys = spTransform(dbGlb$SpatialData[subset,],CRS("+init=epsg:4326"))
-      uids = unique(dispData$StandID)
+      output$textOutput=renderText(paste0(length(uids)," StandIDs match polygons"))
+      polys = spTransform(dbGlb$SpatialData[match(uids,dbGlb$SpatialData@data[,matchVar]),],
+                          CRS("+init=epsg:4326"))
       progress <- shiny::Progress$new(session,min=1,max=length(uids))
       labs  = lapply(uids, function (sid)
         {
@@ -6099,7 +6097,7 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
-        if (isLocal()){
+        if (isLocal() && .Platform$OS.type == "windows"){
           file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
                     "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
