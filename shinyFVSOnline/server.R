@@ -109,7 +109,7 @@ cat ("serious start up error\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0('RV:',serverDate,
-        '<br>',if (isLocal()) 'Onlocal' else 'Online', 
+        '<br>',if (isLocal()) 'Local' else 'Online', 
         '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
     tit=NULL
     if (!file.exists("projectId.txt"))

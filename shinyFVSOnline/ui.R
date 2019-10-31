@@ -66,7 +66,7 @@ shinyUI(fixedPage(
     column(width=4,offset=0,
       HTML(paste0(
              '<h4><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator</h4>'))),
+             '&nbsp;Forest Vegetation Simulator v20191101</h4>'))),
     column(width=4,offset=.5,uiOutput("projectTitle")),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
