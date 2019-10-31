@@ -1200,7 +1200,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
     pltp = isolate(input$plotType) 
-    if (input$xaxis == "Year" && pltp != "box") dat$Year = as.numeric(as.character(dat$Year))
+    if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
