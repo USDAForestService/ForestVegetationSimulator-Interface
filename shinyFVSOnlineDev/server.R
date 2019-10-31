@@ -109,7 +109,7 @@ cat ("serious start up error\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0('RV:',serverDate,
-        '<br>',if (isLocal()) 'Onlocal' else 'Online', 
+        '<br>',if (isLocal()) 'Local' else 'Online', 
         '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
@@ -193,10 +193,6 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
-    if (isLocal() && .Platform$OS.type == "windows"){
-      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
-                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
-    }
   })
   
   initTableGraphTools <- function ()
@@ -6113,15 +6109,7 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
-        if (isLocal() && .Platform$OS.type == "windows"){
-          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
-                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
-          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          pres <- grep(basename(input$PrjSelect),scan("C:/FVS/lastAccessedProject.txt",what="",sep="\n",quiet=TRUE))
-          if (length(pres) && pres > 0){
-            shell("C:/FVS/FVS_Icon.VBS")
-          }
+          shell("C:/FVS/FVS_Icon.VBS")
           Sys.sleep(3)
           saveRun()
           session$sendCustomMessage(type = "closeWindow"," ")
