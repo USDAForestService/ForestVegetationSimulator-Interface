@@ -5114,7 +5114,7 @@ cat ("Upload new rows\n")
   observe({  
     if (is.null(input$uploadStdTree)) return()
     isolate({ 
-      indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE))
+      indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE,colClasses="character"))
       unlink(input$uploadStdTree$datapath)
       if (class(indat) == "try-error" || is.null(indat) || nrow(indat)==0)
       {                       
@@ -5151,13 +5151,13 @@ cat ("Upload new rows\n")
 cat ("addCols=",addCols,"\n")
       if (length(addCols))
       {
+        types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]]
         for (icol in addCols)
         {
-          dtyp = switch(class(indat[,icol]),
-                 "integer" = "int",
-                 "numeric" = "real",
-                 "character")
-          newVar = names(indat)[icol]
+          newVar=names(indat)[icol]
+          defType=charmatch(tolower(newVar),tolower(names(types)))
+          dtyp = if (is.na(defType)) "character" else
+                 if (types[defType]) "character" else "real"
           qry = paste0("alter table ",input$uploadSelDBtabs," add column ",
                 newVar," ",dtyp,";")
 cat ("add column qry=",qry,"\n")
@@ -5174,25 +5174,44 @@ cat ("add column qry=",qry,"\n")
              tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]][cols]
       req = switch(tolower(input$uploadSelDBtabs),
-         fvs_standinit = c("Stand_ID","Variant","Inv_Year"),
-         fvs_treeinit  = c("Stand_ID","Species","DBH"),
-         fvs_groupaddfilesandkeywords = c("Groups"),
+         fvs_standinit = c("stand_id","variant","inv_year"),
+         fvs_plotinit  = c("stand_id","variant","inv_year"),
+         fvs_treeinit  = c("stand_id","species","dbh"),
+         fvs_groupaddfilesandkeywords = c("groups"),
          NULL)
-      if (!is.null(req) && !all(req %in% names(types)))
+      if (!is.null(req) && !all(req %in% tolower(names(types))))
       {
         output$uploadActionMsg = renderText(paste0("Required columns were missing for ",
                input$uploadSelDBtabs,", no data loaded."))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-      quote = types[types]   
-      if (length(quote)) for (cn in names(quote)) 
+      nums = tolower(names(types[!types]))
+      lnams = tolower(names(indat))
+      for (nn in nums) 
       {
-        if (class(indat[,cn]) != "character") indat[,cn] = as.character(indat[,cn])
-      } 
-      for (cn in colnames(indat))  
-        if (class(indat[,cn]) == "character") indat[,cn] = paste0("'",indat[,cn],"'")
+        indx=match(nn,lnams)
+        indat[,indx] = as.numeric(indat[,indx])
+      }
 
+      sids=try(dbGetQuery(dbGlb$dbIcon,paste0("select distinct stand_id from ",
+                          isolate(input$uploadSelDBtabs))))
+      sids=if (class(sids)=="try-error") NA else sids[,1]
+      isid=charmatch("stand_id",tolower(names(indat)))
+      msg=NULL
+      if (!(is.na(sids) || is.na(isid))) 
+      {
+        tokeep=is.na(match(indat[,isid],sids))
+        ntokill=sum(!tokeep)
+        if (ntokill==nrow(indat))
+        {
+          output$uploadActionMsg = renderUI(HTML("All uploaded data have Stand_ID(s) that are already loaded and are ignored."))  
+          return()
+        } else {
+          msg = paste0(ntokill," lines of uploaded data have Stand_ID(s) that are already loaded and are ignored.")
+          indat = indat[tokeep,,drop=FALSE]
+        }
+      }
       dbBegin(dbGlb$dbIcon)
       err = FALSE
       insertCount = 0
@@ -5203,9 +5222,9 @@ cat ("add column qry=",qry,"\n")
         if (ncol(row) == 0) next
         row = row[,row != "'NA'",drop=FALSE]
         if (ncol(row) == 0) next
+        vals=paste0(lapply(row[1,],function (x) if (class(x)=="character") paste0('"',x,'"') else x),collapse=",")
         qry = paste0("insert into ",input$uploadSelDBtabs," (",
-                paste0(colnames(row),collapse=","),
-                  ") values (",paste0(row[1,],collapse=","),");")
+                paste0(colnames(row),collapse=","),") values (",vals,");")
 cat ("insert qry=",qry,"\n")
         res = try(dbExecute(dbGlb$dbIcon,qry))
         if (class(res) == "try-error") {err=TRUE; break} else insertCount = insertCount+1
@@ -5213,18 +5232,14 @@ cat ("insert qry=",qry,"\n")
       if (err) 
       {
         dbRollback(dbGlb$dbIcon) 
-        output$uploadActionMsg = renderText(paste0("Error processing: ",qry))
+        output$uploadActionMsg = renderUI(HTML(paste0("Error processing: ",qry)))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       } else {
 cat ("insertCount=",insertCount,"\n")
-        if (insertCount)
-        {
-          dbCommit(dbGlb$dbIcon)
-          output$uploadActionMsg = renderText(paste0(insertCount," row(s) inserted into ",
-                 isolate(input$uploadSelDBtabs)))
-        }
-        rm (indat)
+        dbCommit(dbGlb$dbIcon)
+        msg=paste0(msg,"<br>",insertCount," row(s) inserted into ",isolate(input$uploadSelDBtabs))
+          output$uploadActionMsg = renderUI(HTML(msg))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
@@ -5297,7 +5312,7 @@ cat ("insertCount=",insertCount,"\n")
     if (!file.exists("FVSClimAttrs.csv")) 
     {
 cat ("no FVSClimAttrs.csv file\n")
-      output$uploadActionMsg = renderText("FVSClimAttrs.csv not found.")
+      output$uploadActionMsg = renderUI(HTML("FVSClimAttrs.csv not found."))
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
@@ -5516,16 +5531,17 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
         Edit = 
         {
           qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
-          qry <- if (length(intersect("Stand_ID",dbGlb$tblCols)) && 
+          qry <- if (length(intersect("stand_id",tolower(dbGlb$tblCols))) && 
                      length(input$rowSelector))
             paste0(qry," where Stand_ID in (",
                   paste0("'",input$rowSelector,"'",collapse=","),");") else
             paste0(qry,";")                             
           dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          lnames = tolower(colnames(dbGlb$tbl))
           stdSearch = trim(input$editStandSearch)
           if (nchar(stdSearch)>0) 
           {
-            keep = try(grep (stdSearch,dbGlb$tbl$Stand_ID))
+            keep = try(grep (stdSearch,dbGlb$tbl[,charmatch("stand_id",lnames)]))
             if (class(keep) != "try-error" && length(keep)) dbGlb$tbl = dbGlb$tbl[keep,]
           }
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
@@ -5699,9 +5715,9 @@ cat ("edit upd, qry=",qry,"\n")
             fixEmptyTable(dbGlb)
 cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
      " dbGlb$tblName=",dbGlb$tblName,
-     " Stand_ID yes=",length(intersect("Stand_ID",dbGlb$tblCols)),"\n")
+     " Stand_ID yes=",length(intersect("stand_id",tolower(dbGlb$tblCols))),"\n")
             if (is.null(dbGlb$sids) && 
-                length(intersect("Stand_ID",dbGlb$tblCols)))
+                length(intersect("stand_id",tolower(dbGlb$tblCols))))
             {
               dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
                                 dbGlb$tblName))[,1]
@@ -5713,7 +5729,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             }  
 
             qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
-            qry <- if (length(grep("Stand_ID",dbGlb$tblCols)) && 
+            qry <- if (length(grep("stand_id",tolower(dbGlb$tblCols))) && 
                        length(input$rowSelector))
               paste0(qry," where Stand_ID in (",
                     paste0("'",input$rowSelector,"'",collapse=","),");") else

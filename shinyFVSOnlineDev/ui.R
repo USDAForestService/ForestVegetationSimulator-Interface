@@ -565,13 +565,13 @@ shinyUI(fixedPage(
            	  selectInput("uploadSelDBtabs", label="Table to process",
       	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               fileInput("uploadStdTree",
-                       'Upload .cvs file and append to "Table to process"',
+                       'Upload .csv file and append to "Table to process"',
                         width="90%"), 
               fileInput("climateFVSUpload",
                         "Upload and commit Climate-FVS data (replace existing, append new); FVSClimAttrs.csv or answers.zip).",
                         width="90%"),
               tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
-              textOutput("uploadActionMsg")     
+              uiOutput("uploadActionMsg")     
             ),
             tabPanel("View and edit existing tables",        
               fixedRow(
