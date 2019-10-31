@@ -1,3 +1,5 @@
+# $Id: ui.R 2829 2019-10-31 03:10:30Z nickcrookston $
+
 library(shiny)
 library(rhandsontable)
 library(colourpicker)
@@ -8,8 +10,6 @@ library(openxlsx)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
-
-headstr = if (isLocal()) "" else "Online"
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -63,17 +63,19 @@ shinyUI(fixedPage(
     ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
     ))),  
   fixedRow(
-    column(width=5,offset=0,
-      HTML(paste0('<title>FVS',headstr,'</title>',
+    column(width=4,offset=0,
+      HTML(paste0(
              '<h4><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator ',headstr,'</h4>'))),
-    column(width=5,offset=.5,uiOutput("projectTitle")),
+             '&nbsp;Forest Vegetation Simulator</h4>'))),
+    column(width=4,offset=.5,uiOutput("projectTitle")),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
-      uiOutput("contCnts"),
+      uiOutput("contCnts")),
+    column(width=2,
+      uiOutput("serverDate"),
       singleton(tags$head(tags$script(src = "message-handler.js")))
   ) ),
   fixedRow(column(width=12,offset=0,
@@ -144,14 +146,13 @@ shinyUI(fixedPage(
                        textInput("endyr",    "Common ending year",   ""), 
                        textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
                        tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                       textInput("cycleat", "Additional output reporting years", "")
-                       # save this for later!!!! Will come back to it. Needs work.
-                       # h4("Projection Timing Summary"),
-                       # HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common 
-                       #       starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS 
-                       #       will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),' 
-                       #       years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
-                       #       '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+                       textInput("cycleat", "Additional output reporting years", ""),
+                       h4("Projection Timing Summary"),
+                       HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common
+                             starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS
+                             will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),'
+                             years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
+                             '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
               ),
               tabPanel("Components",          
                 tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
@@ -543,14 +544,16 @@ shinyUI(fixedPage(
               fileInput("uploadNewDB",paste0("Step 1: Upload FVS-Ready database ",
                         "(.accdb, .mdb, .db (SQLite3), .sqlite, .xlsx, or .zip that contains one of these)"),
                         width="90%"),
-              tags$style(type="text/css","#replaceActionMsg{color:darkred;}"), 
-              textOutput("replaceActionMsg"),
+              tags$style(type="text/css","#step1ActionMsg{color:darkred;}"), 
+              uiOutput("step1ActionMsg"),
               h6(),
               p(strong("Step 2: Following upload, you must do one of the following")),
               tags$style(type="text/css","#installNewDB{font-size: 120%; color:green;}"),
               tags$style(type="text/css","#addNewDB{font-size: 120%; color:green;}"),
               actionButton("installNewDB","Install uploaded database"),
               actionButton("addNewDB","Add new database to existing database"),
+              tags$style(type="text/css","#step2ActionMsg{color:darkred;}"), 
+              uiOutput("step2ActionMsg"),
               h6(),
               p(strong("Other options")),
               actionButton("installTrainDB","Install regional training database"),
@@ -562,13 +565,13 @@ shinyUI(fixedPage(
            	  selectInput("uploadSelDBtabs", label="Table to process",
       	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               fileInput("uploadStdTree",
-                       'Upload .cvs file and append to "Table to process"',
+                       'Upload .csv file and append to "Table to process"',
                         width="90%"), 
               fileInput("climateFVSUpload",
                         "Upload and commit Climate-FVS data (replace existing, append new); FVSClimAttrs.csv or answers.zip).",
                         width="90%"),
               tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
-              textOutput("uploadActionMsg")     
+              uiOutput("uploadActionMsg")     
             ),
             tabPanel("View and edit existing tables",        
               fixedRow(

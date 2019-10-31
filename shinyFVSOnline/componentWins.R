@@ -1,3 +1,5 @@
+# $Id: componentWins.R 2814 2019-10-10 11:02:11Z nickcrookston $
+
 keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
 {
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")

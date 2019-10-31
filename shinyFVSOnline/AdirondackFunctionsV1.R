@@ -1,3 +1,5 @@
+# $Id: AdirondackFunctionsV1.R 2814 2019-10-10 11:02:11Z nickcrookston $
+
 library(plyr)  #needed for ddply
 
 #sort data frames

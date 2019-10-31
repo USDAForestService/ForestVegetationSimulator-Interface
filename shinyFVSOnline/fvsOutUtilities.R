@@ -1,3 +1,5 @@
+# $Id: fvsOutUtilities.R 2814 2019-10-10 11:02:11Z nickcrookston $
+
 if (exists("mkfvsOutData")) rm (mkfvsOutData)
 mkfvsOutData <- 
   setRefClass("fvsOutData", 
@@ -222,6 +224,7 @@ errorScan <- function (outfile)
   sid<-line<-l1<-""
   foundSum = FALSE  
   ln = 0
+  pgmRV = NA
   repeat
   {
     l1<-line
@@ -229,6 +232,16 @@ errorScan <- function (outfile)
          blank.lines.skip = FALSE)
     if (length(line) == 0) break
     ln = ln+1
+    if (is.na(pgmRV))
+    {
+      hit=grep("     FOREST VEGETATION SIMULATOR   ",line,fixed=TRUE)
+      if (length(hit)) 
+      {
+        hit=scan(text=line,what="character",quiet=TRUE)
+        pgmRV=grep("RV:",hit,fixed=TRUE)
+        pgmRV=if(is.na(pgmRV)) NA else hit[pgmRV]
+      }
+    }         
     hit=grep("STAND ID= ",line,fixed=TRUE)
     if (!foundSum) foundSum = length(grep("START OF SIMULATION PERIOD",
                                      line,fixed=TRUE))>0
@@ -254,6 +267,7 @@ errorScan <- function (outfile)
       paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
     } else "No errors found")
   if (!foundSum) outerrs <- append(errs,"Run failure, likely due to the database associated with this run not being active.")
+  attr(outerrs,"pgmRV")=if (is.na(pgmRV)) " " else pgmRV
   outerrs
 }
 

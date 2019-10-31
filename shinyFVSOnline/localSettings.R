@@ -1,3 +1,5 @@
+# $Id: localSettings.R 2814 2019-10-10 11:02:11Z nickcrookston $
+
 # these two variables can be set to the source directories of fvsBin and rFVS
 
 if (isLocal() && .Platform$OS.type == "windows") {

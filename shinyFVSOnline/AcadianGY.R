@@ -1,3 +1,5 @@
+# $Id: AcadianGY.R 2814 2019-10-10 11:02:11Z nickcrookston $
+
 ###########################################################################################################################################################
 # Acadian Variant of the Forest Vegetation Simulator (FVS-ACD)                                                                                            #
 # Developed by Aaron Weiskittel, University of Maine, School of Forest Resources

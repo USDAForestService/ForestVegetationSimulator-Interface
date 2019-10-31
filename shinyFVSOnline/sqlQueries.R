@@ -1,3 +1,5 @@
+# $Id: sqlQueries.R 2823 2019-10-26 05:03:55Z nickcrookston $
+
 exqury = function (dbcon,x,subExpression=NULL) 
 {
   for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))
@@ -197,36 +199,41 @@ create table StdStk as select Year, Species, DBHClass,
  CaseID from temp.StdStk1;"                                    
                                                                                     
 Create_CmpStdStk = "
+drop table if exists CmpSmpWt;                               
 drop table if exists CmpStdStk;                               
-drop table if exists temp.CmpStdStkDBHSp; 
+drop table if exists temp.CmpStdStkDBHSp;                  
 drop table if exists temp.CmpStdStkAllDBH; 
 drop table if exists temp.CmpStdStkAllSp; 
-drop table if exists temp.CmpStdStkAllAll; 
+drop table if exists temp.CmpStdStkAllAll;
+create table temp.CmpSmpWt as
+  select sum(SamplingWt) as CmpSmpWt from FVS_Cases where
+  CaseID in (select CaseID from temp.Cases);    
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
-    sum(LiveTPA  *SamplingWt)/sum(SamplingWt) as CmpLiveTPA,
-    sum(MrtTPA   *SamplingWt)/sum(SamplingWt) as CmpMrtTPA,
-    sum(HrvTPA   *SamplingWt)/sum(SamplingWt) as CmpHrvTPA,
-    sum(RsdTPA   *SamplingWt)/sum(SamplingWt) as CmpRsdTPA,
-    sum(LiveBA   *SamplingWt)/sum(SamplingWt) as CmpLiveBA,
-    sum(MrtBA    *SamplingWt)/sum(SamplingWt) as CmpMrtBA,
-    sum(HrvBA    *SamplingWt)/sum(SamplingWt) as CmpHrvBA,
-    sum(RsdBA    *SamplingWt)/sum(SamplingWt) as CmpRsdBA,
-    sum(LiveTCuFt*SamplingWt)/sum(SamplingWt) as CmpLiveTCuFt,
-    sum(MrtTCuFt *SamplingWt)/sum(SamplingWt) as CmpMrtTCuFt,
-    sum(HrvTCuFt *SamplingWt)/sum(SamplingWt) as CmpHrvTCuFt,
-    sum(RsdTCuFt *SamplingWt)/sum(SamplingWt) as CmpRsdTCuFt,
-    sum(LiveMCuFt*SamplingWt)/sum(SamplingWt) as CmpLiveMCuFt,
-    sum(MrtMCuFt *SamplingWt)/sum(SamplingWt) as CmpMrtMCuFt,
-    sum(HrvMCuFt *SamplingWt)/sum(SamplingWt) as CmpHrvMCuFt,
-    sum(RsdMCuFt *SamplingWt)/sum(SamplingWt) as CmpRsdMCuFt,
-    sum(LiveBdFt *SamplingWt)/sum(SamplingWt) as CmpLiveBdFt,
-    sum(MrtBdFt  *SamplingWt)/sum(SamplingWt) as CmpMrtBdFt,
-    sum(HrvBdFt  *SamplingWt)/sum(SamplingWt) as CmpHrvBdFt,
-    sum(RsdBdFt  *SamplingWt)/sum(SamplingWt) as CmpRsdBdFt  
+    sum(LiveTPA  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveTPA,
+    sum(MrtTPA   *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpMrtTPA,
+    sum(HrvTPA   *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvTPA,
+    sum(RsdTPA   *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdTPA,
+    sum(LiveBA   *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveBA,
+    sum(MrtBA    *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpMrtBA,
+    sum(HrvBA    *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvBA,
+    sum(RsdBA    *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdBA,
+    sum(LiveTCuFt*SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveTCuFt,
+    sum(MrtTCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpMrtTCuFt,
+    sum(HrvTCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvTCuFt,
+    sum(RsdTCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdTCuFt,
+    sum(LiveMCuFt*SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveMCuFt,
+    sum(MrtMCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpMrtMCuFt,
+    sum(HrvMCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvMCuFt,
+    sum(RsdMCuFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdMCuFt,
+    sum(LiveBdFt *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveBdFt,
+    sum(MrtBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpMrtBdFt,
+    sum(HrvBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvBdFt,
+    sum(RsdBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdBdFt  
   from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
         CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
+  join temp.CmpSmpWt
   group by MgmtID,Year,Species,DBHClass;
 create table temp.CmpStdStkAllDBH as
   select MgmtID,Year,Species,'All' as DBHClass,

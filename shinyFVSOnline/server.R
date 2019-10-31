@@ -1,3 +1,5 @@
+# $Id: server.R 2830 2019-10-31 16:03:25Z nickcrookston $
+
 library(shiny)
 library(rhandsontable)
 library(ggplot2)
@@ -28,7 +30,9 @@ shinyServer(function(input, output, session) {
     sink("FVSOnline.log")
   }
 cat ("FVSOnline/OnLocal interface server start.\n")
-       
+serverID=" $Id: server.R 2830 2019-10-31 16:03:25Z nickcrookston $ "
+cat ("Server id=",serverID,"\n") 
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -104,6 +108,9 @@ cat ("serious start up error\n")
     }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
+    output$serverDate=renderText(HTML(paste0('RV:',serverDate,
+        '<br>',if (isLocal()) 'Onlocal' else 'Online', 
+        '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -186,10 +193,6 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
-    if (isLocal()){
-      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
-                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
-    }
   })
   
   initTableGraphTools <- function ()
@@ -286,7 +289,7 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
         # filter records selected from selected tables.
         inSet=paste0("('",paste(input$runs,collapse="','"),"')")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select CaseID ",
+        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select _RowID_,CaseID ",
                        "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))          
         for (tb in tbs) 
         {                     
@@ -794,9 +797,17 @@ cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n")
 cat ("tb=",tb," mrgVars=",mrgVars,"\n")
              mdat = merge(mdat,dat[[tb]], by=mrgVars)
           }
-          fvsOutData$dbData = mdat
         }
+        if (!is.null(mdat$CaseID))
+        {
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
+          mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
+          mdat$rowid=NULL
+        }
+        fvsOutData$dbData = mdat
+        iprg = iprg+1
         # do rep assignments
+        setProgress(message = "Setting stand reps", detail  = "", value = iprg)
         newSid = as.character(fvsOutData$dbData$StandID)
         icid = as.integer(fvsOutData$dbData$CaseID)
         imid = as.integer(fvsOutData$dbData$MgmtID)
@@ -928,7 +939,7 @@ cat ("cmd=",cmd,"\n")
         fvsOutData$browseVars    <- vars
         fvsOutData$browseSelVars <- selVars
         setProgress(value = NULL)          
-      }, min=1, max=10)
+      }, min=1, max=12)
     } 
   })
   
@@ -1177,18 +1188,19 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
     }
     for (v in c("MgmtID","StandID","Year")) 
-    { 
+    {
+      if (isolate(input$plotType) %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
-        return(nullPlot(paste0("Variable ",v," has ",nlevels(dat[[v]])," levels and ",
+        return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
     pltp = isolate(input$plotType) 
-    if (input$xaxis == "Year" && pltp != "box") dat$Year = as.numeric(as.character(dat$Year))
+    if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
-        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))
+        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))             
     nd = NULL
     sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
                     nlevels(dat$Species)>1 
@@ -1297,7 +1309,7 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
       hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
-    p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
+    p = p + scale_shape_manual(values=1:nlevels(nd$Legend)) 
 cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
@@ -1430,7 +1442,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     {
       pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
       for (linetype in 1:length(pltorder)) 
-      {
+      {                                                
         SDI = names(DMDguideLines)[pltorder[linetype]]
         p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
           linetype=linetype,data=DMDguideLines[[SDI]])
@@ -1546,6 +1558,10 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
+#browser()
+#ggbld <- ggplot_build(p)
+#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.major_source
+#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.labels
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -1953,15 +1969,14 @@ cat("setting uiRunPlot to NULL\n")
             if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
               for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
               {
-                test <- saveFvsRun$grps[[j]]$cmps[[k]]$kwds
-                spgtest <- grep("^SpGroup",saveFvsRun$grps[[j]]$cmps[[k]]$kwds)
+                test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
+                spgtest <- grep("^SpGroup",test)
                 cntr <- 0
                 spgname <- list()
                 if (length(spgtest)){
                   cntr<-cntr+1
                   spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
                   split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-
                   if(!length(globals$GrpNum)){
                     globals$GrpNum[1] <- 1
                   }else
@@ -2045,9 +2060,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     globals$fvsRun$autoOut<-as.list(input$autoOut)
     updateCheckboxGroupInput(session=session, inputId="autoOut", selected=globals$fvsRun$autoOut)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
    })
 
   ## inAdd:    Add Selected Stands
@@ -2927,65 +2940,54 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-  # save this for later!!!! Will come back to it. Needs work.
-  # observe({
-  #   cat ("changeind=",globals$changeind,"\n")
-  #   if (globals$changeind == 0){
-  #     output$contChange <- renderUI("Run")
-  #     output$srtYr <-renderUI({
-  #       HTML(paste0("<b>",input$startyr,"</b>"))
-  #     })
-  #     output$eYr <-renderUI({
-  #       HTML(paste0("<b>",input$endyr,"</b>"))
-  #     })
-  #     output$cyLen <-renderUI({
-  #       HTML(paste0("<b>",input$cyclelen,"</b>"))
-  #     })
-  #     output$cyAt <-renderUI({
-  #       HTML(paste0("<b>",input$cycleat,"</b>"))
-  #     })
-  #   }
-  # })
+
+  observe({
+    cat ("changeind=",globals$changeind,"\n")
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
   
   ## time--start year
   observe({
     if(!length(input$simCont) || globals$fvsRun$startyr==input$startyr) return()
     globals$fvsRun$startyr  <- input$startyr
-    updateTextInput(session=session, inputId="startyr", value= input$startyr)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
   ## time--end year
   observe({
     if(!length(input$simCont) || globals$fvsRun$endyr==input$endyr) return()
     globals$fvsRun$endyr <- input$endyr
-    updateTextInput(session=session, inputId="endyr", value= input$endyr)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
   ## time--cycle length
   observe({
     if(!length(input$simCont) || globals$fvsRun$cyclelen==input$cyclelen) return()
     globals$fvsRun$cyclelen <- input$cyclelen
-    updateTextInput(session=session, inputId="cyclelen", value= input$cyclelen)
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   }) 
   ## time--cycle breaks
   observe({
     if(!length(input$simCont) || (length(globals$fvsRun$cycleat) && 
-                                  length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
+       length(input$cycleat) && globals$fvsRun$cycleat==input$cycleat)) return()
     globals$fvsRun$cycleat  <- input$cycleat
     globals$changeind <- 1
-    output$contChange <- renderText({
-      HTML(paste0("<b>","*Run*","</b>"))
-    })
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
 
   ## Save and Run
@@ -3190,7 +3192,8 @@ cat ("rtn,class=",class(rtn),"\n")
         if (class(errScan) == "try-error") errScan = 
           "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
-          h5("FVS output error scan"),
+          h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
+          h5("FVS error scan: "),
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(paste(errScan,"<br>"))))
@@ -3208,10 +3211,6 @@ cat ("length(allSum)=",length(allSum),"\n")
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
         cat ("addNewRun2DB res=",res,"\n")
         unlink(paste0(globals$fvsRun$uuid,".db"))
-        X = vector("numeric",0)
-        hfacet = vector("character",0)
-        Y = vector("numeric",0)
-        Legend=vector("character",0)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
         modn = names(allSum)
@@ -3227,39 +3226,25 @@ cat ("length(allSum)=",length(allSum),"\n")
           }
           names(allSum) = modn
         }
+        X <- Y <- Stand <- NULL
         for (i in 1:length(allSum)) 
-        {
-          X = c(X,rep(allSum[[i]][,"Year"],2))
-          hfacet = c(hfacet,rep(names(allSum)[i],nrow(allSum[[i]])*2))
-          Y = c(Y,c(allSum[[i]][,"TCuFt"],allSum[[i]][,"TPrdTCuFt"]))
-          Legend=c(Legend,c(rep("TCuFt",nrow(allSum[[i]])),
-                                  rep("TPrdTCuFt",nrow(allSum[[i]]))))
+        { 
+          X = c(X,allSum[[i]][,"Year"])
+          Y = c(Y,allSum[[i]][,"TCuFt"])
+          ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
+          ltag = gsub(x=ltag,pattern="^SId=",replacement="")
+          Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
         }
-        toplot = data.frame(X = X, hfacet=as.factor(hfacet), Y=Y, 
-                  Legend=as.factor(Legend))
-        nlvs = nlevels(toplot$hfacet)
-        plt = if (nlvs < 7)
-        {
-          height = ceiling(nlvs/2)*1.25
-          width = 3.5
-          ggplot(data = toplot) + facet_wrap(~hfacet,ncol=2) + 
-            theme(strip.text.x = element_text(size = 5,margin = margin(.01, 0, .01, 0, "in"))) + 
-            geom_line (aes(x=X,y=Y,color=Legend,linetype=Legend)) +
-            labs(x="Year", y="Total cubic volume per acre") + 
-            theme(text = element_text(size=9), legend.position="none",
-                  panel.background = element_rect(fill="gray95"),
-                  axis.text = element_text(color="black"))  
-        } else {
-          height = 2
-          width = 2.5
-          toplot$Legend = as.factor(paste0(toplot$Legend,toplot$hfacet))
-          ggplot(data = toplot) +  
-            geom_line (aes(x=X,y=Y,color=Legend,alpha=.5)) + 
-            labs(x="Year", y="Total cubic volume per acre") + 
-               theme(text = element_text(size=9), legend.position="none",
-                     panel.background = element_rect(fill="gray95"),
-                     axis.text = element_text(color="black"))
-        }
+        toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
+        toMany = nlevels(toplot$Legend) > 9 
+        plt = ggplot(data = toplot) + 
+            geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
+            labs(x="Year", y="Total cubic volume") + 
+            theme(text = element_text(size=6), 
+              legend.position=if (toMany) "none" else "right",
+              axis.text = element_text(color="black")) 
+        width=if (toMany) 3 else 4
+        height=2.5
         png("quick.png", width=width, height=height, units="in", res=150)
         print(plt)
         dev.off()
@@ -4052,16 +4037,15 @@ cat ("matchVar=",matchVar,"\n")
       if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
           format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
       dispData = dispData[,c("StandID","Year",extra,input$mapDsVar)]
-      subset=match(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
-      subset=na.omit(subset)
-      if (length(subset) == 0) 
+      uids=intersect(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
+      if (length(uids) == 0) 
       {
         output$leafletMessage=renderText("No StandIDs match polygons")
         return()
       }
-      output$textOutput=renderText(paste0(length(subset)," StandIDs match polygons"))
-      polys = spTransform(dbGlb$SpatialData[subset,],CRS("+init=epsg:4326"))
-      uids = unique(dispData$StandID)
+      output$textOutput=renderText(paste0(length(uids)," StandIDs match polygons"))
+      polys = spTransform(dbGlb$SpatialData[match(uids,dbGlb$SpatialData@data[,matchVar]),],
+                          CRS("+init=epsg:4326"))
       progress <- shiny::Progress$new(session,min=1,max=length(uids))
       labs  = lapply(uids, function (sid)
         {
@@ -4509,14 +4493,16 @@ cat ("tabDescSel, tab=",tab,"\n")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Replace existing database")
-      output$replaceActionMsg <- renderText("")
+      output$step1ActionMsg <- NULL
+      output$step2ActionMsg <- NULL
     }
   })
   observe({
     if(input$inputDBPan == "Replace existing database") 
     {
 cat ("Replace existing database\n")
-      output$replaceActionMsg <- renderText("")
+      output$step1ActionMsg <- NULL
+      output$step2ActionMsg <- NULL
     }
   })
   
@@ -4539,7 +4525,8 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Training database installed")
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- renderText(HTML("<b>Training database installed</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4550,7 +4537,8 @@ cat ("Replace existing database\n")
     dbDisconnect(dbGlb$dbIcon)
     if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
-    output$replaceActionMsg <- renderText("Empty database installed. Click on the View and edit existing tables to start inputting data.")
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- renderText(HTML("<b>Empty database installed</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -4558,6 +4546,8 @@ cat ("Replace existing database\n")
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
+    output$step1ActionMsg <- NULL
+    output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
 cat ("fext=",fext,"\n")
     session$sendCustomMessage(type="jsCode",
@@ -4570,7 +4560,7 @@ cat ("fext=",fext,"\n")
                               list(code= "$('#installEmptyDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
     {
-      output$replaceActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
+      output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
       return()
     } else {
@@ -4591,7 +4581,7 @@ cat ("fext=",fext,"\n")
       fname = dir(dirname(input$uploadNewDB$datapath))
       if (length(fname)>1) 
       {
-        output$replaceActionMsg = renderText(".zip contains more than one file.")
+        output$step1ActionMsg = renderText(".zip contains more than one file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         return()
       } else if (length(fname) == 0) {
@@ -4601,7 +4591,7 @@ cat ("fext=",fext,"\n")
       fext = tools::file_ext(fname)
       if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx"))) 
       {
-        output$replaceActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
+        output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         return()
       }
@@ -4621,19 +4611,18 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',
+        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',
                 fname,'" --schema'),type='cmd2') else
         paste0('java -jar "',curDir,'/access2csv.jar" "',
                 fname,'" --schema')
-      cat ("cmd=",cmd,"\n")
-      cmd = if (.Platform$OS.type == "windows"){
-        schema = shell(cmd,intern=TRUE)
-      }else schema = system(cmd,intern=TRUE)
+cat ("cmd=",cmd,"\n")
+      schema = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else 
+                                                   system(cmd,intern=TRUE)
       if (!exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
         progress$close()     
-        output$replaceActionMsg = renderText("'schema' not created, no data loaded.")
+        output$step1ActionMsg = renderText("'schema' not created, no data loaded.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
@@ -4688,12 +4677,12 @@ cat("curDir=",curDir," input dir=",getwd(),"\n")
       cat (paste0(schema,"\n"),file="schema")
       progress$set(message = "Extract data", value = 3)            
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('java -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
+        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
           paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
 cat ("cmd=",cmd,"\n") 
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
       progress$set(message = "Import schema to Sqlite3", value = 4) 
-      if (isLocal()){
+      if (.Platform$OS.type == "windows"){
         cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
       }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("cmd=",cmd,"\n")
@@ -4710,7 +4699,7 @@ cat ("cmd=",cmd,"\n")
         cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
         progress$set(message = paste0("Import ",s), value = i) 
         i = i+1;
-        if (isLocal()){
+        if (.Platform$OS.type == "windows"){
           cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
         }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
 cat ("s=",s," cmd=",cmd,"; ")
@@ -4720,7 +4709,7 @@ cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
     } else if (fext == "xlsx") {
       sheets = getSheetNames(fname)
-      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+3)
+      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
       i = 0
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
@@ -4764,11 +4753,74 @@ cat("loaded table=",tab,"\n")
       if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
     }
     tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
+    ltabs = tolower(tabs)
+    fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
+    # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
+    grpmsg=NULL
+    if (!is.na(match("fvs_groupaddfilesandkeywords",ltabs)))
+    {
+      addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
+      if (class(addgrps)!="try-error")
+      {
+        addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+        for (idx in fixTabs)
+        {
+          tab2fix=tabs[idx]
+          grps=try(dbGetQuery(dbo,paste0('select distinct groups from ',tab2fix)))
+          if (class(grps)=="try-error") next
+          grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+          if (all(is.na(match(addgrps,grps)))) 
+          {
+            Tb=dbReadTable(dbo,tab2fix)
+            idx=match("groups",tolower(names(Tb)))
+            if (!is.na(idx)) 
+            {
+              Tb[,idx]=paste0(addgrps," ",Tb[,idx])
+              dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)
+              grpmsg=c(grpmsg,tab2fix)
+            }
+          }
+        }
+      }
+    }
+    # loop over tables and make "stand_ID" fields unique by adding a sequence number
+    sidmsg=NULL
+    newID=NULL
+    for (idx in fixTabs)
+    {
+      tab2fix=tabs[idx]
+      sidTb=dbGetQuery(dbo,paste0("select stand_id from ",tab2fix))
+      dups = duplicated(sidTb[,1])
+      if (all(!dups)) next
+      newID=sidTb[,1]
+      dtab = table(dups,sidTb[,1])
+      dups = names(dtab[2,])[dtab[2,] > 0]
+      for (did in dups)
+      {
+        locs=(did==sidTb[,1])
+        vals=sprintf("%0.2d",1:sum(locs))
+        newID[locs]=paste0(newID[locs],"*",vals)
+      }
+      if (!is.null(newID))
+      {
+        sidTb=dbReadTable(dbo,tab2fix)
+        idx=match("stand_id",tolower(names(sidTb)))
+        if (!is.na(idx)) sidTb[,idx]=newID
+        dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
+      }
+      sidmsg=c(sidmsg,tab2fix)
+    }    
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
-    msg = paste0("Uploaded data: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg = renderText(msg)
+    msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
+    if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
+      paste0(grpmsg,collapse=", "))
+    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID values were modified in table(s): ",
+      paste0(sidmsg,collapse=", "))
+    fixFVSKeywords(dbo) 
+    checkMinColumnDefs(dbo,progress)
+    output$step1ActionMsg = renderText(HTML(msg))
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
@@ -4794,7 +4846,7 @@ cat("loaded table=",tab,"\n")
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     tabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+1)
+    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
     i = 0
     for (tb in tabs)
     {
@@ -4899,22 +4951,21 @@ cat ("index creation, qry=",qry,"\n")
         }
       }
     }
-    progress$set(message = "Checking database query keywords", value = i+1)
-    fixFVSKeywords(dbGlb,progress) 
-    msg = checkMinColumnDefs(dbGlb,progress)
-    if (length(globals$FVS_Runs) && length(globals$fvsRun$simcnts)){
-      session$sendCustomMessage(type = "infomessage",
-                                message = "WARNING: if the other runs in this project were created using a different database than the one just installed, you will need to re-upload the associated database to run them again.")
-    output$replaceActionMsg <- renderText(msg)
-    }else output$replaceActionMsg = renderText(msg)
+    progress$set(message = "Load variant data", value = i+1)
     loadVarData(globals,prms,dbGlb$dbIcon)
+    output$step2ActionMsg = renderText(HTML(paste0("<br>Uploaded data installed.<br>",
+      "<b>WARNING:</b> If existing runs in this project were created using input ",
+      "data that are not present in the database just installed, ",
+      "you will need to re-load theose data to run them again.<br>",
+      "Note that the output from the previous runs will remain in the output database.")))
     initNewInputDB()
     progress$close()
   }) 
   ## addNewDB
   observe({  
-    if (input$addNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return() 
+    if (input$addNewDB == 0) return()  
+    output$step2ActionMsg <- NULL
+    if (is.null(dbGlb$newFVSData)) {output$step1ActionMsg<-NULL;return()}
     # set an exclusive lock on the database
     dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = EXCLUSIVE")
     trycnt=0
@@ -4924,6 +4975,7 @@ cat ("index creation, qry=",qry,"\n")
       if (trycnt > 1000) 
       {
         dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
+        output$step2ActionMsg <- renderText("Error: Exclusive lock was not obtained.")
         return()
       }
 cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
@@ -4943,7 +4995,7 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
     attach = try(dbExecute(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
     if (class(attach) == "try-error")
     {
-      output$replaceActionMsg <- renderText("New data could not be loaded")
+      output$step2ActionMsg <- renderText("New data could not be added")
       unlink(dbGlb$newFVSData)
       dbGlb$newFVSData=NULL
     }
@@ -5017,7 +5069,7 @@ cat ("homogenize qry=",qry,"\n")
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("New database: ",paste0(msg,collapse="; "))
-    output$replaceActionMsg <- renderText(msg)
+    output$step2ActionMsg <- renderText(msg)
     loadVarData(globals,prms,dbGlb$dbIcon) 
     initNewInputDB()
     progress$close()
@@ -5049,8 +5101,8 @@ cat ("Upload new rows\n")
           selected=tbs[idx])
       } else updateSelectInput(session=session, inputId="uploadSelDBtabs",  
                choices=list())
-      output$replaceActionMsg <- renderText(if (length(tbs)) "" else 
-        "No tables in existing database. Use 'Replace existing' to install a new one.")        
+      output$step2ActionMsg <- renderText(if (length(tbs)) "" else 
+        "No tables in existing database.")        
       initNewInputDB()
     }
   })
@@ -5058,7 +5110,7 @@ cat ("Upload new rows\n")
   observe({  
     if (is.null(input$uploadStdTree)) return()
     isolate({ 
-      indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE))
+      indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE,colClasses="character"))
       unlink(input$uploadStdTree$datapath)
       if (class(indat) == "try-error" || is.null(indat) || nrow(indat)==0)
       {                       
@@ -5095,13 +5147,13 @@ cat ("Upload new rows\n")
 cat ("addCols=",addCols,"\n")
       if (length(addCols))
       {
+        types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]]
         for (icol in addCols)
         {
-          dtyp = switch(class(indat[,icol]),
-                 "integer" = "int",
-                 "numeric" = "real",
-                 "character")
-          newVar = names(indat)[icol]
+          newVar=names(indat)[icol]
+          defType=charmatch(tolower(newVar),tolower(names(types)))
+          dtyp = if (is.na(defType)) "character" else
+                 if (types[defType]) "character" else "real"
           qry = paste0("alter table ",input$uploadSelDBtabs," add column ",
                 newVar," ",dtyp,";")
 cat ("add column qry=",qry,"\n")
@@ -5118,25 +5170,44 @@ cat ("add column qry=",qry,"\n")
              tolower(names(dbGlb$tbsCTypes[[input$uploadSelDBtabs]]))))
       types = dbGlb$tbsCTypes[[input$uploadSelDBtabs]][cols]
       req = switch(tolower(input$uploadSelDBtabs),
-         fvs_standinit = c("Stand_ID","Variant","Inv_Year"),
-         fvs_treeinit  = c("Stand_ID","Species","DBH"),
-         fvs_groupaddfilesandkeywords = c("Groups"),
+         fvs_standinit = c("stand_id","variant","inv_year"),
+         fvs_plotinit  = c("stand_id","variant","inv_year"),
+         fvs_treeinit  = c("stand_id","species","dbh"),
+         fvs_groupaddfilesandkeywords = c("groups"),
          NULL)
-      if (!is.null(req) && !all(req %in% names(types)))
+      if (!is.null(req) && !all(req %in% tolower(names(types))))
       {
         output$uploadActionMsg = renderText(paste0("Required columns were missing for ",
                input$uploadSelDBtabs,", no data loaded."))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       }
-      quote = types[types]   
-      if (length(quote)) for (cn in names(quote)) 
+      nums = tolower(names(types[!types]))
+      lnams = tolower(names(indat))
+      for (nn in nums) 
       {
-        if (class(indat[,cn]) != "character") indat[,cn] = as.character(indat[,cn])
-      } 
-      for (cn in colnames(indat))  
-        if (class(indat[,cn]) == "character") indat[,cn] = paste0("'",indat[,cn],"'")
+        indx=match(nn,lnams)
+        indat[,indx] = as.numeric(indat[,indx])
+      }
 
+      sids=try(dbGetQuery(dbGlb$dbIcon,paste0("select distinct stand_id from ",
+                          isolate(input$uploadSelDBtabs))))
+      sids=if (class(sids)=="try-error") NA else sids[,1]
+      isid=charmatch("stand_id",tolower(names(indat)))
+      msg=NULL
+      if (!(is.na(sids) || is.na(isid))) 
+      {
+        tokeep=is.na(match(indat[,isid],sids))
+        ntokill=sum(!tokeep)
+        if (ntokill==nrow(indat))
+        {
+          output$uploadActionMsg = renderUI(HTML("All uploaded data have Stand_ID(s) that are already loaded and are ignored."))  
+          return()
+        } else {
+          msg = paste0(ntokill," lines of uploaded data have Stand_ID(s) that are already loaded and are ignored.")
+          indat = indat[tokeep,,drop=FALSE]
+        }
+      }
       dbBegin(dbGlb$dbIcon)
       err = FALSE
       insertCount = 0
@@ -5147,9 +5218,9 @@ cat ("add column qry=",qry,"\n")
         if (ncol(row) == 0) next
         row = row[,row != "'NA'",drop=FALSE]
         if (ncol(row) == 0) next
+        vals=paste0(lapply(row[1,],function (x) if (class(x)=="character") paste0('"',x,'"') else x),collapse=",")
         qry = paste0("insert into ",input$uploadSelDBtabs," (",
-                paste0(colnames(row),collapse=","),
-                  ") values (",paste0(row[1,],collapse=","),");")
+                paste0(colnames(row),collapse=","),") values (",vals,");")
 cat ("insert qry=",qry,"\n")
         res = try(dbExecute(dbGlb$dbIcon,qry))
         if (class(res) == "try-error") {err=TRUE; break} else insertCount = insertCount+1
@@ -5157,18 +5228,14 @@ cat ("insert qry=",qry,"\n")
       if (err) 
       {
         dbRollback(dbGlb$dbIcon) 
-        output$uploadActionMsg = renderText(paste0("Error processing: ",qry))
+        output$uploadActionMsg = renderUI(HTML(paste0("Error processing: ",qry)))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         return()
       } else {
 cat ("insertCount=",insertCount,"\n")
-        if (insertCount)
-        {
-          dbCommit(dbGlb$dbIcon)
-          output$uploadActionMsg = renderText(paste0(insertCount," row(s) inserted into ",
-                 isolate(input$uploadSelDBtabs)))
-        }
-        rm (indat)
+        dbCommit(dbGlb$dbIcon)
+        msg=paste0(msg,"<br>",insertCount," row(s) inserted into ",isolate(input$uploadSelDBtabs))
+          output$uploadActionMsg = renderUI(HTML(msg))
         session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
         loadVarData(globals,prms,dbGlb$dbIcon)                                              
       }
@@ -5241,7 +5308,7 @@ cat ("insertCount=",insertCount,"\n")
     if (!file.exists("FVSClimAttrs.csv")) 
     {
 cat ("no FVSClimAttrs.csv file\n")
-      output$uploadActionMsg = renderText("FVSClimAttrs.csv not found.")
+      output$uploadActionMsg = renderUI(HTML("FVSClimAttrs.csv not found."))
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
@@ -5392,7 +5459,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     {         
       dbGlb$tblName <- input$editSelDBtabs
       fixEmptyTable(dbGlb)                                
-      checkMinColumnDefs(dbGlb)
+      checkMinColumnDefs(dbGlb$dbIcon)
       dbGlb$tbl <- NULL                                           
       dbGlb$tblCols <- names(dbGlb$tbsCTypes[[dbGlb$tblName]])
       if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
@@ -5460,16 +5527,17 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
         Edit = 
         {
           qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
-          qry <- if (length(intersect("Stand_ID",dbGlb$tblCols)) && 
+          qry <- if (length(intersect("stand_id",tolower(dbGlb$tblCols))) && 
                      length(input$rowSelector))
             paste0(qry," where Stand_ID in (",
                   paste0("'",input$rowSelector,"'",collapse=","),");") else
             paste0(qry,";")                             
           dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          lnames = tolower(colnames(dbGlb$tbl))
           stdSearch = trim(input$editStandSearch)
           if (nchar(stdSearch)>0) 
           {
-            keep = try(grep (stdSearch,dbGlb$tbl$Stand_ID))
+            keep = try(grep (stdSearch,dbGlb$tbl[,charmatch("stand_id",lnames)]))
             if (class(keep) != "try-error" && length(keep)) dbGlb$tbl = dbGlb$tbl[keep,]
           }
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
@@ -5643,9 +5711,9 @@ cat ("edit upd, qry=",qry,"\n")
             fixEmptyTable(dbGlb)
 cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
      " dbGlb$tblName=",dbGlb$tblName,
-     " Stand_ID yes=",length(intersect("Stand_ID",dbGlb$tblCols)),"\n")
+     " Stand_ID yes=",length(intersect("stand_id",tolower(dbGlb$tblCols))),"\n")
             if (is.null(dbGlb$sids) && 
-                length(intersect("Stand_ID",dbGlb$tblCols)))
+                length(intersect("stand_id",tolower(dbGlb$tblCols))))
             {
               dbGlb$sids = dbGetQuery(dbGlb$dbIcon,paste0("select distinct Stand_ID from ",
                                 dbGlb$tblName))[,1]
@@ -5657,7 +5725,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             }  
 
             qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
-            qry <- if (length(grep("Stand_ID",dbGlb$tblCols)) && 
+            qry <- if (length(grep("stand_id",tolower(dbGlb$tblCols))) && 
                        length(input$rowSelector))
               paste0(qry," where Stand_ID in (",
                     paste0("'",input$rowSelector,"'",collapse=","),");") else
@@ -6041,17 +6109,19 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
-        saveRun()        
-        if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-        if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-        setwd(input$PrjSelect)
-        if (isLocal()){
-          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
-                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
+          shell("C:/FVS/FVS_Icon.VBS")
+          Sys.sleep(3)
+          saveRun()
+          session$sendCustomMessage(type = "closeWindow"," ")
+        }else{
+          saveRun()
+          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+          setwd(input$PrjSelect)
+          globals$saveOnExit = FALSE
+          globals$reloadAppIsSet=1
+          session$reload()
         }
-        globals$saveOnExit = FALSE
-        globals$reloadAppIsSet=1
-        session$reload()
       }
     })
   })
