@@ -193,6 +193,10 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
+    if (isLocal() && .Platform$OS.type == "windows"){
+      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
+                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
+    }
   })
   
   initTableGraphTools <- function ()
@@ -6105,11 +6109,19 @@ cat ("Projects hit\n")
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
-cat("PrjSwitch to=",input$PrjSelect,"\n")
+    cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
       {
-          shell("C:/FVS/FVS_Icon.VBS")
+        if (isLocal() && .Platform$OS.type == "windows"){
+          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
+                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
+          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+          pres <- grep(basename(input$PrjSelect),scan("C:/FVS/lastAccessedProject.txt",what="",sep="\n",quiet=TRUE))
+          if (length(pres) && pres > 0){
+            shell("C:/FVS/FVS_Icon.VBS")
+          }
           Sys.sleep(3)
           saveRun()
           session$sendCustomMessage(type = "closeWindow"," ")
