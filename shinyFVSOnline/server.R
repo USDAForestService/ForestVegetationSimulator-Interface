@@ -1,4 +1,4 @@
-# $Id: server.R 2830 2019-10-31 16:03:25Z nickcrookston $
+# $Id$
 
 library(shiny)
 library(rhandsontable)
@@ -9,7 +9,7 @@ library(plyr)
 library(colourpicker)
 library(rgl)
 library(leaflet)
-#library(rgdal) #loaded when it is needed
+#library(rgdal) #loaded when it is needed 
 library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
@@ -30,7 +30,7 @@ shinyServer(function(input, output, session) {
     sink("FVSOnline.log")
   }
 cat ("FVSOnline/OnLocal interface server start.\n")
-serverID=" $Id: server.R 2830 2019-10-31 16:03:25Z nickcrookston $ "
+serverID=" $Id$ "
 cat ("Server id=",serverID,"\n") 
   serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   withProgress(session, {  

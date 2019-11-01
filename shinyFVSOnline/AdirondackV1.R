@@ -1,4 +1,4 @@
-# $Id: AdirondackV1.R 2814 2019-10-10 11:02:11Z nickcrookston $
+# $Id$
 
 ###Adirondack growth and yield model
 AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,

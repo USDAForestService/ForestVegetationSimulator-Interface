@@ -1,4 +1,4 @@
-# $Id: sqlQueries.R 2823 2019-10-26 05:03:55Z nickcrookston $
+# $Id$
 
 exqury = function (dbcon,x,subExpression=NULL) 
 {

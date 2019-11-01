@@ -1,4 +1,4 @@
-# $Id: ui.R 2829 2019-10-31 03:10:30Z nickcrookston $
+# $Id$
 
 library(shiny)
 library(rhandsontable)

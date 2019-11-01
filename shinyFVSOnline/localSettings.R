@@ -1,4 +1,4 @@
-# $Id: localSettings.R 2814 2019-10-10 11:02:11Z nickcrookston $
+# $Id$
 
 # these two variables can be set to the source directories of fvsBin and rFVS
 
