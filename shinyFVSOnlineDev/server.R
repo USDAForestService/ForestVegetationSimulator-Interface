@@ -6108,12 +6108,7 @@ cat ("Projects hit\n")
 cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
-      {
-          shell("C:/FVS/FVS_Icon.VBS")
-          Sys.sleep(3)
-          saveRun()
-          session$sendCustomMessage(type = "closeWindow"," ")
-        }else{
+      { 
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
@@ -6121,7 +6116,6 @@ cat("PrjSwitch to=",input$PrjSelect,"\n")
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
           session$reload()
-        }
       }
     })
   })
