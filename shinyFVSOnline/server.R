@@ -9,7 +9,7 @@ library(plyr)
 library(colourpicker)
 library(rgl)
 library(leaflet)
-#library(rgdal) #loaded when it is needed 
+#library(rgdal) #loaded when it is needed
 library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
@@ -108,9 +108,9 @@ cat ("serious start up error\n")
     }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    output$serverDate=renderText(HTML(paste0('RV:',serverDate,
-        '<br>',if (isLocal()) 'Local' else 'Online', 
-        '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
+    output$serverDate=renderText(HTML(paste0("FVS:20191101<br>",
+        if (isLocal()) 'Local' else 'Online', 
+        '<br>Interface:',serverDate)))
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -193,10 +193,6 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       stopApp()
     } 
     globals$reloadAppIsSet == 0
-    if (isLocal() && .Platform$OS.type == "windows"){
-      file.copy(paste0("C:/FVS/",basename(getwd()),"/projectId.txt"),
-                "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
-    }
   })
   
   initTableGraphTools <- function ()
@@ -3240,7 +3236,7 @@ cat ("length(allSum)=",length(allSum),"\n")
           Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
-        toMany = nlevels(toplot$Legend) > 9 
+        toMany = nlevels(toplot$Stand) > 9
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
             labs(x="Year", y="Total cubic volume") + 
@@ -6109,23 +6105,10 @@ cat ("Projects hit\n")
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
-    cat("PrjSwitch to=",input$PrjSelect,"\n")
+cat("PrjSwitch to=",input$PrjSelect,"\n")
     isolate({
       if (dir.exists(input$PrjSelect))
-      {
-        if (isLocal() && .Platform$OS.type == "windows"){
-          file.copy(paste0("C:/FVS/",basename(input$PrjSelect),"/projectId.txt"),
-                    "C:/FVS/lastAccessedProject.txt",overwrite=TRUE)
-          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          pres <- grep(basename(input$PrjSelect),scan("C:/FVS/lastAccessedProject.txt",what="",sep="\n",quiet=TRUE))
-          if (length(pres) && pres > 0){
-            shell("C:/FVS/FVS_Icon.VBS")
-          }
-          Sys.sleep(3)
-          saveRun()
-          session$sendCustomMessage(type = "closeWindow"," ")
-        }else{
+      { 
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
@@ -6133,7 +6116,6 @@ cat ("Projects hit\n")
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
           session$reload()
-        }
       }
     })
   })

@@ -108,9 +108,9 @@ cat ("serious start up error\n")
     }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    output$serverDate=renderText(HTML(paste0('RV:',serverDate,
-        '<br>',if (isLocal()) 'Local' else 'Online', 
-        '<br>R version:',R.Version()$major,".",R.Version()$minor))) 
+    output$serverDate=renderText(HTML(paste0("FVS:20191101<br>",
+        if (isLocal()) 'Local' else 'Online', 
+        '<br>Interface:',serverDate)))
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -3236,7 +3236,7 @@ cat ("length(allSum)=",length(allSum),"\n")
           Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
-        toMany = nlevels(toplot$Legend) > 9 
+        toMany = nlevels(toplot$Stand) > 9
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
             labs(x="Year", y="Total cubic volume") + 
