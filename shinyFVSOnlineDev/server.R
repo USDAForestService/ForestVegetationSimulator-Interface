@@ -29,10 +29,19 @@ shinyServer(function(input, output, session) {
     while (sink.number()) sink()
     sink("FVSOnline.log")
   }
+
 cat ("FVSOnline/OnLocal interface server start.\n")
 serverID=" $Id$ "
 cat ("Server id=",serverID,"\n") 
+
+  # set serverDate to be the release date
+
+  # use the floating date for the dev version
   serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  
+  # use the next line for the production version
+  # serverDate="20191101"
+  
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -108,9 +117,8 @@ cat ("serious start up error\n")
     }
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    output$serverDate=renderText(HTML(paste0("FVS:20191101<br>",
-        if (isLocal()) 'Local' else 'Online', 
-        '<br>Interface:',serverDate)))
+    output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
+        if (isLocal()) "Local" else "Online"," configuration"))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
