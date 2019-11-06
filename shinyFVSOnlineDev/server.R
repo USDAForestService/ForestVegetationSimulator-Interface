@@ -4781,7 +4781,7 @@ cat("loaded table=",tab,"\n")
           {
             Tb=dbReadTable(dbo,tab2fix)
             idx=match("groups",tolower(names(Tb)))
-            if (!is.na(idx)) 
+            if (!is.na(idx) && length(Tb[,1])) 
             {
               Tb[,idx]=paste0(addgrps," ",Tb[,idx])
               dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)
