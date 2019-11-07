@@ -1971,36 +1971,37 @@ cat("setting uiRunPlot to NULL\n")
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
       {
-        if (length(saveFvsRun$stands[[i]]$grps) > 0)
-          for (j in 1:length(saveFvsRun$stands[[i]]$grps))
-          { 
-            if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
-              for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
-              {
-                test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
-                spgtest <- grep("^SpGroup",test)
-                cntr <- 0
-                spgname <- list()
-                if (length(spgtest)){
-                  cntr<-cntr+1
-                  spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
-                  split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-                  if(!length(globals$GrpNum)){
-                    globals$GrpNum[1] <- 1
-                  }else
-                  globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-                  
-                  spgname[1] <- gsub(" ","", spgname[1])
-                  tmpk <- match(spgname[1], globals$GenGrp)
-                  if (!is.na(tmpk)){
-                    globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-                  }else globals$GenGrp[length(globals$GrpNum)]<-spgname
-                }
-              }
+        if (length(saveFvsRun$stands[[i]]$grps) > 0) for (j in 1:length(saveFvsRun$stands[[i]]$grps))
+        { 
+          if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0) for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
+          {
+            test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
+            spgtest <- grep("^SpGroup",test)
+            cntr <- 0
+            spgname <- list()
+            if (length(spgtest)){
+              cntr<-cntr+1
+              spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
+              split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+              if(!length(globals$GrpNum)){
+                globals$GrpNum[1] <- 1
+              }else
+              globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+              
+              spgname[1] <- gsub(" ","", spgname[1])
+              tmpk <- match(spgname[1], globals$GenGrp)
+              if (!is.na(tmpk)){
+                globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+              }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+            }
           }
-        updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[1]],
-        selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)
-        }
+        } 
+      }  
+      seldb=match(globals$fvsRun$refreshDB,globals$selStandTableList)
+      if (length(seldb) == 0) updateSelectInput(session=session, inputId="inTabs", 
+          choices=globals$selStandTableList, selected=0) else
+          updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[seldb]])                 
+      seldb=globals$selStandTableList[seldb]
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -2942,7 +2943,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       globals$changeind <- 1
       output$contChange <- renderText({
-        HTML(paste0("<b>","*Run*","</b>"))
+        HTML(paste0("<b>","*Run*","</b>"))                             
       })
       closeCmp()
       globals$schedBoxPkey <- character(0)
@@ -3245,9 +3246,11 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
+        volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
+           "Merchantable" else "Total"
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
-            labs(x="Year", y="Total cubic volume per acre") + 
+            labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
               axis.text = element_text(color="black")) 
@@ -4781,7 +4784,7 @@ cat("loaded table=",tab,"\n")
           {
             Tb=dbReadTable(dbo,tab2fix)
             idx=match("groups",tolower(names(Tb)))
-            if (!is.na(idx)) 
+            if (!is.na(idx) && length(Tb[,1])) 
             {
               Tb[,idx]=paste0(addgrps," ",Tb[,idx])
               dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)

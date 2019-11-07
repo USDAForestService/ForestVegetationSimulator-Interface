@@ -2128,6 +2128,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
 cat ("error: stdInit is null\n")
       return()
     }
+    globals$fvsRun$refreshDB=input$inTabs
     allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
     if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit)

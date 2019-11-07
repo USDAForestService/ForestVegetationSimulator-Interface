@@ -606,7 +606,13 @@ cat("writeKeyFile, num stds=",length(stds),
               test <- na.omit(test)
               # if the keyword has more parameters than the other keyword with the same name, it's a DBS keyword
               if(length(test) > altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
+                # if it's an old KCP that has more than 1 additional parameter for FFE reporting keywords, it's actually FFE not DBS
+                if (toupper(strsplit(kcpconts[j]," ")[[1]][1])!="COMPUTE" && length(test) > 2) {
+                  dbflag <- 2
+                } else 
+                  {
                 dbflag <- 1
+                }
               }
               # if the keyword has less parameters than the other keyword with the same name, it's a non-DBS keyword
               if(length(test)<=altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
@@ -2122,6 +2128,7 @@ cat ("in addStandsToRun, selType=",selType,"\n")
 cat ("error: stdInit is null\n")
       return()
     }
+    globals$fvsRun$refreshDB=input$inTabs
     allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
     if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
       fields = dbListFields(dbGlb$dbIcon,stdInit)

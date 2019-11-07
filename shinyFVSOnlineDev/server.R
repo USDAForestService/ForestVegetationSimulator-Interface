@@ -29,16 +29,19 @@ shinyServer(function(input, output, session) {
     while (sink.number()) sink()
     sink("FVSOnline.log")
   }
+
 cat ("FVSOnline/OnLocal interface server start.\n")
 serverID=" $Id$ "
-cat ("Server id=",serverID,"\n")
+cat ("Server id=",serverID,"\n") 
 
-# set serverDate to be the release date
+  # set serverDate to be the release date
 
-# use the floating date for the dev version
+  # use the floating date for the dev version
   serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
-# use the next line for the production version
-# serverDate="20191101"
+  
+  # use the next line for the production version
+  # serverDate="20191101"
+  
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -115,7 +118,7 @@ cat ("serious start up error\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
-        if (isLocal()) "Local" else "Online"," configuration")))  
+        if (isLocal()) "Local" else "Online"," configuration"))) 
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -1968,36 +1971,37 @@ cat("setting uiRunPlot to NULL\n")
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
       {
-        if (length(saveFvsRun$stands[[i]]$grps) > 0)
-          for (j in 1:length(saveFvsRun$stands[[i]]$grps))
-          { 
-            if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
-              for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
-              {
-                test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
-                spgtest <- grep("^SpGroup",test)
-                cntr <- 0
-                spgname <- list()
-                if (length(spgtest)){
-                  cntr<-cntr+1
-                  spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
-                  split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-                  if(!length(globals$GrpNum)){
-                    globals$GrpNum[1] <- 1
-                  }else
-                  globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-                  
-                  spgname[1] <- gsub(" ","", spgname[1])
-                  tmpk <- match(spgname[1], globals$GenGrp)
-                  if (!is.na(tmpk)){
-                    globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-                  }else globals$GenGrp[length(globals$GrpNum)]<-spgname
-                }
-              }
+        if (length(saveFvsRun$stands[[i]]$grps) > 0) for (j in 1:length(saveFvsRun$stands[[i]]$grps))
+        { 
+          if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0) for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
+          {
+            test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
+            spgtest <- grep("^SpGroup",test)
+            cntr <- 0
+            spgname <- list()
+            if (length(spgtest)){
+              cntr<-cntr+1
+              spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
+              split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+              if(!length(globals$GrpNum)){
+                globals$GrpNum[1] <- 1
+              }else
+              globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+              
+              spgname[1] <- gsub(" ","", spgname[1])
+              tmpk <- match(spgname[1], globals$GenGrp)
+              if (!is.na(tmpk)){
+                globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+              }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+            }
           }
-        updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[1]],
-        selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)
-        }
+        } 
+      }  
+      seldb=match(globals$fvsRun$refreshDB,globals$selStandTableList)
+      if (length(seldb) == 0) updateSelectInput(session=session, inputId="inTabs", 
+          choices=globals$selStandTableList, selected=0) else
+          updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[seldb]])                 
+      seldb=globals$selStandTableList[seldb]
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -3242,22 +3246,14 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
-        east <- list("FVScs","FVSls","FVSne","FVSsn")
-        if (is.na(match(globals$fvsRun$FVSpgm,east))){
+        volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
+           "Merchantable" else "Total"
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
-            labs(x="Year", y="Total cubic volume per acre") + 
+            labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
-              axis.text = element_text(color="black"))
-        }else {
-        plt = ggplot(data = toplot) + 
-          geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
-          labs(x="Year", y="Merchantable volume per acre") + 
-          theme(text = element_text(size=6), 
-                legend.position=if (toMany) "none" else "right",
-                axis.text = element_text(color="black")) 
-        }
+              axis.text = element_text(color="black")) 
         width=if (toMany) 3 else 4
         height=2.5
         png("quick.png", width=width, height=height, units="in", res=150)
