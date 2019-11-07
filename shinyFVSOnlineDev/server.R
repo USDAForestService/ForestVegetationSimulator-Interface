@@ -36,9 +36,9 @@ cat ("Server id=",serverID,"\n")
 # set serverDate to be the release date
 
 # use the floating date for the dev version
-# serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
 # use the next line for the production version
-  serverDate="20191101"
+# serverDate="20191101"
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
