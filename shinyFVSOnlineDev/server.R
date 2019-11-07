@@ -3249,7 +3249,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
            "Merchantable" else "Total"
         plt = ggplot(data = toplot) + 
-            geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
+            geom_line (aes(x=X,y=Y,color=Stand,alpha=.5)) +
             labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
