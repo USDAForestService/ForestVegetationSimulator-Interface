@@ -29,19 +29,16 @@ shinyServer(function(input, output, session) {
     while (sink.number()) sink()
     sink("FVSOnline.log")
   }
-
 cat ("FVSOnline/OnLocal interface server start.\n")
 serverID=" $Id$ "
-cat ("Server id=",serverID,"\n") 
+cat ("Server id=",serverID,"\n")
 
-  # set serverDate to be the release date
+# set serverDate to be the release date
 
-  # use the floating date for the dev version
-  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
-  
-  # use the next line for the production version
-  # serverDate="20191101"
-  
+# use the floating date for the dev version
+# serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+# use the next line for the production version
+  serverDate="20191101"
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -118,7 +115,7 @@ cat ("serious start up error\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
-        if (isLocal()) "Local" else "Online"," configuration"))) 
+        if (isLocal()) "Local" else "Online"," configuration")))  
     tit=NULL
     if (!file.exists("projectId.txt"))
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
@@ -3245,12 +3242,22 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
+        east <- list("FVScs","FVSls","FVSne","FVSsn")
+        if (is.na(match(globals$fvsRun$FVSpgm,east))){
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
             labs(x="Year", y="Total cubic volume per acre") + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
-              axis.text = element_text(color="black")) 
+              axis.text = element_text(color="black"))
+        }else {
+        plt = ggplot(data = toplot) + 
+          geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
+          labs(x="Year", y="Merchantable volume per acre") + 
+          theme(text = element_text(size=6), 
+                legend.position=if (toMany) "none" else "right",
+                axis.text = element_text(color="black")) 
+        }
         width=if (toMany) 3 else 4
         height=2.5
         png("quick.png", width=width, height=height, units="in", res=150)
