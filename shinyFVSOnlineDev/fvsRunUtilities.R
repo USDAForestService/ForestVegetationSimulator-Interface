@@ -606,7 +606,13 @@ cat("writeKeyFile, num stds=",length(stds),
               test <- na.omit(test)
               # if the keyword has more parameters than the other keyword with the same name, it's a DBS keyword
               if(length(test) > altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
-                dbflag <- 1
+                # if it's an old ass KCP that has more than 1 additional parameter for POTFIRE, it's actually FFE not DBS
+                if (toupper(strsplit(kcpconts[j]," ")[[1]][1])=="POTFIRE" && length(test) > 2) {
+                  dbflag <- 2
+                } else 
+                {
+                  dbflag <- 1
+                }
               }
               # if the keyword has less parameters than the other keyword with the same name, it's a non-DBS keyword
               if(length(test)<=altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
