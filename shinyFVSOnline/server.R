@@ -3247,7 +3247,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         toMany = nlevels(toplot$Stand) > 9
         plt = ggplot(data = toplot) + 
             geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
-            labs(x="Year", y="Total cubic volume") + 
+            labs(x="Year", y="Total cubic volume per acre") + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
               axis.text = element_text(color="black")) 
