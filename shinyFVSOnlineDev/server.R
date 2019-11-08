@@ -492,8 +492,13 @@ cat("selectdbtables\n")
   observe({
     if (!is.null(input$selectdbvars)) 
     {
-cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n")      
-      fvsOutData$dbSelVars <- input$selectdbvars
+      cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n") 
+      if (!length(grep("CaseID", input$selectdbvars))){
+        fvsOutData$dbSelVars <- input$selectdbvars
+        fvsOutData$dbSelVars[(length(fvsOutData$dbSelVars)+1)] <- fvsOutData$dbVars[grep("CaseID",fvsOutData$dbVars)]
+      } else {
+        fvsOutData$dbSelVars <- input$selectdbvars
+      }
     }
   })
     
@@ -940,7 +945,7 @@ cat ("cmd=",cmd,"\n")
             },vars))
         keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
         selVars = selVars[keep]
-        if (length(vars) < 7) selVars = vars
+        if (length(vars) < 7) selVars = vars[-(grep("CaseID",vars))]
         updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                  selected=selVars,inline=TRUE)                               
         fvsOutData$dbData        <- mdat
@@ -983,8 +988,9 @@ cat("filterRows and/or pivot\n")
     if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
         !is.null(input$dispVar) && input$dispVar != "None")  
           dat = pivot(dat,input$pivVar,input$dispVar)
-    fvsOutData$render = dat    
-    if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]   
+    fvsOutData$render = dat  
+    # This was limiting the number of rows exported to Excel as 10000.
+    #if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]   
     output$table <- renderTable(dat) 
   })
            
@@ -1074,9 +1080,18 @@ cat ("browsevars/plotType\n")
       })
     }
   })   
-  ## selectdbvars
+  # selectdbvars
   observe({
-    if (!is.null(input$selectdbvars)) fvsOutData$dbSelVars <- input$selectdbvars
+    if (!is.null(input$selectdbvars)) 
+    {
+      cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n") 
+      if (!length(grep("CaseID", input$selectdbvars))){
+        fvsOutData$dbSelVars <- input$selectdbvars
+        fvsOutData$dbSelVars[(length(fvsOutData$dbSelVars)+1)] <- fvsOutData$dbVars[grep("CaseID",fvsOutData$dbVars)]
+      } else {
+        fvsOutData$dbSelVars <- input$selectdbvars
+      }
+    }
   })
   ## yaxis, xaxis regarding the Y- and XUnits for DMD
   observe({
