@@ -292,10 +292,11 @@ cat("writeKeyFile, num stds=",length(stds),
       plotInit_plot <- dbtabs[i]
     }
   }
-  if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && 
-      (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) ||
-      is.na(!is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))))) return()
-  if (!is.null(stdInit) && is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)"))){
+  intable=fvsRun$refreshDB
+  if (!is.na(match(intable,"Stands (FVS_StandInit)")) && 
+      (!is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) ||
+      is.na(!is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))))) return()
+  if (!is.null(stdInit) && is.na(match(intable,"Plots within stands (FVS_PlotInit)"))){
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit,
                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -307,7 +308,7 @@ cat("writeKeyFile, num stds=",length(stds),
     if(class(SCD)=="try-error") return("Stand_ID Not Found")
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(plotInit) && is.na(match(input$inTabs,"Stands (FVS_StandInit)"))){
+  }else if (!is.null(plotInit) && is.na(match(intable,"Stands (FVS_StandInit)"))){
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year,Sam_Wt from ',plotInit,
                       ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
@@ -320,8 +321,8 @@ cat("writeKeyFile, num stds=",length(stds),
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
   }else if (!is.null(stdInit_cond) && 
-            (is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))
-             && is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
+            (is.na(match(intable,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))
+             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
     SCD <- try(dbGetQuery(dbIcon,
                paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_cond,
                        ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -334,8 +335,8 @@ cat("writeKeyFile, num stds=",length(stds),
     fvsInit <- SCD
     names(fvsInit) = toupper(names(fvsInit))
   }else if (!is.null(stdInit_plot) && 
-            (is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
-             && is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
+            (is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
+             && is.na(match(inTable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
     SCD <- try(dbGetQuery(dbIcon,
             paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
                    ' where Stand_ID in (select RunStds from temp.RunStds)')))
@@ -1390,27 +1391,6 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
     shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
     binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
     avalFVS <- dir(binDir,pattern=shlibsufx) 
-    #### this section can be deleted after after all the old programs are renamed
-    if (length(avalFVS) > 0) 
-    {
-      oldPgmNames = c("FVSbmc","FVScac","FVScic","FVScrc","FVSecc", 
-                      "FVSemc","FVSiec","FVSncc","FVSsoc","FVSttc", 
-                      "FVSutc","FVSwcc","FVSpnc","FVSwsc","FVSktc")
-      ex = tools::file_ext(avalFVS[1])
-      chpgm = na.omit(match(avalFVS,paste0(oldPgmNames,".",ex)))
-      if (length(chpgm))
-      {
-        for (oldIdx in chpgm) 
-        {
-          from=paste0(binDir,oldPgmNames[oldIdx],".",ex)
-          to=paste0(binDir,substr(oldPgmNames[oldIdx],1,5),".",ex)
-cat ("renaming program file: from=",from," to=",to,"\n")
-          file.rename(from=from,to=to)
-        }
-        avalFVS <- dir(binDir,pattern=shlibsufx)
-      }
-    }
-    #### delete above, including the comments.
     avalFVSp <- sub(shlibsufx,"",avalFVS)
     globals$activeExtens <- "base"
     if (length(avalFVSp) == 0) avalFVSp = "FVSie"
@@ -2078,10 +2058,10 @@ cat ("in addStandsToRun, selType=",selType,"\n")
         globals$fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
         break                
       }
-    }            
+    }
+    globals$fvsRun$refreshDB=input$inTabs
+cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
     resetGlobals(globals,globals$fvsRun,prms) 
-    updateSelectInput(session=session, inputId="inTabs", NULL,
-                      input$inTabs)
     extn <- extnslist[globals$activeExtens]
     selVarListUse <- globals$selVarList[globals$activeVariants]    
     vlst <- as.list (names(selVarListUse))
@@ -2337,6 +2317,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
       length(globals$fvsRun$stands)," stand(s)<br>",
       length(globals$fvsRun$grps)," group(s)")))
+    updateStandTableSelection()
     globals$changeind <- 1
     output$contChange <- renderText({
       HTML(paste0("<b>","*Run*","</b>"))

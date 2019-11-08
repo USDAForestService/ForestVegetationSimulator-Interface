@@ -37,7 +37,7 @@ cat ("Server id=",serverID,"\n")
   # set serverDate to be the release date
 
   # use the floating date for the dev version
-  # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
   serverDate="20191101"
@@ -1597,9 +1597,16 @@ cat ("Stands\n")
   
   updateStandTableSelection <- function ()
   {
-    cat ("in updateStandTableSelection\n")   
-    updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
-    selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)
+cat ("in updateStandTableSelection, length(globals$fvsRun$stands)=",length(globals$fvsRun$stands),"\n") 
+    if (length(globals$fvsRun$stands) == 0)
+      updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
+        selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL) else
+    {
+      if (length(globals$fvsRun$refreshDB) == 0 && length(globals$selStandTableList)) 
+        globals$fvsRun$refreshDB = globals$selStandTableList[[1]]
+      updateSelectInput(session=session, inputId="inTabs", choices=list(globals$fvsRun$refreshDB),
+        selected=globals$fvsRun$refreshDB)
+    }   
   }
   
   ## inTabs has changed
@@ -1996,12 +2003,7 @@ cat("setting uiRunPlot to NULL\n")
             }
           }
         } 
-      }  
-      seldb=match(globals$fvsRun$refreshDB,globals$selStandTableList)
-      if (length(seldb) == 0) updateSelectInput(session=session, inputId="inTabs", 
-          choices=globals$selStandTableList, selected=0) else
-          updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList[[seldb]])                 
-      seldb=globals$selStandTableList[seldb]
+      }
       resetGlobals(globals,globals$fvsRun,prms)
       mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
       output$uiCustomRunOps = renderUI(NULL)    
@@ -2051,6 +2053,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
         length(globals$fvsRun$grps)," group(s)")))
+      updateStandTableSelection()
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
@@ -2943,7 +2946,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       globals$changeind <- 1
       output$contChange <- renderText({
-        HTML(paste0("<b>","*Run*","</b>"))                             
+        HTML(paste0("<b>","*Run*","</b>"))
       })
       closeCmp()
       globals$schedBoxPkey <- character(0)
@@ -3249,7 +3252,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
            "Merchantable" else "Total"
         plt = ggplot(data = toplot) + 
-            geom_line (aes(x=X,y=Y,color=Stand,linetype=Stand)) +
+            geom_line (aes(x=X,y=Y,color=Stand,alpha=.5)) +
             labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
