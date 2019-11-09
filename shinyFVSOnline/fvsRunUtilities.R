@@ -336,7 +336,7 @@ cat("writeKeyFile, num stds=",length(stds),
     names(fvsInit) = toupper(names(fvsInit))
   }else if (!is.null(stdInit_plot) && 
             (is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
-             && is.na(match(inTable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
+             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
     SCD <- try(dbGetQuery(dbIcon,
             paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
                    ' where Stand_ID in (select RunStds from temp.RunStds)')))
