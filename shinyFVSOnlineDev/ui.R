@@ -363,6 +363,8 @@ shinyUI(fixedPage(
                    actionButton("rpTableAdd","Add table to report"),
                    downloadButton("dlRenderData","Download table"),
                    myRadioGroup("dlRDType","File type", c(".xlsx",".csv"))),
+            tags$style(type="text/css","#tableLimitMsg{color:darkred;}"),          
+            fixedRow(column(width=12,textOutput("tableLimitMsg"))),
             fixedRow(column(width=12,rHandsontableOutput("table")))
           ) ),
           tabPanel("Graphs",
