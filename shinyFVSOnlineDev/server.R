@@ -588,7 +588,15 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
               if (input$outputRightPan != "Tables")
                 updateSelectInput(session,"outputRightPan",selected="Tables")
-              if (nrow(res) > 10000) res = res[1:10000,,drop=FALSE]
+              tableDisplayLimit = 5000
+              if (nrow(res) > tableDisplayLimit) 
+              {
+                msg=paste0("Table display limit exceeded. ",
+                  tableDisplayLimit," of ",nrow(res)," displayed. Use Download table",
+                  " to download all rows.")
+                output$tableLimitMsg<-renderText(msg)
+                res = res[1:tableDisplayLimit,,drop=FALSE] 
+              } else output$tableLimitMsg<-NULL
               output$table <- renderTable(res)
               return()
             }        
@@ -987,10 +995,17 @@ cat("filterRows and/or pivot\n")
       fvsOutData$dbData[,fvsOutData$browseSelVars,drop=FALSE]  
     if (!is.null(input$pivVar)  && input$pivVar  != "None" &&
         !is.null(input$dispVar) && input$dispVar != "None")  
-          dat = pivot(dat,input$pivVar,input$dispVar)
-    fvsOutData$render = dat  
-    # This was limiting the number of rows exported to Excel as 10000.
-    #if (nrow(dat) > 10000) dat = dat[1:10000,,drop=FALSE]   
+          dat = pivot(dat,input$pivVar,input$dispVar)                                                        
+    fvsOutData$render = dat
+    tableDisplayLimit = 5000
+    if (nrow(dat) > tableDisplayLimit) 
+    {
+      msg=paste0("Table display limit exceeded. ",
+        tableDisplayLimit," of ",nrow(dat)," displayed. Use Download table",
+        " to download all rows.")
+      output$tableLimitMsg<-renderText(msg)
+      dat = dat[1:tableDisplayLimit,,drop=FALSE] 
+    } else output$tableLimitMsg<-NULL
     output$table <- renderTable(dat) 
   })
            
@@ -3320,6 +3335,8 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
        filename=function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
        content = function (tf = paste0(tempfile(),".xlsx"))
        {
+         # limit the number of rows exported to Excel to 1,048,576
+         excelRowLimit=1048576
          runuuid = globals$fvsRun$uuid
          if (is.null(runuuid)) return()
          tabs = dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
@@ -3341,9 +3358,9 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
          for (tab in tabs)
          {
            qry = if (cmpYes && substr(tab,1,3) == "Cmp")
-             paste0("select * from ",tab," limit 1048576;") else
+             paste0("select * from ",tab," limit ",excelRowLimit,";") else
              paste0("select * from ",tab," where ",tab,".CaseID in",
-                    " (select CaseID from ",casesToGet,") limit 1048576;")
+                    " (select CaseID from ",casesToGet,") limit ",excelRowLimit,";")
           dat = try(dbGetQuery(dbGlb$dbOcon,qry))
           if (class(dat) == "try-error") next
           if (nrow(dat) == 0) next
@@ -3358,6 +3375,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       filename=function() paste0("table",isolate(input$dlRDType)),
       content=function (tf = tempfile())
       {
+        excelRowLimit=1048576
         if (isolate(input$dlRDType) == ".csv")
         {
           if (nrow(fvsOutData$render) > 0)
@@ -3366,8 +3384,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         } else {
           if (nrow(fvsOutData$render) > 0)
           {
-            if (nrow(fvsOutData$render) > 1048576) 
-              write.xlsx(fvsOutData$render[1:1048576,],file=tf,colNames = TRUE) else 
+            if (nrow(fvsOutData$render) > excelRowLimit) 
+              write.xlsx(fvsOutData$render[1:excelRowLimit,],file=tf,colNames = TRUE) else 
               write.xlsx(fvsOutData$render,file=tf,colNames = TRUE) 
           } else write.xlsx(file=tf)
         }          
@@ -4814,11 +4832,12 @@ cat("loaded table=",tab,"\n")
     }
     # loop over tables and make "stand_ID" fields unique by adding a sequence number
     sidmsg=NULL
-    newID=NULL
+    newID=NULL  
     for (idx in fixTabs)
     {
       tab2fix=tabs[idx]
-      sidTb=dbGetQuery(dbo,paste0("select stand_id from ",tab2fix))
+      idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
+      sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
       dups = duplicated(sidTb[,1])
       if (all(!dups)) next
       newID=sidTb[,1]
@@ -4833,7 +4852,7 @@ cat("loaded table=",tab,"\n")
       if (!is.null(newID))
       {
         sidTb=dbReadTable(dbo,tab2fix)
-        idx=match("stand_id",tolower(names(sidTb)))
+        idx=match(idf,tolower(names(sidTb)))
         if (!is.na(idx)) sidTb[,idx]=newID
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
       }
@@ -4845,7 +4864,7 @@ cat("loaded table=",tab,"\n")
     msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
     if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
       paste0(grpmsg,collapse=", "))
-    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID values were modified in table(s): ",
+    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were modified in table(s): ",
       paste0(sidmsg,collapse=", "))
     fixFVSKeywords(dbo) 
     checkMinColumnDefs(dbo,progress)
