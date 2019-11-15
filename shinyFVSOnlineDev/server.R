@@ -3510,8 +3510,8 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel,"\n")
     if (length(input$kcpSaveCmps) && input$kcpSaveCmps > 0)
     {
       isolate ({
-cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
-is.null(input$kcpTitle),"\n")
+        cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
+             is.null(input$kcpTitle),"\n")
         if (nchar(input$kcpTitle) == 0)
         {
           newTit = paste0("Component ",length(globals$customCmps)+1) 
@@ -3519,25 +3519,24 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
-        topaste = findCmp(globals$fvsRun,input$simCont[1])
-        if (is.null(topaste)) return()
         if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
-        updateTextInput(session=session, inputId="kcpEdit", value=
-          paste0(customCmps,"ENDIF\n"))
+          updateTextInput(session=session, inputId="kcpEdit", value=
+                            paste0(customCmps,"ENDIF\n"))
           customCmps <-as.list(paste0(customCmps,"ENDIF\n"))
           names(customCmps) <- names(globals$customCmps)
           globals$customCmps = customCmps
-          }
+        }else{
+          names(customCmps) <- names(globals$customCmps)
+        }
         save(file="FVS_kcps.RData",customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
-           choices=names(globals$customCmps),
-           selected=newTit)
+                          choices=names(globals$customCmps),
+                          selected=newTit)
       })
       mkSimCnts(globals$fvsRun,input$simCont[[1]])
       updateSelectInput(session=session, inputId="simCont",
-         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+                        choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       closeCmp()
-      
     }
   })
   
@@ -3641,16 +3640,29 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     if (length(data)==0) return()
     isolate ({
       addnl = TRUE
+      if (length(globals$customCmps) == 0 && input$kcpUpload$name=="FVS_kcps.RData")
+      {
+        load(input$kcpUpload$datapath)
+        globals$customCmps = customCmps
+        addnl = FALSE
+      }
+      if (length(globals$customCmps) && !is.null(customCmps)){
+        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)),
+                           selected=names(customCmps)[1])
+      }
       if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
       {
-        addnl = FALSE
         updateTextInput(session=session, inputId="kcpTitle", value=
-          paste("From:",input$kcpUpload$name))
+                          paste("From:",input$kcpUpload$name))
       }
-      updateTextInput(session=session, inputId="kcpEdit", value=
-          paste0(input$kcpEdit,
-            paste(if (addnl) "\n* From:" else "* From:",
-                  input$kcpUpload$name,"\n"),paste(data,collapse="\n")))
+      if(addnl){
+        updateTextInput(session=session, inputId="kcpEdit", value=
+                          paste0(input$kcpEdit,
+                                 paste("\n* From:",paste(data,collapse="\n"))))
+      } else {
+        updateTextInput(session=session, inputId="kcpEdit", value=customCmps[1])
+        save(file="FVS_kcps.RData",customCmps)
+      }
     })
   })
 
