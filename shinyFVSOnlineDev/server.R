@@ -1,6 +1,6 @@
 # $Id$
 
-library(shiny)
+library(shiny)                                 
 library(rhandsontable)
 library(ggplot2)
 library(parallel)
@@ -492,13 +492,20 @@ cat("selectdbtables\n")
   observe({
     if (!is.null(input$selectdbvars)) 
     {
-      cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n") 
-      if (!length(grep("CaseID", input$selectdbvars))){
-        fvsOutData$dbSelVars <- input$selectdbvars
-        fvsOutData$dbSelVars[(length(fvsOutData$dbSelVars)+1)] <- fvsOutData$dbVars[grep("CaseID",fvsOutData$dbVars)]
-      } else {
-        fvsOutData$dbSelVars <- input$selectdbvars
+      # if CaseID is part of the variable set, make sure it is selected at least once
+      selidxCaseID=grep("CaseID",input$selectdbvars)
+      if (!length(selidxCaseID)) 
+      {
+        idxCaseID=grep("CaseID",fvsOutData$dbVars)
+        if (length(idxCaseID)) 
+        {
+          selvars=union(fvsOutData$dbVars[idxCaseID[1]],input$selectdbvars)
+          updateSelectInput(session=session, "selectdbvars",choices=as.list(fvsOutData$dbVars), 
+                            selected=selvars)
+        }
       }
+      fvsOutData$dbSelVars <- input$selectdbvars
+cat ("input$selectdbvars=",input$selectdbvars,"\n") 
     }
   })
     
@@ -547,7 +554,7 @@ cat ("sqlRunQuery\n")
         iq = 0
         dfrtn = NULL
         for (qry in qrys) 
-        {
+        {                                 
           if (nchar(qry))
           {
             iq = iq+1
@@ -1095,19 +1102,7 @@ cat ("browsevars/plotType\n")
       })
     }
   })   
-  # selectdbvars
-  observe({
-    if (!is.null(input$selectdbvars)) 
-    {
-      cat("selectdbvars input$selectdbvars",input$selectdbvars,"\n") 
-      if (!length(grep("CaseID", input$selectdbvars))){
-        fvsOutData$dbSelVars <- input$selectdbvars
-        fvsOutData$dbSelVars[(length(fvsOutData$dbSelVars)+1)] <- fvsOutData$dbVars[grep("CaseID",fvsOutData$dbVars)]
-      } else {
-        fvsOutData$dbSelVars <- input$selectdbvars
-      }
-    }
-  })
+
   ## yaxis, xaxis regarding the Y- and XUnits for DMD
   observe({
     if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
@@ -1237,8 +1232,6 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
-    if (input$xaxis == "Year" && isolate(input$plotType) != "box" && 
-        isolate(input$plotType) != "bar") dat$Year = as.numeric(as.character(dat$Year))             
     nd = NULL
     sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
                     nlevels(dat$Species)>1 
@@ -4136,7 +4129,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
               '" alt="',sid,'" style="width:229px;height:170px;">'))
          }  
-      })
+      })                 
       progress$close()
       map = leaflet(data=polys) %>% addTiles() %>%
               addTiles(urlTemplate = 
@@ -4160,9 +4153,11 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
 
   ## Tools, related to FVSRefresh
   observe({    
-    if (input$topPan == "Tools") 
+    if (input$toolsPan == "Refresh/copy projects") 
     {
-cat ("Tools hit\n") 
+      srcprjs = 
+      
+cat ("Tools,Refresh/copy projects\n") 
       if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir) &&
           exists("pgmList")) 
       {
@@ -4189,16 +4184,16 @@ cat ("avalFVSp=",avalFVSp,"\n")
       updateSelectInput(session=session, inputId="pickBackup", 
         choices = backups, selected="")
     } 
-  })
-  
-  ## FVSRefresh
+  }) 
+                                                                                              
+  ## FVSRefresh                                                                              
   observe({  
-    if (input$FVSRefresh == 0) return()               
+    if (length(input$FVSRefresh) && input$FVSRefresh == 0) return()                                                                                                     
 cat ("FVSRefresh\n")
     isolate({
       if (length(input$FVSprograms) == 0) return()
       shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-      i = 0
+      i = 0                                                                                          
       if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir))
       {
         for (pgm in input$FVSprograms)
@@ -4326,21 +4321,12 @@ cat ("delete all runs and outputs\n")
   
   ## interfaceRefresh
   observe({
-    if(input$interfaceRefresh > 0 && exists("fvsOnlineDir") && 
-                                file.exists( fvsOnlineDir))
-        session$sendCustomMessage(type = "dialogContentUpdate",
-          message = list(id = "interfaceRefreshDlg",
-                    message = "Are you sure?"))
-  })
-  observe({
-    if (length(input$interfaceRefreshDlgBtn) && 
-        input$interfaceRefreshDlgBtn > 0) 
+    if(length(input$interfaceRefresh) && input$interfaceRefresh > 0)
     {
-cat ("input$interfaceRefreshDlgBtn=",input$interfaceRefreshDlgBtn,
-' exists2("fvsOnlineDir")=',exists("fvsOnlineDir"),
-' exists("FVSOnlineNeeded")=',exists("FVSOnlineNeeded"),"\n")
-      if (exists("fvsOnlineDir") && exists("FVSOnlineNeeded"))
+      if (exists("fvsOnlineDir") && file.exists(fvsOnlineDir) && 
+          exists("FVSOnlineNeeded"))
       {
+cat ("interfaceRefresh, needed elements present\n")      
         ffdir = fvsOnlineDir
         if (isolate(input$interfaceRefreshSource == "Dev"))        
         {
@@ -6091,49 +6077,98 @@ cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$u
 cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     })
   }
-
-  ## Projects hit
+    
+  ## Refresh/copy projects 
   observe({    
-    if (input$toolsPan == "Manage projects") 
+    if (input$topPan == "Tools" && input$toolsPan == "Refresh/copy projects") 
     {
-cat ("Projects hit\n")
-    dirs = list.dirs("..",recursive=FALSE)
-    selChoices = list()
-    for (dir in dirs)
-    {
-      if (file.exists(paste0(dir,"/server.R")) && 
-          file.exists(paste0(dir,"/ui.R"))     &&
-          file.exists(paste0(dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
-    }
-    names(selChoices) = gsub("../","",selChoices)
-    sel = match(basename(getwd()),names(selChoices))
-    sel = if (is.na(sel)) NULL else selChoices[[sel]]
-    updateSelectInput(session=session, inputId="PrjSelect", 
-        choices=selChoices,selected=sel)
+cat ("Refresh/copy projects\n")
+      selChoices = getProjectList()
+      sel = match(basename(getwd()),selChoices)[1]
+      if (is.na(sel)) 
+      {
+        updateSelectInput(session=session,inputId="sourcePrj",choices=NULL)
+        updateSelectInput(session=session,inputId="targetPrj",choices=NULL)
+      } else {                 
+        updateSelectInput(session=session, inputId="sourcePrj", 
+          choices=selChoices,selected=selChoices[sel])
+        selChoices = selChoices[-sel]
+        updateSelectInput(session=session,inputId="targetPrj",
+            choices=selChoices,selected=NULL)
+      }
     }
   })
-
+  observe({    
+    if (length(input$sourcePrj) && nchar(input$sourcePrj)) 
+    {
+      selChoices = getProjectList()
+      sel = match(input$sourcePrj,selChoices)[1]
+      selChoices = selChoices[-sel]
+      updateSelectInput(session=session,inputId="targetPrj",
+          choices=selChoices,selected=NULL)
+    }
+  })
+  observe({    
+    if (input$cpyNow > 0) 
+    {
+      isolate({
+cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
+        if (length(input$targetPrj) == 0) return()
+        files=NULL
+        srcprj=paste0("../",input$sourcePrj,"/")
+        for (elt in input$cpyElts)
+        {
+          files=c(files,switch(elt,
+            "software"=c(paste0(srcprj,dir(srcprj,pattern="html$|R$|www")),
+                         paste0(srcprj,"treeforms.RData")),                       
+            "FVSPrgms"=paste0(srcprj,"/FVSBin"),
+            "inDBS"=paste0(srcprj,"/FVS_Data.db"),
+            "kcps"=paste0(srcprj,"/FVS_kcps.RData"),
+            "custQ"=paste0(srcprj,"/customQueries.RData")))
+        }
+        for (trgPrj in input$targetPrj) lapply(files,function (x,trg) {
+          if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE)},
+               paste0("../",trgPrj))
+        updateSelectInput(session=session,inputId="targetPrj",selected=0)
+      })      
+    }
+  })
+   
+  ## Projects hit
+  observe({    
+    if (input$topPan == "Tools" && input$toolsPan == "Manage project") 
+    {
+cat ("Manage project hit\n")
+      selChoices = getProjectList()
+for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i]],"\n")
+      sel = match(basename(getwd()),selChoices)[1]
+      sel = if (is.na(sel)) NULL else selChoices[[sel]]
+cat ("sel=",sel,"\n")
+      updateSelectInput(session=session, inputId="PrjSelect", 
+          choices=selChoices,selected=sel)
+    }
+  })
  
   ## Make New Project (PrjNew)
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
-      progress <- shiny::Progress$new(session,min=1,max=12)
-      progress$set(message = "Saving current run",value = 1)
-      saveRun()
       curdir = getwd()
-      basedir = basename(curdir)
+      newTitle = if (nchar(input$PrjNewTitle)) input$PrjNewTitle else "NewProject"
       setwd("../")
-      fn = if (nchar(input$PrjNewTitle)) input$PrjNewTitle else basedir
-      fn = mkFileNameUnique(fn)
+      fn = if (isLocal()) 
+      {       
+        basedir = basename(curdir)
+        newTitle <- mkFileNameUnique(newTitle)
+        newTitle
+      } else uuidgen()
       dir.create(fn)
-      if (!file.exists(fn)) 
+      if (dir.exists(fn)) setwd(fn) else
       {
         setwd(curdir)
-        updateTextInput(inputId=PrjNewTitle,session=session,value="")
+        updateTextInput(inputId="PrjNewTitle",session=session,value="")
         return()
       }
-      progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -6147,32 +6182,33 @@ cat ("Projects hit\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      file.copy(from=filesToCopy,to=fn,recursive=TRUE)
-      setwd(fn)     
-      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-      unlink("projectId.txt")
-      cat ("title= ",fn,"\n",file="projectId.txt")
-      progress$set(message = "Saving new prohect",value = 9)
-      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
-      if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-      if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-      globals$saveOnExit = FALSE
-      globals$reloadAppIsSet=1
-      progress$close()
-      session$reload()                        
+      lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
+      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList()))
+      ntit=paste0("title= ",newTitle)
+      idrow = grep("title=",prjid)
+      if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
+      write(file="projectId.txt",prjid)
+      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)      
+      setwd(curdir)
+      updateTextInput(session=session, inputId="PrjNewTitle",value=newTitle)
+      selChoices=getProjectList()
+      updateSelectInput(session=session, inputId="PrjSelect", 
+          choices=selChoices,selected=selChoices[[newTitle]])
     })
   })    
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
-cat("PrjSwitch to=",input$PrjSelect,"\n")
+    newPrj=paste0("../",input$PrjSelect)
+cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
     isolate({
-      if (dir.exists(input$PrjSelect))
+      if (dir.exists(newPrj))
       { 
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          setwd(input$PrjSelect)
+          setwd(newPrj)
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
           session$reload()

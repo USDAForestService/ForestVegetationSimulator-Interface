@@ -2363,12 +2363,64 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
             append(globals$fvsRun$stands[[r]]$grps,globals$fvsRun$grps[[grpIdxs[i]]])
           i <- i+1
         }     
-      } else globals$fvsRun$stands[[reps]]$rep <- 0
+      } else globals$fvsRun$stands[[reps]]$rep <- 0                           
     }
   }
 }
 
+getProjectList <- function()
+{
+  selChoices = list()
+  if (isLocal())
+  {  
+    dirs = dir("..")
+    for (dir in dirs)
+    {
+      if (file.exists(paste0("../",dir,"/server.R")) && 
+          file.exists(paste0("../",dir,"/ui.R"))     &&
+          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
+    }
+    if (length(selChoices)) names(selChoices) = selChoices
+  } else {
+    curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
+    curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
+    prjs = dir("..")
+    data = lapply (prjs, function (x) {         
+      fn = paste0("../",x,"/projectId.txt") 
+      if (file.exists(fn))
+      {
+        prj = scan (fn,what="character",sep="\n",quiet=TRUE)
+        ans = c(prj=x,email=trim(sub("email=","",prj[1])),
+          title=trim(sub("title=","",prj[2])))
+        ans
+      } else NULL
+    }) 
+    if (length(data))
+    {
+      data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)
+      names(data)=c("prj","email","title")
+      data$email=toupper(data$email)
+      data = data[data$email == curEmail,,drop=FALSE]
+      selChoices=as.list(data$prj)
+      names(selChoices)=data$title 
+    } else selChoices=NULL
+  }                                                 
+  selChoices
+}
 
+
+mkNameUnique <- function(name,setOfNames=NULL)
+{
+  origname=name
+  i=0
+  repeat
+  {
+    if (is.na(match(name,setOfNames))) return(name)
+    i = i+1
+    name = paste0(origname," (",i,")")
+  } 
+}
+                    
 mkFileNameUnique <- function(fn)
 { 
   trim <- function (x) gsub("^\\s+|\\s+$","",x)

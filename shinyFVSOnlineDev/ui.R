@@ -209,8 +209,8 @@ shinyUI(fixedPage(
                     HTML("Note that all outputs are put in output database except for the SVS data.<br>
                          FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum, 
                          FVS_DM_Spp_Sum) are always produced."),
-                    checkboxGroupInput("autoOut",NULL,
-                      c("SVS: Stand Visualization"="autoSVS",  
+                    checkboxGroupInput("autoOut",NULL,choices=list(
+                        "SVS: Stand Visualization"="autoSVS",  
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
@@ -626,16 +626,15 @@ shinyUI(fixedPage(
         column(width=12,offset=0,
           tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="toolsPan", 
-            tabPanel("Manage projects",        
-              if (isLocal()) list(
+            tabPanel("Manage project",        
                 h4(),h4("Switch to another project"), 
                 selectInput("PrjSelect", "Select project", multiple=FALSE,
                    choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjSwitch","Switch to selected project"), 
-                h4(),h4("Setup a new project"),
+                actionButton("PrjSwitch","Switch to selected project"),h4(),
+                h4("Create a new project from your current project"),
                 textInput("PrjNewTitle", "New project title", ""), 
-                actionButton("PrjNew","Make new project")),
-              h4(),h4("Delete outputs in current project"),
+                actionButton("PrjNew","Make new project"),
+              h4("Delete outputs in current project"),
               modalTriggerButton("deleteAllOutputs", "#deleteAllOutputsDlg", 
                 "Delete ALL outputs in current project"),
               modalDialog(id="deleteAllOutputsDlg", footer=list(
@@ -668,34 +667,47 @@ shinyUI(fixedPage(
                     'data-dismiss' = "modal", "Cancel")))
               )
             ), 
-            tabPanel("Downloads", 
-              h6(),
-              downloadButton("dlFVSDatadb","Input data base (all data)"),
-              downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),
-              downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),
-              downloadButton("dlFVSRunkey","Keyword file for current run"),
-              h4(),        
+            tabPanel("Downloads", h6(),
+              downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
+              downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
+              downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),h6(),
+              downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
               checkboxGroupInput("dlZipSet","Set contents of fvsRun.zip", 	
                 zipList,selZip,inline=FALSE),	
               downloadButton("dlFVSRunZip","Download fvsRun.zip")
-            ),
-            tabPanel("Refresh software", 
-              h4(),
-              selectInput("FVSprograms", "Pick programs to add or refresh", multiple=TRUE,
-                choices = list(), selected="", selectize=FALSE),
-              h6(),
-              actionButton("FVSRefresh","Refresh or add selected FVS programs"),
-              h6(),
-              modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
-                "Refresh this interface software"),
-              modalDialog(id="interfaceRefreshDlg", footer=list(
-                modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
-                  "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),
-              myRadioGroup("interfaceRefreshSource","Interface source: ", 	
-                           c("Production code (recommended)"="Prod",
-                             "Development code (testers only)"="Dev"),selected="Prod")
+            ),          
+            tabPanel("Refresh/copy projects",
+              fixedRow(
+                if (isLocal()) list() else 
+                column(width=if (isLocal()) 12 else 5,offset=0,
+                  h4("Refresh current project from system sources"),
+                  selectInput("FVSprograms", "Pick FVS variants to add or refresh", multiple=TRUE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),
+                  actionButton("FVSRefresh","Refresh or add selected variants"),
+                  h6(),   
+                  radioButtons("interfaceRefreshSource","Select version of interface: ", 	
+                             choices=list("Production version"="Prod",
+                             "Development version"="Dev"),selected="Prod"),
+                  actionButton("interfaceRefresh","Refresh or add selected variants") 
+                ),           
+                column(width=if (isLocal()) 12 else 7,offset=0,
+                  h4("Copy data and software from a source project to target project(s)"),
+                  selectInput("sourcePrj", "Source project", multiple=FALSE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),       
+                  selectInput("targetPrj", "Target project(s)", multiple=TRUE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),
+                  checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
+                    list("All interface software"="software",
+                      "FVS variants"="FVSPrgms",
+                      "Input database (FVS_Data.db)"="inDBS",
+                      "Keyword component (.kcp) library"="kcps",
+                      "Custom query library"="custQ"),
+                      selected=c("software","FVSPrgms")),
+                      actionButton("cpyNow","Copy now"))
+                )
             )  #END tabPanel                                         
           ) #END tabsetPanel
         ) ) #END column and fixed row   
