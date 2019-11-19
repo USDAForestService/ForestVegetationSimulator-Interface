@@ -627,10 +627,12 @@ shinyUI(fixedPage(
           tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="toolsPan", 
             tabPanel("Manage project",        
-                h4(),h4("Switch to another project"), 
+                h4(),if (isLocal()) h4("Switch to another project") else
+                                    h4("Start another project"), 
                 selectInput("PrjSelect", "Select project", multiple=FALSE,
                    choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjSwitch","Switch to selected project"),h4(),
+                actionButton("PrjSwitch",if (isLocal()) "Switch to selected project" else
+                    "Start selected project"),h4(),
                 h4("Create a new project from your current project"),
                 textInput("PrjNewTitle", "New project title", ""), 
                 actionButton("PrjNew","Make new project"),
@@ -689,7 +691,7 @@ shinyUI(fixedPage(
                   radioButtons("interfaceRefreshSource","Select version of interface: ", 	
                              choices=list("Production version"="Prod",
                              "Development version"="Dev"),selected="Prod"),
-                  actionButton("interfaceRefresh","Refresh or add selected variants") 
+                  actionButton("interfaceRefresh","Refresh interface software") 
                 ),           
                 column(width=if (isLocal()) 12 else 7,offset=0,
                   h4("Copy data and software from a source project to target project(s)"),
@@ -703,6 +705,7 @@ shinyUI(fixedPage(
                     list("All interface software"="software",
                       "FVS variants"="FVSPrgms",
                       "Input database (FVS_Data.db)"="inDBS",
+                      "Spatial data (SpatialData.RData)"="inSpace",
                       "Keyword component (.kcp) library"="kcps",
                       "Custom query library"="custQ"),
                       selected=c("software","FVSPrgms")),

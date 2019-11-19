@@ -2045,8 +2045,8 @@ ncmps <- function(fvsRun)
 
 addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 {
-cat ("in addStandsToRun, selType=",selType,"\n")
   isolate({
+cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
     timescale <- 0
     if(length(globals$fvsRun$stands)) timescale <- 1

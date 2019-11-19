@@ -3503,8 +3503,8 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel,"\n")
     if (length(input$kcpSaveCmps) && input$kcpSaveCmps > 0)
     {
       isolate ({
-        cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
-             is.null(input$kcpTitle),"\n")
+cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
+is.null(input$kcpTitle),"\n")
         if (nchar(input$kcpTitle) == 0)
         {
           newTit = paste0("Component ",length(globals$customCmps)+1) 
@@ -3512,24 +3512,25 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel,"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
+        topaste = findCmp(globals$fvsRun,input$simCont[1])
+        if (is.null(topaste)) return()
         if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
-          updateTextInput(session=session, inputId="kcpEdit", value=
-                            paste0(customCmps,"ENDIF\n"))
+        updateTextInput(session=session, inputId="kcpEdit", value=
+          paste0(customCmps,"ENDIF\n"))
           customCmps <-as.list(paste0(customCmps,"ENDIF\n"))
           names(customCmps) <- names(globals$customCmps)
           globals$customCmps = customCmps
-        }else{
-          names(customCmps) <- names(globals$customCmps)
-        }
+          }
         save(file="FVS_kcps.RData",customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
-                          choices=names(globals$customCmps),
-                          selected=newTit)
+           choices=names(globals$customCmps),
+           selected=newTit)
       })
       mkSimCnts(globals$fvsRun,input$simCont[[1]])
       updateSelectInput(session=session, inputId="simCont",
-                        choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       closeCmp()
+      
     }
   })
   
@@ -3633,29 +3634,16 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     if (length(data)==0) return()
     isolate ({
       addnl = TRUE
-      if (length(globals$customCmps) == 0 && input$kcpUpload$name=="FVS_kcps.RData")
-      {
-        load(input$kcpUpload$datapath)
-        globals$customCmps = customCmps
-        addnl = FALSE
-      }
-      if (length(globals$customCmps) && !is.null(customCmps)){
-        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)),
-                           selected=names(customCmps)[1])
-      }
       if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
       {
+        addnl = FALSE
         updateTextInput(session=session, inputId="kcpTitle", value=
-                          paste("From:",input$kcpUpload$name))
+          paste("From:",input$kcpUpload$name))
       }
-      if(addnl){
-        updateTextInput(session=session, inputId="kcpEdit", value=
-                          paste0(input$kcpEdit,
-                                 paste("\n* From:",paste(data,collapse="\n"))))
-      } else {
-        updateTextInput(session=session, inputId="kcpEdit", value=customCmps[1])
-        save(file="FVS_kcps.RData",customCmps)
-      }
+      updateTextInput(session=session, inputId="kcpEdit", value=
+          paste0(input$kcpEdit,
+            paste(if (addnl) "\n* From:" else "* From:",
+                  input$kcpUpload$name,"\n"),paste(data,collapse="\n")))
     })
   })
 
@@ -6119,16 +6107,19 @@ cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",inp
         for (elt in input$cpyElts)
         {
           files=c(files,switch(elt,
-            "software"=c(paste0(srcprj,dir(srcprj,pattern="html$|R$|www")),
-                         paste0(srcprj,"treeforms.RData")),                       
-            "FVSPrgms"=paste0(srcprj,"/FVSBin"),
-            "inDBS"=paste0(srcprj,"/FVS_Data.db"),
-            "kcps"=paste0(srcprj,"/FVS_kcps.RData"),
-            "custQ"=paste0(srcprj,"/customQueries.RData")))
+            "software"=c(dir(srcprj,pattern="xlsx$|html$|R$|www"),
+                         "treeforms.RData","prms.RData"),                       
+            "FVSPrgms"="FVSBin",
+            "inDBS"="FVS_Data.db",
+            "inSpace"="SpatialData.RData",
+            "kcps"="FVS_kcps.RData",
+            "custQ"="customQueries.RData"))
         }
-        for (trgPrj in input$targetPrj) lapply(files,function (x,trg) {
-          if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE)},
-               paste0("../",trgPrj))
+cat ("cpyNow files=",files,"\n")
+        files=paste0(srcprj,files)
+        for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
+          if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
+          paste0("../",trgPrj))
         updateSelectInput(session=session,inputId="targetPrj",selected=0)
       })      
     }
@@ -6176,8 +6167,9 @@ cat ("sel=",sel,"\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".pidStatus$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      del = grep(pattern="FVS_Runs.RData",filesToCopy)
+      del = grep(pattern=".RData$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
+      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
@@ -6200,11 +6192,13 @@ cat ("sel=",sel,"\n")
 
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
-    newPrj=paste0("../",input$PrjSelect)
-cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
     isolate({
+      newPrj=paste0("../",input$PrjSelect)
+cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
       if (dir.exists(newPrj))
       { 
+        if (isLocal()) 
+        {
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
@@ -6212,6 +6206,12 @@ cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
           session$reload()
+        } else {
+          url = paste0(session$clientData$url_protocol,"//",
+                       session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
+cat ("launch url:",url,"\n")
+          session$sendCustomMessage(type = "openURL",url)
+        }
       }
     })
   })
