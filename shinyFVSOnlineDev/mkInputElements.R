@@ -14,7 +14,6 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
       mkTextInput ("waitYears", "Years before condition can become true again:",
                    waityrs, fpvs))
   } else list()
-    
   f = 0
   repeat
   {
@@ -102,26 +101,31 @@ mkSelectInput <- function (inputId, label, choices, fpvs,
   choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
   sel = grep ("^>",choices)
   if (length(sel)) choices[sel] = trim(substring(choices[sel],2))
+  edt <- 0
   if (! (is.null(fpvs) || is.na(fpvs)))
   {
     sel = if (is.na(suppressWarnings(as.numeric(fpvs)))) 
       grep (paste0("^",fpvs),choices) else fpvs
+    edt <- 1
   } 
 cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
-  mklist = if (valpair) 
+  mklist = if (valpair)
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
       as.list(as.character(0:(length(choices)-1)))
   names(mklist) = choices
-  sel = if (length(sel)) 
+  if (length(sel) && edt==0) 
     {
+      if (sel==length(choices)) sel <- sel-1
       sel = match(as.character(sel),mklist) 
-      if (is.na(sel)) "0" else as.character(if (valpair) sel else sel-1)
-    } else "0"  
+      if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
+    } 
+  if(!length(sel) && edt==0) sel="0"
+  if (valpair && gsub('"','',mklist[1])==0) sel <- as.character(as.numeric(sel)-1)
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
     "radiogroup"=myRadioGroup(inputId,label,
          mklist,selected=sel),
-     myInlineListButton (inputId, label, mklist, selected=sel,deltll=NULL))
+     myInlineListButton (inputId, label, mklist, selected=sel,deltll=2))
 }
 
 mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
@@ -377,7 +381,7 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
                    '>',names(mklist)[item],"</option>"))
       }
   }
-
+  
   inputs = if (is.null(inputs)) '<option value=" "></option>' else 
                                  paste0(inputs,collapse="")
   if (length(label)== 0) label=""
