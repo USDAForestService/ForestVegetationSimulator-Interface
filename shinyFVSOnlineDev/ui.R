@@ -10,6 +10,9 @@ library(openxlsx)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
+# cbbPalette is used in the graphics
+cbbPalette <- c("#D55E00","#56B4E9","#009E73","#0072B2","#E69F00","#CC79A7",
+                "#D55E00","#8F7800","#8F7800","#009100","#CF2C73","#00989D")   
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -28,8 +31,6 @@ customRunElements = list(
 
 source("modalDialog.R")
 source("mkInputElements.R")
-    # cbbPalette is used in the graphics
-    cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
 
 # used in Tools, dlZipSet
 zipList <- list(	
@@ -418,18 +419,25 @@ shinyUI(fixedPage(
                  column(width=2,
                    colourInput("color5", "Color 5", value = cbbPalette[5]),
                    colourInput("color6", "Color 6", value = cbbPalette[6])),
-                 column(width=6, 
-  	               myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
-                   sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))),
+                 column(width=2,
+                   colourInput("color7", "Color 7", value = cbbPalette[7]),
+                   colourInput("color8", "Color 8", value = cbbPalette[8])),
+                 column(width=2,
+                   colourInput("color9",   "Color 9", value = cbbPalette[9]),
+                   colourInput("color10", "Color 10", value = cbbPalette[10])),
+                 column(width=2,
+                   colourInput("color11", "Color 11", value = cbbPalette[11]),
+                   colourInput("color12", "Color 12", value = cbbPalette[12]))),
                fixedRow(
-                 column(width=3,
-                   myInlineTextInput("YLimMin", "Y-limits: "," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("YLimMax", "to"," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("XLimMin", "X-limits: "," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("XLimMax", "to"," ", size=5))),
+                 column(width=3, 
+  	               radioButtons("res","Resolution (ppi)",c("150","300","600"))),
+                 column(width=4,
+                 sliderInput("transparency", "Transparency", 0, 1, .3, step = .01)),
+                 column(width=1),
+                 column(width=2,fixedRow(textInput("YLimMin","Min Y limit:")),
+                                fixedRow(textInput("YLimMax","Max Y limit:"))),
+                 column(width=2,fixedRow(textInput("XLimMin","Min X limit:")), 
+                                fixedRow(textInput("XLimMax","Max X limit:")))),
                fixedRow(
                  column(width=6,
                    myRadioGroup("YlabRot","Rotate Y-Labels (degrees)",

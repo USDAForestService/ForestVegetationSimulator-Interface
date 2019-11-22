@@ -57,7 +57,8 @@ cat ("Server id=",serverID,"\n")
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
     if (!isLocal() && file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
     # cbbPalette is used in the graphics
-    cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
+    cbbPalette <- c("#D55E00","#56B4E9","#009E73","#0072B2","#E69F00","#CC79A7",
+                    "#D55E00","#8F7800","#8F7800","#009100","#CF2C73","#00989D")   
     load("prms.RData") 
     globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
     dbGlb <- new.env()
@@ -1328,10 +1329,12 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       unlist(lapply(seq(0,.3,.05),function (x) rgb(x,x,x))) else
         {
           if (is.null(input$color1)) cbbPalette else
-             c(input$color1,input$color2,input$color3,input$color4,input$color5,
-               input$color6)
+            c(input$color1,input$color2,input$color3,input$color4, input$color5, input$color6,
+              input$color7,input$color8,input$color9,input$color10,input$color11,input$color12)
         }
     colors = autorecycle(colors,nlevels(nd$Legend))
+    linetypes = autorecycle(c("solid","dashed","dotted","dotdash","longdash","twodash"),
+                             nlevels(nd$Legend))
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
 cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
@@ -1340,7 +1343,9 @@ cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
       hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
     p = p + scale_fill_manual(values=colors)
-    p = p + scale_shape_manual(values=1:nlevels(nd$Legend)) 
+    p = p + scale_shape_manual(values=1:nlevels(nd$Legend))
+    scale_linetype_manual(values=linetypes)
+    p = p + scale_linetype_manual(values=1:nlevels(nd$Legend)) 
 cat ("input$XTrans=",input$XTrans," input$YTrans=",input$YTrans,"\n")
     xmin = as.numeric(input$XLimMin)
     xmax = as.numeric(input$XLimMax)
