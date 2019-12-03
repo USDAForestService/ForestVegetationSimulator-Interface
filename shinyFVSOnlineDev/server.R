@@ -3701,7 +3701,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   })
   
   observe({
-    if (input$topPan == "SVS3d(alpha)")
+    if (input$topPan == "SVS3d")
     {
 cat ("SVS3d hit\n")
       allRuns = names(globals$FVS_Runs)
@@ -3929,7 +3929,7 @@ cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n")
   })
  
   observe({
-    if (input$topPan == "Maps(alpha)")
+    if (input$topPan == "Maps")
     {
 cat ("Maps hit\n")
       require(rgdal) 
@@ -4069,15 +4069,16 @@ cat ("matchVar=",matchVar,"\n")
         }
       }
       extra = NULL
-      if (any(table(dispData[,c("StandID","Year")]) > 1)) for (var in keys) 
-      {
-        if (class(dispData[,var]) == "character") 
-        {
-          extra = c(extra,var)
-          if (all(table(dispData[,c("StandID","Year",extra)]) == 1)) break
-        }
-      }
-      extra = setdiff(extra,input$mapDsVar)
+      # && input$mapDsTable!="FVS_StrClass"
+      # if (any(table(dispData[,c("StandID","Year")]) > 1)) for (var in keys)
+      # {
+      #   if (class(dispData[,var]) == "character")
+      #   {
+      #     extra = c(extra,var)
+      #     if (all(table(dispData[,c("StandID","Year",extra)]) == 1)) break
+      #   }
+      # }
+      # extra = setdiff(extra,input$mapDsVar)
       if (length(extra) > 1) extra = extra[1]
       if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
           format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)

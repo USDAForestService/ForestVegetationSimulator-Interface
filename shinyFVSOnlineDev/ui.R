@@ -489,7 +489,7 @@ shinyUI(fixedPage(
           )
         ) )       
       ) ) ),
-      tabPanel("SVS3d(alpha)",
+      tabPanel("SVS3d",
         h6(),
         fixedRow(
         column(width=6,offset=0,
@@ -505,7 +505,7 @@ shinyUI(fixedPage(
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
-      tabPanel("Maps(alpha)",
+      tabPanel("Maps",
         h6(),
         fixedRow(
         column(width=3,offset=0,
