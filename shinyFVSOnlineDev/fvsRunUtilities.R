@@ -1541,6 +1541,11 @@ mkKeyWrd = function (ansFrm,input,pkeys,variant)
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
+  # remove errant leading spaces in parameter values entered in fields where the cursor 
+  # was one space to the right of the far left bounds. Came into play with MgmtID keyword. 
+  for (i in 1:length(input)){
+    if(length(grep(" ", input[i]))) input[i] <- strsplit((input[i])," ")[[1]][2]
+  }
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
