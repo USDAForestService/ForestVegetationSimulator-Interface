@@ -57,8 +57,9 @@ cat ("Server id=",serverID,"\n")
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
     if (!isLocal() && file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
     # cbbPalette is used in the graphics
-    cbbPalette <- c("#D55E00","#56B4E9","#009E73","#0072B2","#E69F00","#CC79A7",
-                    "#D55E00","#8F7800","#8F7800","#009100","#CF2C73","#00989D")   
+    cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",
+                    "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
+                    "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
     globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
     dbGlb <- new.env()
@@ -1176,17 +1177,6 @@ cat ("renderPlot\n")
       output$plotMessage=renderText(msg)
       list(src = outfile)
     }
-    autorecycle <- function(a,n)
-    {
-      if (length(a)<n) 
-      {
-        add = n%/%length(a)
-        if (add) a = rep(a,add)
-        add = n%%length(a)
-        if (add) a = c(a,a[1:add])                                      
-      }
-      a[1:n]
-    } 
     if (input$leftPan == "Load"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
     output$plotMessage=renderText(NULL)
@@ -1330,7 +1320,8 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
         {
           if (is.null(input$color1)) cbbPalette else
             c(input$color1,input$color2,input$color3,input$color4, input$color5, input$color6,
-              input$color7,input$color8,input$color9,input$color10,input$color11,input$color12)
+              input$color7,input$color8,input$color9,input$color10,input$color11,input$color12,
+              input$color13,input$color14,input$color15,input$color16,input$color17,input$color18)
         }
     colors = autorecycle(colors,nlevels(nd$Legend))
     linetypes = autorecycle(c("solid","dashed","dotted","dotdash","longdash","twodash"),
@@ -3277,9 +3268,10 @@ cat ("length(allSum)=",length(allSum),"\n")
         }
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
+        colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
         volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
            "Merchantable" else "Total"
-        plt = ggplot(data = toplot) + 
+        plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
             geom_line (aes(x=X,y=Y,color=Stand)) +
             labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
             theme(text = element_text(size=6), 

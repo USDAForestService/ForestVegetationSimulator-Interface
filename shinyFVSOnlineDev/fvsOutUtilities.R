@@ -145,6 +145,18 @@ getRptFile <- function (new=FALSE)
   "FVSReport/report.md"
 }
 
+autorecycle <- function(a,n)
+{
+  if (length(a)<n) 
+  {
+    add = n%/%length(a)
+    if (add) a = rep(a,add)
+    add = n%%length(a)
+    if (add) a = c(a,a[1:add])                                      
+  }
+  a[1:n]
+} 
+
 
 mkNextPlotFileName <- function()
 {

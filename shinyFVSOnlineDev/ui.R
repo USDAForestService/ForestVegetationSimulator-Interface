@@ -11,8 +11,9 @@ library(openxlsx)
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 # cbbPalette is used in the graphics
-cbbPalette <- c("#D55E00","#56B4E9","#009E73","#0072B2","#E69F00","#CC79A7",
-                "#D55E00","#8F7800","#8F7800","#009100","#CF2C73","#00989D")   
+cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",
+                "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
+                "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -410,24 +411,30 @@ shinyUI(fixedPage(
     	          myRadioGroup("moreControls","More controls", c("Hide","Show")))),
              fixedRow(column(width=12,conditionalPanel("input.moreControls == 'Show'",
                fixedRow(
+                 column(width=2,               
+                   colourInput("color1",  "Color 1",  value = cbbPalette[1]),
+                   colourInput("color2",  "Color 2",  value = cbbPalette[2]),
+                   colourInput("color3",  "Color 3",  value = cbbPalette[3])),
+                 column(width=2,                                         
+                   colourInput("color4",  "Color 4",  value = cbbPalette[4]),
+                   colourInput("color5",  "Color 5",  value = cbbPalette[5]),
+                   colourInput("color6",  "Color 6",  value = cbbPalette[6])),
+                 column(width=2,                                         
+                   colourInput("color7",  "Color 7",  value = cbbPalette[7]),
+                   colourInput("color8",  "Color 8",  value = cbbPalette[8]),
+                   colourInput("color9",  "Color 9",  value = cbbPalette[9])),
                  column(width=2,
-                   colourInput("color1", "Color 1", value = cbbPalette[1]),
-                   colourInput("color2", "Color 2", value = cbbPalette[2])),
-                 column(width=2,
-                   colourInput("color3", "Color 3", value = cbbPalette[3]),
-                   colourInput("color4", "Color 4", value = cbbPalette[4])),
-                 column(width=2,
-                   colourInput("color5", "Color 5", value = cbbPalette[5]),
-                   colourInput("color6", "Color 6", value = cbbPalette[6])),
-                 column(width=2,
-                   colourInput("color7", "Color 7", value = cbbPalette[7]),
-                   colourInput("color8", "Color 8", value = cbbPalette[8])),
-                 column(width=2,
-                   colourInput("color9",   "Color 9", value = cbbPalette[9]),
-                   colourInput("color10", "Color 10", value = cbbPalette[10])),
-                 column(width=2,
+                   colourInput("color10", "Color 10", value = cbbPalette[10]),
                    colourInput("color11", "Color 11", value = cbbPalette[11]),
-                   colourInput("color12", "Color 12", value = cbbPalette[12]))),
+                   colourInput("color12", "Color 12", value = cbbPalette[12])),
+                 column(width=2,                                           
+                   colourInput("color13", "Color 13", value = cbbPalette[13]),
+                   colourInput("color14", "Color 14", value = cbbPalette[14]),
+                   colourInput("color15", "Color 15", value = cbbPalette[15])),
+                 column(width=2,                                         
+                   colourInput("color16", "Color 16", value = cbbPalette[16]),
+                   colourInput("color17", "Color 17", value = cbbPalette[17]),
+                   colourInput("color18", "Color 18", value = cbbPalette[18]))),
                fixedRow(
                  column(width=3, 
   	               radioButtons("res","Resolution (ppi)",c("150","300","600"))),
