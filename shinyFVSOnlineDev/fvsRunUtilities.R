@@ -1534,7 +1534,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
   }
   return (NULL)
 }
-  
 
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {

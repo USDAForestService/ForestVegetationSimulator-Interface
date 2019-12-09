@@ -6097,27 +6097,35 @@ cat ("Refresh/copy projects\n")
     if (input$cpyNow > 0) 
     {
       isolate({
-cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
+        progress <- shiny::Progress$new(session,min=1,max=10)
+        progress$set(message = "Copying files to target project",value = 1)
+        cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
         if (length(input$targetPrj) == 0) return()
         files=NULL
         srcprj=paste0("../",input$sourcePrj,"/")
+        progress$set(message = "Copying files to new project",value = 4)
         for (elt in input$cpyElts)
         {
           files=c(files,switch(elt,
-            "software"=c(dir(srcprj,pattern="xlsx$|html$|R$|www"),
-                         "treeforms.RData","prms.RData"),                       
-            "FVSPrgms"="FVSBin",
-            "inDBS"="FVS_Data.db",
-            "inSpace"="SpatialData.RData",
-            "kcps"="FVS_kcps.RData",
-            "custQ"="customQueries.RData"))
+                               "software"=c(dir(srcprj,pattern="xlsx$|html$|R$|www"),
+                                            "treeforms.RData","prms.RData"),                       
+                               "FVSPrgms"="FVSBin",
+                               "inDBS"="FVS_Data.db",
+                               "inSpace"="SpatialData.RData",
+                               "kcps"="FVS_kcps.RData",
+                               "custQ"="customQueries.RData"))
         }
-cat ("cpyNow files=",files,"\n")
+        progress$set(message = "Copying files to target project",value = 6)
+        cat ("cpyNow files=",files,"\n")
         files=paste0(srcprj,files)
         for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
           if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
           paste0("../",trgPrj))
+        progress$set(message = "Copying files to target project",value = 9)
         updateSelectInput(session=session,inputId="targetPrj",selected=0)
+        output$copyActionMsg <- renderText(HTML("<b>Target project software and/or files updated</b>"))
+        progress$close()
+        
       })      
     }
   })
@@ -6141,6 +6149,9 @@ cat ("sel=",sel,"\n")
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
+      progress <- shiny::Progress$new(session,min=1,max=12)
+      progress$set(message = "Saving current run",value = 1)
+      saveRun()
       curdir = getwd()
       newTitle = if (nchar(input$PrjNewTitle)) input$PrjNewTitle else "NewProject"
       setwd("../")
@@ -6157,6 +6168,7 @@ cat ("sel=",sel,"\n")
         updateTextInput(inputId="PrjNewTitle",session=session,value="")
         return()
       }
+      progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -6165,6 +6177,7 @@ cat ("sel=",sel,"\n")
       del = grep(pattern=".pidStatus$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".RData$",filesToCopy)
+      progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
       filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
@@ -6179,14 +6192,20 @@ cat ("sel=",sel,"\n")
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
       write(file="projectId.txt",prjid)
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)      
-      setwd(curdir)
       updateTextInput(session=session, inputId="PrjNewTitle",value=newTitle)
       selChoices=getProjectList()
       updateSelectInput(session=session, inputId="PrjSelect", 
-          choices=selChoices,selected=selChoices[[newTitle]])
+                        choices=selChoices,selected=selChoices[[newTitle]])
+      progress$set(message = "Saving new prohect",value = 9)
+      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+      if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+      globals$saveOnExit = FALSE
+      globals$reloadAppIsSet=1
+      progress$close()
+      session$reload()  
     })
   })    
-
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
     isolate({

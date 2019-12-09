@@ -724,7 +724,10 @@ shinyUI(fixedPage(
                       "Keyword component (.kcp) library"="kcps",
                       "Custom query library"="custQ"),
                       selected=c("software","FVSPrgms")),
-                      actionButton("cpyNow","Copy now"))
+                      actionButton("cpyNow","Copy now"),
+                  h6(),
+                  tags$style(type="text/css","#copyActionMsg{color:darkred;}"), 
+                  uiOutput("copyActionMsg"))
                 )
             )  #END tabPanel                                         
           ) #END tabsetPanel
