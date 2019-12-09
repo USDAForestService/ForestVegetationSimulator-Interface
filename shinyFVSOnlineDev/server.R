@@ -549,8 +549,7 @@ cat("Custom Query\n")
 cat ("sqlRunQuery\n")      
       isolate({
         msgtxt = character(0)
-        # remove the /* */ comments and newline chars
-        qrys = trim(gsub("\n"," ",gsub("/\\*.*\\*/"," ",input$sqlQuery)))
+        qrys = trim(gsub("\n"," ",removeComment(input$sqlQuery)," ",input$sqlQuery))
         qrys = scan(text=qrys,sep=";",what="",quote="",quiet=TRUE)
         output$table <- renderTable(NULL)        
         iq = 0
