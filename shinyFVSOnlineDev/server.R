@@ -13,7 +13,7 @@ library(leaflet)
 library(openxlsx)              
 
 # set shiny.trace=T for reactive tracing (lots of output)
-options(shiny.maxRequestSize=1000*1024^2,shiny.trace = FALSE,
+options(shiny.maxRequestSize=5000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
 
 shinyServer(function(input, output, session) {
