@@ -585,7 +585,9 @@ cat("writeKeyFile, num stds=",length(stds),
             thenkw <- toupper(kcpconts[j])=="THEN"
             endkw <- toupper(kcpconts[j])=="END"
             endifkw <- toupper(kcpconts[j])=="ENDIF"
+            commkw <- toupper(kcpconts[j])=="COMMENT"
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
+            if(endkw && commentflag==1) commentflag <- 0
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -621,7 +623,7 @@ cat("writeKeyFile, num stds=",length(stds),
               }
             }
             # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
-            if(!comment && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
+            if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
               # if it's a suppose-generated KCP (has "!")
               if(strsplit(kcpconts[j],"")[[1]][1]=="!"){
                 # if it's a component specifier and we aren't in a condition block
@@ -1067,6 +1069,20 @@ cat("writeKeyFile, num stds=",length(stds),
                 # if we already were, remove the duplicate IF
                 else{
                   kcpconts <- kcpconts[-j]
+                }
+              }
+              # if it's a COMMENT keyword
+              else if (commkw){
+                # if we weren't already in a compute block, set the flag to 1 indicating we are now
+                if(commentflag==0){
+                  commentflag <- 1
+                }
+                if(extflag > 0){
+                  insertkw[k] <- "END"
+                  insertidx[k] <- j-1
+                  k <- k+1
+                  numinserts <- numinserts +1
+                  extflag <- 0
                 }
               }
               # if it's a COMPUTE keyword
