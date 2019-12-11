@@ -1856,7 +1856,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
   observe({
     if (input$saveRun > 0)
     {
-      cat ("saveRun\n")
+cat ("saveRun\n")
       saveRun()
       selChoices = names(globals$FVS_Runs) 
       names(selChoices) = globals$FVS_Runs
@@ -3055,7 +3055,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
           dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[[1]]))
         if(globals$timeissue==1){
           progress$close()
-          isolate(updateTabsetPanel(session=session,inputId="rightPan",selected="Time"))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
         }
         if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
         {
@@ -6231,32 +6231,36 @@ cat ("launch url:",url,"\n")
       }
     })
   })
-  
                                       
   saveRun <- function() 
   {
     isolate({
-      saveTheRun = nchar(trim(input$title)) > 1
-      if (saveTheRun) 
+      runName = trim(input$title) 
+      if (nchar(runName) == 0) runName = paste0("Run ",length(FVS_Runs)+1)
+      runNames=unlist(globals$FVS_Runs)
+      me=match(globals$fvsRun$uuid,names(runNames))
+      if (!is.na(me)) runNames=runNames[-me]
+      runName=mkNameUnique(runName,runNames)
+      if (runName != input$title) updateTextInput(session=session, inputId="title",
+         value=runName)
+      globals$fvsRun$title = runName
+      globals$fvsRun$defMgmtID = input$defMgmtID
+      globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
+      if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
       {
-        globals$fvsRun$title = input$title
-        globals$fvsRun$defMgmtID = input$defMgmtID
-        globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
-        if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
-        {
-          for (item in names(globals$fvsRun$uiCustomRunOps))
-            globals$fvsRun$uiCustomRunOps[[item]] = input[[item]]
-        }
-        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-        attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-        saveFvsRun = globals$fvsRun
-        save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-        globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs) 
+        for (item in names(globals$fvsRun$uiCustomRunOps))                                
+          globals$fvsRun$uiCustomRunOps[[item]] = input[[item]]
       }
-      # remove excess images that maybe created in Maps.
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+      saveFvsRun = globals$fvsRun
+      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs) 
+      
+      # remove excess images that may be created in Maps.
       delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
       if (length(delList)) lapply(delList,function(x) unlink(x))  
-cat ("leaving saveRun, saveTheRun=",saveTheRun,"\n") 
+cat ("leaving saveRun\n") 
     }) 
   }
    

@@ -2415,6 +2415,7 @@ getProjectList <- function()
 
 mkNameUnique <- function(name,setOfNames=NULL)
 {
+  if (is.null(setOfNames)) return(name)
   origname=name
   i=0
   repeat
