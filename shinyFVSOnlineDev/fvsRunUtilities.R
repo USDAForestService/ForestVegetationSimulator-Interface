@@ -569,6 +569,7 @@ cat("writeKeyFile, num stds=",length(stds),
           extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
           condflag <- 0 # denotes whether we are in a conditional block
           computeflag <- 0 # denotes whether are in a compute block
+          commentflag <- 0 # denoted whether we are in a COMMENT keyword block
           k <- 1 # index counter for the next 2 lsts
           insertkw <- list() # list of which keywords to insert at the end
           insertidx <- list() # list of indices of where to insert those keywords at the end
@@ -583,8 +584,10 @@ cat("writeKeyFile, num stds=",length(stds),
             expression <- grep("=",kcpconts[j])
             ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
             thenkw <- toupper(kcpconts[j])=="THEN"
-            endkw <- toupper(kcpconts[j])=="END"
-            endifkw <- toupper(kcpconts[j])=="ENDIF"
+            endkw <- grep("END", toupper(kcpconts[j]))
+            endkw <- length(endkw)
+            endifkw <- grep("ENDIF", toupper(kcpconts[j]))
+            endifkw <- length(endifkw)
             commkw <- toupper(kcpconts[j])=="COMMENT"
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
             if(endkw && commentflag==1) commentflag <- 0
@@ -623,6 +626,7 @@ cat("writeKeyFile, num stds=",length(stds),
               }
             }
             # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
+            if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
             if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
               # if it's a suppose-generated KCP (has "!")
               if(strsplit(kcpconts[j],"")[[1]][1]=="!"){
@@ -1104,6 +1108,9 @@ cat("writeKeyFile, num stds=",length(stds),
                 if(computeflag==1){
                   computeflag <- 0
                 } 
+                else if(commentflag > 0){
+                  commentflag <- 0
+                }
                 else if(extflag > 0){
                   extflag <- 0
                 }
@@ -1551,13 +1558,12 @@ getPstring = function (pkeys,pkey,atag = NULL)
   return (NULL)
 }
 
+
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
-  # remove errant leading spaces in parameter values entered in fields where the cursor 
-  # was one space to the right of the far left bounds. Came into play with MgmtID keyword. 
   for (i in 1:length(input)){
     if(length(grep(" ", input[i]))) input[i] <- strsplit((input[i])," ")[[1]][2]
   }
@@ -1578,9 +1584,9 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
       next
     }
     if (state==1) # looking for the end of the field number
-    {   
+    {
       if (c == "," || c == "!") fld = as.numeric(substr(ansFrm,fs,i-1))
-      if (c == "!") 
+      if (c == "!")
       {
         inp = if (length(input) < fld) "" else input[fld]
         out = paste0(out,inp)
@@ -2431,7 +2437,6 @@ getProjectList <- function()
 
 mkNameUnique <- function(name,setOfNames=NULL)
 {
-  if (is.null(setOfNames)) return(name)
   origname=name
   i=0
   repeat
