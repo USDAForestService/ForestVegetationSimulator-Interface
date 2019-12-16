@@ -113,14 +113,21 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
       as.list(as.character(0:(length(choices)-1)))
   names(mklist) = choices
+  
   if (length(sel) && edt==0) 
     {
       if (sel==length(choices)) sel <- sel-1
       sel = match(as.character(sel),mklist) 
       if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
-    } 
+  } 
   if(!length(sel) && edt==0) sel="0"
-  if (valpair && gsub('"','',mklist[1])==0) sel <- as.character(as.numeric(sel)-1)
+  if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- 0
+  if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
+  if (valpair && gsub('"','',mklist[1])==0 && edt==0) sel <- as.character(as.numeric(sel)-1)
+  if (valpair && gsub('"','',mklist[1]) > 0 && edt==1){
+    sel <- as.character(mklist[mklist[[1]][1]])
+    mklist[1] <- as.character((mklist[1]))
+  }
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
     "radiogroup"=myRadioGroup(inputId,label,
@@ -335,14 +342,18 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
     if ((!length(deltll) && is.null(selected))||(length(deltll) && deltll==2)){
     # all dropdowns where a blank is not allowed (no deleteAll pkey)
     # applies to most keywords, and when editing previously saved selections (deltll==2)
+    first <- 0
     for (item in 1:length(mklist))
      {
+      if (mklist[[item]] == selected && first==0){
+        tag <- "selected"
+        first <- 1
+        }else tag <- ""
       inputs = c(inputs, paste0('<option value="',
-             gsub('"','',mklist[item]),'" ',
-             if (mklist[[item]] == selected) "selected" else "",
-             '>',names(mklist)[item],"</option>"))
+             gsub('"','',mklist[item]),'" ', tag,'>',
+             names(mklist)[item],"</option>"))
      }
-    }
+    } 
     # editing an already saved selection (deleteAll pkeys)
     # where previously saved selections are still there
     # but the first option in all other fields are blank (SpGroup)
