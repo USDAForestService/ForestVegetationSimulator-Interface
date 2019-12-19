@@ -319,12 +319,6 @@ shinyUI(fixedPage(
       	      checkboxGroupInput("browsevars","Select variables",
       	          choices = list("None"),selected = NULL,inline=TRUE)
             ),
-            tabPanel("Reports",
-              h4(),
-              textInput("rpTitle", "Custom report title", "", width="100%"),h6(),
-              actionButton("rpRestart","Restart custom report"),h6(),
-              downloadButton("rpBldDwnLd","Build and download custom report")
-            ), 
             tabPanel("Custom Query",
               selectInput("sqlSel","SQL queries (run on FVSOut.db (SQLite3))", 
                 NULL, NULL, multiple=FALSE,selectize=FALSE,width="100%"),

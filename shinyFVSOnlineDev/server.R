@@ -4420,29 +4420,6 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     }
   }) 
 
-  ## rpRestart
-  observe({
-    if (input$rpRestart == 0) return()
-    getRptFile(TRUE)
-    isolate({
-      if (nchar(input$rpTitle)) appendToReport(paste0("# ",input$rpTitle))
-      appendToReport(paste0("### ",
-        format(Sys.time(),"%a %b %d %X %Z %Y")))
-    })
-  })  
-  ## rpBldDwnLd
-  output$rpBldDwnLd <- downloadHandler(filename="FVSReport.docx",
-       content =  function (tf = tempfile()) generateReport(tf)) 
-  ## rpTableAdd
-  observe({  
-    if (input$rpTableAdd == 0) return()
-    appendToReport(fvsOutData$render)
-  }) 
-  ## rpPlotAdd
-  observe(if (input$rpPlotAdd > 0) 
-    appendPlotToReport(width =fvsOutData$plotSpecs$width,
-                       height=fvsOutData$plotSpecs$width))
-
   xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx")
   {
     if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
