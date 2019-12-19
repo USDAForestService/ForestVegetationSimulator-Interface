@@ -2302,12 +2302,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {
         globals$foundStand=0L 
-        spgkeep <- 0
-        for (i in 1:length(globals$pastelist)){
-          if (length(grep("^SpGroup",globals$pastelist[i]$kwds)))
-            spgkeep <- spgkeep+1
-        }
-        updateReps(globals) 
+        updateReps(globals)
         mkSimCnts(globals$fvsRun) 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
@@ -2357,6 +2352,14 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       pidx = findIdx (globals$pastelist, input$selpaste)
       if (is.null(pidx)) return()
       topaste = globals$pastelist[[pidx]]
+      if (length(grep("^SpGroup",topaste$kwds))){
+        cntr <- 0
+        if(!length(globals$GrpNum)){
+          globals$GrpNum[1] <- 1
+        }else
+          globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+          globals$GenGrp[length(globals$GrpNum)] <- topaste$reopn[[1]]
+      }
       if (class(topaste) != "fvsCmp") return()
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
               exten=topaste$exten,variant=topaste$variant,uuid=uuidgen(),
