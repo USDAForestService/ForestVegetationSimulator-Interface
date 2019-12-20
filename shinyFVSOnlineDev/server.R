@@ -6190,7 +6190,7 @@ cat ("sel=",sel,"\n")
   {
     isolate({
       newPrj=paste0("../",input$PrjSelect)
-cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
+      cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
       if (dir.exists(newPrj))
       { 
         if (isLocal()) 
@@ -6198,14 +6198,15 @@ cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          setwd(newPrj)
+          write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
-          session$reload()
+          session$sendCustomMessage(type = "closeWindow"," ")
+          shell("C:/FVS/FVS_Icon.VBS")
         } else {
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
-cat ("launch url:",url,"\n")
+          cat ("launch url:",url,"\n")
           session$sendCustomMessage(type = "openURL",url)
         }
       }
