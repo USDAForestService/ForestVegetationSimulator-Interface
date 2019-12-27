@@ -3633,16 +3633,29 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     if (length(data)==0) return()
     isolate ({
       addnl = TRUE
+      if (length(globals$customCmps) == 0 && input$kcpUpload$name=="FVS_kcps.RData")
+      {
+        load(input$kcpUpload$datapath)
+        globals$customCmps = customCmps
+        addnl = FALSE
+      }
+      if (length(globals$customCmps) && !is.null(customCmps)){
+        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)),
+                          selected=names(customCmps)[1])
+      }
       if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
       {
-        addnl = FALSE
         updateTextInput(session=session, inputId="kcpTitle", value=
-          paste("From:",input$kcpUpload$name))
+                          paste("From:",input$kcpUpload$name))
       }
-      updateTextInput(session=session, inputId="kcpEdit", value=
-          paste0(input$kcpEdit,
-            paste(if (addnl) "\n* From:" else "* From:",
-                  input$kcpUpload$name,"\n"),paste(data,collapse="\n")))
+      if(addnl){
+        updateTextInput(session=session, inputId="kcpEdit", value=
+                          paste0(input$kcpEdit,
+                                 paste("\n* From:",paste(data,collapse="\n"))))
+      } else {
+        updateTextInput(session=session, inputId="kcpEdit", value=customCmps[1])
+        save(file="FVS_kcps.RData",customCmps)
+      }
     })
   })
 
