@@ -6201,8 +6201,9 @@ cat ("sel=",sel,"\n")
           write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
-          session$sendCustomMessage(type = "closeWindow"," ")
           shell("C:/FVS/FVS_Icon.VBS")
+          Sys.sleep(3)
+          session$sendCustomMessage(type = "closeWindow"," ")
         } else {
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
