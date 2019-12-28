@@ -2235,7 +2235,7 @@ cat ("error: stdInit is null\n")
     progress$set(message = paste0("Loading ",nrow(fvsInit)," stands "), 
         value = msgVal)
     nreps = as.numeric(input$inReps)
-    rwts = try(scan(text=gsub(","," ",input$inRwts),sep=" ",quiet=TRUE))
+    rwts = try(scan(text=gsub(","," ",input$inRwts),sep="",quiet=TRUE))
     if (class(rwts)!="numeric") rwts=1
     if (!length(rwts)) rwts=1
 cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
