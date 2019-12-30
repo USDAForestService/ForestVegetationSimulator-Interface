@@ -74,7 +74,7 @@ wiki about FVSOnline software</a>.</p>
 	simulations; the outputs go to an output database. 
 	</p>
 	<li><p style="margin-bottom: 0in"><b>View Outputs: </b>Make
-	tables, graphs and reports using the outputs stored in the output
+	tables and graphsusing the outputs stored in the output
 	database. 
 	</p>
 	<li><p style="margin-bottom: 0in"><b>SVS3d: </b>Display 3d images of stands.
@@ -238,7 +238,7 @@ more than one run can have the same management id,
 more than one management id can be within one run, or both). 
 If treelist tables exist, stand and stock tables are also created (table name StdStk; 
 CmpStdStk for the composites, also grouped by management id).</p>
-<p><b>Explore Data </b>menu item is used to further control which
+<p><b>Explore Data</b> menu item is used to further control which
 data are being explored. Use the selection tools on the left to limit
 the data used in the tables or graphs to specific runs, groups,
 stands, management identification codes (set when you make a run),
@@ -251,7 +251,7 @@ output tables, and (2) Explore those data as Tables or Graphs.
 </p>
 <p>When <b>Tables</b> are displayed, you can use tools to change a categorical
 variable (such as stand or management identifications) into a set of columns and display
-a variable’s value under that column. Tables can be download as .xlsx or .csv
+a variable's value under that column. Tables can be download as .xlsx or .csv
 files (easily opened using Excel or other spreadsheet programs). Note that the
 number of lines displayed in the table is limited, however, when the table is
 downloaded, all lines are included (for .xlsx up to 1048576 rows). 
@@ -265,31 +265,63 @@ learn how the graphing tool works is to experiment. Note that making
 some selections sometimes changes others. For example, if you change
 the vertical facet to the same setting as the horizontal facet, your
 selection will be automatically adjusted to <i>None</i>.
-Also note that when there are too many levels for a variable—such
-as too many stands—then the system blocks the use of the variable
+Also note that when there are too many levels for a variable (such
+as too many stands) then the system blocks the use of the variable
 for faceting. Similar limits control the size of the legend that is
 created when you select a <i>Plot by</i> variable.  
 If you want to keep a graph you can cut-and-paste it from your
-browser to some other software, or add it to a custom report,
-described next. If you want high resolution graphs, or otherwise 
+browser to some other software. If you want high resolution graphs, or otherwise 
 customize the apperance of a graph, then <i>Show</i> more controls and
 change the values as needed. Note that there are several ways to customize graphs.
 </p>
-<p style="font-variant: normal; font-style: normal"><b>Reports</b> provides access to
-a report building feature. A report is a set of
-tables and graphs that are combined into a single document that can be downloaded
-as a .docx file. You start (or restart)
-a new report using the <i>Restart custom report</i> button.
-There are buttons in the Tables and Graphs panels where you can add the currently
-displayed table or graph to the report. 
-</p>
 <p><b>Custom Query</b> provides the ability to build and run SQL queries that run
 on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
-database (the database structure is defined in the  
-<a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
-Users Guide to the Database Extension).</a> The tabular output from 
-those queries is displayed as a table and data in that table can be graphed or
-downloaded. 
+database. The tabular output from those queries is displayed as 
+a table and data in that table can be graphed or downloaded.</p>
+<p>
+However, building custom database queries requires some knowledge of 
+SQL, the structure of the output database, and the mechanisms used by FVSOnline to create 
+and manipulate the database. Note that the entire the database structure is defined 
+in the <a href="#outputTables">Output Table Descriptions.</a></p>
+<p>
+The first table you need to understand is the FVS_Cases table which contains one row 
+for each simulation of each stand or replication of a stand over all the runs you have
+made in the project. When each run is made, FVSOnline first creates a fresh database where 
+all the output tables are sent for the run. After each run is finished, FVSOnline
+deletes all the output that may already exist for the same run in the permanent database  
+then the outputs results in the fresh database are inserted into the permanent 
+database.</p>
+<p> 
+The FVS_Cases table is key to this process. This table contains several columns 
+including the keyword file name, that FVSOnline insures is unique to the run even if two
+or more run names are identical. The result of a query of the FVS_Cases table 
+that selects all the cases that have a given keyword file name will contain one row 
+for each case where the CaseID column has a unique identifier for each case. 
+Here is a select statement that will result in just the cases for a given run:</p>
+<p>
+<code>select CaseID from FVS_Cases where KeywordFile = 'name';</code></p>
+<p>
+A similar select statement is used by FVSOnline to build a temporary table that 
+contains a list of all the CaseID values associated with one or more KeywordFile values. 
+This table, called, temp.Cases, is automatically built or rebuilt every time the you 
+change the <b>Runs to consider</b>. In turn, when you desire to explore one of the 
+other FVS output tables, FVS uses this table to limit the rows to include just the 
+runs that are loaded for exploration. For example, to select just the rows in the 
+FVS_Summary2 table that are related to the selected runs, FVSOnline uses this query:
+<p>
+<code>select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases);</code></p>
+<p>
+The <b>Custom Query</b> tab allows you to build and save there your custom output 
+database queries. Queries like those show above can be used to select just the data 
+for a specific run or runs. Note that the FVS_Cases table also contains the RunTitle. 
+If you insure run titles are unique, they can be used in place of the KeywordFile 
+name to limit the cases to those of a give run or collection of runs. Here, for example, 
+is a complete query that selects all of the tree records from the FVS_TreeList_East 
+table associated with two runs names <i>Run 1</i> and <i>Run 2</i>.
+<p>
+<code>select * from FVS_TreeList_East where CaseID in<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(select CaseID from FVS_Cases where RunTitle in ('Run 1', 'Run 2'));</code></p>
+<p>
 Note that SQLite3 allows the attachment additional databases. For example, 
 the input database can be attached and tables from the input can then be 
 joined to tables in the output. A <i>query</i> can

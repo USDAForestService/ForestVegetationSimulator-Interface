@@ -356,7 +356,6 @@ shinyUI(fixedPage(
                 selectInput("dispVar", choices=list("None"), 
                   "Variable to display", selectize=FALSE)),         
               column(width=5,
-                   actionButton("rpTableAdd","Add table to report"),
                    downloadButton("dlRenderData","Download table"),
                    myRadioGroup("dlRDType","File type", c(".xlsx",".csv"))),
             tags$style(type="text/css","#tableLimitMsg{color:darkred;}"),          
@@ -365,13 +364,11 @@ shinyUI(fixedPage(
           ) ),
           tabPanel("Graphs",
             fixedRow(
-              column(width=6,
+              column(width=8,
                 myRadioGroup("plotType","Type", 
                   c("line","scat","box","bar","DMD","StkCht"))),
               column(width=3,
-                myRadioGroup("colBW","", c("Color","B&W"))),
-              column(width=2,
-                actionButton("rpPlotAdd","Add graph to report"))),
+                myRadioGroup("colBW","", c("Color","B&W")))),
             fixedRow(
               column(width=3,
                 selectInput("yaxis", "Y-axis", choices  = list("Year"), 
