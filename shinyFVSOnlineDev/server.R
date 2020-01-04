@@ -4816,20 +4816,18 @@ cat("loaded table=",tab,"\n")
       sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
       dups = duplicated(sidTb[,1])
       if (all(!dups)) next
-      newID=sidTb[,1]
-      dtab = table(dups,sidTb[,1])
-      dups = names(dtab[2,])[dtab[2,] > 0]
-      for (did in dups)
-      {
-        locs=(did==sidTb[,1])
-        vals=sprintf("%0.2d",1:sum(locs))
-        newID[locs]=paste0(newID[locs],"*",vals)
+      keep <- list()
+      cntr <- 1
+      for (i in 1:length(dups)){
+        if (dups[i]==FALSE){
+          keep[cntr] <- i
+          cntr <- cntr +1
+        }
       }
       if (!is.null(newID))
       {
         sidTb=dbReadTable(dbo,tab2fix)
-        idx=match(idf,tolower(names(sidTb)))
-        if (!is.na(idx)) sidTb[,idx]=newID
+        sidTb=sidTb[as.numeric(keep),]
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
       }
       sidmsg=c(sidmsg,tab2fix)
@@ -4839,9 +4837,9 @@ cat("loaded table=",tab,"\n")
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
     if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
-      paste0(grpmsg,collapse=", "))
-    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were modified in table(s): ",
-      paste0(sidmsg,collapse=", "))
+        paste0(grpmsg,collapse=", "))
+    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were found in table(s): ",
+        paste0(sidmsg,collapse=", "),". All duplicate values after the first value were ignored and not uploaded.")
     fixFVSKeywords(dbo) 
     checkMinColumnDefs(dbo,progress)
     output$step1ActionMsg = renderText(HTML(msg))
