@@ -4810,7 +4810,8 @@ cat("loaded table=",tab,"\n")
     sidmsg=NULL
     newID=NULL  
     for (idx in fixTabs)
-    {
+    { if (tolower(tabs[idx])=="fvs_standinit_plot" || tolower(tabs[idx])=="fvs_plotinit_plot" ||
+          tolower(tabs[idx])=="fvs_standinit_cond")next
       tab2fix=tabs[idx]
       idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
       sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
