@@ -3639,9 +3639,9 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         globals$customCmps = customCmps
         addnl = FALSE
       }
-      if (length(globals$customCmps) && !is.null(customCmps)){
-        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)),
-                          selected=names(customCmps)[1])
+      if (length(globals$customCmps) && !is.null(globals$customCmps)){
+        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
+                          selected=names(globals$customCmps)[1])
       }
       if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
       {
@@ -3653,8 +3653,8 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
                           paste0(input$kcpEdit,
                                  paste("\n* From:",paste(data,collapse="\n"))))
       } else {
-        updateTextInput(session=session, inputId="kcpEdit", value=customCmps[1])
-        save(file="FVS_kcps.RData",customCmps)
+        updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
+        save(file="FVS_kcps.RData",globals$customCmps)
       }
     })
   })
@@ -4806,12 +4806,12 @@ cat("loaded table=",tab,"\n")
         }
       }
     }
-    # loop over tables and make "stand_ID" fields unique by adding a sequence number
+    # loop over tables and ommit duplicate stand or standplot id's from being uploaded
     sidmsg=NULL
     newID=NULL  
     for (idx in fixTabs)
-    { if (tolower(tabs[idx])=="fvs_standinit_plot" || tolower(tabs[idx])=="fvs_plotinit_plot" ||
-          tolower(tabs[idx])=="fvs_standinit_cond")next
+    {
+      if (tolower(tabs[idx])=="fvs_standinit_plot")next
       tab2fix=tabs[idx]
       idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
       sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
@@ -4825,12 +4825,9 @@ cat("loaded table=",tab,"\n")
           cntr <- cntr +1
         }
       }
-      if (!is.null(newID))
-      {
-        sidTb=dbReadTable(dbo,tab2fix)
-        sidTb=sidTb[as.numeric(keep),]
-        dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
-      }
+      sidTb=dbReadTable(dbo,tab2fix)
+      sidTb=sidTb[as.numeric(keep),]
+      dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
       sidmsg=c(sidmsg,tab2fix)
     }    
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
