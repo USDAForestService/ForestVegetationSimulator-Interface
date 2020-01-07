@@ -591,6 +591,7 @@ cat("writeKeyFile, num stds=",length(stds),
             commkw <- toupper(kcpconts[j])=="COMMENT"
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
             if(endkw && commentflag==1) commentflag <- 0
+            rskw <- grep("RANNSEED", toupper(kcpconts[j]))
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -685,7 +686,7 @@ cat("writeKeyFile, num stds=",length(stds),
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && !endkw && !compkw && !rskw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
