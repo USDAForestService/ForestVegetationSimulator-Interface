@@ -3511,8 +3511,6 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
-        topaste = findCmp(globals$fvsRun,input$simCont[1])
-        if (is.null(topaste)) return()
         if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
         updateTextInput(session=session, inputId="kcpEdit", value=
           paste0(customCmps,"ENDIF\n"))
@@ -3594,7 +3592,7 @@ cat ("kcpSaveInRun\n")
     if (length(input$kcpDelete) && input$kcpDelete > 0)
     {
       isolate ({
-cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
+        cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         sel = na.omit(match(trim(input$kcpSel),trim(names(globals$customCmps))))
         if (length(sel)) globals$customCmps[[sel[1]]] = NULL
         if (length(globals$customCmps)) 
@@ -3606,6 +3604,8 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
           customCmps=NULL
           unlink("FVS_kcps.RData")
           updateSelectInput(session=session, inputId="kcpSel", choices=list())
+          updateTextInput(session=session, inputId="kcpTitle", value="")
+          updateTextInput(session=session, inputId="kcpEdit", value="")
         }
       })
     }
@@ -3643,15 +3643,15 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
                           selected=names(globals$customCmps)[1])
       }
-      if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
-      {
-        updateTextInput(session=session, inputId="kcpTitle", value=
-                          paste("From:",input$kcpUpload$name))
-      }
+      # if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
+      # {
+      updateTextInput(session=session, inputId="kcpTitle", value=
+                        paste("From:",input$kcpUpload$name))
+      # }
       if(addnl){
         updateTextInput(session=session, inputId="kcpEdit", value=
-                          paste0(input$kcpEdit,
-                                 paste("\n* From:",paste(data,collapse="\n"))))
+                          # paste0(input$kcpEdit,
+                          paste("\n* From:",paste(data,collapse="\n")))
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
         save(file="FVS_kcps.RData",globals$customCmps)
