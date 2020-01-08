@@ -346,7 +346,7 @@ shinyUI(fixedPage(
         ) ) ),
         column(width=8,offset=.2,
         tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
-        conditionalPanel("input.leftPan != 'Load' & input.leftPan != 'Reports'", tabsetPanel(id="outputRightPan",
+        conditionalPanel("input.leftPan != 'Load'", tabsetPanel(id="outputRightPan",
           tabPanel("Tables",
             fixedRow(
               column(width=4,
@@ -485,7 +485,13 @@ shinyUI(fixedPage(
               textOutput("plotMessage"))),
             fixedRow(column(width=12,plotOutput("outplot")))
           )
-        ) )       
+        ) ),
+        conditionalPanel("input.leftPan == 'Load'",
+          fixedRow(
+            column(width=6,                 
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
+                selected=1,multiple=FALSE,selectize=FALSE)))),
+            h5(),uiOutput("tabDesc2"))
       ) ) ),
       tabPanel("SVS3d",
         h6(),

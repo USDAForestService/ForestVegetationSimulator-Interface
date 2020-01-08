@@ -4509,6 +4509,33 @@ cat ("tabDescSel, tab=",tab,"\n")
     output$tabDesc <- renderUI(HTML(html))
   })
 
+  ##tabDescSel2
+  observe({
+    tab = input$tabDescSel2
+    cat ("tabDescSel2, tab=",tab,"\n")
+    html = NULL
+    if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
+    {
+      sheets = getSheetNames("databaseDescription.xlsx")
+      if ("OutputTableDescriptions" %in% sheets)
+      {
+        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
+        row = match(tab,tabs[,1])
+        html = paste0("<b>",tab,"</b> ",tabs[row,2])
+        if (tab %in% sheets) 
+        {
+          sdat = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet=tab)[,c(1,4)]
+          html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
+                        paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
+          for (i in 1:nrow(sdat))
+            html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
+                                                 collapse="</TD><TD>"),"</TD></TR>\n")
+          html = paste0(html,"</TABLE>")
+        }
+      }
+    }
+    output$tabDesc2 <- renderUI(HTML(html))
+  })
   
   ##### data upload code  
   observe({
