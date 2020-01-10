@@ -10,6 +10,10 @@ library(openxlsx)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
+# cbbPalette is used in the graphics
+cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",
+                "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
+                "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
 
 defaultRun = list("Default useful for all FVS variants"="fvsRun")
 if (file.exists("runScripts.R"))
@@ -28,8 +32,6 @@ customRunElements = list(
 
 source("modalDialog.R")
 source("mkInputElements.R")
-    # cbbPalette is used in the graphics
-    cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#0072B2", "#E69F00", "#CC79A7")   
 
 # used in Tools, dlZipSet
 zipList <- list(	
@@ -209,8 +211,8 @@ shinyUI(fixedPage(
                     HTML("Note that all outputs are put in output database except for the SVS data.<br>
                          FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum, 
                          FVS_DM_Spp_Sum) are always produced."),
-                    checkboxGroupInput("autoOut",NULL,
-                      c("SVS: Stand Visualization"="autoSVS",  
+                    checkboxGroupInput("autoOut",NULL,choices=list(
+                        "SVS: Stand Visualization"="autoSVS",  
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
@@ -317,12 +319,6 @@ shinyUI(fixedPage(
       	      checkboxGroupInput("browsevars","Select variables",
       	          choices = list("None"),selected = NULL,inline=TRUE)
             ),
-            tabPanel("Reports",
-              h4(),
-              textInput("rpTitle", "Custom report title", "", width="100%"),h6(),
-              actionButton("rpRestart","Restart custom report"),h6(),
-              downloadButton("rpBldDwnLd","Build and download custom report")
-            ), 
             tabPanel("Custom Query",
               selectInput("sqlSel","SQL queries (run on FVSOut.db (SQLite3))", 
                 NULL, NULL, multiple=FALSE,selectize=FALSE,width="100%"),
@@ -350,7 +346,7 @@ shinyUI(fixedPage(
         ) ) ),
         column(width=8,offset=.2,
         tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
-        conditionalPanel("input.leftPan != 'Load' & input.leftPan != 'Reports'", tabsetPanel(id="outputRightPan",
+        conditionalPanel("input.leftPan != 'Load'", tabsetPanel(id="outputRightPan",
           tabPanel("Tables",
             fixedRow(
               column(width=4,
@@ -360,20 +356,19 @@ shinyUI(fixedPage(
                 selectInput("dispVar", choices=list("None"), 
                   "Variable to display", selectize=FALSE)),         
               column(width=5,
-                   actionButton("rpTableAdd","Add table to report"),
                    downloadButton("dlRenderData","Download table"),
                    myRadioGroup("dlRDType","File type", c(".xlsx",".csv"))),
+            tags$style(type="text/css","#tableLimitMsg{color:darkred;}"),          
+            fixedRow(column(width=12,textOutput("tableLimitMsg"))),
             fixedRow(column(width=12,rHandsontableOutput("table")))
           ) ),
           tabPanel("Graphs",
             fixedRow(
-              column(width=6,
+              column(width=8,
                 myRadioGroup("plotType","Type", 
                   c("line","scat","box","bar","DMD","StkCht"))),
               column(width=3,
-                myRadioGroup("colBW","", c("Color","B&W"))),
-              column(width=2,
-                actionButton("rpPlotAdd","Add graph to report"))),
+                myRadioGroup("colBW","", c("Color","B&W")))),
             fixedRow(
               column(width=3,
                 selectInput("yaxis", "Y-axis", choices  = list("Year"), 
@@ -407,27 +402,40 @@ shinyUI(fixedPage(
     	          myRadioGroup("moreControls","More controls", c("Hide","Show")))),
              fixedRow(column(width=12,conditionalPanel("input.moreControls == 'Show'",
                fixedRow(
+                 column(width=2,               
+                   colourInput("color1",  "Color 1",  value = cbbPalette[1]),
+                   colourInput("color2",  "Color 2",  value = cbbPalette[2]),
+                   colourInput("color3",  "Color 3",  value = cbbPalette[3])),
+                 column(width=2,                                         
+                   colourInput("color4",  "Color 4",  value = cbbPalette[4]),
+                   colourInput("color5",  "Color 5",  value = cbbPalette[5]),
+                   colourInput("color6",  "Color 6",  value = cbbPalette[6])),
+                 column(width=2,                                         
+                   colourInput("color7",  "Color 7",  value = cbbPalette[7]),
+                   colourInput("color8",  "Color 8",  value = cbbPalette[8]),
+                   colourInput("color9",  "Color 9",  value = cbbPalette[9])),
                  column(width=2,
-                   colourInput("color1", "Color 1", value = cbbPalette[1]),
-                   colourInput("color2", "Color 2", value = cbbPalette[2])),
-                 column(width=2,
-                   colourInput("color3", "Color 3", value = cbbPalette[3]),
-                   colourInput("color4", "Color 4", value = cbbPalette[4])),
-                 column(width=2,
-                   colourInput("color5", "Color 5", value = cbbPalette[5]),
-                   colourInput("color6", "Color 6", value = cbbPalette[6])),
-                 column(width=6, 
-  	               myRadioGroup("res","Resolution (ppi)",c("150","300","600")),
-                   sliderInput("transparency", "Transparency", 0, 1, .3, step = .01))),
+                   colourInput("color10", "Color 10", value = cbbPalette[10]),
+                   colourInput("color11", "Color 11", value = cbbPalette[11]),
+                   colourInput("color12", "Color 12", value = cbbPalette[12])),
+                 column(width=2,                                           
+                   colourInput("color13", "Color 13", value = cbbPalette[13]),
+                   colourInput("color14", "Color 14", value = cbbPalette[14]),
+                   colourInput("color15", "Color 15", value = cbbPalette[15])),
+                 column(width=2,                                         
+                   colourInput("color16", "Color 16", value = cbbPalette[16]),
+                   colourInput("color17", "Color 17", value = cbbPalette[17]),
+                   colourInput("color18", "Color 18", value = cbbPalette[18]))),
                fixedRow(
-                 column(width=3,
-                   myInlineTextInput("YLimMin", "Y-limits: "," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("YLimMax", "to"," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("XLimMin", "X-limits: "," ", size=5)),
-                 column(width=3,
-                   myInlineTextInput("XLimMax", "to"," ", size=5))),
+                 column(width=3, 
+  	               radioButtons("res","Resolution (ppi)",c("150","300","600"))),
+                 column(width=4,
+                 sliderInput("transparency", "Transparency", 0, 1, .3, step = .01)),
+                 column(width=1),
+                 column(width=2,fixedRow(textInput("YLimMin","Min Y limit:")),
+                                fixedRow(textInput("YLimMax","Max Y limit:"))),
+                 column(width=2,fixedRow(textInput("XLimMin","Min X limit:")), 
+                                fixedRow(textInput("XLimMax","Max X limit:")))),
                fixedRow(
                  column(width=6,
                    myRadioGroup("YlabRot","Rotate Y-Labels (degrees)",
@@ -477,9 +485,15 @@ shinyUI(fixedPage(
               textOutput("plotMessage"))),
             fixedRow(column(width=12,plotOutput("outplot")))
           )
-        ) )       
+        ) ),
+        conditionalPanel("input.leftPan == 'Load'",
+          fixedRow(
+            column(width=6,                 
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
+                selected=1,multiple=FALSE,selectize=FALSE)))),
+            h5(),uiOutput("tabDesc2"))
       ) ) ),
-      tabPanel("SVS3d(alpha)",
+      tabPanel("SVS3d",
         h6(),
         fixedRow(
         column(width=6,offset=0,
@@ -495,7 +509,7 @@ shinyUI(fixedPage(
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
-      tabPanel("Maps(alpha)",
+      tabPanel("Maps",
         h6(),
         fixedRow(
         column(width=3,offset=0,
@@ -624,16 +638,17 @@ shinyUI(fixedPage(
         column(width=12,offset=0,
           tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="toolsPan", 
-            tabPanel("Manage projects",        
-              if (isLocal()) list(
-                h4(),h4("Switch to another project"), 
+            tabPanel("Manage project",        
+                h4(),if (isLocal()) h4("Switch to another project") else
+                                    h4("Start another project"), 
                 selectInput("PrjSelect", "Select project", multiple=FALSE,
                    choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjSwitch","Switch to selected project"), 
-                h4(),h4("Setup a new project"),
+                actionButton("PrjSwitch",if (isLocal()) "Switch to selected project" else
+                    "Start selected project"),h4(),
+                h4("Create a new project from your current project"),
                 textInput("PrjNewTitle", "New project title", ""), 
-                actionButton("PrjNew","Make new project")),
-              h4(),h4("Delete outputs in current project"),
+                actionButton("PrjNew","Make new project"),
+              h4("Delete outputs in current project"),
               modalTriggerButton("deleteAllOutputs", "#deleteAllOutputsDlg", 
                 "Delete ALL outputs in current project"),
               modalDialog(id="deleteAllOutputsDlg", footer=list(
@@ -666,34 +681,51 @@ shinyUI(fixedPage(
                     'data-dismiss' = "modal", "Cancel")))
               )
             ), 
-            tabPanel("Downloads", 
-              h6(),
-              downloadButton("dlFVSDatadb","Input data base (all data)"),
-              downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),
-              downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),
-              downloadButton("dlFVSRunkey","Keyword file for current run"),
-              h4(),        
+            tabPanel("Downloads", h6(),
+              downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
+              downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
+              downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),h6(),
+              downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
               checkboxGroupInput("dlZipSet","Set contents of fvsRun.zip", 	
                 zipList,selZip,inline=FALSE),	
               downloadButton("dlFVSRunZip","Download fvsRun.zip")
-            ),
-            tabPanel("Refresh software", 
-              h4(),
-              selectInput("FVSprograms", "Pick programs to add or refresh", multiple=TRUE,
-                choices = list(), selected="", selectize=FALSE),
-              h6(),
-              actionButton("FVSRefresh","Refresh or add selected FVS programs"),
-              h6(),
-              modalTriggerButton("interfaceRefresh", "#interfaceRefreshDlg", 
-                "Refresh this interface software"),
-              modalDialog(id="interfaceRefreshDlg", footer=list(
-                modalTriggerButton("interfaceRefreshDlgBtn", "#interfaceRefreshDlg", 
-                  "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),
-              myRadioGroup("interfaceRefreshSource","Interface source: ", 	
-                           c("Production code (recommended)"="Prod",
-                             "Development code (testers only)"="Dev"),selected="Prod")
+            ),          
+            tabPanel("Refresh/copy projects",
+              fixedRow(
+                if (isLocal()) list() else 
+                column(width=if (isLocal()) 12 else 5,offset=0,
+                  h4("Refresh current project from system sources"),
+                  selectInput("FVSprograms", "Pick FVS variants to add or refresh", multiple=TRUE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),
+                  actionButton("FVSRefresh","Refresh or add selected variants"),
+                  h6(),   
+                  radioButtons("interfaceRefreshSource","Select version of interface: ", 	
+                             choices=list("Production version"="Prod",
+                             "Development version"="Dev"),selected="Prod"),
+                  actionButton("interfaceRefresh","Refresh interface software") 
+                ),           
+                column(width=if (isLocal()) 12 else 7,offset=0,
+                  h4("Copy data and software from a source project to target project(s)"),
+                  selectInput("sourcePrj", "Source project", multiple=FALSE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),       
+                  selectInput("targetPrj", "Target project(s)", multiple=TRUE,
+                    choices = list(), selected="", selectize=FALSE),
+                  h6(),
+                  checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
+                    list("All interface software"="software",
+                      "FVS variants"="FVSPrgms",
+                      "Input database (FVS_Data.db)"="inDBS",
+                      "Spatial data (SpatialData.RData)"="inSpace",
+                      "Keyword component (.kcp) library"="kcps",
+                      "Custom query library"="custQ"),
+                      selected=c("software","FVSPrgms")),
+                      actionButton("cpyNow","Copy now"),
+                  h6(),
+                  tags$style(type="text/css","#copyActionMsg{color:darkred;}"), 
+                  uiOutput("copyActionMsg"))
+                )
             )  #END tabPanel                                         
           ) #END tabsetPanel
         ) ) #END column and fixed row   

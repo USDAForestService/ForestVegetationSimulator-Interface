@@ -145,6 +145,27 @@ getRptFile <- function (new=FALSE)
   "FVSReport/report.md"
 }
 
+autorecycle <- function(a,n)
+{
+  if (length(a)<n) 
+  {
+    add = n%/%length(a)
+    if (add) a = rep(a,add)
+    add = n%%length(a)
+    if (add) a = c(a,a[1:add])                                      
+  }
+  a[1:n]
+} 
+
+removeComment <- function(string)
+{
+  l1 = gregexpr("/*",string,fixed=TRUE)[[1]][1]
+  if (l1==-1) return(string)
+  l2 = gregexpr("*/",string,fixed=TRUE)[[1]][1]
+  if (l2==-1) return(substring(string,1,l1-1))
+  return(removeComment(paste0(substring(string,1,l1-1),substring(string,l2+2,99999))))
+}
+
 
 mkNextPlotFileName <- function()
 {

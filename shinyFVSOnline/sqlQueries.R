@@ -206,8 +206,9 @@ drop table if exists temp.CmpStdStkAllDBH;
 drop table if exists temp.CmpStdStkAllSp; 
 drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
-  select sum(SamplingWt) as CmpSmpWt from FVS_Cases where
-  CaseID in (select CaseID from temp.Cases);    
+  select MgmtID,sum(SamplingWt) as CmpSmpWt from FVS_Cases where
+  CaseID in (select CaseID from temp.Cases)
+  group by MgmtID;    
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
     sum(LiveTPA  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveTPA,
@@ -233,7 +234,7 @@ create table temp.CmpStdStkDBHSp as
   from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
         CaseID in (select CaseID from temp.Cases))
   join FVS_Cases using (CaseID)
-  join temp.CmpSmpWt
+  join temp.CmpSmpWt using (MgmtID)
   group by MgmtID,Year,Species,DBHClass;
 create table temp.CmpStdStkAllDBH as
   select MgmtID,Year,Species,'All' as DBHClass,

@@ -33,6 +33,12 @@ Shiny.addCustomMessageHandler("getStart",
   }
 );
 
+// This will attempt to open a new tab with the provided URL
+// add: session$sendCustomMessage(type = "openURL",url) anywhere in the server code.
+Shiny.addCustomMessageHandler("openURL",
+  function (url) { window.open(url); }
+);
+
 // This will close the window, it causes onSessionEnded to be called as well.
 // add: session$sendCustomMessage(type = "closeWindow"," ") anywhere in the server code.
 Shiny.addCustomMessageHandler("closeWindow",

@@ -14,7 +14,6 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
       mkTextInput ("waitYears", "Years before condition can become true again:",
                    waityrs, fpvs))
   } else list()
-    
   f = 0
   repeat
   {
@@ -102,26 +101,41 @@ mkSelectInput <- function (inputId, label, choices, fpvs,
   choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
   sel = grep ("^>",choices)
   if (length(sel)) choices[sel] = trim(substring(choices[sel],2))
+  edt <- 0
   if (! (is.null(fpvs) || is.na(fpvs)))
   {
     sel = if (is.na(suppressWarnings(as.numeric(fpvs)))) 
       grep (paste0("^",fpvs),choices) else fpvs
+    edt <- 1
   } 
 cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
-  mklist = if (valpair) 
+  mklist = if (valpair)
     lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
       as.list(as.character(0:(length(choices)-1)))
   names(mklist) = choices
-  sel = if (length(sel)) 
+  
+  if (length(sel) && edt==0) 
     {
+      if (sel==length(choices)) sel <- sel-1
       sel = match(as.character(sel),mklist) 
-      if (is.na(sel)) "0" else as.character(if (valpair) sel else sel-1)
-    } else "0"  
+      if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
+  } 
+  # browser()
+  if(!length(sel) && edt==0) sel="0"
+  if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- " "
+  if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
+  if (valpair && gsub('"','',mklist[1])==" "  && edt==0) sel <- as.character(as.numeric(sel)-1)
+  if (valpair && gsub('"','',mklist[1])!=" " && edt==1){
+    if(choices[1]==""){
+    sel <- as.character(mklist[mklist[[1]][1]])
+    mklist[1] <- as.character((mklist[1]))
+    }else sel <- as.character(as.numeric(sel))
+  }
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
     "radiogroup"=myRadioGroup(inputId,label,
          mklist,selected=sel),
-     myInlineListButton (inputId, label, mklist, selected=sel,deltll=NULL))
+     myInlineListButton (inputId, label, mklist, selected=sel,deltll=2))
 }
 
 mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
@@ -330,15 +344,31 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
     if (is.null(selected)) selected = unlist(mklist[1])
     if ((!length(deltll) && is.null(selected))||(length(deltll) && deltll==2)){
     # all dropdowns where a blank is not allowed (no deleteAll pkey)
-    # applies to most keywords, and when editing previously saved selections (deltll==2)
+    # applies to most keywords, and when editing previously saved selections (deltll==2).
+      # Remove duplicate SpGroup names in species dropdowns due to cut/paste
+      if(names(mklist[1])=="All species"){
+        spgsidxs <- grep("SpGroup", names(mklist))
+        spgs <- mklist[spgsidxs]
+        if(length(spgsidxs) > 1){
+        for (i in 1:length(spgsidxs))
+          if(length(match(trim(spgs[i]),trim(spgs))))
+            mklist <- mklist[-spgsidxs[i]] 
+        } 
+      }
+    first <- 0
+    # browser()
     for (item in 1:length(mklist))
      {
-      inputs = c(inputs, paste0('<option value="',
-             gsub('"','',mklist[item]),'" ',
-             if (mklist[[item]] == selected) "selected" else "",
-             '>',names(mklist)[item],"</option>"))
+
+      if (trim(mklist[[item]][1]) == trim(selected) && first==0){
+        tag <- "selected"
+        first <- 1
+        }else tag <- ""
+        inputs = c(inputs, paste0('<option value="',
+                                  gsub('"','',mklist[item]),'" ', tag,'>',
+                                  names(mklist)[item],"</option>"))
      }
-    }
+    } 
     # editing an already saved selection (deleteAll pkeys)
     # where previously saved selections are still there
     # but the first option in all other fields are blank (SpGroup)
@@ -349,22 +379,24 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
         inputs = c(inputs, paste0('<option value="',
                                   gsub('"','',mklist[item]),'" ',
                                   if (mklist[[item]] == selected) "selected" else "",
-                                  '>',names(mklist)[item],"</option>"))} 
+                                  '>',names(mklist)[item],"</option>"))}
         else{# first option in all other fields are blank
           if (item==1){
               inputs = c(inputs,'<option value=" "></option>',
                          paste0('<option value="',
                          gsub('"','',mklist[item]),'" ',"",
                          '>',names(mklist)[item],"</option>"))}   
-          else 
+          else
               inputs = c(inputs,paste0('<option value="',
                          gsub('"','',mklist[item]),'" ',"",
                          '>',names(mklist)[item],"</option>"))}
+      
       }
     } 
     #initial rendering of the species list dropdown (deleteAll pkeys)
     # first option is blank (SpGroup, Plant/Natural, etc)
     else 
+      # browser()
       for (item in 1:length(mklist))
       {if (item==1){# first option is blank
         inputs = c(inputs,'<option value=" "></option>',
@@ -377,7 +409,6 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
                    '>',names(mklist)[item],"</option>"))
       }
   }
-
   inputs = if (is.null(inputs)) '<option value=" "></option>' else 
                                  paste0(inputs,collapse="")
   if (length(label)== 0) label=""

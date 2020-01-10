@@ -569,6 +569,7 @@ cat("writeKeyFile, num stds=",length(stds),
           extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
           condflag <- 0 # denotes whether we are in a conditional block
           computeflag <- 0 # denotes whether are in a compute block
+          commentflag <- 0 # denoted whether we are in a COMMENT keyword block
           k <- 1 # index counter for the next 2 lsts
           insertkw <- list() # list of which keywords to insert at the end
           insertidx <- list() # list of indices of where to insert those keywords at the end
@@ -583,9 +584,14 @@ cat("writeKeyFile, num stds=",length(stds),
             expression <- grep("=",kcpconts[j])
             ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
             thenkw <- toupper(kcpconts[j])=="THEN"
-            endkw <- toupper(kcpconts[j])=="END"
-            endifkw <- toupper(kcpconts[j])=="ENDIF"
+            endkw <- grep("END", toupper(kcpconts[j]))
+            endkw <- length(endkw)
+            endifkw <- grep("ENDIF", toupper(kcpconts[j]))
+            endifkw <- length(endifkw)
+            commkw <- toupper(kcpconts[j])=="COMMENT"
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
+            if(endkw && commentflag==1) commentflag <- 0
+            rskw <- grep("RANNSEED", toupper(kcpconts[j]))
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -621,7 +627,8 @@ cat("writeKeyFile, num stds=",length(stds),
               }
             }
             # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
-            if(!comment && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
+            if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
+            if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
               # if it's a suppose-generated KCP (has "!")
               if(strsplit(kcpconts[j],"")[[1]][1]=="!"){
                 # if it's a component specifier and we aren't in a condition block
@@ -679,7 +686,7 @@ cat("writeKeyFile, num stds=",length(stds),
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && !endkw && !compkw && !rskw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
@@ -1069,6 +1076,20 @@ cat("writeKeyFile, num stds=",length(stds),
                   kcpconts <- kcpconts[-j]
                 }
               }
+              # if it's a COMMENT keyword
+              else if (commkw){
+                # if we weren't already in a compute block, set the flag to 1 indicating we are now
+                if(commentflag==0){
+                  commentflag <- 1
+                }
+                if(extflag > 0){
+                  insertkw[k] <- "END"
+                  insertidx[k] <- j-1
+                  k <- k+1
+                  numinserts <- numinserts +1
+                  extflag <- 0
+                }
+              }
               # if it's a COMPUTE keyword
               else if (compkw){
                 # if we weren't already in a compute block, set the flag to 1 indicating we are now
@@ -1088,6 +1109,9 @@ cat("writeKeyFile, num stds=",length(stds),
                 if(computeflag==1){
                   computeflag <- 0
                 } 
+                else if(commentflag > 0){
+                  commentflag <- 0
+                }
                 else if(extflag > 0){
                   extflag <- 0
                 }
@@ -1534,13 +1558,16 @@ getPstring = function (pkeys,pkey,atag = NULL)
   }
   return (NULL)
 }
-  
+
 
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
+  for (i in 1:length(input)){
+    if(length(grep(" ", input[i])) && length(strsplit((input[i])," ")) > 1) input[i] <- strsplit((input[i])," ")[[1]][2]
+  }
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
@@ -1558,9 +1585,9 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
       next
     }
     if (state==1) # looking for the end of the field number
-    {   
+    {
       if (c == "," || c == "!") fld = as.numeric(substr(ansFrm,fs,i-1))
-      if (c == "!") 
+      if (c == "!")
       {
         inp = if (length(input) < fld) "" else input[fld]
         out = paste0(out,inp)
@@ -2045,8 +2072,8 @@ ncmps <- function(fvsRun)
 
 addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 {
-cat ("in addStandsToRun, selType=",selType,"\n")
   isolate({
+cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
     timescale <- 0
     if(length(globals$fvsRun$stands)) timescale <- 1
@@ -2209,7 +2236,7 @@ cat ("error: stdInit is null\n")
     progress$set(message = paste0("Loading ",nrow(fvsInit)," stands "), 
         value = msgVal)
     nreps = as.numeric(input$inReps)
-    rwts = try(scan(text=gsub(","," ",input$inRwts),sep=" ",quiet=TRUE))
+    rwts = try(scan(text=gsub(","," ",input$inRwts),sep="",quiet=TRUE))
     if (class(rwts)!="numeric") rwts=1
     if (!length(rwts)) rwts=1
 cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
@@ -2363,12 +2390,64 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
             append(globals$fvsRun$stands[[r]]$grps,globals$fvsRun$grps[[grpIdxs[i]]])
           i <- i+1
         }     
-      } else globals$fvsRun$stands[[reps]]$rep <- 0
+      } else globals$fvsRun$stands[[reps]]$rep <- 0                           
     }
   }
 }
 
+getProjectList <- function()
+{
+  selChoices = list()
+  if (isLocal())
+  {  
+    dirs = dir("..")
+    for (dir in dirs)
+    {
+      if (file.exists(paste0("../",dir,"/server.R")) && 
+          file.exists(paste0("../",dir,"/ui.R"))     &&
+          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
+    }
+    if (length(selChoices)) names(selChoices) = selChoices
+  } else {
+    curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
+    curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
+    prjs = dir("..")
+    data = lapply (prjs, function (x) {         
+      fn = paste0("../",x,"/projectId.txt") 
+      if (file.exists(fn))
+      {
+        prj = scan (fn,what="character",sep="\n",quiet=TRUE)
+        ans = c(prj=x,email=trim(sub("email=","",prj[1])),
+          title=trim(sub("title=","",prj[2])))
+        ans
+      } else NULL
+    }) 
+    if (length(data))
+    {
+      data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)
+      names(data)=c("prj","email","title")
+      data$email=toupper(data$email)
+      data = data[data$email == curEmail,,drop=FALSE]
+      selChoices=as.list(data$prj)
+      names(selChoices)=data$title 
+    } else selChoices=NULL
+  }                                                 
+  selChoices
+}
 
+
+mkNameUnique <- function(name,setOfNames=NULL)
+{
+  origname=name
+  i=0
+  repeat
+  {
+    if (is.na(match(name,setOfNames))) return(name)
+    i = i+1
+    name = paste0(origname," (",i,")")
+  } 
+}
+                    
 mkFileNameUnique <- function(fn)
 { 
   trim <- function (x) gsub("^\\s+|\\s+$","",x)
