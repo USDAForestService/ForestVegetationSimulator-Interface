@@ -592,6 +592,7 @@ cat("writeKeyFile, num stds=",length(stds),
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
             if(endkw && commentflag==1) commentflag <- 0
             rskw <- grep("RANNSEED", toupper(kcpconts[j]))
+            ragekw <- grep("RESETAGE", toupper(kcpconts[j]))
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -666,27 +667,27 @@ cat("writeKeyFile, num stds=",length(stds),
               }
               # if it's an extension invocation keyword and we're not in an extension block,
               # set the flag to the corresponding group number of extension keywords
-              else if(length(grep(toupper(kcpconts[j]),invokekwds)) && extflag==0){
-                extflag <- grep(toupper(kcpconts[j]),invokekwds)
+              else if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag==0){
+                extflag <- grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
                 next
               }
               # if it's an extension invocation keyword and we are in an extension block
-              else if(length(grep(toupper(kcpconts[j]),invokekwds)) && extflag > 0){
+              else if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag > 0){
                 # if the flag value doesn't correspond to the extension of the invocation keyword
                 # insert an END in the line above, and set the flag to the corresponding group number
                 # of extension keywords
-                if(grep(toupper(kcpconts[j]),invokekwds)!=extflag){
+                if(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)!=extflag){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
                   numinserts <- numinserts +1
-                  extflag <- grep(toupper(kcpconts[j]),invokekwds)
+                  extflag <- grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
                 }
                 else next
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw && !rskw){
+                      && extflag==0 && !endkw && !compkw && !rskw && !ragekw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
