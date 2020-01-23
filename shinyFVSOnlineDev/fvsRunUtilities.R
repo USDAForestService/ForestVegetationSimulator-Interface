@@ -1223,8 +1223,12 @@ cat("writeKeyFile, num stds=",length(stds),
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                      cmp$kwds,"\n",file=fc,sep="")    
     }
-    if (!is.null(lastCnd)) cat ("EndIf\n",file=fc,sep="")
-    if (lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (!is.null(lastCnd) && lastExt != "base") {
+      cat ("End\n",file=fc,sep="")
+      lastExt = "base"
+    }
+    if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {
