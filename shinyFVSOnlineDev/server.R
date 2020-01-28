@@ -3650,8 +3650,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       # }
       if(addnl){
         updateTextInput(session=session, inputId="kcpEdit", value=
-                          # paste0(input$kcpEdit,
-                          paste("\n* From:",paste(data,collapse="\n")))
+                          paste(data,collapse="\n"))
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
         save(file="FVS_kcps.RData",globals$customCmps)
