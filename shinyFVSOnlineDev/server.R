@@ -4671,7 +4671,7 @@ cat ("cmd=",cmd,"\n")
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("'Schema' not created--no data loaded. If running the local configuration, check to make sure Java is installed on your PC.")
+        output$step1ActionMsg = renderText("'Schema' not created--no data loaded. If running the local configuration, check to make sure Java is installed on your PC (https://www.java.com/en/download).")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
