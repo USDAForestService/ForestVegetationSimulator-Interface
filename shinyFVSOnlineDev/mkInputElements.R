@@ -249,7 +249,7 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
-      myInlineTextInput(pkey, "Year or cycle number ", globals$schedBoxYrLastUsed)
+      myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
     ))
   } else {    
     sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year " else

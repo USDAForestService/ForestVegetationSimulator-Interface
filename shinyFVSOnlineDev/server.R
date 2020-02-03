@@ -3511,7 +3511,8 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
-        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
+        skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
+        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip){
         updateTextInput(session=session, inputId="kcpEdit", value=
           paste0(customCmps,"ENDIF\n"))
           customCmps <-as.list(paste0(customCmps,"ENDIF\n"))
