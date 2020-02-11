@@ -4003,7 +4003,6 @@ cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
     {
       require(rgdal) 
-      # browser()
       cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
            " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
