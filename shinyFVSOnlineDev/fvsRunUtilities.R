@@ -43,7 +43,8 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric"))
+    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
+    lastRunVar="character"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -97,9 +98,9 @@ loadVarData <- function(globals,prms,dbIcon)
       {
         selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
                                                        function (x) strsplit(x," "))))))
-        globals$selVarList <- lapply(selVars,function (x,pk) 
+        globals$selVarList <- lapply(sort(selVars),function (x,pk) 
           paste(x,":",getPstring(pk,x)),prms$variants)
-        names(globals$selVarList) <- selVars
+        names(globals$selVarList) <- sort(selVars)
       }
     }
   }

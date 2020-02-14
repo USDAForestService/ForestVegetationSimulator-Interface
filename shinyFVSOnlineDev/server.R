@@ -252,8 +252,23 @@ cat ("View Outputs & Load\n")
         fvsOutData$runs = runsdf$KeywordFile
         names(fvsOutData$runs) = runsdf$RunTitle
       }
+      tableList = list()
+      if (file.exists("databaseDescription.xlsx"))
+      {
+        if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
+          tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
+        tableList = as.list(sort(c("",tabs)))
+      }
+      updateSelectInput(session, "tabDescSel2", choices = tableList, 
+                        selected=1)
       updateSelectInput(session, "runs", choices = fvsOutData$runs, 
-        selected=0)
+                        selected=0)
+      updateTextInput(session=session, inputId="ptitle", label="Title",
+                      value="")
+      updateTextInput(session=session, inputId="ylabel", label="Y-label",
+                      value="")
+      updateTextInput(session=session, inputId="xlabel", label="X-label",
+                      value="")
     }
   })
 
@@ -1584,7 +1599,6 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
-#browser()
 #ggbld <- ggplot_build(p)
 #ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.major_source
 #ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.labels
@@ -1636,13 +1650,13 @@ cat ("inTabs\n")
   
   updateVarSelection <- function ()
   {
-cat ("in updateVarSelection\n")   
+    cat ("in updateVarSelection\n") 
     if (length(globals$fvsRun$FVSpgm) == 0) 
     {
-      selVarListUse <- intersect(names(globals$selVarList),
-                                 globals$activeVariants)
+      selVarListUse <- sort(intersect(names(globals$selVarList),
+                                      globals$activeVariants))
       selVarListUse <- globals$selVarList[selVarListUse]                                   
-      vlst <- as.list (names(selVarListUse))                                
+      vlst <- as.list (sort(names(selVarListUse)))                            
       names(vlst) = selVarListUse        
     } else {
       if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) vlst <- list() else
@@ -1652,7 +1666,7 @@ cat ("in updateVarSelection\n")
       }
     }
     updateSelectInput(session=session, inputId="inVars", choices=vlst,
-          selected=if (length(vlst)) vlst[[1]] else NULL)
+                      selected=if (length(vlst)) vlst[[1]] else NULL)
   } 
   
   ## inVars has changed
@@ -1871,6 +1885,7 @@ cat ("saveRun\n")
   observe({
     if (input$newRun > 0)
     {
+      globals$lastRunVar <- globals$activeVariants
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
       resetGlobals(globals,NULL,prms)
@@ -1917,8 +1932,11 @@ cat ("saveRun\n")
             selVarListUse <- globals$selVarList[selVarListUse]
             vlst <- as.list (names(selVarListUse))
             names(vlst) = selVarListUse
-            updateSelectInput(session=session, inputId="inVars", NULL,
-                          vlst, vlst[[1]])
+            if(!is.na(match(globals$lastRunVar,vlst))) {
+              updateSelectInput(session=session, inputId="inVars", NULL,
+                                vlst, vlst[match(globals$lastRunVar,vlst)])
+            }else updateSelectInput(session=session, inputId="inVars", NULL,
+                                    vlst, vlst[[1]])
           } else updateSelectInput(session=session, inputId="inVars", NULL, list())
           updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
@@ -4488,7 +4506,7 @@ cat ("tabDescSel, tab=",tab,"\n")
     html = NULL
     if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
     {
-      sheets = getSheetNames("databaseDescription.xlsx")
+      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
       if ("OutputTableDescriptions" %in% sheets)
       {
         tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
@@ -4516,7 +4534,7 @@ cat ("tabDescSel, tab=",tab,"\n")
     html = NULL
     if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
     {
-      sheets = getSheetNames("databaseDescription.xlsx")
+      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
       if ("OutputTableDescriptions" %in% sheets)
       {
         tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
@@ -6195,7 +6213,7 @@ cat ("sel=",sel,"\n")
       del = grep(pattern=".RData$",filesToCopy)
       progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData")))
+      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData","/SpatialData.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
@@ -6262,6 +6280,7 @@ cat ("sel=",sel,"\n")
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
       globals$fvsRun$title = runName
+      globals$lastRunVar <- globals$activeVariants
       globals$fvsRun$defMgmtID = input$defMgmtID
       globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
       if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else

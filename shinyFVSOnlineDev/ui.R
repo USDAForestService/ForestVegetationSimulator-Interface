@@ -49,8 +49,16 @@ tableList = list()
 if (file.exists("databaseDescription.xlsx"))
 {
   if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
-  tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
-  tableList = as.list(c("",tabs))
+    tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
+  tableList = as.list(sort(c("",tabs)))
+}
+
+tableList2 = list()
+if (file.exists("databaseDescription.xlsx"))
+{
+  if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
+    tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
+  tableList2 = as.list(sort(c("",tabs)))
 }
 
 shinyUI(fixedPage(
@@ -489,7 +497,7 @@ shinyUI(fixedPage(
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
             column(width=6,                 
-              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList2,
                 selected=1,multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
       ) ) ),
