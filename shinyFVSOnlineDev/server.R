@@ -4674,106 +4674,59 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
     curDir=getwd()
     setwd(fdir)
     if (fext %in% c("accdb","mdb"))
-    {      
+    {
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',
-                fname,'" --schema'),type='cmd2') else
-        paste0('java -jar "',curDir,'/access2csv.jar" "',
-                fname,'" --schema')
+        shQuote(paste0("C:/FVS/mdbtools/mdb-schema ",fname)) else
+        paste0(paste0("mdb-schema ",fname))
 cat ("cmd=",cmd,"\n")
-      schema = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else 
-                                                   system(cmd,intern=TRUE)
-      if (!exists("schema") || length(schema) < 2) 
+      schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else 
+                                                   try(system(cmd,intern=TRUE))
+      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2) 
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("'Schema' not created--no data loaded. If running the local configuration, check to make sure Java is installed on your PC (https://www.java.com/en/download).")
+        output$step1ActionMsg = renderText("No data loaded. Perhaps mdbtools are not installed.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      fix = grep (")",schema)        
-      schema[fix] = sub (")",");",schema[fix])
-      fix = fix - 1
-      schema[fix] = sub (",","",schema[fix])       
-      for (i in 1:length(schema))
-      {
-        # add a "n" to identifiers that starts with a numeric char.
-        t1 = scan(text=schema[i],what="character",quiet=TRUE)
-        cn = if (toupper(t1[1]) == "CREATE" && toupper(t1[2]) == "TABLE") 3 else 1
-        t1 = t1[cn]
-        t1 = if (toupper(t1[1]) == "CREATE" && toupper(t1[2]) == "TABLE") t1[3] else t1[1]
-        c1 = substr(t1,1,1)
-        n1 = suppressWarnings(as.numeric(c1))
-        if (!is.na(n1)) schema[i] = sub(c1,paste0("n",c1),schema[i])      
-        if (substring(schema[i],1,12) == "CREATE TABLE") 
-        {
-          tblName = scan(text=schema[i],what="character",sep=" ",quiet=TRUE)[3]
-          cknt = NULL
-          if      (length(grep("FVS_STANDINIT",tblName,ignore.case=TRUE))) cknt = standNT
-          else if (length(grep("FVS_STANDINIT_COND",tblName,ignore.case=TRUE))) cknt = standNT
-          else if (length(grep("FVS_STANDINIT_PLOT",tblName,ignore.case=TRUE))) cknt = standNT
-          else if (length(grep("FVS_TREEINIT", tblName,ignore.case=TRUE))) cknt = treeNT
-          else if (length(grep("FVS_TREEINIT_COND", tblName,ignore.case=TRUE))) cknt = treeNT
-          else if (length(grep("FVS_TREEINIT_PLOT", tblName,ignore.case=TRUE))) cknt = treeNT
-          else if (length(grep("FVS_PLOTINIT", tblName,ignore.case=TRUE))) cknt = plotNT
-          else if (length(grep("FVS_PLOTINIT_PLOT", tblName,ignore.case=TRUE))) cknt = plotNT
-          next
-        }
-        if (substring(schema[i],1,2)  == ");") next
-        items = unlist(strsplit(schema[i]," "))
-        items = items[nchar(items)>0]
-        ckntrow = match(toupper(items[1]),toupper(cknt[,1]))
-        if (!is.na(ckntrow)) 
-        {
-          items[1] = cknt[ckntrow,1]
-          comma = nchar(items[2])
-          comma = substring(items[2],comma,comma)
-          items[2] = cknt[ckntrow,2] 
-          if (comma == ",") items[2] = paste0(items[2],",")
-        }
-        schema[i] = paste0(' "',items[1],'" ',items[2])
-      }        
-      schema = gsub(" LONG,"," INTEGER,",schema)
-      schema = gsub(" DOUBLE,"," REAL,",schema)
-      schema = gsub(" MEMO,"," TEXT,",schema)
-      schema = gsub(" FLOAT,"," REAL,",schema)
-      schema = gsub(" MEMO,"," TEXT,",schema)
-      schema = gsub(" SHORT_DATE_TIME,"," TEXT,",schema)
-      cat (paste0(schema,"\n"),file="schema")
+      tbls = grep ("CREATE TABLE",schema)
+      schema = schema[tbls[1]:length(schema)]
+      tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
+      schema = gsub("]","",schema,fixed=TRUE)
+      schema = gsub("[","",schema,fixed=TRUE) 
+      schema = gsub("\t"," ",schema,fixed=TRUE)   
+      schema = gsub(" Long Integer,"," Integer,",schema,ignore.case=TRUE)
+      schema = gsub(" Int,"," Integer,",schema,ignore.case=TRUE)
+      schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
+      schema = gsub(" Memo"," Text",schema,ignore.case=TRUE)
+      schema = gsub(" Text.*)"," Text",schema,ignore.case=TRUE)
+      schema = gsub(" Double"," Real",schema,ignore.case=TRUE)
+      schema = gsub(" SHORT_DATE_TIME,"," Text,",schema,ignore.case=TRUE)
+      schema = gsub(" FLOAT,"," Real,",schema,ignore.case=TRUE)
+      tbls=unlist(lapply(schema[tbls],function(x) scan(text=x,what="character",quiet=TRUE)[3]))
+      cat ("begin;\n",file="sqlite3.import")
+      cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
+      cat ("commit;\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Extract data", value = 3)            
-      cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0('C:/FVS/java.exe -jar "',curDir,'/access2csv.jar" "',fname),type='cmd2') else
-          paste0("java -jar '",curDir,"/access2csv.jar' ", fname)
-cat ("cmd=",cmd,"\n") 
-      if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)  
-      progress$set(message = "Import schema to Sqlite3", value = 4) 
-      if (.Platform$OS.type == "windows"){
-        cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
-      }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
+      for (tab in tbls) 
+      {
+        cat ("begin;\n",file="sqlite3.import",append=TRUE)
+        cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/" else "",
+                       "mdb-export -I sqlite ",fname," ",tab," >> sqlite3.import")
+        cat ("cmd=",cmd,"\n")
+        result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
+        cat ("commit;\n",file="sqlite3.import",append=TRUE)
+      }
+      cat (".quit\n",file="sqlite3.import",append=TRUE)
+      progress$set(message = "Import data to Sqlite3", value = 4) 
+      cmd = paste0(if (.Platform$OS.type == "windows")
+         "C:/FVS/SQLite/" else "","sqlite3 FVS_Data.db < sqlite3.import")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
-      fix = grep ("CREATE TABLE",schema)
-      schema = sub ("CREATE TABLE ","",schema[fix])
-      schema = sub (" [(]",".csv",schema)
-      i = 5
-      for (s in schema)
-      {
-        cat (".separator ,\n",file="schema")
-        # if file does not exist, then maybe a "n" was added to the name above.
-        if (!file.exists(s)) file.rename(from=substr(s,2,999),to=s)
-        cat (".import ",s," ",sub(".csv","",s),"\n",file="schema",append=TRUE)
-        progress$set(message = paste0("Import ",s), value = i) 
-        i = i+1;
-        if (.Platform$OS.type == "windows"){
-          cmd = paste0("C:/FVS/SQLite/sqlite3.exe ","FVS_Data.db"," < schema")
-        }else cmd = paste0("sqlite3 ","FVS_Data.db"," < schema")
-cat ("s=",s," cmd=",cmd,"; ")
-        if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
-      }
       dbo = dbConnect(dbDrv,"FVS_Data.db")
     } else if (fext == "xlsx") {
       sheets = getSheetNames(fname)
@@ -4851,12 +4804,12 @@ cat("loaded table=",tab,"\n")
         }
       }
     }
-    # loop over tables and ommit duplicate stand or standplot id's from being uploaded
+    # loop over tables and omit duplicate stand or standplot id's from being uploaded
     sidmsg=NULL
     newID=NULL  
     for (idx in fixTabs)
     {
-      if (tolower(tabs[idx])=="fvs_standinit_plot")next
+      if (tolower(tabs[idx])=="fvs_standinit_plot") next
       tab2fix=tabs[idx]
       idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
       sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
@@ -5021,7 +4974,7 @@ cat ("index creation, qry=",qry,"\n")
     output$step2ActionMsg = renderText(HTML(paste0("<br>Uploaded data installed.<br>",
       "<b>WARNING:</b> If existing runs in this project were created using input ",
       "data that are not present in the database just installed, ",
-      "you will need to re-load theose data to run them again.<br>",
+      "you will need to re-load those data to run them again.<br>",
       "Note that the output from the previous runs will remain in the output database.")))
     initNewInputDB()
     progress$close()
