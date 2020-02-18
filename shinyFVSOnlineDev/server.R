@@ -4735,11 +4735,11 @@ cat ("cmd=",cmd,"\n")
       cat ("begin;\n",file="sqlite3.import")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
-      progress$set(message = "Extract data", value = 3)            
+      progress$set(message = "Extract data", value = 3)   
       for (tab in tbls) 
       {
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
-        cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/" else "",
+        cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
                        "mdb-export -I sqlite ",fname," ",tab," >> sqlite3.import")
         cat ("cmd=",cmd,"\n")
         result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
