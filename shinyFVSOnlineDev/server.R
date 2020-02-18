@@ -1926,7 +1926,7 @@ cat ("saveRun\n")
           loadStandTableData(globals, dbGlb$dbIcon)
           updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
           selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
-          selVarListUse <- intersect(globals$activeVariants,names(globals$selVarList))
+          selVarListUse <- sort(intersect(globals$activeVariants,names(globals$selVarList)))
           if (length(selVarListUse))
           {
             selVarListUse <- globals$selVarList[selVarListUse]
@@ -3752,12 +3752,47 @@ cat ("SVS3d hit\n")
   observe({
     if (length(input$SVSRunList1))
     {
-cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
+      cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
       fn = paste0(input$SVSRunList1,"_index.svs")
       if (!file.exists(fn)) return()
       index = read.table(file=fn,as.is=TRUE)
       choices = as.list(index[,2])
-      names(choices) = index[,1]
+      ind <- 0
+      for(f in 1:length(globals$fvsRun$stands)){
+        if (globals$fvsRun$stands[[f]]$rep > 0)
+          ind <- ind + 1
+      }
+      if(ind > 0){
+        chnames <- data.frame()
+        lst <- list()
+        lstidx <- 1
+        nonstands <- grep(">", names(globals$fvsRun$simcnts))
+        inds <- 1:length(globals$fvsRun$simcnts)
+        stands <- inds[which(!inds %in% nonstands)]
+        repstands <- grep(" r", names(globals$fvsRun$simcnts[stands]))
+        stands <- stands[repstands]
+        k <- 1
+        for (i in 1:length(choices)){
+          svssid <- paste0(as.list(strsplit(strsplit(index[i,1]," ")[[1]][1],""))[[1]]
+                           [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
+          if(!length(grep(svssid,names(globals$fvsRun$simcnts[stands])))){
+            chnames[i,1] <- index[i,1]
+            next
+          }
+          block <- 0
+          if(strsplit(index[,1]," ")[[1]][4]=="conditions" && block==0) block <- 1
+          if(block==1) {
+            j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
+            chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
+                                          strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
+          }
+          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
+            block <- 0
+            k <- k + 1
+          } 
+        }
+        names(choices) = chnames[,1]
+      }else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
       output$SVSImg1 = renderRglwidget(NULL)
@@ -3766,12 +3801,46 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
   observe({
     if (length(input$SVSRunList2))
     {
-cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
+      cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       fn = paste0(input$SVSRunList2,"_index.svs")
-      if (!file.exists(fn)) return()
       index = read.table(file=fn,as.is=TRUE)
       choices = as.list(index[,2])
-      names(choices) = index[,1]
+      ind <- 0
+      for(f in 1:length(globals$fvsRun$stands)){
+        if (globals$fvsRun$stands[[f]]$rep > 0)
+          ind <- ind + 1
+      }
+      if(ind > 0){
+        chnames <- data.frame()
+        lst <- list()
+        lstidx <- 1
+        nonstands <- grep(">", names(globals$fvsRun$simcnts))
+        inds <- 1:length(globals$fvsRun$simcnts)
+        stands <- inds[which(!inds %in% nonstands)]
+        repstands <- grep(" r", names(globals$fvsRun$simcnts[stands]))
+        stands <- stands[repstands]
+        k <- 1
+        for (i in 1:length(choices)){
+          svssid <- paste0(as.list(strsplit(strsplit(index[i,1]," ")[[1]][1],""))[[1]]
+                           [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
+          if(!length(grep(svssid,names(globals$fvsRun$simcnts[stands])))){
+            chnames[i,1] <- index[i,1]
+            next
+          }
+          block <- 0
+          if(strsplit(index[,1]," ")[[1]][4]=="conditions" && block==0) block <- 1
+          if(block==1) {
+            j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
+            chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
+                                          strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
+          }
+          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
+            block <- 0
+            k <- k + 1
+          } 
+        }
+        names(choices) = chnames[,1]
+      }else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
       output$SVSImg2 = renderRglwidget(NULL)
@@ -3973,50 +4042,6 @@ cat ("Maps hit\n")
     }
    })
   observe({
-    if (length(input$mapDsRunList))
-    {
-cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
-      cases = dbGetQuery(dbGlb$dbOcon,
-          paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
-                 input$mapDsRunList,"'"))
-      # if there are reps (same stand more than once), just use the first rep, ignore the others
-      cases = cases[!duplicated(cases$StandID),]
-      dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
-      tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1],
-                     c("CmpSummary","FVS_Cases","CmpSummary_East"))
-      tables = list()
-      for (tab in tabs)
-      {
-        tb <- dbGetQuery(dbGlb$dbOcon,paste0("PRAGMA table_info('",tab,"')"))
-        if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
-        cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                 " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
-        if (class(cnt) == "try-error") next
-        if (cnt[1,1]) tables=append(tables,tab)
-      }
-      if (length(tables)) names(tables) = tables
-      updateSelectInput(session=session, inputId="mapDsTable", choices=tables,
-        selected=0)   
-      updateSelectInput(session=session, inputId="mapDsVar", choices=list(),
-        selected=0) 
-      output$leafletMap = renderLeaflet(NULL)
-    }
-  })
-  observe({
-    if (length(input$mapDsTable))
-    {
-cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
-      vars = setdiff(dbListFields(dbGlb$dbOcon,input$mapDsTable),
-         c("CaseID","StandID","Year"))
-      vars = as.list(vars)
-      names(vars) = vars
-      updateSelectInput(session=session, inputId="mapDsVar", choices=vars,
-        selected=0) 
-      output$leafletMap = renderLeaflet(NULL)
-    }
-  })
-  observe({
     if (length(input$mapDsVar) && !is.na(match(input$mapDsVar,setdiff(
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
     {
@@ -4158,13 +4183,13 @@ cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
       pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
       if (class(polys) == "SpatialPointsDataFrame")         
         map = map %>% addCircleMarkers(radius = 6, color="red", 
-               stroke = FALSE, fillOpacity = 0.5, 
-               popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
-               map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-               opacity = .3, fillOpacity = 0.1, 
-               popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
-               highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-               fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+                                       stroke = FALSE, fillOpacity = 0.5, 
+                                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
+        map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
+              opacity = .3, fillOpacity = 0.1, 
+              popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
+              highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
+              fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })
