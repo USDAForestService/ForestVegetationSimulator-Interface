@@ -4042,6 +4042,51 @@ cat ("Maps hit\n")
     }
    })
   observe({
+    if (length(input$mapDsRunList))
+    {
+      cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
+      cases = dbGetQuery(dbGlb$dbOcon,
+                         paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
+                                input$mapDsRunList,"'"))
+      # if there are reps (same stand more than once), just use the first rep, ignore the others
+      cases = cases[!duplicated(cases$StandID),]
+      dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
+      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
+      tabs = setdiff(dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1],
+                     c("CmpSummary","FVS_Cases","CmpSummary_East"))
+      tables = list()
+      for (tab in tabs)
+      {
+        tb <- dbGetQuery(dbGlb$dbOcon,paste0("PRAGMA table_info('",tab,"')"))
+        if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
+        cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
+                                                 " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
+        if (class(cnt) == "try-error") next
+        if (cnt[1,1]) tables=append(tables,tab)
+      }
+      if (length(tables)) names(tables) = tables
+      updateSelectInput(session=session, inputId="mapDsTable", choices=tables,
+                        selected=0)   
+      updateSelectInput(session=session, inputId="mapDsVar", choices=list(),
+                        selected=0) 
+      output$leafletMap = renderLeaflet(NULL)
+    }
+  })
+  
+  observe({
+    if (length(input$mapDsTable))
+    {
+      cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
+      vars = setdiff(dbListFields(dbGlb$dbOcon,input$mapDsTable),
+                     c("CaseID","StandID","Year"))
+      vars = as.list(vars)
+      names(vars) = vars
+      updateSelectInput(session=session, inputId="mapDsVar", choices=vars,
+                        selected=0) 
+      output$leafletMap = renderLeaflet(NULL)
+    }
+  })
+  observe({
     if (length(input$mapDsVar) && !is.na(match(input$mapDsVar,setdiff(
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
     {
@@ -4110,6 +4155,7 @@ cat ("Maps hit\n")
                                                 isolate(input$mapDsTable)," where CaseID in (select CaseID from temp.mapsCases)"))
       dispData = dispData[,-1]
       keys = setdiff(colnames(dispData),c("StandID","Year"))
+      extra = NULL
       for (var in keys) 
       {
         if (class(dispData[,var]) == "character") 
@@ -4138,7 +4184,7 @@ cat ("Maps hit\n")
       labs  = lapply(uids, function (sid)
       {
         tab = subset(dispData,StandID == sid)[,-1]
-        if(length(tab) > 2)
+        if(length(tab) > 2 && input$mapDsType == "table")
         {
           temp <- data.frame()
           for(i in 1:(length(tab[,1]))){
@@ -4146,6 +4192,7 @@ cat ("Maps hit\n")
           }
           tab[,3] <- temp
         }
+        browser()
         progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
         if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
         {
@@ -4173,7 +4220,7 @@ cat ("Maps hit\n")
           HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
                       '" alt="',sid,'" style="width:229px;height:170px;">'))
         }  
-      })           
+      })                 
       progress$close()
       map = leaflet(data=polys) %>% addTiles() %>%
         addTiles(urlTemplate = 
@@ -4185,11 +4232,11 @@ cat ("Maps hit\n")
         map = map %>% addCircleMarkers(radius = 6, color="red", 
                                        stroke = FALSE, fillOpacity = 0.5, 
                                        popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
-        map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-              opacity = .3, fillOpacity = 0.1, 
-              popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
-              highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-              fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+                                         map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
+                                                                   opacity = .3, fillOpacity = 0.1, 
+                                                                   popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
+                                                                   highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
+                                                                                        fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })
