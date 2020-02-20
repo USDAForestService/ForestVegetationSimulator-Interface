@@ -6309,7 +6309,7 @@ cat ("sel=",sel,"\n")
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
       globals$fvsRun$title = runName
-      globals$lastRunVar <- globals$activeVariants
+      if(length(globals$fvsRun$simcnts))globals$lastRunVar <- globals$activeVariants
       globals$fvsRun$defMgmtID = input$defMgmtID
       globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
       if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
