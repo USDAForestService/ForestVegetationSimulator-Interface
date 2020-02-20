@@ -117,10 +117,9 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
   if (length(sel) && edt==0) 
     {
       if (sel==length(choices)) sel <- sel-1
-      sel = match(as.character(sel),mklist) 
+      if (!valpair) sel = match(as.character(sel),mklist) 
       if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
   } 
-  # browser()
   if(!length(sel) && edt==0) sel="0"
   if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- " "
   if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
@@ -249,7 +248,7 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
-      myInlineTextInput(pkey, "Year or cycle number ", globals$schedBoxYrLastUsed)
+      myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
     ))
   } else {    
     sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year " else

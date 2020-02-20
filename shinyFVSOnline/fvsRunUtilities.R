@@ -43,7 +43,8 @@ mkGlobals <<- setRefClass("globals",
     customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
-    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric"))
+    condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
+    lastRunVar="character"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -97,9 +98,9 @@ loadVarData <- function(globals,prms,dbIcon)
       {
         selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
                                                        function (x) strsplit(x," "))))))
-        globals$selVarList <- lapply(selVars,function (x,pk) 
+        globals$selVarList <- lapply(sort(selVars),function (x,pk) 
           paste(x,":",getPstring(pk,x)),prms$variants)
-        names(globals$selVarList) <- selVars
+        names(globals$selVarList) <- sort(selVars)
       }
     }
   }
@@ -530,7 +531,7 @@ cat("writeKeyFile, num stds=",length(stds),
           invokekwds <- list("ESTAB","FMIN","DATABASE","CLIMATE","ECON","COVER","RDIN","MISTOE")
           regenkwds <- list("AUTALLY","BUDWORM","BURNPREP","EXCRUISE","HABGROUP","HTADJ","INGROW",
                             "MECHPREP","MINPLOTS","NATURAL","NOAUTALY","NOINGROW","NOSPROUT","OUTPUT",
-                            "PASSALL","PLANT","PLOTINFO","RANNSEED","RESETAGE","SPECMULT","SPROUT",
+                            "PASSALL","PLANT","PLOTINFO","SPECMULT","SPROUT",
                             "STOCKADJ","TALLY","TALLYONE","TALLYTWO","THRSHOLD")
           firekwds <- list("BURNREPT","CANCALC","CANFPROF","CARBCALC","CARBCUT","CARBREPT","DEFULMOD",
                            "DROUGHT","DUFFPROD","DWDCVOUT","FIRECALC","FLAMEADJ","FMODLIST","FMORTMLT",
@@ -588,10 +589,10 @@ cat("writeKeyFile, num stds=",length(stds),
             endkw <- length(endkw)
             endifkw <- grep("ENDIF", toupper(kcpconts[j]))
             endifkw <- length(endifkw)
-            commkw <- toupper(kcpconts[j])=="COMMENT"
+            commkw <- grep("COMMENT", toupper(kcpconts[j]))
+            commkw <- length(commkw)
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
             if(endkw && commentflag==1) commentflag <- 0
-            rskw <- grep("RANNSEED", toupper(kcpconts[j]))
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -666,29 +667,29 @@ cat("writeKeyFile, num stds=",length(stds),
               }
               # if it's an extension invocation keyword and we're not in an extension block,
               # set the flag to the corresponding group number of extension keywords
-              else if(length(grep(toupper(kcpconts[j]),invokekwds)) && extflag==0){
-                extflag <- grep(toupper(kcpconts[j]),invokekwds)
+              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag==0){
+                extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
                 next
               }
               # if it's an extension invocation keyword and we are in an extension block
-              else if(length(grep(toupper(kcpconts[j]),invokekwds)) && extflag > 0){
+              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag > 0){
                 # if the flag value doesn't correspond to the extension of the invocation keyword
                 # insert an END in the line above, and set the flag to the corresponding group number
                 # of extension keywords
-                if(grep(toupper(kcpconts[j]),invokekwds)!=extflag){
+                if(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)!=extflag){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
                   numinserts <- numinserts +1
-                  extflag <- grep(toupper(kcpconts[j]),invokekwds)
+                  extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
                 }
                 else next
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw && !rskw){
+                      && extflag==0 && !endkw && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -697,7 +698,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 1
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
                   invoke <- as.character(invokekwds[2])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -706,7 +707,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 2
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
                   invoke <- as.character(invokekwds[3])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -715,7 +716,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 3
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
                   invoke <- as.character(invokekwds[4])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -724,7 +725,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 4
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
                   invoke <- as.character(invokekwds[5])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -733,7 +734,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 5
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
                   invoke <- as.character(invokekwds[6])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -742,7 +743,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 6
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
                   invoke <- as.character(invokekwds[7])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -751,7 +752,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 7
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
                   invoke <- as.character(invokekwds[8])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -765,7 +766,7 @@ cat("writeKeyFile, num stds=",length(stds),
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
                       && extflag==0 && !endkw && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -774,7 +775,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 1
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
                   invoke <- as.character(invokekwds[2])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -783,7 +784,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 2
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
                   if (dbflag==2) {
                     dbflag <- 0
                     next
@@ -796,7 +797,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 3
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
                   invoke <- as.character(invokekwds[4])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -805,7 +806,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 4
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
                   invoke <- as.character(invokekwds[5])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -814,7 +815,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 5
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
                   invoke <- as.character(invokekwds[6])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -823,7 +824,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 6
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
                   invoke <- as.character(invokekwds[7])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -832,7 +833,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 7
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
                   invoke <- as.character(invokekwds[8])
                   insertkw[k] <- invoke
                   insertidx[k] <- j-1
@@ -848,7 +849,7 @@ cat("writeKeyFile, num stds=",length(stds),
                        && extflag > 0 && !endkw && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyword,
                 # and then insert ESTAB below that, etc.
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -860,7 +861,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 1
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -872,7 +873,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 2
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -884,7 +885,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 3
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -896,7 +897,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 4
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -908,7 +909,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 5
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -920,7 +921,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 6
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -932,7 +933,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 7
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -950,7 +951,7 @@ cat("writeKeyFile, num stds=",length(stds),
                        && extflag > 0 && !endkw && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyord,
                 # and then insert ESTAB below that, etc.
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -962,7 +963,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 1
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
                   if(dbflag==2){
                     dbflag <- 0
                     next
@@ -978,7 +979,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 2
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
                   if (dbflag==2){
                     dbflag <- 0
                     next
@@ -994,7 +995,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 3
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -1006,7 +1007,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 4
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -1018,7 +1019,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 5
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -1030,7 +1031,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 6
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -1042,7 +1043,7 @@ cat("writeKeyFile, num stds=",length(stds),
                   extflag <- 7
                   next
                 }
-                if(length(grep(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
+                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
                   insertkw[k] <- "END"
                   insertidx[k] <- j-1
                   k <- k+1
@@ -1071,13 +1072,16 @@ cat("writeKeyFile, num stds=",length(stds),
                 if(condflag==0){
                   condflag <- 1
                 }
-                # if we already were, remove the duplicate IF
+                # if we already were, insert an ENDIF
                 else{
-                  kcpconts <- kcpconts[-j]
+                  insertkw[k] <- "ENDIF"
+                  insertidx[k] <- j-1
+                  k <- k+1
+                  numinserts <- numinserts +1
                 }
               }
               # if it's a COMMENT keyword
-              else if (commkw){
+              else if (commkw==1){
                 # if we weren't already in a compute block, set the flag to 1 indicating we are now
                 if(commentflag==0){
                   commentflag <- 1
@@ -1159,7 +1163,7 @@ cat("writeKeyFile, num stds=",length(stds),
           # if any insertions were made to the addfile, replace the cmp$kwds vector with kcpconts
           if (length(kcpconts) > j) cmp$kwds <- paste(kcpconts,collapse="\n")
         }
-        else if (cmp$atag == "k" && !is.null(lastCnd))
+        if (cmp$atag == "k" && !is.null(lastCnd))
         {
           cat ("EndIf\n",file=fc,sep="")
           lastCnd = NULL
@@ -1222,8 +1226,12 @@ cat("writeKeyFile, num stds=",length(stds),
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                      cmp$kwds,"\n",file=fc,sep="")    
     }
-    if (!is.null(lastCnd)) cat ("EndIf\n",file=fc,sep="")
-    if (lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (!is.null(lastCnd) && lastExt != "base") {
+      cat ("End\n",file=fc,sep="")
+      lastExt = "base"
+    }
+    if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {
