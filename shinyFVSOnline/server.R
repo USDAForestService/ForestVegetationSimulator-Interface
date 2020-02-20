@@ -6310,7 +6310,7 @@ cat ("sel=",sel,"\n")
          value=runName)
       globals$fvsRun$title = runName
       globals$lastRunVar <- globals$activeVariants
-      globals$fvsRun$defMgmtID = input$defMgmtID
+      if(length(globals$fvsRun$simcnts))globals$lastRunVar <- globals$activeVariants
       globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
       if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
       {
