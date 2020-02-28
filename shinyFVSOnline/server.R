@@ -40,7 +40,7 @@ cat ("Server id=",serverID,"\n")
   # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  serverDate="20200218"
+  serverDate="20200228"
   
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -4234,13 +4234,13 @@ cat ("Maps hit\n")
       pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
       if (class(polys) == "SpatialPointsDataFrame")         
         map = map %>% addCircleMarkers(radius = 6, color="red", 
-                                       stroke = FALSE, fillOpacity = 0.5, 
-                                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
-                                         map = map %>% addPolygons(color = "red", weight = 2, smoothFactor = 0.1,
-                                                                   opacity = .3, fillOpacity = 0.1, 
-                                                                   popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
-                                                                   highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-                                                                                        fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+                       stroke = FALSE, fillOpacity = 0.5, 
+                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
+        map = map %>% addPolygons(color = "yellow", weight = 3, smoothFactor = 0.1,
+                       opacity = .3, fillOpacity = 0.2, 
+                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
+                       highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
+                       fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
       output$leafletMap = renderLeaflet(map)
     }
   })
@@ -6309,7 +6309,7 @@ cat ("sel=",sel,"\n")
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
       globals$fvsRun$title = runName
-      globals$lastRunVar <- globals$activeVariants
+      if(length(globals$fvsRun$simcnts))globals$lastRunVar <- globals$activeVariants
       if(length(globals$fvsRun$simcnts))globals$lastRunVar <- globals$activeVariants
       globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
       if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else
