@@ -1665,7 +1665,7 @@ cat ("inTabs\n")
         names(vlst) <- globals$selVarList[[vlst[[1]]]]
       }
     }
-    f(length(globals$lastRunVar)>0 && !is.na(match(globals$lastRunVar,vlst))){
+    if(length(globals$lastRunVar)>0 && !is.na(match(globals$lastRunVar,vlst))){
       updateSelectInput(session=session, inputId="inVars", choices=vlst,
                         selected=if (length(vlst)) vlst[[match(globals$lastRunVar,vlst)]] else NULL)
     }else
