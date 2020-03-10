@@ -4525,6 +4525,67 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
         }
       })
     }
+  })
+  
+  ## deletePrj 
+  observe({
+    if(isLocal()){
+      if(length(input$deletePrj) && input$deletePrj > 0)
+      {
+        session$sendCustomMessage(type = "dialogContentUpdate",
+                                  message = list(id = "deletePrjDlg",
+                                                 message = "Are you sure you want to delete this project?"))
+      }
+    }
+  })
+  observe({
+    if(isLocal()){
+      if (length(input$deletePrjDlgBtn) && 
+          input$deletePrjDlgBtn > 0) 
+      {
+        if (length(getProjectList()) == 1){
+          session$sendCustomMessage(type="infomessage",
+                                    message="FVS cannot delete the last existing project.")
+          return()
+        }
+        isolate({
+          delPrj=paste0("../",input$PrjSelect2)
+          cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
+          if (dir.exists(delPrj)) {
+            if(basename(delPrj)=="Project_1"){
+              session$sendCustomMessage(type="infomessage",
+                                        message="FVS cannot delete Project_1")
+              return()
+            } else if(basename(delPrj)==basename(getwd())){
+              if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+              if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+              PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
+              write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
+              write(file="C:/Users/Public/Documents/R/prjDelete.txt",basename(delPrj))
+              write(file="C:/Users/Public/Documents/R/prjSwitch.txt","Project_1")
+              globals$saveOnExit = FALSE
+              globals$reloadAppIsSet=1
+              shell("C:/FVS/FVS_Icon.VBS")
+              Sys.sleep(1)
+              session$sendCustomMessage(type = "closeWindow"," ")
+            } else {
+              unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
+              unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
+              selChoices = getProjectList()
+              for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i]],"\n")
+              sel = match(basename(getwd()),selChoices)[1]
+              sel = if (is.na(sel)) NULL else selChoices[[sel]]
+              cat ("sel=",sel,"\n")
+              updateSelectInput(session=session, inputId="PrjSelect", 
+                                choices=selChoices,selected=sel)
+              updateSelectInput(session=session, inputId="PrjSelect2", 
+                                choices=selChoices,selected=sel)
+              output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
+            }
+          }
+        })
+      }
+    }
   }) 
 
   xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx")
@@ -6281,11 +6342,13 @@ cat ("sel=",sel,"\n")
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+          PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
+          write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
           write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
           shell("C:/FVS/FVS_Icon.VBS")
-          Sys.sleep(3)
+          Sys.sleep(1)
           session$sendCustomMessage(type = "closeWindow"," ")
         } else {
           url = paste0(session$clientData$url_protocol,"//",
