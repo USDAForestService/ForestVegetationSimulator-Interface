@@ -6191,32 +6191,48 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   observe({    
     if (input$topPan == "Tools" && input$toolsPan == "Refresh/copy projects") 
     {
-cat ("Refresh/copy projects\n")
+      cat ("Refresh/copy projects\n")
       selChoices = getProjectList()
       sel = match(basename(getwd()),selChoices)[1]
+      if(isLocal()){
+        revdates <- list()
+        for (i in 1:length(selChoices)){
+          test <- scan(paste0("C:/FVS/",selChoices[i],"/server.R"),what="",sep="\n",quiet=TRUE)
+          ind <- grep(paste0("serverDate=",'"',""),test)
+          sdate <- strsplit(test[ind]," ")[[1]][length(strsplit(test[ind]," ")[[1]])]
+          library(stringr)
+          numextract <- function(string){
+            str_extract(string, "\\-*\\d+\\.*\\d*")
+          }
+          revdates[i] <- numextract(sdate)
+        }
+        names(selChoices) <- paste0(selChoices,", ",revdates) 
+      }
       if (is.na(sel)) 
       {
         updateSelectInput(session=session,inputId="sourcePrj",choices=NULL)
         updateSelectInput(session=session,inputId="targetPrj",choices=NULL)
-      } else {                 
+      } else {    
         updateSelectInput(session=session, inputId="sourcePrj", 
-          choices=selChoices,selected=selChoices[sel])
+                          choices=selChoices,selected=selChoices[sel])
         selChoices = selChoices[-sel]
         updateSelectInput(session=session,inputId="targetPrj",
-            choices=selChoices,selected=NULL)
+                          choices=selChoices,selected=NULL)
       }
     }
   })
-  observe({    
-    if (length(input$sourcePrj) && nchar(input$sourcePrj)) 
-    {
-      selChoices = getProjectList()
-      sel = match(input$sourcePrj,selChoices)[1]
-      selChoices = selChoices[-sel]
-      updateSelectInput(session=session,inputId="targetPrj",
-          choices=selChoices,selected=NULL)
-    }
-  })
+  
+  # not sure why this code is here, given the above code appears to do the same thing-M.S.
+  # observe({    
+  #   if (length(input$sourcePrj) && nchar(input$sourcePrj)) 
+  #   {browser()
+  #     selChoices = getProjectList()
+  #     sel = match(input$sourcePrj,selChoices)[1]
+  #     selChoices = selChoices[-sel]
+  #     updateSelectInput(session=session,inputId="targetPrj",
+  #         choices=selChoices,selected=NULL)
+  #   }
+  # })
   observe({    
     if (input$cpyNow > 0) 
     {
@@ -6266,6 +6282,8 @@ for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i
 cat ("sel=",sel,"\n")
       updateSelectInput(session=session, inputId="PrjSelect", 
           choices=selChoices,selected=sel)
+      updateSelectInput(session=session, inputId="PrjSelect2", 
+                        choices=selChoices,selected=sel)
     }
   })
  
