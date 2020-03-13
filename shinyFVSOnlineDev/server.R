@@ -4595,6 +4595,13 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     if (tab %in% sheets)
     {
       sdat = read.xlsx(xlsxFile=xlsxfile,sheet=tab)
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+ 	  sdat[sdat == " "]=NA
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      sdat = sdat[,!apply(sdat,2,function(x) all(is.na(x)))]
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      sdat = sdat[ !apply(sdat,1,function(x) all(is.na(x))),]
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
       html = paste0("<b>",tab,"</b>")
       html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
              paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")

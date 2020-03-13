@@ -53,14 +53,6 @@ if (file.exists("databaseDescription.xlsx"))
   tableList = as.list(sort(c("",tabs)))
 }
 
-tableList2 = list()
-if (file.exists("databaseDescription.xlsx"))
-{
-  if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
-    tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
-  tableList2 = as.list(sort(c("",tabs)))
-}
-
 shinyUI(fixedPage(
   tags$head(tags$style(HTML(".shiny-notification {height: 80px;width: 500px;
               position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
@@ -218,7 +210,7 @@ shinyUI(fixedPage(
                     h4("Select outputs"),
                     HTML("Note that all outputs are put in output database except for the SVS data.<br>
                          FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum, 
-                         FVS_DM_Spp_Sum) are always produced."),
+                         FVS_DM_Spp_Sum) are always produced."),h6(HTML("<br>")),
                     checkboxGroupInput("autoOut",NULL,choices=list(
                         "SVS: Stand Visualization"="autoSVS",  
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
@@ -497,7 +489,7 @@ shinyUI(fixedPage(
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
             column(width=6,                 
-              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList2,
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
                 selected=1,multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
       ) ) ),
