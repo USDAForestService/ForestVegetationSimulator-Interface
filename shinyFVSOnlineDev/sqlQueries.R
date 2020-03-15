@@ -1,10 +1,11 @@
 # $Id$
 
-exqury = function (dbcon,x,subExpression=NULL) 
+exqury = function (dbcon,x,subExpression=NULL,asSpecies=NULL) 
 {
   for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))
   {
     if (!is.null(subExpression)) qry = sub("subExpression",subExpression,qry)
+    if (!is.null(asSpecies))     qry = sub("asSpecies",paste0(asSpecies," as Species"),qry)
     res = if (nchar(qry) > 5) try(dbExecute(dbcon,qry)) else NULL
     if (is.null(res) || class(res) == "try-error") break
   }
@@ -50,7 +51,7 @@ drop table if exists temp.StdStkAllDBH;
 drop table if exists temp.StdStkAllSp; 
 drop table if exists temp.StdStkAllAll; 
 create table temp.StdStkDBHSp as 
-  select CaseID,Year,Species, 
+  select CaseID,Year,asSpecies, 
     subExpression as DBHClass, 
     sum(Tpa)          as LiveTpa, 
     sum(DBH*DBH*.005454154*TPA) as LiveBA, 
@@ -122,7 +123,7 @@ drop table if exists temp.HrvStdStkAllDBH;
 drop table if exists temp.HrvStdStkAllSp;
 drop table if exists temp.HrvStdStkAllAll;
 create table temp.HrvStdStk as
-  select CaseID,Year,Species, 
+  select CaseID,Year,asSpecies, 
     subExpression as dbhclass, 
     sum(Tpa)          as HrvTPA,
     sum(DBH*DBH*.005454154*Tpa) as HrvBA, 

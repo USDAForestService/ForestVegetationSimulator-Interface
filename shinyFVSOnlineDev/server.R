@@ -272,7 +272,7 @@ cat ("View Outputs & Load\n")
     }
   })
 
-  ## output run selection
+  ## runs output run selection
   observe({
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
@@ -430,7 +430,8 @@ cat ("tbs5=",tbs,"\n")
           }
           setProgress(message = "Output query", 
             detail  = detail, value = i); i = i+1
-          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp)
+          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
           if (clname %in% tbs)
           {
             setProgress(message = "Output query", 
@@ -784,8 +785,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
             {
               fix = grep ("Hrv",colnames(dtab))
               if (length(fix)) for (ifx in fix) dtab[[ifx]] = as.numeric(dtab[[ifx]])
-            }
-            if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
+            } else if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
             { 
               dtab <- ddply(dtab,.(CaseID),.fun=setupSummary)
               dtab$ForTyp =as.factor(dtab$ForTyp)
@@ -807,6 +807,18 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
             if (!is.null(dtab$PtIndex)) dtab$PtIndex =as.factor(dtab$PtIndex)        
             if (!is.null(dtab$SSCD))    dtab$SSCD    =as.factor(dtab$SSCD) 
             rownames(dtab) = 1:nrow(dtab)
+            # fix the species column.
+            spcd=paste0("Species",input$spCodes) 
+            if (spcd %in% names(dtab))
+            {
+              if (is.null(dtab$Species)) dtab$Species=dtab[,spcd] else 
+              {
+              	na=is.na(dtab$Species)
+              	dtab$Species = as.character(dtab$Species)
+              	dtab$Species[na] = as.character(dtab[na,spcd])
+              	dtab$Species = as.factor(dtab$Species)
+              }
+            }
             dat[[tb]] = dtab
           }
         }
@@ -4196,7 +4208,6 @@ cat ("Maps hit\n")
           }
           tab[,3] <- temp
         }
-        browser()
         progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
         if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
         {
