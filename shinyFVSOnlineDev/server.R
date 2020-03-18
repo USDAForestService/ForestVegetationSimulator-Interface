@@ -4567,18 +4567,18 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
               session$sendCustomMessage(type="infomessage",
                                         message="FVS cannot delete Project_1")
               return()
-            } else if(basename(delPrj)==basename(getwd())){
-              if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-              if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-              PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-              write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-              write(file="C:/Users/Public/Documents/R/prjDelete.txt",basename(delPrj))
-              write(file="C:/Users/Public/Documents/R/prjSwitch.txt","Project_1")
-              globals$saveOnExit = FALSE
-              globals$reloadAppIsSet=1
-              shell("C:/FVS/FVS_Icon.VBS")
-              Sys.sleep(1)
-              session$sendCustomMessage(type = "closeWindow"," ")
+            # } else if(basename(delPrj)==basename(getwd())){
+            #   if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+            #   if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+            #   PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
+            #   write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
+            #   write(file="C:/Users/Public/Documents/R/prjDelete.txt",basename(delPrj))
+            #   write(file="C:/Users/Public/Documents/R/prjSwitch.txt","Project_1")
+            #   globals$saveOnExit = FALSE
+            #   globals$reloadAppIsSet=1
+            #   shell("C:/FVS/FVS_Icon.VBS")
+            #   Sys.sleep(1)
+            #   session$sendCustomMessage(type = "closeWindow"," ")
             } else {
               unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
               unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
@@ -6288,7 +6288,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
   })
    
-  ## Projects hit
+   ## Projects hit
   observe({    
     if (input$topPan == "Tools" && input$toolsPan == "Manage project") 
     {
@@ -6297,11 +6297,12 @@ cat ("Manage project hit\n")
 for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i]],"\n")
       sel = match(basename(getwd()),selChoices)[1]
       sel = if (is.na(sel)) NULL else selChoices[[sel]]
-cat ("sel=",sel,"\n")
       updateSelectInput(session=session, inputId="PrjSelect", 
           choices=selChoices,selected=sel)
+      if(!is.na(match(basename(getwd()),selChoices))){
+      selChoices=selChoices[-(match(basename(getwd()),selChoices))]}
       updateSelectInput(session=session, inputId="PrjSelect2", 
-                        choices=selChoices,selected=sel)
+                        choices=selChoices,selected=selChoices[1])
     }
   })
  

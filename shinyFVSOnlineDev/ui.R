@@ -682,12 +682,12 @@ shinyUI(fixedPage(
                   tags$button(type = "button", class = "btn btn-primary", 
                     'data-dismiss' = "modal", "Cancel")))
               ),h4(),
-              if(isLocal()) h4("Delete entire project"),
-              if(isLocal()) selectInput("PrjSelect2", "Select project to delete", multiple=FALSE,
+              if(isLocal()) h4("Delete entire non-active project"),
+              if(isLocal()) selectInput("PrjSelect2", "Select non-active project to delete", multiple=FALSE,
                                         choices = list(), selected="", selectize=FALSE),
               if(isLocal())               list(
                 modalTriggerButton("deletePrj", "#deletePrjDlg", 
-                                   "Delete a project"),
+                                   "Delete project"),
                 modalDialog(id="deletePrjDlg", footer=list(
                   modalTriggerButton("deletePrjDlgBtn", "#deletePrjDlg", 
                                      "Yes"),
