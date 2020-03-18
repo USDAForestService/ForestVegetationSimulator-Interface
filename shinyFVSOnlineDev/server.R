@@ -813,10 +813,10 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
             {
               if (is.null(dtab$Species)) dtab$Species=dtab[,spcd] else 
               {
-              	na=is.na(dtab$Species)
-              	dtab$Species = as.character(dtab$Species)
-              	dtab$Species[na] = as.character(dtab[na,spcd])
-              	dtab$Species = as.factor(dtab$Species)
+              na=is.na(dtab$Species)
+              dtab$Species = as.character(dtab$Species)
+              dtab$Species[na] = as.character(dtab[na,spcd])
+              dtab$Species = as.factor(dtab$Species)
               }
             }
             dat[[tb]] = dtab
@@ -1991,7 +1991,23 @@ cat ("saveRun\n")
     }
   })    
 
-
+  updateAutoOut <- function(session,autoOut)
+  {
+     if (is.null(names(autoOut))) # block is for backward compatibility, after 2020 it can be deleted.
+     { 
+       updateCheckboxGroupInput(session=session, inputId="autoOut",
+          selected=autoOut)
+       if ("autoSVS" %in% unlist(autoOut)) updateCheckboxGroupInput(session=session, 
+          inputId="autoSVS",selected="autoSVS")
+     } else {
+       updateCheckboxGroupInput(session=session, inputId="autoOut",
+          selected=autoOut[["autoOut"]])
+       updateCheckboxGroupInput(session=session,inputId="autoSVS",selected=autoOut[["svsOut"]][["svs"]])
+       updateRadioButtons(session=session,inputId="svsPlotShape",selected=autoOut[["svsOut"]][["shape"]])
+       updateNumericInput(session=session,inputId="svsNFire",value=as.numeric(autoOut[["svsOut"]][["nfire"]])) 
+     }
+  }
+ 
   ## Reload or Run Selection   
   observe({
     if (input$reload > 0 || !is.null(input$runSel))
@@ -2082,8 +2098,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       })
       progress$set(message = paste0("Setting values for run ", globals$fvsRun$title),
             value = 2)
-      updateCheckboxGroupInput(session=session, inputId="autoOut",
-        selected=globals$fvsRun$autoOut)
+      updateAutoOut(session, globals$fvsRun$autoOut)
       updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
@@ -2120,9 +2135,12 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   
    ##autoOut
    observe({
-    if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
-    globals$fvsRun$autoOut<-as.list(input$autoOut)
-    updateCheckboxGroupInput(session=session, inputId="autoOut", selected=globals$fvsRun$autoOut)
+    if (!length(input$simCont) || length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
+    svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire)
+    globals$fvsRun$autoOut<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,
+                                             nfire=input$svsNFire),
+                                 autoOut=as.list(input$autoOut))
+    updateAutoOut(session, globals$fvsRun$autoOut)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
    })
@@ -3451,8 +3469,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       }, contentType="text")
   
   ## Download FVSData.zip  
-  output$dlFVSRunZip <- downloadHandler(filename="FVSData.zip",	
-     content = function (tf = tempfile())	
+  output$dlFVSRunZip <- downloadHandler(filename="FVSData.zip",
+     content = function (tf = tempfile())
          {
            tempDir = paste0(dirname(tf),"/tozip")
            if (dir.exists(tempDir)) lapply(paste0(tempDir,"/",dir(tempDir)),unlink) else
@@ -3868,7 +3886,6 @@ cat ("SVS3d hit\n")
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
     rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
- ##   rgl.viewpoint(theta = 0, phi = -45, fov = 30, zoom = .75, interactive = TRUE)
     source("svsTree.R",local=TRUE)
     load("treeforms.RData")    
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
@@ -3886,7 +3903,15 @@ cat ("SVS3d hit\n")
       args = as.numeric(scan(text=svs[rcirc],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
       circle3D(x0=args[1],y0=args[2],r=args[3],alpha=0.5)
-    } else {return()}  # what if it is not a circle???????  
+    } else { # assume square, look for plotsize.
+      plsz = grep ("^#PLOTSIZE",svs)
+      if (length(plsz)) 
+      {
+        args = as.numeric(scan(text=svs[plsz],what="character",quiet=TRUE)[2])
+        polygon3d(matrix(c(0,0,0,0,args,0,args,args,0,args,0,0,0,0,0),ncol=3,byrow=TRUE),
+           alpha=0.5)
+      }
+    }  
     fireline = grep("^#FIRE_LINE",svs)
 cat ("length(fireline)=",length(fireline),"\n")
     if (length(fireline))
@@ -3941,8 +3966,8 @@ cat ("length(fireline)=",length(fireline),"\n")
       } 
       poles = matrix(poles,ncol=3,byrow=TRUE)
       segments3d(poles,col="red",lwd=4,add=TRUE)
-      par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     }
+    par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     calls = 0
     progress <- shiny::Progress$new(session,min=1,max=length(svs)+4)
     flames = grep("^@flame.eob",svs)
@@ -3973,7 +3998,6 @@ cat("N flames=",length(flames),"\n")
         rot=runif(nflsm)*360
         for (i in 1:nflsm)
         {
-#cat ("i=",i," hw=",hwr[i]," ht=",htr[i]," tlt=",tlt[i]," rot=",rot[i],"\n")
           verts = cbind(x=c(-hwr[i],hwr[i],0),
                         y=c(0,0,0),
                         z=c(0,0,htr[i]))
@@ -4011,7 +4035,8 @@ cat("Residual length of svs=",length(svs),"\n")
       tree$Yloc = ll[1,2]
       drawn = svsTree(tree,treeform)
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
-####TESTING     if (calls > 60) break
+####TESTING 
+if (calls > 60) break
     }
     progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
@@ -4607,7 +4632,7 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     {
       sdat = read.xlsx(xlsxFile=xlsxfile,sheet=tab)
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
- 	  sdat[sdat == " "]=NA
+   sdat[sdat == " "]=NA
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
       sdat = sdat[,!apply(sdat,2,function(x) all(is.na(x)))]
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
