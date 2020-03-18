@@ -4865,7 +4865,29 @@ cat ("cmd=",cmd,"\n")
       cat ("begin;\n",file="sqlite3.import")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
-      progress$set(message = "Extract data", value = 3)   
+      progress$set(message = "Extract data", value = 3)  
+      tblsU <- toupper(tbls)
+      if(!length(grep("FVS_STANDINIT",tblsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_TREEINIT",tblsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",tblsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }      
       for (tab in tbls) 
       {
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
@@ -4886,6 +4908,28 @@ cat ("cmd done.\n")
     } else if (fext == "xlsx") {
       sheets = getSheetNames(fname)
       progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
+      sheetsU <- toupper(sheets)
+      if(!length(grep("FVS_STANDINIT",sheetsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_TREEINIT",sheetsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",sheetsU))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
       i = 0
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
@@ -4919,6 +4963,28 @@ cat ("sheet = ",sheet," i=",i,"\n")
       file.rename(from=fname,to="FVS_Data.db")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       progress <- shiny::Progress$new(session,min=1,max=3)
+      tabs = toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])
+      if(!length(grep("FVS_STANDINIT",tabs))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_TREEINIT",tabs))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
+      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",tabs))){
+        setwd(curDir) 
+        progress$close()     
+        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
+        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        return()
+      }
     }
     tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
     # get rid of "NRIS_" part of names if any
