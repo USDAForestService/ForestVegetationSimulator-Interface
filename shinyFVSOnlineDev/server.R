@@ -3881,7 +3881,7 @@ cat ("SVS3d hit\n")
     }
   })
   
-  renderSVSImage <- function (id,imgfile)
+  renderSVSImage <- function (id,imgfile,drawSubplots=TRUE)
   {    
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
@@ -3900,27 +3900,53 @@ cat ("SVS3d hit\n")
     rcirc = grep ("^#CIRCLE",svs)
     if (length(rcirc)) 
     {
-      args = as.numeric(scan(text=svs[rcirc],what="character",quiet=TRUE)[2:4])
+      args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
-      circle3D(x0=args[1],y0=args[2],r=args[3],alpha=0.5)
-    } else { # assume square, look for plotsize.
-      plsz = grep ("^#PLOTSIZE",svs)
-      if (length(plsz)) 
+      circle3D(x0=args[1],y0=args[2],r=args[3],col="gray",alpha=0.5)
+      if (drawSubplots && length(rcirc)>1)
       {
-        args = as.numeric(scan(text=svs[plsz],what="character",quiet=TRUE)[2])
-        polygon3d(matrix(c(0,0,0,0,args,0,args,args,0,args,0,0,0,0,0),ncol=3,byrow=TRUE),
-           alpha=0.5)
+        for (cir in rcirc[2:length(rcirc)]) 
+        {
+          ca = as.numeric(scan(text=svs[cir],what="character",quiet=TRUE)[2:4])
+          circle3D(x0=ca[1],y0=ca[2],r=ca[3],alpha=1,fill=FALSE,col="gray")
+        }
       }
-    }  
+      pltshp=1
+    } else { # assume square, look for arguments of the rectangle.
+      rect = grep ("^#RECTANGLE",svs)
+      if (length(rect)) 
+      {
+        args = as.numeric(scan(text=svs[rect],what="character",quiet=TRUE)[4])
+        polygon3d(matrix(c(0,0,0,0,args,0,args,args,0,args,0,0,0,0,0),ncol=3,byrow=TRUE),
+           col="gray",alpha=0.5)
+      }
+      pltshp=0
+    }
+    if (drawSubplots)
+    {
+      subplts = grep("^#LINE",svs)
+      if (length(subplts))
+      {
+         crds = as.numeric(scan(text=substring(svs[subplts],6),what="character",quiet=TRUE))
+         crds = cbind(matrix(crds,ncol=2,byrow=TRUE),0)
+         segments3d(crds,col="gray",add=TRUE)
+      }
+    }
     fireline = grep("^#FIRE_LINE",svs)
 cat ("length(fireline)=",length(fireline),"\n")
     if (length(fireline))
     {
       fl = as.numeric(scan(text=substring(svs[fireline],11),what="numeric",quiet=TRUE))
-      xx = seq(0,args[3]*2,length.out=length(fl))
-      r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
-      k = r<=args[3]
-      if (sum(k)>1)
+      if (pltshp)
+      {
+        xx = seq(0,args[3]*2,length.out=length(fl))
+        r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
+        k = r<=args[3]
+      } else {
+        xx = seq(0,args[1],length.out=length(fl))
+        k = rep(TRUE,length(fl))
+      }
+      if (any(k))
       {
         nn=500
         fl = fl[k]
@@ -4035,8 +4061,7 @@ cat("Residual length of svs=",length(svs),"\n")
       tree$Yloc = ll[1,2]
       drawn = svsTree(tree,treeform)
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
-####TESTING 
-if (calls > 60) break
+####TESTING if (calls > 60) break
     }
     progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
