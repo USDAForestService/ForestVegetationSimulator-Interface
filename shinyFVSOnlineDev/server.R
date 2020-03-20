@@ -4946,20 +4946,6 @@ cat ("cmd=",cmd,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      if(!length(grep("FVS_TREEINIT",tblsU))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }
-      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",tblsU))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }      
       for (tab in tbls) 
       {
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
@@ -4985,20 +4971,6 @@ cat ("cmd done.\n")
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }
-      if(!length(grep("FVS_TREEINIT",sheetsU))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }
-      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",sheetsU))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
@@ -5043,21 +5015,6 @@ cat ("sheet = ",sheet," i=",i,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      if(!length(grep("FVS_TREEINIT",tabs))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_TreeInit table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }
-      if(!length(grep("FVS_GROUPADDFILESANDKEYWORDS",tabs))){
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("FVS_GroupAddFilesAndKeywords table is missing from your input data.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        return()
-      }
-    }
     tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
     # get rid of "NRIS_" part of names if any
     for (tab in tabs)
