@@ -509,15 +509,29 @@ shinyUI(fixedPage(
         h6(),
         fixedRow(
         column(width=6,offset=0,
-          selectInput(inputId="SVSRunList1",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
-          selectInput(inputId="SVSImgList1",label="Select SVS case", choices=NULL, 
+          checkboxGroupInput("SVSdraw1",label=NULL,width="100%",inline=TRUE,choices=
+            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
+          fixedRow(
+          column(width=8,offset=0,
+            selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
+              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+          column(width=4,offset=0, 
+            colourInput("svsPlotColor1","Plot color", value = "#C5FAC6"))),
+          selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
         column(width=6,offset=0,
-          selectInput(inputId="SVSRunList2",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
-          selectInput(inputId="SVSImgList2",label="Select SVS case", choices=NULL, 
+          checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
+            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
+          fixedRow(
+          column(width=8,offset=0,
+            selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
+              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+          column(width=4,offset=0, 
+            colourInput("svsPlotColor2","Plot color", value = "#C5FAC6"))),
+          selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),

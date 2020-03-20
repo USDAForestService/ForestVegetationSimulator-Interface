@@ -3826,7 +3826,7 @@ cat ("SVS3d hit\n")
           } 
         }
         names(choices) = chnames[,1]
-      }else names(choices) = index[,1]
+      } else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
       output$SVSImg1 = renderRglwidget(NULL)
@@ -3874,15 +3874,18 @@ cat ("SVS3d hit\n")
           } 
         }
         names(choices) = chnames[,1]
-      }else names(choices) = index[,1]
+      } else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
       output$SVSImg2 = renderRglwidget(NULL)
     }
   })
   
-  renderSVSImage <- function (id,imgfile,drawSubplots=TRUE)
-  {    
+  renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
+                    fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
+  {
+cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
+     " fireLine=",fireLine," rangePoles=",rangePoles,"\n")
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
     rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
@@ -3902,13 +3905,13 @@ cat ("SVS3d hit\n")
     {
       args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
-      circle3D(x0=args[1],y0=args[2],r=args[3],col="gray",alpha=0.5)
-      if (drawSubplots && length(rcirc)>1)
+      plotDef = circle3D(x0=args[1],y0=args[2],r=args[3],col=plotColor,alpha=0.7)
+      if (subplots && length(rcirc)>1)
       {
         for (cir in rcirc[2:length(rcirc)]) 
         {
           ca = as.numeric(scan(text=svs[cir],what="character",quiet=TRUE)[2:4])
-          circle3D(x0=ca[1],y0=ca[2],r=ca[3],alpha=1,fill=FALSE,col="gray")
+          circle3D(x0=ca[1],y0=ca[2],r=ca[3],alpha=1,fill=FALSE,col="black")
         }
       }
       pltshp=1
@@ -3917,124 +3920,137 @@ cat ("args=",args,"\n")
       if (length(rect)) 
       {
         args = as.numeric(scan(text=svs[rect],what="character",quiet=TRUE)[4])
-        polygon3d(matrix(c(0,0,0,0,args,0,args,args,0,args,0,0,0,0,0),ncol=3,byrow=TRUE),
-           col="gray",alpha=0.5)
+        plotDef = matrix(c(0,0,0,0,args,0,args,args,0,args,0,0,0,0,0),ncol=3,byrow=TRUE)
+        polygon3d(plotDef,col=plotColor,alpha=0.7)
       }
       pltshp=0
     }
-    if (drawSubplots)
+    if (subplots)
     {
       subplts = grep("^#LINE",svs)
       if (length(subplts))
       {
          crds = as.numeric(scan(text=substring(svs[subplts],6),what="character",quiet=TRUE))
          crds = cbind(matrix(crds,ncol=2,byrow=TRUE),0)
-         segments3d(crds,col="gray",add=TRUE)
-      }
-    }
-    fireline = grep("^#FIRE_LINE",svs)
-cat ("length(fireline)=",length(fireline),"\n")
-    if (length(fireline))
-    {
-      fl = as.numeric(scan(text=substring(svs[fireline],11),what="numeric",quiet=TRUE))
-      if (pltshp)
-      {
-        xx = seq(0,args[3]*2,length.out=length(fl))
-        r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
-        k = r<=args[3]
-      } else {
-        xx = seq(0,args[1],length.out=length(fl))
-        k = rep(TRUE,length(fl))
-      }
-      if (any(k))
-      {
-        nn=500
-        fl = fl[k]
-        xx = xx[k]
-        fireline = matrix(c(xx,fl,rep(0,length(fl))),ncol=3,byrow=FALSE)
-        lines3d(fireline,col="red",lwd=4,add=TRUE)
-        fls  = approx(xx,fl,rule=2,n=nn)
-        fls$y = jitter(fls$y,amount=5)
-        fls$z = runif(nn)*3
-        fls = matrix(c(fls$x,fls$y,fls$z),ncol=3,byrow=FALSE)
-        fls = t(apply(fls,1,function (x) c(x[1]-x[3],x[2],0,x[1],x[2],x[3]*3,
-                                           x[1]+x[3],x[2],0)))
-        verts = NULL
-        for (row in 1:nrow(fls)) 
-        {
-          tlt=runif(1)*40
-          rot=runif(1)*360
-          mat = matrix(fls[row,],ncol=3,byrow=TRUE)
-          xs = max(mat[,1])-(diff(range(mat[,1]))*.5)
-          ys = max(mat[,2])-(diff(range(mat[,2]))*.5)
-          zs = max(mat[,3])-(diff(range(mat[,3]))*.5)
-          mat[,1] = mat[,1]-xs
-          mat[,2] = mat[,2]-ys
-          mat[,3] = mat[,3]-zs
-          mat = matRotat(mat,tlt,tlt,rot)
-          mat[,1] = mat[,1]+xs
-          mat[,2] = mat[,2]+ys
-          mat[,3] = mat[,3]+zs
-          mat[,3] = ifelse(mat[,3]<0,0,mat[,3])
-          verts = rbind(verts,mat) 
-        } 
-        triangles3d(verts,col="red")
+         segments3d(crds,col="black",add=TRUE)
       }
     }
     rpols = grep("^RANGEPOLE",svs)
     if (length(rpols))
     {
-      poles = c()
-      for (line in rpols)
+      if (rangePoles)
       {
-        pole = as.numeric(scan(text=svs[line],what="character",quiet=TRUE)[c(21,22,7)])
-        poles = c(poles,c(pole[1:2],0,pole))
-      } 
-      poles = matrix(poles,ncol=3,byrow=TRUE)
-      segments3d(poles,col="red",lwd=4,add=TRUE)
+        poles = c()
+        for (line in rpols)
+        {
+          pole = as.numeric(scan(text=svs[line],what="character",quiet=TRUE)[c(21,22,7)])
+          poles = c(poles,c(pole[1:2],0,pole))
+        } 
+        poles = matrix(poles,ncol=3,byrow=TRUE)
+        segments3d(poles,col="red",lwd=4,add=TRUE)
+      }
+      svs=svs[-rpols]
     }
     par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     calls = 0
-    progress <- shiny::Progress$new(session,min=1,max=length(svs)+4)
-    flames = grep("^@flame.eob",svs)
-cat("N flames=",length(flames),"\n")
-    if (length(flames))
+    frline = grep("^#FIRE_LINE",svs)
+cat ("length(frline)=",length(frline),"fireLine=",fireLine,"\n")
+    if (length(frline))
     {
-      calls = calls+1
-      progress$set(message = "Generate flames",value = calls)
-      allv = NULL
-      nflsm = 5
-      tmp=NULL
-      for (fl in svs[flames])
+      if (fireLine)
       {
-        fdat = as.numeric(scan(text=substring(fl,30),what="numeric",quiet=TRUE))
-        # ht,tilt,rotation,width,x,y,z
-        fdat = fdat[c(1,2,3,5,15,16,17)]
-        names(fdat)=c("ht","tlt","rot","wid","x","y","z")
-        tmp=rbind(tmp,fdat[c("x","y","z")])
-        hw=fdat["wid"]*.5
-        hwr=rnorm(nflsm,hw,.5)
-        hwr=ifelse(hwr<(hw*.1),hw*.1,hw)
-        ht=fdat["ht"]
-        htr=rnorm(nflsm,ht,1)
-        htr=ifelse(ht<(htr*.1),ht*.1,ht)
-        tlt=runif(nflsm)*2*fdat["tlt"]
-        fbr=rnorm(nflsm,fdat["z"],.5)
-        fbr=ifelse(fbr<0,0,fbr)
-        rot=runif(nflsm)*360
-        for (i in 1:nflsm)
+        fl = as.numeric(scan(text=substring(svs[frline],11),what="numeric",quiet=TRUE))
+        if (pltshp)
         {
-          verts = cbind(x=c(-hwr[i],hwr[i],0),
-                        y=c(0,0,0),
-                        z=c(0,0,htr[i]))
-          verts = matRotat(verts,xa=tlt[i],ya=tlt[i],za=rot[i])
-          verts[,1]=verts[,1]+fdat["x"]
-          verts[,2]=verts[,2]+fdat["y"]
-          verts[,3]=verts[,3]+rnorm(1,fbr[i],1)
-          allv = rbind(allv,verts)
+          xx = seq(0,args[3]*2,length.out=length(fl))
+          r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
+          k = r<=args[3]
+        } else {
+          xx = seq(0,args[1],length.out=length(fl))
+          k = rep(TRUE,length(fl))
+        }
+        if (any(k))
+        {
+          fl = fl[k]
+          xx = xx[k]
+          frline = matrix(c(xx,fl,rep(0,length(fl))),ncol=3,byrow=FALSE)
+#### define a burn region and color the surface black... Do this here... function of fl
+#browser()
+          lines3d(frline,col="red",lwd=4,add=TRUE)
+          nn=500
+          fls  = approx(xx,fl,rule=2,n=nn)
+          fls$z = runif(nn)*3
+          fls$y = jitter(fls$y,amount=5)
+          fls = matrix(c(fls$x,fls$y,fls$z),ncol=3,byrow=FALSE)
+          fls = t(apply(fls,1,function (x) c(x[1]-x[3],x[2],0,x[1],x[2],x[3]*3,
+                                             x[1]+x[3],x[2],0)))
+          verts = NULL
+          for (row in 1:nrow(fls)) 
+          {
+            tlt=runif(1)*40
+            rot=runif(1)*360
+            mat = matrix(fls[row,],ncol=3,byrow=TRUE)
+            xs = max(mat[,1])-(diff(range(mat[,1]))*.5)
+            ys = max(mat[,2])-(diff(range(mat[,2]))*.5)
+            zs = max(mat[,3])-(diff(range(mat[,3]))*.5)
+            mat[,1] = mat[,1]-xs
+            mat[,2] = mat[,2]-ys
+            mat[,3] = mat[,3]-zs
+            mat = matRotat(mat,tlt,tlt,rot)
+            mat[,1] = mat[,1]+xs
+            mat[,2] = mat[,2]+ys
+            mat[,3] = mat[,3]+zs
+            mat[,3] = ifelse(mat[,3]<0,0,mat[,3])
+            verts = rbind(verts,mat) 
+          } 
+          triangles3d(verts,col="red") 
         }
       }
-      triangles3d(allv[,1],allv[,2],allv[,3],col=c("yellow","red")) 
+      svs = svs[-frline]
+    }
+    progress <- shiny::Progress$new(session,min=1,max=length(svs)+4)
+    flames = grep("^@flame.eob",svs)
+cat("N flames=",length(flames)," fireLine=",fireLine,"\n")
+    if (length(flames))
+    {
+      if (fireLine)
+      {
+        calls = calls+1
+        progress$set(message = "Generate flames",value = calls)
+        allv = NULL
+        nflsm = 5
+        tmp=NULL
+        for (fl in svs[flames])
+        {
+          fdat = as.numeric(scan(text=substring(fl,30),what="numeric",quiet=TRUE))
+          # ht,tilt,rotation,width,x,y,z
+          fdat = fdat[c(1,2,3,5,15,16,17)]
+          names(fdat)=c("ht","tlt","rot","wid","x","y","z")
+          tmp=rbind(tmp,fdat[c("x","y","z")])
+          hw=fdat["wid"]*.5
+          hwr=rnorm(nflsm,hw,.5)
+          hwr=ifelse(hwr<(hw*.1),hw*.1,hw)
+          ht=fdat["ht"]
+          htr=rnorm(nflsm,ht,1)
+          htr=ifelse(ht<(htr*.1),ht*.1,ht)
+          tlt=runif(nflsm)*2*fdat["tlt"]
+          fbr=rnorm(nflsm,fdat["z"],.5)
+          fbr=ifelse(fbr<0,0,fbr)
+          rot=runif(nflsm)*360
+          for (i in 1:nflsm)
+          {
+            verts = cbind(x=c(-hwr[i],hwr[i],0),
+                          y=c(0,0,0),
+                          z=c(0,0,htr[i]))
+            verts = matRotat(verts,xa=tlt[i],ya=tlt[i],za=rot[i])
+            verts[,1]=verts[,1]+fdat["x"]
+            verts[,2]=verts[,2]+fdat["y"]
+            verts[,3]=verts[,3]+rnorm(1,fbr[i],1)
+            allv = rbind(allv,verts)
+          }
+        }
+        triangles3d(allv[,1],allv[,2],allv[,3],col=c("yellow","red"))
+      }
       svs = svs[-flames]
     }
 cat("Residual length of svs=",length(svs),"\n")
@@ -4047,8 +4063,8 @@ cat("Residual length of svs=",length(svs),"\n")
       c1 = substr(line,1,1) 
       if (c1 == "#" || c1 == ";") next                                                      
       tree = scan(text=line,what="character",quiet=TRUE)
+      if (!downTrees && tree[9]!="0") next
       sp = tree[1]                                                                            
-      if (sp == "RANGEPOLE") next
       tree=tree[-1]
       tree = as.numeric(tree)
       names(tree) = c("TrNum","TrCl","CrCl","Stus","DBH","Ht","Lang",
@@ -4074,17 +4090,23 @@ cat("Residual length of svs=",length(svs),"\n")
   observe({
     if (length(input$SVSImgList1))
     {
-cat ("SVS3d input$SVSImgList1=",input$SVSImgList1,"\n") 
+cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n") 
       if (!file.exists(input$SVSImgList1)) return()
-      renderSVSImage('SVSImg1',input$SVSImgList1)
+      renderSVSImage('SVSImg1',input$SVSImgList1,
+        subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
+        fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
+        plotColor=input$svsPlotColor1)
     }
   })
   observe({
     if (length(input$SVSImgList2))
     {
-cat ("SVS3d input$SVSImgList2=",input$SVSImgList2,"\n") 
+cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
       if (!file.exists(input$SVSImgList2)) return()
-      renderSVSImage('SVSImg2',input$SVSImgList2)
+      renderSVSImage('SVSImg2',input$SVSImgList2,
+        subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
+        fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
+        plotColor=input$svsPlotColor2)
     }
   })
  
@@ -6356,17 +6378,6 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
   })
   
-  # not sure why this code is here, given the above code appears to do the same thing-M.S.
-  # observe({    
-  #   if (length(input$sourcePrj) && nchar(input$sourcePrj)) 
-  #   {browser()
-  #     selChoices = getProjectList()
-  #     sel = match(input$sourcePrj,selChoices)[1]
-  #     selChoices = selChoices[-sel]
-  #     updateSelectInput(session=session,inputId="targetPrj",
-  #         choices=selChoices,selected=NULL)
-  #   }
-  # })
   observe({    
     if (input$cpyNow > 0) 
     {
