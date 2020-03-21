@@ -5026,6 +5026,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
+    }
     tabs = dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1]
     # get rid of "NRIS_" part of names if any
     for (tab in tabs)
@@ -5168,7 +5169,7 @@ cat ("index creation, qry=",qry,"\n")
             try(dbExecute(dbGlb$dbIcon,qry))
           }
         }
-      }else if (tolower(tb) == "fvs_plotinit_plot")
+      } else if (tolower(tb) == "fvs_plotinit_plot")
       {
         tbidx = grep(tb,c("FVS_PlotInit_Plot"),
                      ignore.case=TRUE)                 
