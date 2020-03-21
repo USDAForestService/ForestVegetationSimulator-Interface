@@ -3888,7 +3888,6 @@ cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
      " fireLine=",fireLine," rangePoles=",rangePoles,"\n")
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
-    rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
     source("svsTree.R",local=TRUE)
     load("treeforms.RData")    
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
@@ -3903,6 +3902,7 @@ cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
     rcirc = grep ("^#CIRCLE",svs)
     if (length(rcirc)) 
     {
+      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
       args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
       plotDef = circle3D(x0=args[1],y0=args[2],r=args[3],col=plotColor,alpha=0.7)
@@ -3916,6 +3916,7 @@ cat ("args=",args,"\n")
       }
       pltshp=1
     } else { # assume square, look for arguments of the rectangle.
+      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
       rect = grep ("^#RECTANGLE",svs)
       if (length(rect)) 
       {
@@ -3953,32 +3954,42 @@ cat ("args=",args,"\n")
     }
     par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     calls = 0
-    frline = grep("^#FIRE_LINE",svs)
-cat ("length(frline)=",length(frline),"fireLine=",fireLine,"\n")
-    if (length(frline))
+    frlineS = grep("^#FIRE_LINE",svs)
+cat ("length(frlineS)=",length(frlineS),"fireLine=",fireLine,"\n")
+    if (length(frlineS))
     {
       if (fireLine)
       {
-        fl = as.numeric(scan(text=substring(svs[frline],11),what="numeric",quiet=TRUE))
+        fl = as.numeric(scan(text=substring(svs[frlineS],11),what="numeric",quiet=TRUE))
+        frline=NULL
         if (pltshp)
         {
           xx = seq(0,args[3]*2,length.out=length(fl))
           r = sqrt(((xx-args[3])^2) + ((fl-args[3])^2))
           k = r<=args[3]
+          if (any(k))
+          {
+            frline = matrix(c(xx[k],fl[k],rep(0,sum(k))),ncol=3,byrow=FALSE)
+            frline = frline[nrow(frline):1,]
+            kep1=which.min(((plotDef[,1]-frline[1,1])**2)+((plotDef[,2]-frline[1,2])**2))
+            kep2=which.min(((plotDef[,1]-frline[nrow(frline),1])**2)+((plotDef[,2]-frline[nrow(frline),2])**2))
+            frline[1,]=plotDef[kep1,]
+            frline[nrow(frline),]=plotDef[kep2,]
+            brnReg = rbind(frline[2:(nrow(frline)-1),],plotDef[kep2:nrow(plotDef),])            
+            if (kep1<(nrow(plotDef)/2)) brnReg = rbind(plotDef[1:kep1,],brnReg)     
+            polygon3d(brnReg,col="black",alpha=0.5)
+          }
         } else {
-          xx = seq(0,args[1],length.out=length(fl))
-          k = rep(TRUE,length(fl))
+          frline = matrix(c(seq(0,args[1],length.out=length(fl)),
+                          fl,rep(0,length(fl))),ncol=3,byrow=FALSE)
+          brnReg = rbind(plotDef[1,],frline,plotDef[4:5,])
+          polygon3d(brnReg,col="black",alpha=0.5)
         }
-        if (any(k))
+        if (!is.null(frline))
         {
-          fl = fl[k]
-          xx = xx[k]
-          frline = matrix(c(xx,fl,rep(0,length(fl))),ncol=3,byrow=FALSE)
-#### define a burn region and color the surface black... Do this here... function of fl
-#browser()
           lines3d(frline,col="red",lwd=4,add=TRUE)
           nn=500
-          fls  = approx(xx,fl,rule=2,n=nn)
+          fls  = approx(frline[,1],frline[,2],rule=2,n=nn)
           fls$z = runif(nn)*3
           fls$y = jitter(fls$y,amount=5)
           fls = matrix(c(fls$x,fls$y,fls$z),ncol=3,byrow=FALSE)
