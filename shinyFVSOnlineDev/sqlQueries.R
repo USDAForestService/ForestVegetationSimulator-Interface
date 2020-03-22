@@ -2,13 +2,20 @@
 
 exqury = function (dbcon,x,subExpression=NULL,asSpecies=NULL) 
 {
+  # return value: TRUE=worked, FALSE=error
+  if (!is.null(subExpression)) x = gsub("subExpression",subExpression,x)
+  if (!is.null(asSpecies))     x = gsub("asSpecies",paste0(asSpecies," as Species"),x)
   for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))
   {
-    if (!is.null(subExpression)) qry = sub("subExpression",subExpression,qry)
-    if (!is.null(asSpecies))     qry = sub("asSpecies",paste0(asSpecies," as Species"),qry)
     res = if (nchar(qry) > 5) try(dbExecute(dbcon,qry)) else NULL
-    if (is.null(res) || class(res) == "try-error") break
+    if (!is.null(res) && class(res) == "try-error") 
+    {
+      qry = gsub(paste0(asSpecies," as Species")," Species ",qry)
+      res = try(dbExecute(dbcon,qry))
+      if (class(res) == "try-error") return(FALSE)
+    }
   }
+  return(TRUE)
 }   
 
 mkdbhCase = function (stpdbh=4,lgdbh=40)
@@ -46,10 +53,13 @@ create table CmpMetaData as
  order by RunTitle, RunDateTime;"
 
 Create_StdStkDBHSp = "
+drop table if exists temp.FVS_Treelist;
 drop table if exists temp.StdStkDBHSp; 
 drop table if exists temp.StdStkAllDBH; 
 drop table if exists temp.StdStkAllSp; 
-drop table if exists temp.StdStkAllAll; 
+drop table if exists temp.StdStkAllAll;
+create table temp.FVS_Treelist as select * from FVS_TreeList 
+  where CaseID in (select CaseID from temp.Cases);
 create table temp.StdStkDBHSp as 
   select CaseID,Year,asSpecies, 
     subExpression as DBHClass, 
@@ -63,8 +73,7 @@ create table temp.StdStkDBHSp as
     sum(TCuFt*MortPA) as MrtTCuFt, 
     sum(MCuFt*MortPA) as MrtMCuFt,               
     sum(BdFt*MortPA)  as MrtBdFt 
-  from FVS_TreeList 
-  where CaseID in (select CaseID from temp.Cases)
+  from temp.FVS_TreeList
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
 create table temp.StdStkAllDBH as 
@@ -118,10 +127,13 @@ insert into temp.StdStkDBHSp select * from temp.StdStkAllAll;"
  
   
 Create_HrvStdStk = "
+drop table if exists temp.FVS_CutList; 
 drop table if exists temp.HrvStdStk;
 drop table if exists temp.HrvStdStkAllDBH;
 drop table if exists temp.HrvStdStkAllSp;
 drop table if exists temp.HrvStdStkAllAll;
+create table temp.FVS_CutList as select * from FVS_CutList 
+  where CaseID in (select CaseID from temp.Cases);
 create table temp.HrvStdStk as
   select CaseID,Year,asSpecies, 
     subExpression as dbhclass, 
@@ -130,8 +142,7 @@ create table temp.HrvStdStk as
     sum(TCuFt*Tpa)    as HrvTCuFt,
     sum(MCuFt*Tpa)    as HrvMCuFt,
     sum(BdFt*Tpa)     as HrvBdFt
-  from FVS_CutList 
-  where CaseID in (select CaseID from temp.Cases)
+  from temp.FVS_CutList 
   group by CaseID,Year,Species,DBHClass;
 create table temp.HrvStdStkAllDBH as 
   select CaseID,Year,Species,'All' as DBHClass,

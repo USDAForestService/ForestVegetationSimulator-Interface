@@ -336,7 +336,7 @@ cat ("tb=",tb,"\n")
         }
         source("sqlQueries.R")
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
-        if (ncases > 1) exqury(dbGlb$dbOcon,Create_CmpMetaData)
+        if (ncases > 1) if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) return()
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
         if ("FVS_Summary" %in% tbs && ncases > 1)
@@ -436,14 +436,17 @@ cat ("tbs5=",tbs,"\n")
           {
             setProgress(message = "Output query", 
               detail  = detail, value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp)
+            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
             setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp)
+            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
           } else {
              setProgress(message = "Output query", 
               detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp)
+            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
           }
           exqury(dbGlb$dbOcon,C_StdStkFinal)
           tbs = c(tbs,stdstk) 
