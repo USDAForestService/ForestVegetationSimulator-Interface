@@ -1292,7 +1292,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
       names(nd)[ncol(nd)]="Y"
     }
-    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) != "90") 
+    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) == "0") 
       updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
