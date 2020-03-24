@@ -1936,27 +1936,33 @@ cat ("qry=",qry,"\n")
   qry = paste0("create table ",todel,
      " as select CaseID from FVS_Cases where KeywordFile = '",runuuid,"'")
 cat ("qry=",qry,"\n") 
-  dbExecute(dbcon,qry)    
+  dbExecute(dbcon,qry) 
   nr = dbGetQuery(dbcon,paste0("select count(*) from ",todel))[,1]
 cat ("ncases to delete=",nr,"\n")
   if (nr)
   {
-    tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-    dbBegin(dbcon)
-    for (tab in tbs)
+    for (tb in tbs)
     {
-      if ("CaseID" %in% dbListFields(dbcon,name=tab))
+      if ("CaseID" %in% dbListFields(dbcon,name=tb))
       { 
-        qry = paste0("delete from ",tab," where CaseID in (",
+        qry = paste0("delete from ",tb," where ",tb,".CaseID in (",
                      "select CaseID from ",todel,")")
-cat ("qry=",qry,"\n")                      
-        dbExecute(dbcon,qry)
-        nr = nrow(dbGetQuery(dbcon,paste0("select CaseID from ",tab," limit 1")))
+        rtn = dbExecute(dbcon,qry)
+cat ("rtn=",rtn," qry=",qry,"\n")                      
+        nr = nrow(dbGetQuery(dbcon,paste0("select CaseID from ",tb," limit 1")))
 cat ("nr=",nr,"\n")                      
-        if (nr == 0) dbExecute(dbcon,paste0("drop table ",tab))
-      } else dbExecute(dbcon,paste0("drop table ",tab)) 
+        if (nr == 0) 
+        {
+          qry = paste0("drop table ",tb)
+          rtn = dbExecute(dbcon,qry)
+cat ("no rows in table after delete rtn=",rtn," qry=",qry,"\n")                      
+        }
+      } else {
+        qry = paste0("drop table ",tb)
+        rtn = dbExecute(dbcon,qry)
+cat ("caseID not in table, rtn=",rtn," qry=",qry,"\n")                      
+      }
     }
-    dbCommit(dbcon)
   }
   dbExecute(dbcon,paste0("detach database '",tmpDel,"'"))
 }
@@ -1986,11 +1992,11 @@ addNewRun2DB <- function(runuuid,dbcon)
 cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
   # breaking these two clauses allows for Windows to see that the new db has a size greater than 0
-  if (!file.exists((fn))){
+  if (!file.exists((fn))) {
     ids = try(file.size(fn))
-    if (class(ids) == "try-error"){
+    if (class(ids) == "try-error") {
       return("no new database found")
-    }else return("no new database found")
+    } else return("no new database found")
   }
   #get and hold an exclusive lock, wait if one can't be obtained.
   trycnt=0
@@ -2009,6 +2015,9 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
     Sys.sleep (10)
   } 
   dbExecute(dbcon,"drop table if exists dummy")
+
+  deleteRelatedDBRows(runuuid,dbcon)   
+
   mkDBIndices(dbcon)
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
@@ -2028,17 +2037,16 @@ cat ("qry=",qry,"\n")
   qry = paste0("select * from ",newrun,".FVS_Cases")
 cat ("qry=",qry,"\n") 
   res = dbGetQuery(dbcon,qry)
-cat ("nrow(res)=",nrow(res),"\n")
+cat ("nrow(res)=",nrow(res)," CaseID=",res$CaseID,"\n")
   if (nrow(res) == 0)
   {
     dbExecute(dbcon,paste0("detach database '",newrun,"'"))
     return("no new cases found in new run")
   }
-  deleteRelatedDBRows(runuuid,dbcon)   
   tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
 cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
-  {
+  {        
     if (newtab %in% tbs)
     {
       qry = paste0("PRAGMA ",newrun,".table_info('",newtab,"')")
@@ -2051,7 +2059,6 @@ cat ("qry=",qry,"\n")
       toAdd = setdiff(newColNs,existCols)
       if (length(toAdd))
       {
-        dbBegin(dbcon)
         for (addCol in toAdd)
         {
           qry = paste0("alter table ",newtab," add column ",addCol," ",
@@ -2059,14 +2066,14 @@ cat ("qry=",qry,"\n")
 cat ("qry=",qry,"\n") 
           dbExecute(dbcon,qry)
         }
-        dbCommit(dbcon)
       }
       qry = if (identical(newColNs,existCols)) 
         paste0("insert into ",newtab," select * from ",newrun,".",newtab) else
         paste0("insert into ",newtab," (",
           paste0(newColNs,collapse=","),") select * from ",newrun,".",newtab)
 cat ("qry=",qry,"\n") 
-      dbExecute(dbcon,qry)
+      rtn=dbExecute(dbcon,qry)
+cat ("rtn=",rtn,"\n")
     } else {
       qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
 cat ("qry=",qry,"\n") 
@@ -2077,6 +2084,7 @@ cat ("qry=",qry,"\n")
   unlink(fn)
   mkDBIndices(dbcon)
   dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
+  # ?seems that a simple query needs to be run to force the locking_mode to actually change?
   dbExecute(dbcon,"select * from FVS_Cases limit 1") 
   "data inserted"
 }                                                    

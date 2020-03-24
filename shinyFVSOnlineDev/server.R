@@ -307,15 +307,19 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
           rtn <- try(dbExecute(dbGlb$dbOcon,"create table dummy (dummy int)"))
           if (class(rtn) != "try-error") break;
           Sys.sleep (10)
-        }                    
+        }
+cat ("have exclusive lock\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
         # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        inSet=paste0("('",paste(input$runs,collapse="','"),"')")
+        qry = paste0("create table temp.Cases as select _RowID_,CaseID ",
+                     "from FVS_Cases where FVS_Cases.KeywordFile in ",
+                     paste0("('",paste(input$runs,collapse="','"),"')"))
+cat("qry=",qry,"\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-        dbExecute(dbGlb$dbOcon,paste0("create table temp.Cases as select _RowID_,CaseID ",
-                       "from FVS_Cases where FVS_Cases.KeywordFile in ",inSet))          
+        rtn = dbExecute(dbGlb$dbOcon,qry)
+cat("rtn from create temp.Cases=",rtn,"\n")
         for (tb in tbs) 
         {                     
 cat ("tb=",tb,"\n")                             
@@ -324,18 +328,24 @@ cat ("tb=",tb,"\n")
           if (tb %in% c("CmpSummary","CmpSummary_East",                 
               "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
               "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
-              dbExecute(dbGlb$dbOcon,paste0("drop table ",tb))
-          else 
           {
+cat ("drop tb=",tb,"\n")
+             dbExecute(dbGlb$dbOcon,paste0("drop table if exists ",tb))
+          } else {
+            qry = paste0("select count(*) from ",
+                   "(select CaseID from ",tb," where ",tb,".CaseID in ",
+                   "(select CaseID from temp.Cases))")
+cat("qry=",qry,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
-              dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",
-                   "(select distinct CaseID from ",tb," where CaseID in ",
-                   "(select CaseID from temp.Cases))")) else 1
+              dbGetQuery(dbGlb$dbOcon,qry) else -1
+            cnt = if (class(cnt)=="data.frame") cnt[1,1] else -1
+cat ("tb=",tb," cnt=",cnt,"\n")
           }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
         source("sqlQueries.R")
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+cat ("ncases=",ncases,"\n")
         if (ncases > 1) if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) return()
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
@@ -462,7 +472,7 @@ cat ("tbs5=",tbs,"\n")
           tbs = c(tbs,"View_DWN")
         }
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
-cat ("tbs4=",tbs,"\n")       
+cat ("tbs6=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
@@ -3296,8 +3306,25 @@ cat ("length(allSum)=",length(allSum),"\n")
         progress$set(message = "FVS finished",  
              detail = "Merging output to master database",
              value = length(globals$fvsRun$stands)+6)
+tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
+cat ("before add\n")
+for (tb in tbs) 
+{
+   nr=dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tb))
+   cat ("tb=",tb," nr=",nr[1,1],"\n")
+}
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
-        cat ("addNewRun2DB res=",res,"\n")
+        dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon )    
+        dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")           
+cat ("addNewRun2DB res=",res,"\n")
+tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
+cat ("after add\n")
+for (tb in tbs) 
+{
+   nr=dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tb))
+   cat ("tb=",tb," nr=",nr[1,1],"\n")
+}
+
         unlink(paste0(globals$fvsRun$uuid,".db"))
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
@@ -6478,12 +6505,15 @@ for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i
           saveRun()
           if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
           if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-          write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-          write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
+          if (.Platform$OS.type == "windows")
+          {
+            PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
+            write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
+            write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
+            shell("C:/FVS/FVS_Icon.VBS")
+          }
           globals$saveOnExit = FALSE
           globals$reloadAppIsSet=1
-          shell("C:/FVS/FVS_Icon.VBS")
           Sys.sleep(1)
           session$sendCustomMessage(type = "closeWindow"," ")
         } else {
