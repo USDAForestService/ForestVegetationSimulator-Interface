@@ -70,7 +70,7 @@ cat ("Server id=",serverID,"\n")
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()
-    if (!file.exists("FVS_Runs.RData"))
+    if (!file.exists("FVS_Runs.RData") || class(try(load("FVS_Runs.RData"))) == "try-error")
     {
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
@@ -78,7 +78,12 @@ cat ("Server id=",serverID,"\n")
       saveFvsRun = globals$fvsRun
       save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
       FVS_Runs = globals$FVS_Runs
-      save (file="FVS_Runs.RData",FVS_Runs)
+      if(file.exists("FVS_Runs.RData")){
+        file.remove("FVS_Runs.RData")
+        save (file="FVS_Runs.RData",FVS_Runs)
+      }else{
+        save (file="FVS_Runs.RData",FVS_Runs)
+      }
     }
     if (file.exists("FVS_Runs.RData"))
     {
@@ -122,8 +127,9 @@ cat ("serious start up error\n")
     output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
         if (isLocal()) "Local" else "Online"," configuration"))) 
     tit=NULL
-    if (!file.exists("projectId.txt"))
+    iif (!file.exists("projectId.txt") || class(try(load("projectId.txt"))) == "try-error"){
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
+    }
     prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
     tit=prjid[grep("^title",prjid)]
     tit=trim(unlist(strsplit(tit,split="=",fixed=TRUE))[2])
