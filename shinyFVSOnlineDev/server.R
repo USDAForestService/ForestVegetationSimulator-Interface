@@ -2387,7 +2387,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       }
       globals$changeind <- 1
       output$contChange <- renderText({
-        HTML(paste0("<b>","*Run*","</b>"))
+        HTML("<b>*Run*</b>")
       })
     })
   })
@@ -2448,7 +2448,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       globals$foundStand=0L 
       globals$changeind <- 1
       output$contChange <- renderText({
-        HTML(paste0("<b>","*Run*","</b>"))
+        HTML("<b>*Run*</b>")
       })
     })
   })
@@ -3038,7 +3038,7 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       globals$changeind <- 1
       output$contChange <- renderText({
-        HTML(paste0("<b>","*Run*","</b>"))
+        HTML("<b>*Run*</b>")
       })
       closeCmp()
       globals$schedBoxPkey <- character(0)
@@ -3668,7 +3668,7 @@ cat ("kcpSaveInRun\n")
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
-        output$contChange <- renderText(HTML(paste0("<b>","*Run*","</b>")))
+        output$contChange <- renderText(HTML("<b>*Run*</b>"))
         closeCmp()
         globals$schedBoxPkey <- character(0)
       })
@@ -4718,29 +4718,6 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     }
   }) 
 
-  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx")
-  {
-    if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
-    sheets = getSheetNames(xlsxfile)
-    if (tab %in% sheets)
-    {
-      sdat = read.xlsx(xlsxFile=xlsxfile,sheet=tab)
-      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
-   sdat[sdat == " "]=NA
-      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
-      sdat = sdat[,!apply(sdat,2,function(x) all(is.na(x)))]
-      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
-      sdat = sdat[ !apply(sdat,1,function(x) all(is.na(x))),]
-      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
-      html = paste0("<b>",tab,"</b>")
-      html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-             paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-      for (i in 1:nrow(sdat)) html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-          collapse="</TD><TD>"),"</TD></TR>\n")
-      html = paste0(html,"</TABLE><br>")
-      return (html)
-    } else return (NULL)
-  } 
   ##topHelp
   observe({
     if (input$topPan == "Help")
@@ -4772,61 +4749,60 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       progress$close()
     }
   })
+
+  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL)
+  {
+    if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
+    if (tab %in% getSheetNames(xlsxfile))
+    {
+      sdat = try(read.xlsx(xlsxFile=xlsxfile,sheet=tab))
+      if (class(sdat) == "try-error") return (NULL)
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      if (!is.null(cols) && max(cols)<=ncol(sdat)) sdat = sdat[,cols]
+      sdat[sdat == " "]=NA
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      sdat = sdat[,!apply(sdat,2,function(x) all(is.na(x)))]
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      sdat = sdat[ !apply(sdat,1,function(x) all(is.na(x))),]
+      if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+      html = paste0("<b>",tab,"</b>")
+      html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
+             paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
+      for (i in 1:nrow(sdat)) html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
+          collapse="</TD><TD>"),"</TD></TR>\n")
+      html = paste0(html,"</TABLE><br>")
+      return (html)
+    } else return (NULL)
+  } 
   
+  mkTableDescription <- function (tab)
+  {
+    html = NULL
+    if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
+    {
+      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
+      if ("OutputTableDescriptions" %in% sheets)
+      {
+        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
+        row = charmatch(toupper(tab),toupper(tabs[,1]))
+        html = paste0("<b>",tab,"</b> ",tabs[row,2])
+        mhtml = xlsx2html(tab,cols=c(1,4))
+        if (!is.null(mhtml)) html = paste0(html,mhtml)
+      }
+    }
+    HTML(html)
+  }
   ##tabDescSel
   observe({
     tab = input$tabDescSel
 cat ("tabDescSel, tab=",tab,"\n")
-    html = NULL
-    if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
-    {
-      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
-      if ("OutputTableDescriptions" %in% sheets)
-      {
-        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
-        row = match(tab,tabs[,1])
-        html = paste0("<b>",tab,"</b> ",tabs[row,2])
-        if (tab %in% sheets) 
-        {
-          sdat = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet=tab)[,c(1,4)]
-          html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-                   paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-          for (i in 1:nrow(sdat))
-            html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-                     collapse="</TD><TD>"),"</TD></TR>\n")
-          html = paste0(html,"</TABLE>")
-        }
-      }
-    }
-    output$tabDesc <- renderUI(HTML(html))
+    output$tabDesc <- renderUI(mkTableDescription(tab))
   })
-
   ##tabDescSel2
   observe({
     tab = input$tabDescSel2
-    cat ("tabDescSel2, tab=",tab,"\n")
-    html = NULL
-    if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
-    {
-      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
-      if ("OutputTableDescriptions" %in% sheets)
-      {
-        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
-        row = match(tab,tabs[,1])
-        html = paste0("<b>",tab,"</b> ",tabs[row,2])
-        if (tab %in% sheets) 
-        {
-          sdat = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet=tab)[,c(1,4)]
-          html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-                        paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-          for (i in 1:nrow(sdat))
-            html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-                                                 collapse="</TD><TD>"),"</TD></TR>\n")
-          html = paste0(html,"</TABLE>")
-        }
-      }
-    }
-    output$tabDesc2 <- renderUI(HTML(html))
+cat ("tabDescSel2, tab=",tab,"\n")
+    output$tabDesc2 <- renderUI(mkTableDescription(tab))
   })
   
   ##### data upload code  
@@ -5805,16 +5781,8 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
         {
           tab = tabs[row,1]
           html = paste0("<b>",tab,"</b> ",tabs[row,2])
-          sdat = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet=tab))
-          if (class(sdat) != "try-error")
-          {
-            html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-                     paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-            for (i in 1:nrow(sdat))
-              html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-                       collapse="</TD><TD>"),"</TD></TR>\n")
-            html = paste0(html,"</TABLE>")
-          }
+          mhtml = xlsx2html(tab)
+          if (!is.null(mhtml)) html = paste0(html,mhtml)
         }
       }
       output$inputTabDesc <- renderUI(HTML(html))
@@ -5824,7 +5792,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
   observe({              
     if (length(input$editSelDBvars)) 
     {
-cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")       
+cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mode,"\n")       
       ndr = suppressWarnings(as.numeric(input$disprows))
       if (is.na(ndr) || is.nan(ndr) || ndr < 1 || ndr > 500) ndr = 20 
       dbGlb$disprows <- ndr
@@ -5848,7 +5816,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars,"\n")
             paste0(qry," where Stand_ID in (",
                   paste0("'",input$rowSelector,"'",collapse=","),");") else
             paste0(qry,";")                             
-          dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
+          dbGlb$tbl <- suppressWarnings(dbGetQuery(dbGlb$dbIcon,qry))
           lnames = tolower(colnames(dbGlb$tbl))
           stdSearch = trim(input$editStandSearch)
           if (nchar(stdSearch)>0) 
