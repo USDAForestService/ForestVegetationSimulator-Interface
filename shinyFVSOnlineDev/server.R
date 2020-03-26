@@ -127,7 +127,7 @@ cat ("serious start up error\n")
     output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
         if (isLocal()) "Local" else "Online"," configuration"))) 
     tit=NULL
-    iif (!file.exists("projectId.txt") || class(try(load("projectId.txt"))) == "try-error"){
+    if (!file.exists("projectId.txt") || class(try(load("projectId.txt"))) == "try-error"){
       cat("title= ",basename(getwd()),"\n",file="projectId.txt")
     }
     prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
