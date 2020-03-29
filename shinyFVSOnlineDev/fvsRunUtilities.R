@@ -448,29 +448,30 @@ cat("writeKeyFile, num stds=",length(stds),
                  what=0,quiet=TRUE)
   # Cycle break checks
   if (length(cycleat)){
-  for(i in 1:length(globals$fvsRun$stands)){
-    for(j in 1:length(cycleat)){
-      if ((cycleat[j] > (thisYr + 400))){
-        session$sendCustomMessage(type = "infomessage",
-                message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
-        globals$timeissue <- 1
-        return()
-      }
-      if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
-        session$sendCustomMessage(type = "infomessage",
-                message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-        globals$timeissue <- 1
-        return()
+    for(i in 1:length(globals$fvsRun$stands)){
+      for(j in 1:length(cycleat)){
+        if ((cycleat[j] > (thisYr + 400))){
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
+          globals$timeissue <- 1
+          return()
+        }
+        if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+          globals$timeissue <- 1
+          return()
+        }
       }
     }
   }
-  }
   cycleat = sort(union(baseCycles,cycleat))
-  cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
+  cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr))) 
   for (std in fvsRun$stands)
   {
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
+cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
     if (is.na(sRows) && is.na(sRowp)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
@@ -1264,6 +1265,8 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   cat ("Stop\n",file=fc)    
   close(fc)
+cat ("end of writeKeyFile\n")
+  
 }
 
 mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)

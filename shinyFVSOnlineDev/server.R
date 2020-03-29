@@ -3122,7 +3122,8 @@ cat("Nulling uiRunPlot at Save and Run\n")
         updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and prepare program", value = 3) 
+          detail = "Write .key file and prepare program", value = 3)
+
         writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=!("FVS_Summary" %in% 
           dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[[1]]))
         if(globals$timeissue==1){
@@ -3134,17 +3135,31 @@ cat("Nulling uiRunPlot at Save and Run\n")
 cat ("keyword file was not created.\n")
           progress$set(message = "Error: Keyword file was not created.",
                       detail = "", value = 3) 
-          Sys.sleep(3)
+          Sys.sleep(5)
           progress$close()     
           return()
         }          
         dir.create(globals$fvsRun$uuid)
         locrFVSDir = if (isLocal() && exists("rFVSDir") && 
                          !is.null(rFVSDir)) rFVSDir else "rFVS/R"
-        if (!file.exists(locrFVSDir)) return()
+        if (!file.exists(locrFVSDir)) 
+        {
+          progress$set(message = paste0("Error: ",locrFVSDir," does not exist."),
+                      detail = "", value = 3) 
+          Sys.sleep(5)
+          progress$close()     
+          return()
+        }
         locbinDir = if (isLocal() && exists("fvsBinDir") && 
                         !is.null(fvsBinDir)) fvsBinDir else "FVSbin"
-        if (!file.exists(locbinDir)) return()
+        if (!file.exists(locbinDir)) 
+        {
+          progress$set(message = paste0("Error: ",locbinDir," does not exist."),
+                      detail = "", value = 3) 
+          Sys.sleep(5)
+          progress$close()     
+          return()
+        }
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
@@ -4996,14 +5011,15 @@ cat ("cmd=",cmd,"\n")
       schema = gsub("]","",schema,fixed=TRUE)
       schema = gsub("[","",schema,fixed=TRUE) 
       schema = gsub("\t"," ",schema,fixed=TRUE)   
-      schema = gsub(" Long Integer,"," Integer,",schema,ignore.case=TRUE)
-      schema = gsub(" Int,"," Integer,",schema,ignore.case=TRUE)
+      schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
+      schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Memo"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Text.*)"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Double"," Real",schema,ignore.case=TRUE)
       schema = gsub(" SHORT_DATE_TIME,"," Text,",schema,ignore.case=TRUE)
       schema = gsub(" FLOAT,"," Real,",schema,ignore.case=TRUE)
+      schema = gsub(" NOT NULL"," ",schema,,ignore.case=TRUE)
       tbls=unlist(lapply(schema[tbls],function(x) scan(text=x,what="character",quiet=TRUE)[3]))
       cat ("begin;\n",file="sqlite3.import")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
@@ -5374,14 +5390,14 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
           qry = paste0("alter table ",tab," add column ",newTdef$name[i],
                 " ",newTdef$type[i],";")
 cat ("homogenize qry=",qry,"\n")
-          dbExecute(dbGlb$dbIcon,qry)
+          rtn = try(dbExecute(dbGlb$dbIcon,qry))
         }
       }
       alln = paste0(newTdef$name,collapse=",")
       qry = paste0("insert into ",tab," (",alln,") select ",alln,
                    " from addnew.",tab,";") 
 cat ("homogenize qry=",qry,"\n")
-      dbExecute(dbGlb$dbIcon,qry)
+      rtn = try(dbExecute(dbGlb$dbIcon,qry))
     }
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
