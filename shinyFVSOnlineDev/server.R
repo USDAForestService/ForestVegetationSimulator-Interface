@@ -4051,7 +4051,7 @@ cat ("length(frlineS)=",length(frlineS),"fireLine=",fireLine,"\n")
           triangles3d(verts,col="red") 
         }
       }
-      svs = svs[-frline]
+      svs = svs[-frlineS]
     }
     progress <- shiny::Progress$new(session,min=1,max=length(svs)+4)
     flames = grep("^@flame.eob",svs)
