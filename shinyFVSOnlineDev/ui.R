@@ -571,15 +571,11 @@ shinyUI(fixedPage(
         fixedRow(
           tags$head(tags$script(HTML('
              Shiny.addCustomMessageHandler("jsCode",
-                                     function(message) {
-                                     eval(message.code);
-                                     }
-          );
-          '))),
+             function(message) {eval(message.code);});'))),
         column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
-            tabPanel("Replace existing database", 
+            tabPanel("Upload inventory database", 
               h6(),
               fileInput("uploadNewDB",paste0("Step 1: Upload FVS-Ready database ",
                         "(.accdb, .mdb, .db (SQLite3), .sqlite, .xlsx, or .zip that contains one of these)"),
@@ -594,13 +590,12 @@ shinyUI(fixedPage(
               actionButton("addNewDB","Add new database to existing database"),
               tags$style(type="text/css","#step2ActionMsg{color:darkred;}"), 
               uiOutput("step2ActionMsg"),
-              h6(),
-              p(strong("Other options")),
-              actionButton("installTrainDB","Install regional training database"),
+              h5("Other options"),
+              actionButton("installTrainDB","Install training data (inventory and map data)"),
               h6(),
               actionButton("installEmptyDB","Install blank database"),h6()
             ),
-            tabPanel("Upload and add new rows to existing tables (.csv)", 
+            tabPanel("Upload .csv data to add to existing tables", 
               h4(),             
                selectInput("uploadSelDBtabs", label="Table to process",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
@@ -641,20 +636,28 @@ shinyUI(fixedPage(
                 column(width=12,offset=0,
                   h6(),uiOutput("inputTabDesc")
             ))),              
-            tabPanel("Map data", h4("Upload a stand layer to use in the Maps feature."),       
-              fileInput("mapUpload","Upload polygon (best) or point data (.zip that contains spatial data)",
+            tabPanel("Map data", 
+              h4("Upload a stand layer to use in the Maps feature."),       
+              h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
+              fileInput("mapUpload","Step 1: Upload polygon or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
-               selectInput("mapUpLayers", label="Layer",
+              selectInput("mapUpLayers", label="Layer",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-               selectInput("mapUpIDMatch", label="Variable that matches StandID",
+              selectInput("mapUpIDMatch", label="Variable that matches StandID",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-               selectInput("mapUpSelectEPSG", label="Projection library (abridged)",
+              selectInput("mapUpSelectEPSG", label="Projection library (abridged)",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               textInput("mapUpProjection", label="proj4 projection string",width="70%"),
-              actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject the data)"),h6(),
+              actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject uploaded data)"),h6(),
+              h5("Step 2: Do one of the following:"), 
               tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
-              actionButton("mapUpSave","Save imported map layer"),h6(),            
-              textOutput("mapActionMsg") 
+              tags$style(type="text/css","#mapUpAdd{font-size: 120%; color:green;}"),
+              actionButton("mapUpSave","Install imported spatial data"),           
+              actionButton("mapUpAdd", "Add imported spatial to existing data"),h6(),
+              h5("Another option"),
+              actionButton("installTrainDB2","Install training data (inventory and map data)"),   
+              tags$style(type="text/css","#mapActionMsg{color:darkred;}"), 
+              uiOutput("mapActionMsg")
             ) #END tabPanel
           ) #END tabsetPanel
         ) ) #END column and fixed row   
@@ -709,7 +712,7 @@ shinyUI(fixedPage(
               if(isLocal()) h4("Delete entire non-active project"),
               if(isLocal()) selectInput("PrjSelect2", "Select non-active project to delete", multiple=FALSE,
                                         choices = list(), selected="", selectize=FALSE),
-              if(isLocal())               list(
+              if(isLocal()) list(
                 modalTriggerButton("deletePrj", "#deletePrjDlg", 
                                    "Delete project"),
                 modalDialog(id="deletePrjDlg", footer=list(

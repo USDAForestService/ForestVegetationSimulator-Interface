@@ -153,8 +153,11 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
     dbDrv <- dbDriver("SQLite")
     dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
-    if (!file.exists("FVS_Data.db")) 
+    if (!file.exists("FVS_Data.db"))
+    {
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+      file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+    }
     globals$changeind <- 0
     output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
@@ -4220,70 +4223,16 @@ cat ("Maps hit\n")
     if (length(input$mapDsVar) && !is.na(match(input$mapDsVar,setdiff(
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
     {
-      require(rgdal) 
-      cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
-           " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
-      if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
-          file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
-      if (!exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
-      {
-        cat ("mapDsRunList trying to use StandInit data\n")
-        inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-        dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
-                                           paste0("select Stand_ID,Latitude,Longitude from ", inInit)))
-        if (class(dbGlb$SpatialData)!="try-error")
-        {
-          idxLng = grep("Longitude",names(dbGlb$SpatialData),ignore.case=TRUE)
-          idxLat = grep("Latitude",names(dbGlb$SpatialData),ignore.case=TRUE)
-          cat ("mapDsRunList idxLng=",idxLng," idxLat=",idxLat," names=",names(dbGlb$SpatialData),"\n")
-          if (length(idxLng) && length(idxLat))
-          {
-            dbGlb$SpatialData[,idxLng] = as.numeric(dbGlb$SpatialData[,idxLng])
-            dbGlb$SpatialData[,idxLat] = as.numeric(dbGlb$SpatialData[,idxLat])
-            dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-          } else dbGlb$SpatialData = NULL
-          if (is.null(dbGlb$SpatialData) || nrow(dbGlb$SpatialData) == 0)
-          {
-            cat ("mapDsRunList trying PlotInit\n")
-            inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-            dbGlb$SpatialData = try(dbGetQuery(dbGlb$dbIcon, 
-                                               paste0("select Stand_ID,avg(Latitude) as Latitude, ",
-                                                      "avg(Longitude) as Longitude from ",inInit," group by Stand_ID;")))
-            if (class(dbGlb$SpatialData)!="try-error")
-            {
-              dbGlb$SpatialData$Longitude = as.numeric(dbGlb$SpatialData$Longitude)
-              dbGlb$SpatialData$Latitude  = as.numeric(dbGlb$SpatialData$Latitude)
-              dbGlb$SpatialData = na.omit(dbGlb$SpatialData)
-              if (nrow(dbGlb$SpatialData) > 0) dbGlb$SpatialData = subset(dbGlb$SpatialData, Latitude != 0 & Longitude != 0)
-              if (nrow(dbGlb$SpatialData) == 0) dbGlb$SpatialData = NULL
-            }
-          }
-        }
-        if (class(dbGlb$SpatialData) != "data.frame")
-        {
-          dbGlb$SpatialData = NULL
-          output$leafletMessage=renderText("Spatial data needs to be loaded")
-          return() 
-        } else {
-          cat ("mapDsRunList names(dbGlb$SpatialData)=",names(dbGlb$SpatialData)," class(dbGlb$SpatialData)=",class(dbGlb$SpatialData),"\n")
-          idxLng = grep("Longitude",names(dbGlb$SpatialData),ignore.case=TRUE)
-          idxLat = grep("Latitude",names(dbGlb$SpatialData),ignore.case=TRUE)
-          idxID  = grep("Stand_ID",names(dbGlb$SpatialData),ignore.case=TRUE)
-          cat (" idxLng=",idxLng," idxLat=",idxLat," idxID=",idxID,"\n")
-          dbGlb$SpatialData[,idxLng] = ifelse(dbGlb$SpatialData[,idxLng]>0, 
-                                              -dbGlb$SpatialData[,idxLng], dbGlb$SpatialData[,idxLng])
-          names(dbGlb$SpatialData)[c(idxID,idxLng,idxLat)] = c("Stand_ID","Longitude","Latitude")
-          coordinates(dbGlb$SpatialData) <- ~Longitude+Latitude
-          proj4string(dbGlb$SpatialData) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")         
-          attr(dbGlb$SpatialData,"MatchesStandID") = names(dbGlb$SpatialData)[idxID]
-          output$leafletMessage=renderText(paste0("Spatial data are taken from ",inInit))
-        }
-      }
-      matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
-      cat ("matchVar=",matchVar,"\n")
-      dispData = dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
-                                                isolate(input$mapDsTable)," where CaseID in (select CaseID from temp.mapsCases)"))
-      dispData = dispData[,-1]
+cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
+     " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
+      
+      # prepare display data
+      dispData = try(dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
+                   isolate(input$mapDsTable),
+                   " where CaseID in (select CaseID from temp.mapsCases)")))
+      if (class(dispData)=="try-error" || nrow(dispData)==0) return()
+        
+      dispData = dispData[,-1] #remove CaseID
       keys = setdiff(colnames(dispData),c("StandID","Year"))
       extra = NULL
       for (var in keys) 
@@ -4296,22 +4245,112 @@ cat ("Maps hit\n")
       }
       if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
         format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
-      if (input$mapDsTable=="FVS_Stats_Species" && input$mapDsVar!="Species") {
+      if (isolate(input$mapDsTable)=="FVS_Stats_Species" && input$mapDsVar!="Species") {
         dispData = dispData[,c("StandID","Year","Species",input$mapDsVar)]
-      } else if (input$mapDsTable=="FVS_Stats_Stand" && input$mapDsVar!="Species") {
+      } else if (isolate(input$mapDsTable)=="FVS_Stats_Stand" && input$mapDsVar!="Species") {
         dispData = dispData[,c("StandID","Year","Characteristic",input$mapDsVar)]
       } else dispData = dispData[,c("StandID","Year",input$mapDsVar)]
-      uids=intersect(unique(dispData$StandID),dbGlb$SpatialData@data[,matchVar])
-      if (length(uids) == 0) 
+
+      uidsToGet = unique(dispData$StandID)
+cat ("length(uidsToGet)=",length(uidsToGet),"\n")
+      if (!length(uidsToGet)) return()        
+      uidsFound = NULL
+    
+      require(rgdal)
+      
+      if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
+          file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
+      if (exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
-        output$leafletMessage=renderText("No StandIDs match polygons")
+        matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
+cat ("1 matchVar=",matchVar,"\n")
+        # when matchVar is NULL, it means that there is a list of maps that will be searched
+        # for the spatial data. If it is not null, then there is only one item, so use it.
+        mapList = if (is.null(matchVar)) dbGlb$SpatialData else list(d=dbGlb$SpatialData)
+        polys = NULL
+        pts   = NULL
+        for (map in mapList)
+        {
+          if (!length(uidsToGet)) break 
+          matchVar = attr(map,"MatchesStandID")
+cat ("2 matchVar=",matchVar,"\n")
+          uids=intersect(uidsToGet, map@data[,matchVar])
+          if (length(uids) == 0) next
+          uidsFound = c(uidsFound,uids)
+          pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
+          if (class(pp)=="SpatialPolygonsDataFrame") polys = if (is.null(polys)) pp else rbind(polys,pp)
+          if (class(pp)=="SpatialPointsDataFrame")   pts   = if (is.null(pts))   pp else rbind(pts,pp)
+          uidsToGet = setdiff(uidsToGet,uids)
+        }
+      }   
+cat ("left to get: length(uidsToGet)=",length(uidsToGet),
+     " number found: length(uidsFound)=",length(uidsFound),"\n")
+    
+      if (length(uidsToGet))
+      {
+cat ("mapDsRunList trying to use StandInit data\n")
+        inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+        latLng = try(dbGetQuery(dbGlb$dbIcon,paste0("select Stand_ID,Latitude,Longitude from ", inInit)))
+        if (class(latLng)!="try-error")
+        {
+          idxLng = grep("Longitude",names(latLng),ignore.case=TRUE)
+          idxLat = grep("Latitude",names(latLng),ignore.case=TRUE)
+cat ("mapDsRunList idxLng=",idxLng," idxLat=",idxLat," names=",names(dbGlb$SpatialData),"\n")
+          if (length(idxLng) && length(idxLat))
+          {
+            latLng[,idxLng] = as.numeric(latLng[,idxLng])
+            latLng[,idxLat] = as.numeric(latLng[,idxLat])
+            latLng = na.omit(latLng)
+          } else latLng = NULL
+        } else latLng = NULL
+        if (is.null(latLng) || nrow(latLng) == 0)
+        {
+cat ("mapDsRunList trying PlotInit\n")
+          inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
+          latLng = try(dbGetQuery(dbGlb$dbIcon, 
+                   paste0("select Stand_ID,avg(Latitude) as Latitude, ",
+                          "avg(Longitude) as Longitude from ",inInit,
+                          " group by Stand_ID;")))
+          if (class(latLng)!="try-error")
+          {
+            latLng$Longitude = as.numeric(latLng$Longitude)
+            latLng$Latitude  = as.numeric(latLng$Latitude)
+            latLng = na.omit(latLng)
+            if (nrow(latLng) > 0) latLng = subset(latLng, Latitude != 0 & Longitude != 0)
+          } else latLng = NULL
+        }
+        if (nrow(latLng))
+        {
+cat ("mapDsRunList names(latLng)=",names(latLng)," class(latLng)=",class(latLng),"\n")
+          idxLng = grep("Longitude",names(latLng),ignore.case=TRUE)
+          idxLat = grep("Latitude",names(latLng),ignore.case=TRUE)
+          idxID  = grep("Stand_ID",names(latLng),ignore.case=TRUE)
+cat (" idxLng=",idxLng," idxLat=",idxLat," idxID=",idxID,"\n")
+          latLng = latLng[,c(idxID,idxLng,idxLat)]
+          names(latLng)=c("Stand_ID","Longitude","Latitude")
+          keep = na.omit(match(uidsToGet,latLng[,"Stand_ID"]))
+cat ("rows to keep=",length(keep),"\n")
+          if (length(keep)) 
+          {
+            latLng = latLng[keep,]
+            latLng[,"Longitude"] = ifelse(latLng[,"Longitude"]>0, 
+                        -latLng[,"Longitude"], latLng[,"Longitude"])
+            uidsFound = c(uidsFound,latLng[,idxID])
+            coordinates(latLng) <- ~Longitude+Latitude
+            proj4string(latLng) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")                 
+            pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
+            pts= if (is.null(pts)) pp else rbind(pts,pp)
+          }
+        }
+      }
+      if (!length(uidsFound))
+      {
+        output$leafletMessage=renderText("Couldn't find the stands in the spatial data")
         return()
       }
-      output$textOutput=renderText(paste0(length(uids)," StandIDs match polygons"))
-      polys = spTransform(dbGlb$SpatialData[match(uids,dbGlb$SpatialData@data[,matchVar]),],
-                          CRS("+init=epsg:4326"))
-      progress <- shiny::Progress$new(session,min=1,max=length(uids))
-      labs  = lapply(uids, function (sid)
+      progress <- shiny::Progress$new(session,min=1,max=length(uidsFound))
+      labs = list()
+      for (sid in uidsFound)
       {
         tab = subset(dispData,StandID == sid)[,-1]
         if(length(tab) > 2 && input$mapDsType == "table")
@@ -4322,46 +4361,47 @@ cat ("Maps hit\n")
           }
           tab[,3] <- temp
         }
-        progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
-        if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
-        {
-          HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
-                      paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x)
-                        paste0(paste0(x,collapse=" "))), collapse="<br>"),"</p>",collapse=""))
-        } else {
-          tab = subset(dispData,StandID == sid)[,-1]          
-          tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
-          pfile=paste0("www/s",sid,".png")
-          cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
-          png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent") 
-          p = ggplot(tab, if (!is.null(extra))
-            aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
-              aes_string(x="Year",y=input$mapDsVar)) +
-            geom_line()+geom_point()+ggtitle(sid)+
-            theme(
-              text=element_text(size=8),axis.text=element_text(face="bold"),
-              panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
-              plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1))
-            )
-          print(p)
-          dev.off()
-          pfile=paste0("s",sid,".png")
-          HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
-                      '" alt="',sid,'" style="width:229px;height:170px;">'))
-        }  
-      })                 
+        labs[length(labs)+1] = 
+          if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
+          {
+            HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
+                        paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x)
+                          paste0(paste0(x,collapse=" "))), collapse="<br>"),"</p>",collapse=""))
+          } else {
+            tab = subset(dispData,StandID == sid)[,-1]          
+            tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
+            pfile=paste0("www/s",sid,".png")
+cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
+            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent") 
+            p = ggplot(tab, if (!is.null(extra))
+              aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
+                aes_string(x="Year",y=input$mapDsVar)) +
+              geom_line()+geom_point()+ggtitle(sid)+
+              theme(
+                text=element_text(size=8),axis.text=element_text(face="bold"),
+                panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
+                plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1))
+              )
+            print(p)
+            dev.off()
+            pfile=paste0("s",sid,".png")
+            HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
+                        '" alt="',sid,'" style="width:229px;height:170px;">'))
+          }
+        progress$set(message = paste0("Preparing ",sid), value = length(labs))  
+      } 
       progress$close()
-      map = leaflet(data=polys) %>% addTiles() %>%
+      
+      map = leaflet() %>% addTiles() %>%
         addTiles(urlTemplate = 
                    paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
                           "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
       lops = labelOptions(opacity=.7)
       pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
-      if (class(polys) == "SpatialPointsDataFrame")         
-        map = map %>% addCircleMarkers(radius = 6, color="red", 
+      if (length(pts))   map = map %>% addCircleMarkers(data=pts, radius = 6, color="red", 
                        stroke = FALSE, fillOpacity = 0.5, 
                        popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
-        map = map %>% addPolygons(color = "yellow", weight = 3, smoothFactor = 0.1,
+      if (length(polys)) map = map %>% addPolygons(data=polys, color = "yellow", weight = 3, smoothFactor = 0.1,
                        opacity = .3, fillOpacity = 0.2, 
                        popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
                        highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
@@ -4805,15 +4845,15 @@ cat ("tabDescSel2, tab=",tab,"\n")
     if(input$topPan == "Import Data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
-        selected="Replace existing database")
+        selected="Upload inventory data")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
     }
   })
   observe({
-    if(input$inputDBPan == "Replace existing database") 
+    if(input$inputDBPan == "Upload inventory data") 
     {
-cat ("Replace existing database\n")
+cat ("Upload inventory data\n")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
     }
@@ -4836,10 +4876,23 @@ cat ("Replace existing database\n")
   observe({  
     if (input$installTrainDB == 0) return()
     dbDisconnect(dbGlb$dbIcon)
-    if (file.exists("FVS_Data.db")) file.remove("FVS_Data.db")
     file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+    file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
     output$step1ActionMsg <- NULL
-    output$step2ActionMsg <- renderText(HTML("<b>Training database installed</b>"))
+    output$step2ActionMsg <- renderText(HTML(paste0("<b>Training database installed",
+         " (the inventory data and the related spatial data).</b>")))
+    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    initNewInputDB()
+    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+  }) 
+  ## installTrainDB2
+  observe({  
+    if (input$installTrainDB2 == 0) return()
+    dbDisconnect(dbGlb$dbIcon)
+    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+    file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+    output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
+         " (the inventory data and the related spatial data).</b>")))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
@@ -5362,7 +5415,7 @@ cat ("homogenize qry=",qry,"\n")
     progress$close()
   }) 
   observe({
-    if(input$inputDBPan == "Upload and add new rows to existing tables (.csv)") 
+    if(input$inputDBPan == "Upload .csv data to add to existing tables") 
     {
 cat ("Upload new rows\n")
       tbs <- dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
@@ -6136,8 +6189,8 @@ cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
         if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
         setwd(mapDir)
         lyrs = try(ogrListLayers(dir(mapDir)))
-cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
         setwd(curdir)                                
+cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
         if (class(lyrs) == "try-error" || length(lyrs) == 0)
         {
           output$mapActionMsg = renderText("Can not find layers in data")
@@ -6154,7 +6207,7 @@ cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
           if (length(lyr) > 1) lyr = lyr[which.min(nchar(names(lyrs)[lyr]))]
           lyr = names(lyrs)[lyr]
         } else lyr = lyrs[1]
-        lyr = unlist(lyr)                
+        lyr = unlist(lyr)
         updateSelectInput(session=session, inputId="mapUpLayers", choices=lyrs,
                           selected=lyr)
         progress$close() 
@@ -6167,8 +6220,8 @@ cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
       if (!dir.exists(datadir)) return()
       curdir = getwd()
       setwd(datadir)
-cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       datadir = dir()
+cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
@@ -6227,56 +6280,81 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
             value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
    })
    observe({
-    if(input$mapUpSetPrj > 0)
-    {
-      if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
-      {
-        output$mapActionMsg = renderText("No map, upload one")
-        return()
-      }
-      prjstring = trim(isolate(input$mapUpProjection))
-      if (nchar(prjstring) == 0) 
-      {
-        output$mapActionMsg = renderText("proj4 string is empty")
-        return()
-      }
-      prj = try(CRS(prjstring))
-      if (class(prj) == "try-error") 
-      {
-        output$mapActionMsg = renderText("proj4 string is not valid")
-      } else {
-        proj4string(dbGlb$spd) = prjstring
-        output$mapActionMsg = renderText("proj4 set/reset")
-      }
-    }
+     if(input$mapUpSetPrj > 0)
+     {
+       if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
+       {
+         output$mapActionMsg = renderText("No map, upload one then set projection")
+         return()
+       }
+       prjstring = trim(isolate(input$mapUpProjection))
+       if (nchar(prjstring) == 0) 
+       {
+         output$mapActionMsg = renderText("proj4 string is empty")
+         return()
+       }
+       prj = try(CRS(prjstring))
+       if (class(prj) == "try-error") 
+       {
+         output$mapActionMsg = renderText("proj4 string is not valid")
+       } else {
+         proj4string(dbGlb$spd) = prjstring
+         output$mapActionMsg = renderText("proj4 set/reset")
+       }
+     }
+   })
+   
+   prepSpatialData = function()
+   {
+     if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
+     stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
+     ids1 = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from ',stdInit)))
+     ids1 = if (class(ids1)=="try-error") list() else unlist(ids1)
+     names(ids1) = NULL
+     ids2 = try(dbGetQuery(dbGlb$dbOcon,'select distinct StandID from FVS_Cases;'))
+     ids2 = if (class(ids2)=="try-error") list() else unlist(ids2)
+     names(ids2) = NULL
+     keep=union(ids1,ids2)   
+     matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
+     keep=na.omit(charmatch(keep,dbGlb$spd@data[,matID]))
+     if (length(keep)) 
+     {
+       SpatialData=dbGlb$spd[keep,]
+       attr(SpatialData,"MatchesStandID") =  matID
+       output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
+           matID,", Number of objects kept=",nrow(SpatialData@data)))
+     } else {
+       SpatialData=NULL
+       output$mapActionMsg = renderText("No map or data to save.")
+     }
+     rm (spd,envir=dbGlb)    
+     return(SpatialData)
+   }
+   observe({
+     if(input$mapUpSave > 0)
+     {
+       SpatialData=prepSpatialData()
+       if (!is.null(SpatialData)) 
+       {
+         save (SpatialData,file="SpatialData.RData")
+         dbGlb$SpatialData = SpatialData
+       }
+     }
    })
    observe({
-    if(input$mapUpSave > 0)
-    {
-      if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
-      {
-        output$mapActionMsg = renderText("No map to save.")
-        return()
-      }
-      stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
-      ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
-      ids = unlist(ids)
-      names(ids) = NULL
-      matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
-      keep=na.omit(match(ids,dbGlb$spd@data[,matID]))
-      if (length(keep))
-      {
-        SpatialData = dbGlb$spd[keep,]
-        rm (spd,envir=dbGlb)    
-        attr(SpatialData,"MatchesStandID") =  matID
-        save (SpatialData,file="SpatialData.RData")
-        dbGlb$SpatialData = SpatialData
-        output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
-                              matID,", Number of objects kept=",nrow(SpatialData@data)))
-      } else {
-        output$mapActionMsg = renderText(paste0("Map not saved, no objects match Stand_ID"))
-      }
-    }
+     if(input$mapUpAdd > 0)
+     {     
+       NewSpatialData=prepSpatialData()
+       if (!is.null(NewSpatialData)) 
+       {
+         if (file.exists("SpatialData.RData")) load(file="SpatialData.RData")
+         if (!exists("SpatialData")) SpatialData=NewSpatialData else
+           SpatialData = if (class(SpatialData)=="list") 
+             append(after=0,NewSpatialData) else list(SpatialData,NewSpatialData)        
+         save (SpatialData,file="SpatialData.RData")
+         dbGlb$SpatialData = SpatialData
+       }
+     }
    })
 
   #runScript selection
