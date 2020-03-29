@@ -4196,7 +4196,6 @@ cat ("Maps hit\n")
           }
           tab[,3] <- temp
         }
-        browser()
         progress$set(message = paste0("Preparing ",sid), value = parent.frame()$i)  # <-too tricky, need another approach
         if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
         {
