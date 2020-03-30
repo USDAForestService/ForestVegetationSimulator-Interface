@@ -261,7 +261,7 @@ cat("writeKeyFile, num stds=",length(stds),
   if (length(stds)==0) return()
   dbExecute(dbIcon,'drop table if exists temp.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
-  dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
+  dbtabs = dbListTables(dbIcon)
   dbtabsU = toupper(dbtabs)
   stdInit <- NULL
   for (i in 1:length(dbtabs)){
@@ -2010,6 +2010,7 @@ cat ("addNewRun2DB, runuuid=",runuuid,"\n")
     if (trycnt > 1000) 
     {
       dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
+      dbListTables(dbcon) #any query will cause the locking mode to become active
       return("could not get exclusive lock.")
     }
 cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
@@ -2087,8 +2088,7 @@ cat ("qry=",qry,"\n")
   unlink(fn)
   mkDBIndices(dbcon)
   dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
-  # ?seems that a simple query needs to be run to force the locking_mode to actually change?
-  dbExecute(dbcon,"select * from FVS_Cases limit 1") 
+  dbListTables(dbcon) #any query will cause the new locking mode to become active
   "data inserted"
 }                                                    
 

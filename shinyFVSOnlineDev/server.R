@@ -304,6 +304,7 @@ cat ("tbs related to the run",tbs,"\n")
           if (trycnt > 1000) 
           {
             dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+            dbListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
             setProgress(value = NULL)
             return()
           }
@@ -3123,9 +3124,8 @@ cat("Nulling uiRunPlot at Save and Run\n")
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
-
-        writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=!("FVS_Summary" %in% 
-          dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[[1]]))
+        newSum = !("FVS_Summary" %in% try(dbListTables(dbGlb$dbOcon)))
+        writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=newSum)
         if(globals$timeissue==1){
           progress$close()
           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
@@ -3202,8 +3202,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
                        '  rtn = ',runCmd,'\nfvsRun()\n}')
           cat (cmd,"\n",file=rs)
           cat ('source("fvsRunUtilities.R")\n',file=rs)
-          cmd = paste0('dbDrv = dbDriver("SQLite")\n',
-                       'dbOcon = dbConnect(dbDrv,"FVSOut.db")')
+          cmd = paste0('dbOcon = dbConnect(dbDrv = dbDriver("SQLite"),"FVSOut.db")')
           cat (cmd,"\n",file=rs)
           cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n")')
           cat (cmd,"\n",file=rs)
@@ -3325,25 +3324,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         progress$set(message = "FVS finished",  
              detail = "Merging output to master database",
              value = length(globals$fvsRun$stands)+6)
-tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
-cat ("before add\n")
-for (tb in tbs) 
-{
-   nr=dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tb))
-   cat ("tb=",tb," nr=",nr[1,1],"\n")
-}
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
-        dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon )    
-        dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")           
-cat ("addNewRun2DB res=",res,"\n")
-tbs <- dbGetQuery(dbGlb$dbOcon,"select name from sqlite_master where type='table';")[,1]
-cat ("after add\n")
-for (tb in tbs) 
-{
-   nr=dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tb))
-   cat ("tb=",tb," nr=",nr[1,1],"\n")
-}
-
         unlink(paste0(globals$fvsRun$uuid,".db"))
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
@@ -5335,6 +5316,7 @@ cat ("index creation, qry=",qry,"\n")
       if (trycnt > 1000) 
       {
         dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
+        dbListTables(dbGlb$dbIcon) # this forces the new locking mode to take effect
         output$step2ActionMsg <- renderText("Error: Exclusive lock was not obtained.")
         return()
       }
