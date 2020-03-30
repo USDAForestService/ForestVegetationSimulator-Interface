@@ -2010,7 +2010,8 @@ cat ("saveRun\n")
 
   updateAutoOut <- function(session,autoOut)
   {
-     if (is.null(names(autoOut))) # block is for backward compatibility, after 2020 it can be deleted.
+cat ("updateAutoOut called\n")
+     if (is.null(names(autoOut))) # block is for backward compatibility, after 2021 it can be deleted.
      { 
        updateCheckboxGroupInput(session=session, inputId="autoOut",
           selected=autoOut)
@@ -2152,11 +2153,10 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   
    ##autoOut
    observe({
-    if (!length(input$simCont) || length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
-    svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire)
-    globals$fvsRun$autoOut<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,
-                                             nfire=input$svsNFire),
-                                 autoOut=as.list(input$autoOut))
+    out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
+              autoOut=as.list(input$autoOut))
+    if (identical(out,globals$fvsRun$autoOut)) return
+    globals$fvsRun$autoOut <- out
     updateAutoOut(session, globals$fvsRun$autoOut)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
