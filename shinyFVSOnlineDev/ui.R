@@ -776,8 +776,7 @@ shinyUI(fixedPage(
         ) ) #END column and fixed row   
       ), ## END Tools
       tabPanel("Help",       
-        h5(),
-        uiOutput("uiHelpText")
+        h5(),div(style = 'overflow-y:scroll;height:500px;',uiOutput("uiHelpText"))
       )
 ) ) ) ) )
 

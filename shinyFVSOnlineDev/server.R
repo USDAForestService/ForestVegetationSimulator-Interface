@@ -4781,8 +4781,10 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
       if (class(tabs)!="try-error")
       {
-        morehtml=xlsx2html(tab="OutputTableDescriptions")
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))  
+        morehtml=paste0(xlsx2html(tab="OutputTableDescriptions"),
+                                '<p><a href="#contents">Back to contents</a></p>')
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
+                                '<p><a href="#contents">Back to contents</a></p>')  
         if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
                 pattern="**OUTPUTHTML**",replacement=morehtml)
       }
@@ -4790,8 +4792,10 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
       if (class(tabs)!="try-error")                                                         
       {
-        morehtml=xlsx2html(tab="InputTableDescriptions")
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab))            
+        morehtml=paste0(xlsx2html(tab="InputTableDescriptions"),
+                                '<p><a href="#contents">Back to contents</a></p>')
+        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
+                                '<p><a href="#contents">Back to contents</a></p>')            
         if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
                 pattern="**INPUTHTML**",replacement=morehtml)
       }
