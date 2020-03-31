@@ -1,8 +1,8 @@
 # $Id$
 
 library(shiny)                                 
-library(rhandsontable)
-library(ggplot2)
+library(rhandsontable)                                            
+library(ggplot2)  
 library(parallel)
 library(RSQLite)
 library(plyr)
@@ -4694,58 +4694,29 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       if(length(input$deletePrj) && input$deletePrj > 0)
       {
         session$sendCustomMessage(type = "dialogContentUpdate",
-                                  message = list(id = "deletePrjDlg",
-                                                 message = "Are you sure you want to delete this project?"))
+          message = list(id = "deletePrjDlg",
+            message = "Are you sure you want to delete this project?"))
       }
     }
   })
   observe({
-    if(isLocal()){
-      if (length(input$deletePrjDlgBtn) && 
-          input$deletePrjDlgBtn > 0) 
-      {
-        if (length(getProjectList()) == 1){
-          session$sendCustomMessage(type="infomessage",
-                                    message="FVS cannot delete the last existing project.")
-          return()
-        }
-        isolate({
-          delPrj=paste0("../",input$PrjSelect2)
-          cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
-          if (dir.exists(delPrj)) {
-            if(basename(delPrj)=="Project_1"){
-              session$sendCustomMessage(type="infomessage",
-                                        message="FVS cannot delete Project_1")
-              return()
-            # } else if(basename(delPrj)==basename(getwd())){
-            #   if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-            #   if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-            #   PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-            #   write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-            #   write(file="C:/Users/Public/Documents/R/prjDelete.txt",basename(delPrj))
-            #   write(file="C:/Users/Public/Documents/R/prjSwitch.txt","Project_1")
-            #   globals$saveOnExit = FALSE
-            #   globals$reloadAppIsSet=1
-            #   shell("C:/FVS/FVS_Icon.VBS")
-            #   Sys.sleep(1)
-            #   session$sendCustomMessage(type = "closeWindow"," ")
-            } else {
-              unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
-              unlink(paste0("C:/FVS/",input$PrjSelect2), recursive=TRUE, force=TRUE)
-              selChoices = getProjectList()
-              for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i]],"\n")
-              sel = match(basename(getwd()),selChoices)[1]
-              sel = if (is.na(sel)) NULL else selChoices[[sel]]
-              cat ("sel=",sel,"\n")
-              updateSelectInput(session=session, inputId="PrjSelect", 
-                                choices=selChoices,selected=sel)
-              updateSelectInput(session=session, inputId="PrjSelect2", 
-                                choices=selChoices,selected=sel)
-              output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
-            }
-          }
-        })
-      }
+    if (length(input$deletePrjDlgBtn) && input$deletePrjDlgBtn > 0) 
+    {
+cat("delete project button.")                                           
+      if (length(getProjectList()) == 1)  
+      { 
+         session$sendCustomMessage(type="infomessage",
+            message="FVS cannot delete the last existing project.")
+        return()                        
+      } 
+      isolate({      
+        delPrj=paste0("../",input$PrjSelect2)
+        if (!dir.exists(delPrj)) return()
+cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
+        unlink(delPrj, recursive=TRUE, force=TRUE)        
+        output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
+        updateProjectSelections()
+      })
     }
   }) 
 
@@ -6397,21 +6368,33 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     {
       cat ("Refresh/copy projects\n")
       selChoices = getProjectList()
-      sel = match(basename(getwd()),selChoices)[1]
-      if(isLocal()){
-        revdates <- list()
-        for (i in 1:length(selChoices)){
-          test <- scan(paste0("C:/FVS/",selChoices[i],"/server.R"),what="",sep="\n",quiet=TRUE)
-          ind <- grep(paste0("serverDate=",'"',""),test)
-          sdate <- strsplit(test[ind]," ")[[1]][length(strsplit(test[ind]," ")[[1]])]
-          library(stringr)
-          numextract <- function(string){
-            str_extract(string, "\\-*\\d+\\.*\\d*")
+      sel = charmatch(basename(getwd()),selChoices)
+      if (is.na(sel)) return()
+      sel = sel[1]
+      revdates <- NULL
+      for (i in 1:length(selChoices))
+      {
+        test <- scan(paste0("../",selChoices[i],"/server.R"),what="character",
+                     sep="\n",quiet=TRUE,nlines=100)
+        ind <- grep("serverDate=",test,fixed=TRUE)
+        sdate=""
+        if (length(ind))
+        {
+          sdate = trim(test[ind[length(ind)]])
+          if (substr(sdate,1,1) == "#")
+          {
+            ind <- grep("$Id:",test,fixed=TRUE)
+            if (length(ind)) ind=ind[1]
+            sdate=scan(text=gsub("-","",test[ind]),what="character",quiet=TRUE)
+            sdate=if (length(sdate)>4) sdate[5] else ""
+          } else {
+            sdate=scan(text=sdate,sep='"',what="character")
+            sdate=if(length(sdate)>1) sdate[2] else ""
           }
-          revdates[i] <- numextract(sdate)
         }
-        names(selChoices) <- paste0(selChoices,", ",revdates) 
+        revdates=c(revdates,sdate)
       }
+      names(selChoices) <- paste0(selChoices,", ",revdates) 
       if (is.na(sel)) 
       {
         updateSelectInput(session=session,inputId="sourcePrj",choices=NULL)
@@ -6430,10 +6413,10 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     if (input$cpyNow > 0) 
     {
       isolate({
+        if (length(input$targetPrj) == 0) return()
         progress <- shiny::Progress$new(session,min=1,max=10)
         progress$set(message = "Copying files to target project",value = 1)
-        cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
-        if (length(input$targetPrj) == 0) return()
+cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
         files=NULL
         srcprj=paste0("../",input$sourcePrj,"/")
         progress$set(message = "Copying files to new project",value = 4)
@@ -6462,22 +6445,26 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       })      
     }
   })
-   
+  
+  updateProjectSelections <- function ()
+  {
+      selChoices = getProjectList() 
+cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
+      nsel = charmatch(basename(getwd()),selChoices)
+      nsel = if(is.na(nsel)) NULL else nsel[1]
+      sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
+      updateSelectInput(session=session, inputId="PrjSelect", 
+          choices=selChoices,selected=sel)
+      if (!is.null(nsel)) selChoices=selChoices[-nsel]
+      updateSelectInput(session=session, inputId="PrjSelect2",choices=selChoices,
+                        selected=if (length(selChoices)) selChoices[1] else NULL)
+  }
    ## Projects hit
   observe({    
     if (input$topPan == "Tools" && input$toolsPan == "Manage project") 
     {
 cat ("Manage project hit\n")
-      selChoices = getProjectList()
-for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i]],"\n")
-      sel = match(basename(getwd()),selChoices)[1]
-      sel = if (is.na(sel)) NULL else selChoices[[sel]]
-      updateSelectInput(session=session, inputId="PrjSelect", 
-          choices=selChoices,selected=sel)
-      if(!is.na(match(basename(getwd()),selChoices))){
-      selChoices=selChoices[-(match(basename(getwd()),selChoices))]}
-      updateSelectInput(session=session, inputId="PrjSelect2", 
-                        choices=selChoices,selected=selChoices[1])
+      updateProjectSelections()
     }
   })
  
@@ -6534,8 +6521,6 @@ for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i
                         choices=selChoices,selected=selChoices[[newTitle]])
       progress$set(message = "Saving new prohect",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
-      if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-      if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
       globals$saveOnExit = FALSE
       globals$reloadAppIsSet=1
       progress$close()
@@ -6546,31 +6531,14 @@ for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i
   {
     isolate({
       newPrj=paste0("../",input$PrjSelect)
-      cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
+cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
       if (dir.exists(newPrj))
       { 
-        if (isLocal()) 
-        {
-          saveRun()
-          if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-          if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-          if (.Platform$OS.type == "windows")
-          {
-            PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-            write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-            write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
-            shell("C:/FVS/FVS_Icon.VBS")
-          }
-          globals$saveOnExit = FALSE
-          globals$reloadAppIsSet=1
-          Sys.sleep(1)
-          session$sendCustomMessage(type = "closeWindow"," ")
-        } else {
-          url = paste0(session$clientData$url_protocol,"//",
-                       session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
-          cat ("launch url:",url,"\n")
-          session$sendCustomMessage(type = "openURL",url)
-        }
+        saveRun()
+        globals$saveOnExit = TRUE
+        globals$reloadAppIsSet=1
+        setwd(newPrj)
+        session$reload()  
       }
     })
   })
@@ -6583,7 +6551,7 @@ for (i in 1:length(selChoices)) cat (names(selChoices)[i]," a[i]=",selChoices[[i
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
       if (!is.na(me)) runNames=runNames[-me]
-      runName=mkNameUnique(runName,runNames)
+      runName=mkNameUnique(runName,runNames)        
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
       globals$fvsRun$title = runName

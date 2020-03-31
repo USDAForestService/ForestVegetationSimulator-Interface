@@ -708,21 +708,17 @@ shinyUI(fixedPage(
                     "Yes"),
                   tags$button(type = "button", class = "btn btn-primary", 
                     'data-dismiss' = "modal", "Cancel")))
-              ),h4(),
-              if(isLocal()) h4("Delete entire non-active project"),
-              if(isLocal()) selectInput("PrjSelect2", "Select non-active project to delete", multiple=FALSE,
-                                        choices = list(), selected="", selectize=FALSE),
-              if(isLocal()) list(
-                modalTriggerButton("deletePrj", "#deletePrjDlg", 
-                                   "Delete project"),
-                modalDialog(id="deletePrjDlg", footer=list(
-                  modalTriggerButton("deletePrjDlgBtn", "#deletePrjDlg", 
+              ),h4("Delete entire project"),
+              selectInput("PrjSelect2", "Select non-active project to delete", multiple=FALSE,
+                          choices = list(), selected="", selectize=FALSE),
+              list(modalTriggerButton("deletePrj", "#deletePrjDlg", "Delete project"),
+                   modalDialog(id="deletePrjDlg", footer=list(
+                   modalTriggerButton("deletePrjDlgBtn", "#deletePrjDlg", 
                                      "Yes"),
-                  tags$button(type = "button", class = "btn btn-primary", 
-                              'data-dismiss' = "modal", "No")))
-              ),h6(),
-              if(isLocal()) tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"), 
-              if(isLocal()) uiOutput("delPrjActionMsg")
+                   tags$button(type = "button", class = "btn btn-primary", 
+                              'data-dismiss' = "modal", "No")))),
+              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"), 
+              uiOutput("delPrjActionMsg")
             ), 
             tabPanel("Downloads", h6(),
               downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
@@ -750,13 +746,11 @@ shinyUI(fixedPage(
                 ),           
                 column(width=if (isLocal()) 12 else 7,offset=0,
                   h4("Copy data and software from a source project to target project(s)"),
-                  if(isLocal()) selectInput("sourcePrj", "Source project (Name, Release date)", 
-                    multiple=FALSE, choices = list(), selected="", selectize=FALSE) else selectInput("sourcePrj",
-                    "Source project",multiple=FALSE, choices = list(), selected="", selectize=FALSE)                                                                                 ,
+                  selectInput("sourcePrj", "Source project (Name, Release date)", 
+                    multiple=FALSE, choices = list(), selected="", selectize=FALSE)                                                                                  ,
                   h6(),       
-                  if(isLocal()) selectInput("targetPrj", "Target project(s) (Name, Release date)", 
-                     multiple=TRUE,choices = list(), selected="", selectize=FALSE) else selectInput("targetPrj",
-                     "Target project(s)", multiple=TRUE,choices = list(), selected="", selectize=FALSE),
+                  selectInput("targetPrj", "Target project(s) (Name, Release date)", 
+                     multiple=TRUE,choices = list(), selected="", selectize=FALSE),
                   h6(),
                   checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
                     list("All interface software"="software",
