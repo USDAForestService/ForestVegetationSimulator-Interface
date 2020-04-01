@@ -1,5 +1,7 @@
 # $Id$
 
+if (file.exists("projectIsLocked.txt")) q(save='no') 
+
 library(shiny)                                 
 library(rhandsontable)                                            
 library(ggplot2)  
@@ -15,8 +17,11 @@ library(openxlsx)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
-
+        
 shinyServer(function(input, output, session) {
+
+  if (file.exists("projectIsLocked.txt")) q(save='no') else
+    cat (file="projectIsLocked.txt",date(),"\n")
 
   if (!interactive()) 
   {
@@ -202,6 +207,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
+    unlink ("projectIsLocked.txt")
     if (globals$reloadAppIsSet == 0 && globals$hostname == "127.0.0.1")
     {
       stopApp()
@@ -4711,7 +4717,8 @@ cat("delete project button.")
       } 
       isolate({      
         delPrj=paste0("../",input$PrjSelect2)
-        if (!dir.exists(delPrj)) return()
+        if (!dir.exists(delPrj) 
+            || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) return()
 cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
         unlink(delPrj, recursive=TRUE, force=TRUE)        
         output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
@@ -6394,7 +6401,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         }
         revdates=c(revdates,sdate)
       }
-      names(selChoices) <- paste0(selChoices,", ",revdates) 
+      names(selChoices) <- paste0(names(selChoices),", ",revdates)
       if (is.na(sel)) 
       {
         updateSelectInput(session=session,inputId="sourcePrj",choices=NULL)
@@ -6521,25 +6528,47 @@ cat ("Manage project hit\n")
                         choices=selChoices,selected=selChoices[[newTitle]])
       progress$set(message = "Saving new prohect",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
-      globals$saveOnExit = FALSE
-      globals$reloadAppIsSet=1
       progress$close()
-      session$reload()  
+      if (isLocal()) 
+      { 
+        unlink(paste0(curdir,"/projectIsLocked.txt"))
+        globals$saveOnExit = FALSE
+        globals$reloadAppIsSet=1
+        session$reload()
+      } else {
+        setwd(curdir)
+        url = paste0(session$clientData$url_protocol,"//",
+                     session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
+cat ("launch url:",url,"\n")
+        session$sendCustomMessage(type = "openURL",url)
+      }  
     })
   })    
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
     isolate({
       newPrj=paste0("../",input$PrjSelect)
-cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),"\n")
+      plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
+cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),
+" locked=",plk,"\n")
+      if (plk) return()
       if (dir.exists(newPrj))
       { 
-        saveRun()
-        globals$saveOnExit = TRUE
-        globals$reloadAppIsSet=1
-        setwd(newPrj)
-        session$reload()  
-      }
+        if (isLocal()) 
+        {
+          saveRun()
+          globals$saveOnExit = TRUE
+          globals$reloadAppIsSet=1
+          unlink("projectIsLocked.txt")
+          setwd(newPrj)
+          session$reload()  
+        } else {
+          url = paste0(session$clientData$url_protocol,"//",
+                       session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
+cat ("launch url:",url,"\n")
+          session$sendCustomMessage(type = "openURL",url)
+        }
+      }          
     })
   })
                                       
