@@ -2435,7 +2435,8 @@ getProjectList <- function()
     {
       if (file.exists(paste0("../",dir,"/server.R")) && 
           file.exists(paste0("../",dir,"/ui.R"))     &&
-          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
+          file.exists(paste0("../",dir,"/projectId.txt")) &&
+         !file.exists(paste0("../",dir,"/projectIsLocked.txt"))) selChoices = append(selChoices,dir)
     }
     if (length(selChoices)) names(selChoices) = selChoices
   } else {

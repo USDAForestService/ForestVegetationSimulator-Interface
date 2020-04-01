@@ -6479,23 +6479,34 @@ cat ("Manage project hit\n")
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
+      if (nchar(input$PrjNewTitle)==0) return()
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Saving current run",value = 1)
       saveRun()
       curdir = getwd()
-      newTitle = if (nchar(input$PrjNewTitle)) input$PrjNewTitle else "NewProject"
       setwd("../")
+      newTitle = input$PrjNewTitle
       fn = if (isLocal()) 
       {       
         basedir = basename(curdir)
         newTitle <- mkFileNameUnique(newTitle)
         newTitle
       } else uuidgen()
+      if (dir.exists(fn)) setwd(fn) else
+      {
+        setwd(curdir)
+        updateTextInput(inputId="PrjNewTitle",session=session,value="")
+        progress$close()
+        return()
+      }
+      dir.create(fn)
+      if (dir.exists(fn)) return()
       dir.create(fn)
       if (dir.exists(fn)) setwd(fn) else
       {
         setwd(curdir)
         updateTextInput(inputId="PrjNewTitle",session=session,value="")
+        progress$close()
         return()
       }
       progress$set(message = "Copying project files",value = 5)
@@ -6549,7 +6560,7 @@ cat ("launch url:",url,"\n")
     isolate({
       newPrj=paste0("../",input$PrjSelect)
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
-cat("PrjSwitch to=",input$PrjSelect," dir.exists(newPrj)=",dir.exists(newPrj),
+cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
       if (plk) return()
       if (dir.exists(newPrj))
