@@ -4605,6 +4605,7 @@ cat ("Refresh interface file=",frm,"\n")
               if (file.exists(frm)) file.copy(from=frm,to=x,overwrite=TRUE,recursive=TRUE)
               },ffdir)
           globals$reloadAppIsSet=1
+          unlink("projectIsLocked.txt")
           session$reload()
         }
       } else session$sendCustomMessage(type="infomessage",
