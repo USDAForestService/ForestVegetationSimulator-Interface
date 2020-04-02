@@ -82,6 +82,7 @@ shinyUI(fixedPage(
   ) ),
   fixedRow(column(width=12,offset=0,
     tags$style(type="text/css","#topPan {background-color: rgb(227,227,255);}"),
+    uiOutput("appLocked"),
     tabsetPanel(id="topPan",
       tabPanel("Runs",
         fixedRow(column(width=4,offset=0,

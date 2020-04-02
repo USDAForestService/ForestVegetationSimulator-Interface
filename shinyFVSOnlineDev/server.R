@@ -1,7 +1,5 @@
 # $Id$
 
-if (file.exists("projectIsLocked.txt")) q(save='no') 
-
 library(shiny)                                 
 library(rhandsontable)                                            
 library(ggplot2)  
@@ -19,9 +17,6 @@ options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
         
 shinyServer(function(input, output, session) {
-
-  if (file.exists("projectIsLocked.txt")) q(save='no') else
-    cat (file="projectIsLocked.txt",date(),"\n")
 
   if (!interactive()) 
   {
@@ -46,7 +41,7 @@ cat ("Server id=",serverID,"\n")
   
   # use the next line for the production version
   # serverDate="20191101"
-  
+
   withProgress(session, {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
@@ -66,12 +61,28 @@ cat ("Server id=",serverID,"\n")
                     "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                     "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
-    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
+
+    if (file.exists("projectIsLocked.txt")) 
+    {
+      hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
+cat ("Project locked file found, hrs=",hrs,"\n")
+      if (hrs<3) 
+      { 
+        output$appLocked<-renderUI(h1("Project is locked"))
+        globals$deleteLockFile=FALSE
+        globals$saveOnExit=FALSE
+cat ("Project is locked, exiting.\n")
+        stopApp()
+      }
+    } 
+    cat (file="projectIsLocked.txt",date(),"\n") 
+
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()
@@ -207,11 +218,9 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
-    unlink ("projectIsLocked.txt")
-    if (globals$reloadAppIsSet == 0 && globals$hostname == "127.0.0.1")
-    {
-      stopApp()
-    } 
+    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    #note: the stopApp function returns to the R process that called runApp()
+    if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
   })
   
@@ -4605,7 +4614,6 @@ cat ("Refresh interface file=",frm,"\n")
               if (file.exists(frm)) file.copy(from=frm,to=x,overwrite=TRUE,recursive=TRUE)
               },ffdir)
           globals$reloadAppIsSet=1
-          unlink("projectIsLocked.txt")
           session$reload()
         }
       } else session$sendCustomMessage(type="infomessage",
@@ -4719,7 +4727,11 @@ cat("delete project button.")
       isolate({      
         delPrj=paste0("../",input$PrjSelect2)
         if (!dir.exists(delPrj) 
-            || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) return()
+            || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
+        {
+            updateProjectSelections()
+            return()
+        }
 cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
         unlink(delPrj, recursive=TRUE, force=TRUE)        
         output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
@@ -6440,7 +6452,7 @@ cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",inp
                                "custQ"="customQueries.RData"))
         }
         progress$set(message = "Copying files to target project",value = 6)
-        cat ("cpyNow files=",files,"\n")
+cat ("cpyNow files=",files,"\n")
         files=paste0(srcprj,files)
         for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
           if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
@@ -6463,9 +6475,8 @@ cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
       updateSelectInput(session=session, inputId="PrjSelect", 
           choices=selChoices,selected=sel)
-      if (!is.null(nsel)) selChoices=selChoices[-nsel]
       updateSelectInput(session=session, inputId="PrjSelect2",choices=selChoices,
-                        selected=if (length(selChoices)) selChoices[1] else NULL)
+                        selected=0)
   }
    ## Projects hit
   observe({    
@@ -6480,6 +6491,7 @@ cat ("Manage project hit\n")
   observe(if (length(input$PrjNew) && input$PrjNew > 0) 
   {
     isolate({
+cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       if (nchar(input$PrjNewTitle)==0) return()
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Saving current run",value = 1)
@@ -6493,15 +6505,6 @@ cat ("Manage project hit\n")
         newTitle <- mkFileNameUnique(newTitle)
         newTitle
       } else uuidgen()
-      if (dir.exists(fn)) setwd(fn) else
-      {
-        setwd(curdir)
-        updateTextInput(inputId="PrjNewTitle",session=session,value="")
-        progress$close()
-        return()
-      }
-      dir.create(fn)
-      if (dir.exists(fn)) return()
       dir.create(fn)
       if (dir.exists(fn)) setwd(fn) else
       {
@@ -6512,6 +6515,7 @@ cat ("Manage project hit\n")
       }
       progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
+cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".db$",filesToCopy)
@@ -6526,6 +6530,8 @@ cat ("Manage project hit\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern="projectIsLocked.txt",filesToCopy,fixed=TRUE)
+      if (length(del)) filesToCopy = filesToCopy[-del]
       lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
       if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList()))
@@ -6534,26 +6540,11 @@ cat ("Manage project hit\n")
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
       write(file="projectId.txt",prjid)
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)      
-      updateTextInput(session=session, inputId="PrjNewTitle",value=newTitle)
-      selChoices=getProjectList()
-      updateSelectInput(session=session, inputId="PrjSelect", 
-                        choices=selChoices,selected=selChoices[[newTitle]])
+      updateTextInput(session=session, inputId="PrjNewTitle",value="")
       progress$set(message = "Saving new prohect",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      updateProjectSelections()
       progress$close()
-      if (isLocal()) 
-      { 
-        unlink(paste0(curdir,"/projectIsLocked.txt"))
-        globals$saveOnExit = FALSE
-        globals$reloadAppIsSet=1
-        session$reload()
-      } else {
-        setwd(curdir)
-        url = paste0(session$clientData$url_protocol,"//",
-                     session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
-cat ("launch url:",url,"\n")
-        session$sendCustomMessage(type = "openURL",url)
-      }  
     })
   })    
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
@@ -6563,7 +6554,7 @@ cat ("launch url:",url,"\n")
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
 cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
-      if (plk) return()
+      if (plk) {updateProjectSelections();return()}
       if (dir.exists(newPrj))
       { 
         if (isLocal()) 

@@ -44,7 +44,7 @@ mkGlobals <<- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character"))
+    lastRunVar="character",deleteLockFile="logical"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -1494,6 +1494,7 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$winBuildFunction <- character(0)
   globals$foundStand=0L 
   globals$changeind <- 0
+  globals$changeind <- 0
 }
 
 
@@ -2444,6 +2445,8 @@ getProjectList <- function()
     curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
     prjs = dir("..")
     data = lapply (prjs, function (x) {         
+      fn = paste0("../",x,"/projectIsLocked.txt") 
+      if (file.exists(fn)) return(NULL)
       fn = paste0("../",x,"/projectId.txt") 
       if (file.exists(fn))
       {
