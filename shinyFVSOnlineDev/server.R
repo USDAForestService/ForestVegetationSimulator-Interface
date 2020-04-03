@@ -61,7 +61,8 @@ cat ("Server id=",serverID,"\n")
                     "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                     "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
-    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE)
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
+    if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=TRUE
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
@@ -75,7 +76,7 @@ cat ("Project locked file found, hrs=",hrs,"\n")
       if (hrs<3) 
       { 
         output$appLocked<-renderUI(h1("Project is locked"))
-        globals$deleteLockFile=FALSE
+        if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
         globals$saveOnExit=FALSE
 cat ("Project is locked, exiting.\n")
         stopApp()
@@ -218,7 +219,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
-    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    if (exists("deleteLockFile",envir=globals) && globals$deleteLockFile) unlink ("projectIsLocked.txt")     
     #note: the stopApp function returns to the R process that called runApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
