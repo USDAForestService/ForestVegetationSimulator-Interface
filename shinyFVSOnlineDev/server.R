@@ -4721,23 +4721,25 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
 cat("delete project button.")                                           
       if (length(getProjectList()) == 1)  
       { 
-         session$sendCustomMessage(type="infomessage",
-            message="FVS cannot delete the last existing project.")
-        return()                        
-      } 
-      isolate({      
-        delPrj=paste0("../",input$PrjSelect2)
-        if (!dir.exists(delPrj) 
-            || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
-        {
+cat ("deletePrjDlgBtn only 1 project\n") 
+         output$delPrjActionMsg <- renderText(HTML(
+           "FVS cannot delete the last existing project."))                       
+      } else {
+        isolate({      
+          delPrj=paste0("../",input$PrjSelect2)
+          if (!dir.exists(delPrj) 
+              || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
+          {
+cat ("deletePrjDlgBtn prj=",delPrj," NOT deleted\n") 
+              output$delPrjActionMsg <- renderText(HTML("<b>Project NOT deleted</b>"))
+          } else {
+cat ("deletePrjDlgBtn prj=",delPrj," deleted\n") 
+            unlink(delPrj, recursive=TRUE, force=TRUE)        
+            output$delPrjActionMsg <- renderText(HTML("<b>Project deleted</b>"))
             updateProjectSelections()
-            return()
-        }
-cat ("deletePrjDlgBtn fvsWorkDelete=",delPrj,"\n") 
-        unlink(delPrj, recursive=TRUE, force=TRUE)        
-        output$delPrjActionMsg <- renderText(HTML("<b>Selected project deleted</b>"))
-        updateProjectSelections()
-      })
+          }
+        })
+      }
     }
   }) 
 
@@ -6388,7 +6390,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     if (input$topPan == "Tools" && input$toolsPan == "Refresh/copy projects") 
     {
       cat ("Refresh/copy projects\n")
-      selChoices = getProjectList()
+      selChoices = getProjectList(includeLocked=TRUE)
       sel = charmatch(basename(getwd()),selChoices)
       if (is.na(sel)) return()
       sel = sel[1]
@@ -6409,24 +6411,21 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
             sdate=scan(text=gsub("-","",test[ind]),what="character",quiet=TRUE)
             sdate=if (length(sdate)>4) sdate[5] else ""
           } else {
-            sdate=scan(text=sdate,sep='"',what="character")
+            sdate=scan(text=sdate,sep='"',what="character",quiet=TRUE)
             sdate=if(length(sdate)>1) sdate[2] else ""
           }
         }
         revdates=c(revdates,sdate)
       }
+      validTargets = getProjectList()
+      namidx = match(validTargets,selChoices)
       names(selChoices) <- paste0(names(selChoices),", ",revdates)
-      if (is.na(sel)) 
-      {
-        updateSelectInput(session=session,inputId="sourcePrj",choices=NULL)
-        updateSelectInput(session=session,inputId="targetPrj",choices=NULL)
-      } else {    
-        updateSelectInput(session=session, inputId="sourcePrj", 
-                          choices=selChoices,selected=selChoices[sel])
-        selChoices = selChoices[-sel]
-        updateSelectInput(session=session,inputId="targetPrj",
-                          choices=selChoices,selected=NULL)
-      }
+      names(validTargets) <- names(selChoices)[namidx]
+      sel = if (is.na(sel))  0 else selChoices[sel]
+      updateSelectInput(session=session, inputId="sourcePrj", 
+                          choices=selChoices,selected=sel)
+      updateSelectInput(session=session,inputId="targetPrj",
+                          choices=validTargets,selected=0)
     }
   })
   
@@ -6462,6 +6461,7 @@ cat ("cpyNow files=",files,"\n")
         updateSelectInput(session=session,inputId="targetPrj",selected=0)
         output$copyActionMsg <- renderText(HTML("<b>Target project software and/or files updated</b>"))
         progress$close()
+        
       })      
     }
   })
@@ -6475,12 +6475,6 @@ cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
       updateSelectInput(session=session, inputId="PrjSelect", 
           choices=selChoices,selected=sel)
-      if (.Platform$OS.type == "windows"){
-        prj1 <- grep("Project_1",selChoices)
-        if(length(prj1))selChoices <- selChoices[-prj1]
-        actprj <- grep(basename(getwd()),selChoices)
-        if(length(actprj))selChoices <- selChoices[-actprj]
-      }
       updateSelectInput(session=session, inputId="PrjSelect2",choices=selChoices,
                         selected=0)
   }
@@ -6540,7 +6534,7 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList()))
+      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
       ntit=paste0("title= ",newTitle)
       idrow = grep("title=",prjid)
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
@@ -6566,25 +6560,11 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
         if (isLocal()) 
         {
           saveRun()
-          if(.Platform$OS.type == "windows"){
-            if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-            if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-            PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-            write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-            write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
-            globals$saveOnExit = TRUE
-            globals$reloadAppIsSet=1
-            unlink("projectIsLocked.txt")
-            shell("C:/FVS/FVS_Icon.VBS")
-            Sys.sleep(1)
-            session$sendCustomMessage(type = "closeWindow"," ")
-          }else{
-            globals$saveOnExit = TRUE
-            globals$reloadAppIsSet=1
-            unlink("projectIsLocked.txt")
-            setwd(newPrj)
-            session$reload()  
-          }
+          globals$saveOnExit = TRUE
+          globals$reloadAppIsSet=1
+          unlink("projectIsLocked.txt")
+          setwd(newPrj)
+          session$reload()  
         } else {
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)

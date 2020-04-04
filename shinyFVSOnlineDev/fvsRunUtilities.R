@@ -2426,36 +2426,27 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
   }
 }
 
-getProjectList <- function()
+getProjectList <- function(includeLocked=FALSE)
 {
   selChoices = list()
   if (isLocal())
   {  
     dirs = dir("..")
-    if (.Platform$OS.type == "windows"){
-      for (dir in dirs)
+    for (dir in dirs)
     {
-      if (file.exists(paste0("../",dir,"/server.R")) && 
-          file.exists(paste0("../",dir,"/ui.R"))     &&
-          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
-    }
-    } else{
-      for (dir in dirs)
-      {
-        if (file.exists(paste0("../",dir,"/server.R")) && 
-            file.exists(paste0("../",dir,"/ui.R"))     &&
-            file.exists(paste0("../",dir,"/projectId.txt")) &&
-           !file.exists(paste0("../",dir,"/projectIsLocked.txt"))) selChoices = append(selChoices,dir)
-      }
+      if (file.exists(paste0("../",dir,"/projectId.txt")) &&
+         (includeLocked ||
+         !file.exists(paste0("../",dir,"/projectIsLocked.txt"))))
+         selChoices = append(selChoices,dir)
     }
     if (length(selChoices)) names(selChoices) = selChoices
   } else {
     curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
     curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
-    prjs = dir("..")
-    data = lapply (prjs, function (x) {         
-      fn = paste0("../",x,"/projectIsLocked.txt") 
-      if (file.exists(fn)) return(NULL)
+    dirs = dir("..")
+    data = lapply (dirs, function (x,inc) {         
+      if (!includeLocked) if (file.exists(
+        paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
       fn = paste0("../",x,"/projectId.txt") 
       if (file.exists(fn))
       {
@@ -2464,7 +2455,7 @@ getProjectList <- function()
           title=trim(sub("title=","",prj[2])))
         ans
       } else NULL
-    }) 
+    },) 
     if (length(data))
     {
       data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)
