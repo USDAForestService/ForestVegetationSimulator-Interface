@@ -710,11 +710,11 @@ shinyUI(fixedPage(
                   tags$button(type = "button", class = "btn btn-primary", 
                     'data-dismiss' = "modal", "Cancel")))
               ),h4("Delete entire project"),
-              selectInput("PrjSelect2", "Select non-active project to delete", multiple=FALSE,
+              selectInput("PrjDelSelect", "Select non-active project to delete", multiple=FALSE,
                           choices = list(), selected="", selectize=FALSE),
-              list(modalTriggerButton("deletePrj", "#deletePrjDlg", "Delete project"),
-                   modalDialog(id="deletePrjDlg", footer=list(
-                   modalTriggerButton("deletePrjDlgBtn", "#deletePrjDlg", 
+              list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
+                   modalDialog(id="PrjDeleteDlg", footer=list(
+                   modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg", 
                                      "Yes"),
                    tags$button(type = "button", class = "btn btn-primary", 
                               'data-dismiss' = "modal", "No")))),

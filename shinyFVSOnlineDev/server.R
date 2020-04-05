@@ -4704,24 +4704,24 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
     }
   })
   
-  ## deletePrj 
+  ## PrjDelete 
   observe({
     if(isLocal()){
-      if(length(input$deletePrj) && input$deletePrj > 0)
+      if(length(input$PrjDelete) && input$PrjDelete > 0)
       {
         session$sendCustomMessage(type = "dialogContentUpdate",
-          message = list(id = "deletePrjDlg",
+          message = list(id = "PrjDeleteDlg",
             message = "Are you sure you want to delete this project?"))
       }
     }
   })
   observe({
-    if (length(input$deletePrjDlgBtn) && input$deletePrjDlgBtn > 0) 
+    if (length(input$PrjDeleteDlgBtn) && input$PrjDeleteDlgBtn > 0) 
     {
 cat("delete project button.")                                           
       if (length(getProjectList()) == 1)  
       { 
-cat ("deletePrjDlgBtn only 1 project\n") 
+cat ("PrjDeleteDlgBtn only 1 project\n") 
          output$delPrjActionMsg <- renderText(HTML(
            "FVS cannot delete the last existing project."))                       
       } else {
@@ -4730,10 +4730,10 @@ cat ("deletePrjDlgBtn only 1 project\n")
           if (!dir.exists(delPrj) 
               || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
           {
-cat ("deletePrjDlgBtn prj=",delPrj," NOT deleted\n") 
+cat ("PrjDeleteDlgBtn prj=",delPrj," NOT deleted\n") 
               output$delPrjActionMsg <- renderText(HTML("<b>Project NOT deleted</b>"))
           } else {
-cat ("deletePrjDlgBtn prj=",delPrj," deleted\n") 
+cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n") 
             unlink(delPrj, recursive=TRUE, force=TRUE)        
             output$delPrjActionMsg <- renderText(HTML("<b>Project deleted</b>"))
             updateProjectSelections()
@@ -6475,7 +6475,13 @@ cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
       updateSelectInput(session=session, inputId="PrjSelect", 
           choices=selChoices,selected=sel)
-      updateSelectInput(session=session, inputId="PrjSelect2",choices=selChoices,
+      ### Block the ability to delete Project_1 on windows
+      if(.Platform$OS.type == "windows")
+      {
+        prj1 = charmatch("Project_1",selChoices)
+        if (!is.na(prj1)) selChoices=selChoices[-prj1]
+      }
+      updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                         selected=0)
   }
    ## Projects hit
@@ -6562,7 +6568,8 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           saveRun()
           globals$saveOnExit = TRUE
           globals$reloadAppIsSet=1
-          unlink("projectIsLocked.txt")
+cat ("remove projectIsLocked.txt in ",getwd(),"\n")
+          unlink(paste0(getwd(),"/projectIsLocked.txt"))
           setwd(newPrj)
           session$reload()  
         } else {
