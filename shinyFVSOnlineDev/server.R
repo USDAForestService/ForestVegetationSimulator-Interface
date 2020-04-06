@@ -6480,6 +6480,8 @@ cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       {
         prj1 = charmatch("Project_1",selChoices)
         if (!is.na(prj1)) selChoices=selChoices[-prj1]
+        actprj <- grep(basename(getwd()),selChoices)
+        if(length(actprj))selChoices <- selChoices[-actprj]
       }
       updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                         selected=0)
@@ -6566,12 +6568,25 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
         if (isLocal()) 
         {
           saveRun()
-          globals$saveOnExit = TRUE
-          globals$reloadAppIsSet=1
-cat ("remove projectIsLocked.txt in ",getwd(),"\n")
-          unlink(paste0(getwd(),"/projectIsLocked.txt"))
-          setwd(newPrj)
-          session$reload()  
+          if(.Platform$OS.type == "windows"){
+            if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+            if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+            PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
+            write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
+            write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
+            globals$saveOnExit = TRUE
+            globals$reloadAppIsSet=1
+            unlink("projectIsLocked.txt")
+            shell("C:/FVS/FVS_Icon.VBS")
+            Sys.sleep(1)
+            session$sendCustomMessage(type = "closeWindow"," ")
+          }else{
+            globals$saveOnExit = TRUE
+            globals$reloadAppIsSet=1
+            unlink("projectIsLocked.txt")
+            setwd(newPrj)
+            session$reload()  
+          }  
         } else {
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)

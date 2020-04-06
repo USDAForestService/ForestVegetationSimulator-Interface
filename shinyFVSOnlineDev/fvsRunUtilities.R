@@ -2432,12 +2432,21 @@ getProjectList <- function(includeLocked=FALSE)
   if (isLocal())
   {  
     dirs = dir("..")
-    for (dir in dirs)
+    if (.Platform$OS.type == "windows"){
+      for (dir in dirs)
     {
-      if (file.exists(paste0("../",dir,"/projectId.txt")) &&
-         (includeLocked ||
-         !file.exists(paste0("../",dir,"/projectIsLocked.txt"))))
-         selChoices = append(selChoices,dir)
+      if (file.exists(paste0("../",dir,"/server.R")) && 
+          file.exists(paste0("../",dir,"/ui.R"))     &&
+          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
+    }
+    } else{
+      for (dir in dirs)
+      {
+        if (file.exists(paste0("../",dir,"/server.R")) && 
+            file.exists(paste0("../",dir,"/ui.R"))     &&
+            file.exists(paste0("../",dir,"/projectId.txt")) &&
+           !file.exists(paste0("../",dir,"/projectIsLocked.txt"))) selChoices = append(selChoices,dir)
+      }
     }
     if (length(selChoices)) names(selChoices) = selChoices
   } else {
