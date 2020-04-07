@@ -69,19 +69,19 @@ cat ("Server id=",serverID,"\n")
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
 
-    if (file.exists("projectIsLocked.txt")) 
-    {
-      hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
-cat ("Project locked file found, hrs=",hrs,"\n")
-      if (hrs<3) 
-      { 
-        output$appLocked<-renderUI(h1("Project is locked"))
-        if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
-        globals$saveOnExit=FALSE
-cat ("Project is locked, exiting.\n")
-        stopApp()
-      }
-    } 
+#     if (file.exists("projectIsLocked.txt")) 
+#     {browser()
+#       hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
+# cat ("Project locked file found, hrs=",hrs,"\n")
+#       if (hrs<3) 
+#       { 
+#         output$appLocked<-renderUI(h1("Project is locked"))
+#         if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
+#         globals$saveOnExit=FALSE
+# cat ("Project is locked, exiting.\n")
+#         stopApp()
+#       }
+#     } 
     cat (file="projectIsLocked.txt",date(),"\n") 
 
     resetGlobals(globals,NULL,prms)
@@ -2170,13 +2170,16 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   
    ##autoOut
    observe({
+     if(length(input$autoOut) || length(input$autoSVS)){
     out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
               autoOut=as.list(input$autoOut))
-    if (identical(out,globals$fvsRun$autoOut)) return
+    if (identical(out,globals$fvsRun$autoOut)) return()
+    # if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
     globals$fvsRun$autoOut <- out
     updateAutoOut(session, globals$fvsRun$autoOut)
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
+     }
    })
 
   ## inAdd:    Add Selected Stands
