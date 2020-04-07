@@ -6504,6 +6504,7 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Saving current run",value = 1)
       saveRun()
+      if(isLocal() && .Platform$OS.type == "windows") unlink("projectIsLocked.txt")
       curdir = getwd()
       setwd("../")
       newTitle = input$PrjNewTitle
@@ -6553,6 +6554,13 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
+      if(isLocal() && .Platform$OS.type == "windows"){
+        if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+        if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+        globals$saveOnExit = FALSE
+        globals$reloadAppIsSet=1
+        session$reload()
+      }
     })
   })    
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
