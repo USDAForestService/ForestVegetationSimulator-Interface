@@ -4334,7 +4334,7 @@ cat ("mapDsRunList trying PlotInit\n")
             if (nrow(latLng) > 0) latLng = subset(latLng, Latitude != 0 & Longitude != 0)
           } else latLng = NULL
         }
-        if (nrow(latLng))
+        if (nrow(latLng)>0)
         {
 cat ("mapDsRunList names(latLng)=",names(latLng)," class(latLng)=",class(latLng),"\n")
           idxLng = grep("Longitude",names(latLng),ignore.case=TRUE)
@@ -4345,15 +4345,15 @@ cat (" idxLng=",idxLng," idxLat=",idxLat," idxID=",idxID,"\n")
           names(latLng)=c("Stand_ID","Longitude","Latitude")
           keep = na.omit(match(uidsToGet,latLng[,"Stand_ID"]))
 cat ("rows to keep=",length(keep),"\n")
-          if (length(keep)) 
+          if (length(keep))
           {
-            latLng = latLng[keep,]
+            latLng = latLng[keep,,drop=FALSE]
             latLng[,"Longitude"] = ifelse(latLng[,"Longitude"]>0, 
                         -latLng[,"Longitude"], latLng[,"Longitude"])
             uidsFound = c(uidsFound,latLng[,idxID])
             coordinates(latLng) <- ~Longitude+Latitude
             proj4string(latLng) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")                 
-            pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
+            pp = spTransform(latLng,CRS("+init=epsg:4326"))
             pts= if (is.null(pts)) pp else rbind(pts,pp)
           }
         }
