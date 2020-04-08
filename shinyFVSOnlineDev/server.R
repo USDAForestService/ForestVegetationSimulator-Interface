@@ -4261,7 +4261,7 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
       if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
         format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
       if (isolate(input$mapDsTable)=="FVS_Stats_Species" && input$mapDsVar!="Species") {
-        dispData = dispData[,c("StandID","Year","Species",input$mapDsVar)]
+        dispData = dispData[,c("StandID","Year","SpeciesFVS",input$mapDsVar)]
       } else if (isolate(input$mapDsTable)=="FVS_Stats_Stand" && input$mapDsVar!="Species") {
         dispData = dispData[,c("StandID","Year","Characteristic",input$mapDsVar)]
       } else dispData = dispData[,c("StandID","Year",input$mapDsVar)]
@@ -4372,11 +4372,11 @@ cat ("rows to keep=",length(keep),"\n")
         {
           temp <- data.frame()
           for(i in 1:(length(tab[,1]))){
-            temp[i,1] <- paste0("-----",tab[i,3])
+            temp[i,1] <- paste0("-----------",tab[i,3])
           }
           tab[,3] <- temp
         }
-        labs[length(labs)+1] = 
+        labs[[length(labs)+1]] = 
           if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
           {
             HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
@@ -4406,7 +4406,6 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
         progress$set(message = paste0("Preparing ",sid), value = length(labs))  
       } 
       progress$close()
-      
       map = leaflet() %>% addTiles() %>%
         addTiles(urlTemplate = 
                    paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
@@ -4728,8 +4727,8 @@ cat ("PrjDeleteDlgBtn only 1 project\n")
          output$delPrjActionMsg <- renderText(HTML(
            "FVS cannot delete the last existing project."))                       
       } else {
-        isolate({      
-          delPrj=paste0("../",input$PrjSelect2)
+        isolate({    
+          delPrj=paste0("../",input$PrjDelSelect)
           if (!dir.exists(delPrj) 
               || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
           {
