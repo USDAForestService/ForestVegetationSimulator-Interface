@@ -4428,14 +4428,14 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
       if (length(pts))
       {
         lbidx = match(ptsLbs,uidsFound)
-        map = map %>% addCircleMarkers(data=pts, radius = 6, color="red", 
+        map = map %>% addCircleMarkers(data=pts, radius = 6, color="#FFFF00", 
               stroke = FALSE, fillOpacity = 0.5, popup=labs[lbidx], 
               popupOptions = pops, label=labs[lbidx], labelOptions = lops)
       }
       if (length(polys))
       {
         lbidx = match(polyLbs,uidsFound)
-        map = map %>% addPolygons(data=polys, color = "red", fillColor = "yellow", 
+        map = map %>% addPolygons(data=polys, color = "#FFFF00", 
               weight = 3, smoothFactor = 0.1, opacity = .3, fillOpacity = 0.2, 
               popup=labs[lbidx], popupOptions = pops, label=labs[lbidx], 
               labelOptions = lops,
