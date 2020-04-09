@@ -4283,7 +4283,9 @@ cat ("1 matchVar=",matchVar,"\n")
         # for the spatial data. If it is not null, then there is only one item, so use it.
         mapList = if (is.null(matchVar)) dbGlb$SpatialData else list(d=dbGlb$SpatialData)
         polys = NULL
-        pts   = NULL
+        pts = NULL
+        polyLbs = NULL
+        ptsLbs  = NULL
         for (map in mapList)
         {
           if (!length(uidsToGet)) break 
@@ -4293,8 +4295,16 @@ cat ("2 matchVar=",matchVar,"\n")
           if (length(uids) == 0) next
           uidsFound = c(uidsFound,uids)
           pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
-          if (class(pp)=="SpatialPolygonsDataFrame") polys = if (is.null(polys)) pp else rbind(polys,pp)
-          if (class(pp)=="SpatialPointsDataFrame")   pts   = if (is.null(pts))   pp else rbind(pts,pp)
+          if (class(pp)=="SpatialPolygonsDataFrame") 
+          {
+            polys  = if (is.null(polys))   pp   else rbind(polys,pp)
+            polyLbs= if (is.null(polyLbs)) uids else rbind(polyLbs,uids)
+          }
+          if (class(pp)=="SpatialPointsDataFrame")   
+          {
+            pts   = if (is.null(pts))    pp   else rbind(pts,pp)
+            ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
+          }
           uidsToGet = setdiff(uidsToGet,uids)
         }
       }   
@@ -4350,11 +4360,13 @@ cat ("rows to keep=",length(keep),"\n")
             latLng = latLng[keep,,drop=FALSE]
             latLng[,"Longitude"] = ifelse(latLng[,"Longitude"]>0, 
                         -latLng[,"Longitude"], latLng[,"Longitude"])
-            uidsFound = c(uidsFound,latLng[,idxID])
+            uids = latLng[,idxID]
+            uidsFound = c(uidsFound,uids)
             coordinates(latLng) <- ~Longitude+Latitude
             proj4string(latLng) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")                 
             pp = spTransform(latLng,CRS("+init=epsg:4326"))
-            pts= if (is.null(pts)) pp else rbind(pts,pp)
+            pts=    if (is.null(pts))    pp   else rbind(pts,pp)
+            ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
           }
         }
       }
@@ -4404,7 +4416,8 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                         '" alt="',sid,'" style="width:229px;height:170px;">'))
           }
         progress$set(message = paste0("Preparing ",sid), value = length(labs))  
-      } 
+      }
+      
       progress$close()
       map = leaflet() %>% addTiles() %>%
         addTiles(urlTemplate = 
@@ -4412,14 +4425,23 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                           "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
       lops = labelOptions(opacity=.7)
       pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
-      if (length(pts))   map = map %>% addCircleMarkers(data=pts, radius = 6, color="red", 
-                       stroke = FALSE, fillOpacity = 0.5, 
-                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops)  else
-      if (length(polys)) map = map %>% addPolygons(data=polys, color = "yellow", weight = 3, smoothFactor = 0.1,
-                       opacity = .3, fillOpacity = 0.2, 
-                       popup=labs, popupOptions = pops, label=labs, labelOptions = lops,
-                       highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
-                       fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+      if (length(pts))
+      {
+        lbidx = match(ptsLbs,uidsFound)
+        map = map %>% addCircleMarkers(data=pts, radius = 6, color="red", 
+              stroke = FALSE, fillOpacity = 0.5, popup=labs[lbidx], 
+              popupOptions = pops, label=labs[lbidx], labelOptions = lops)
+      }
+      if (length(polys))
+      {
+        lbidx = match(polyLbs,uidsFound)
+        map = map %>% addPolygons(data=polys, color = "red", fillColor = "yellow", 
+              weight = 3, smoothFactor = 0.1, opacity = .3, fillOpacity = 0.2, 
+              popup=labs[lbidx], popupOptions = pops, label=labs[lbidx], 
+              labelOptions = lops,
+              highlightOptions = c(weight = 5, color = "#666", dashArray = NULL,
+                fillOpacity = 0.3, opacity = .6, bringToFront = TRUE))
+      }
       output$leafletMap = renderLeaflet(map)
     }
   })
