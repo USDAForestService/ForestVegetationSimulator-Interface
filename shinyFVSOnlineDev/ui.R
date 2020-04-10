@@ -676,6 +676,7 @@ shinyUI(fixedPage(
                 actionButton("PrjSwitch",if (isLocal()) "Switch to selected project" else
                     "Start selected project"),h4(),
                 h4("Create a new project from your current project"),
+                h5("This does not copy input/output databases or runs and does not start the new project"),
                 textInput("PrjNewTitle", "New project title", ""), 
                 actionButton("PrjNew","Make new project"),
               h4("Delete outputs in current project"),

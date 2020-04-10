@@ -70,7 +70,7 @@ cat ("Server id=",serverID,"\n")
     dbGlb$disprows <- 20
 
 #     if (file.exists("projectIsLocked.txt")) 
-#     {browser()
+#     { 
 #       hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
 # cat ("Project locked file found, hrs=",hrs,"\n")
 #       if (hrs<3) 
@@ -2170,15 +2170,15 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   
    ##autoOut
    observe({
-     if(length(input$autoOut) || length(input$autoSVS)){
-    out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
-              autoOut=as.list(input$autoOut))
-    if (identical(out,globals$fvsRun$autoOut)) return()
-    # if(!length(input$simCont)|| length(globals$fvsRun$autoOut)==length(input$autoOut)) return()
-    globals$fvsRun$autoOut <- out
-    updateAutoOut(session, globals$fvsRun$autoOut)
-    globals$changeind <- 1
-    output$contChange <- renderText(HTML("<b>*Run*</b>"))
+     if(length(input$autoOut) || length(input$autoSVS))
+     {
+       out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
+                 autoOut=as.list(input$autoOut))
+       if (identical(out,globals$fvsRun$autoOut)) return()
+       globals$fvsRun$autoOut <- out
+       updateAutoOut(session, globals$fvsRun$autoOut)
+       globals$changeind <- 1
+       output$contChange <- renderText(HTML("<b>*Run*</b>"))
      }
    })
 
@@ -4175,16 +4175,18 @@ cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n")
     {
 cat ("Maps hit\n")
       require(rgdal) 
-      allRuns = names(globals$FVS_Runs)
-      names(allRuns) = globals$FVS_Runs
-      updateSelectInput(session=session, inputId="mapDsRunList", 
-        choices=allRuns,selected=0)
-      updateSelectInput(session=session, inputId="mapDsTable", choices=list(),
-        selected=0)   
-      updateSelectInput(session=session, inputId="mapDsVar", choices=list(),
-        selected=0) 
-      updateSelectInput(session=session, inputId="MapYear", choices=list(),
-        selected=0)
+      theRuns = try(dbGetQuery(dbGlb$dbOcon,
+                paste0("select distinct RunTitle, KeywordFile from FVS_Cases")))
+      if (class(theRuns)!="try-error" && nrow(theRuns)>0) 
+      {
+        allRuns=theRuns[,2]
+        names(allRuns)=theRuns[,1]
+        updateSelectInput(session=session, inputId="mapDsRunList", 
+          choices=allRuns) 
+      } else updateSelectInput(session=session, inputId="mapDsRunList",choices=list()) 
+      updateSelectInput(session=session, inputId="mapDsTable", choices=list())
+      updateSelectInput(session=session, inputId="mapDsVar", choices=list())
+      updateSelectInput(session=session, inputId="MapYear", choices=list())
       output$leafletMap = renderLeaflet(NULL)
       output$leafletMessage=renderText(NULL)
     }
@@ -4192,10 +4194,11 @@ cat ("Maps hit\n")
   observe({
     if (length(input$mapDsRunList))
     {
-      cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
-      cases = dbGetQuery(dbGlb$dbOcon,
+cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
+      cases = try(dbGetQuery(dbGlb$dbOcon,
                          paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
-                                input$mapDsRunList,"'"))
+                                input$mapDsRunList,"'")))
+      if (class(cases)=="try-error") return()
       # if there are reps (same stand more than once), just use the first rep, ignore the others
       cases = cases[!duplicated(cases$StandID),]
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
@@ -6528,7 +6531,6 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Saving current run",value = 1)
       saveRun()
-      if(isLocal() && .Platform$OS.type == "windows") unlink("projectIsLocked.txt")
       curdir = getwd()
       setwd("../")
       newTitle = input$PrjNewTitle
@@ -6558,10 +6560,12 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(pattern=".RData$",filesToCopy)
       progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData","/SpatialData.RData")))
+      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".png$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern="projectIsLocked.txt",filesToCopy,fixed=TRUE)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -6572,19 +6576,12 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       idrow = grep("title=",prjid)
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
       write(file="projectId.txt",prjid)
-      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)      
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       progress$set(message = "Saving new prohect",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
-      if(isLocal() && .Platform$OS.type == "windows"){
-        if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-        if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-        globals$saveOnExit = FALSE
-        globals$reloadAppIsSet=1
-        session$reload()
-      }
+      setwd(curdir)
     })
   })    
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
@@ -6615,9 +6612,13 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           }else{
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
-            unlink("projectIsLocked.txt")
-            setwd(newPrj)
-            session$reload()  
+            curdir=getwd()
+            setwd(newPrj)           
+            cmd = paste0("R=",R.home(),"; ",commandArgs()[1],
+                  ' --no-save  -e "require(shiny);runApp(launch.browser=TRUE)" &')
+cat ("cmd=",cmd,"\n")
+            system (cmd)
+            setwd(curdir)
           }  
         } else {
           url = paste0(session$clientData$url_protocol,"//",
