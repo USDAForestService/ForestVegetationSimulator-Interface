@@ -36,6 +36,12 @@ cat ("in checkMinColumnDefs\n")
       stdInit <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
     }
   }
+  plotInit <- NULL
+  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
+    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit")))){
+      plotInit <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
+    }
+  }
   stdInit_cond <- NULL
   for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
     if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
@@ -175,13 +181,21 @@ cat ("in checkMinColumnDefs, modStarted=",modStarted," sID=",sID,
   {
     treeInit = getTableName(dbo,"FVS_TreeInit")
     if (is.null(treeInit)) treeInit = "FVS_TreeInit"
-    dfin = data.frame(Groups = "All All_Stands",Addfiles = "",
+    if (is.null(plotInit)) treeInit = "FVS_PlotInit"
+    dfinstand = data.frame(Groups = "All All_Stands",Addfiles = "",
       FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
         "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
         "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
         "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
     )
-    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfin,overwrite=TRUE)
+    dfinplot = data.frame(Groups = "All All_Plots",Addfiles = "",
+      FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
+        "SELECT * FROM ",plotInit,"\nWHERE StandPlot_ID= '%StandID%'\n",
+        "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
+        "WHERE StandPlot_ID= '%StandID%'\nEndSQL\nEND")    
+    )
+    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
+    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinplot,append=TRUE)
   } 
 }
 

@@ -44,7 +44,7 @@ mkGlobals <<- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character"))
+    lastRunVar="character",deleteLockFile="logical"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -261,7 +261,7 @@ cat("writeKeyFile, num stds=",length(stds),
   if (length(stds)==0) return()
   dbExecute(dbIcon,'drop table if exists temp.RunStds') 
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
-  dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
+  dbtabs = dbListTables(dbIcon)
   dbtabsU = toupper(dbtabs)
   stdInit <- NULL
   for (i in 1:length(dbtabs)){
@@ -448,29 +448,30 @@ cat("writeKeyFile, num stds=",length(stds),
                  what=0,quiet=TRUE)
   # Cycle break checks
   if (length(cycleat)){
-  for(i in 1:length(globals$fvsRun$stands)){
-    for(j in 1:length(cycleat)){
-      if ((cycleat[j] > (thisYr + 400))){
-        session$sendCustomMessage(type = "infomessage",
-                message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
-        globals$timeissue <- 1
-        return()
-      }
-      if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
-        session$sendCustomMessage(type = "infomessage",
-                message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-        globals$timeissue <- 1
-        return()
+    for(i in 1:length(globals$fvsRun$stands)){
+      for(j in 1:length(cycleat)){
+        if ((cycleat[j] > (thisYr + 400))){
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
+          globals$timeissue <- 1
+          return()
+        }
+        if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+          globals$timeissue <- 1
+          return()
+        }
       }
     }
   }
-  }
   cycleat = sort(union(baseCycles,cycleat))
-  cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr)))
+  cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr))) 
   for (std in fvsRun$stands)
   {
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
+cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
     if (is.na(sRows) && is.na(sRowp)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",fvsRun$title,"\n",file=fc,sep="")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
@@ -496,11 +497,22 @@ cat("writeKeyFile, num stds=",length(stds),
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
     cat (defaultOut,file=fc)
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
-    autos = unlist(fvsRun$autoOut)
-    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else
-                                          c(autos,"autoDelOTab")
-    for (out in autos)
-      if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
+    autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else unlist(fvsRun$autoOut[["autoOut"]])
+    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else c(autos,"autoDelOTab")
+    for (out in autos) if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
+
+    if (!is.null(fvsRun$autoOut[["svsOut"]]) && !is.null(fvsRun$autoOut[["svsOut"]][["svs"]]) && 
+      exists("autoSVS"))
+    {
+      shape = if (fvsRun$autoOut[["svsOut"]][["shape"]] == "Square") "1" else "3"
+      nfire = as.character(fvsRun$autoOut[["svsOut"]][["nfire"]])
+      keys=unlist(strsplit(autoSVS,"\n"))
+      svs=grep("^SVS ",keys)
+      if (length(svs)) substr(keys[svs],11,20) = sprintf("%10s",shape)
+      svs=grep("^SVImages ",keys)
+      if (length(svs)) substr(keys[svs],11,20) = sprintf("%10s",nfire)
+      lapply (keys,function(x,fc) cat (x,"\n",file=fc),fc); cat ("\n",file=fc)
+    } 
     lastExt = "base"
     lastCnd = NULL
     if (length(std$grps)) for (grp in std$grps)
@@ -1253,6 +1265,8 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   cat ("Stop\n",file=fc)    
   close(fc)
+cat ("end of writeKeyFile\n")
+  
 }
 
 mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
@@ -1479,6 +1493,7 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$currentCndPkey <- "0"
   globals$winBuildFunction <- character(0)
   globals$foundStand=0L 
+  globals$changeind <- 0
   globals$changeind <- 0
 }
 
@@ -1925,27 +1940,33 @@ cat ("qry=",qry,"\n")
   qry = paste0("create table ",todel,
      " as select CaseID from FVS_Cases where KeywordFile = '",runuuid,"'")
 cat ("qry=",qry,"\n") 
-  dbExecute(dbcon,qry)    
+  dbExecute(dbcon,qry) 
   nr = dbGetQuery(dbcon,paste0("select count(*) from ",todel))[,1]
 cat ("ncases to delete=",nr,"\n")
   if (nr)
   {
-    tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-    dbBegin(dbcon)
-    for (tab in tbs)
+    for (tb in tbs)
     {
-      if ("CaseID" %in% dbListFields(dbcon,name=tab))
+      if ("CaseID" %in% dbListFields(dbcon,name=tb))
       { 
-        qry = paste0("delete from ",tab," where CaseID in (",
+        qry = paste0("delete from ",tb," where ",tb,".CaseID in (",
                      "select CaseID from ",todel,")")
-cat ("qry=",qry,"\n")                      
-        dbExecute(dbcon,qry)
-        nr = nrow(dbGetQuery(dbcon,paste0("select CaseID from ",tab," limit 1")))
+        rtn = dbExecute(dbcon,qry)
+cat ("rtn=",rtn," qry=",qry,"\n")                      
+        nr = nrow(dbGetQuery(dbcon,paste0("select CaseID from ",tb," limit 1")))
 cat ("nr=",nr,"\n")                      
-        if (nr == 0) dbExecute(dbcon,paste0("drop table ",tab))
-      } else dbExecute(dbcon,paste0("drop table ",tab)) 
+        if (nr == 0) 
+        {
+          qry = paste0("drop table ",tb)
+          rtn = dbExecute(dbcon,qry)
+cat ("no rows in table after delete rtn=",rtn," qry=",qry,"\n")                      
+        }
+      } else {
+        qry = paste0("drop table ",tb)
+        rtn = dbExecute(dbcon,qry)
+cat ("caseID not in table, rtn=",rtn," qry=",qry,"\n")                      
+      }
     }
-    dbCommit(dbcon)
   }
   dbExecute(dbcon,paste0("detach database '",tmpDel,"'"))
 }
@@ -1975,11 +1996,11 @@ addNewRun2DB <- function(runuuid,dbcon)
 cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
   # breaking these two clauses allows for Windows to see that the new db has a size greater than 0
-  if (!file.exists((fn))){
+  if (!file.exists((fn))) {
     ids = try(file.size(fn))
-    if (class(ids) == "try-error"){
+    if (class(ids) == "try-error") {
       return("no new database found")
-    }else return("no new database found")
+    } else return("no new database found")
   }
   #get and hold an exclusive lock, wait if one can't be obtained.
   trycnt=0
@@ -1990,6 +2011,7 @@ cat ("addNewRun2DB, runuuid=",runuuid,"\n")
     if (trycnt > 1000) 
     {
       dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
+      dbListTables(dbcon) #any query will cause the locking mode to become active
       return("could not get exclusive lock.")
     }
 cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
@@ -1998,6 +2020,9 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
     Sys.sleep (10)
   } 
   dbExecute(dbcon,"drop table if exists dummy")
+
+  deleteRelatedDBRows(runuuid,dbcon)   
+
   mkDBIndices(dbcon)
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
@@ -2017,17 +2042,16 @@ cat ("qry=",qry,"\n")
   qry = paste0("select * from ",newrun,".FVS_Cases")
 cat ("qry=",qry,"\n") 
   res = dbGetQuery(dbcon,qry)
-cat ("nrow(res)=",nrow(res),"\n")
+cat ("nrow(res)=",nrow(res)," CaseID=",res$CaseID,"\n")
   if (nrow(res) == 0)
   {
     dbExecute(dbcon,paste0("detach database '",newrun,"'"))
     return("no new cases found in new run")
   }
-  deleteRelatedDBRows(runuuid,dbcon)   
   tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
 cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
-  {
+  {        
     if (newtab %in% tbs)
     {
       qry = paste0("PRAGMA ",newrun,".table_info('",newtab,"')")
@@ -2040,7 +2064,6 @@ cat ("qry=",qry,"\n")
       toAdd = setdiff(newColNs,existCols)
       if (length(toAdd))
       {
-        dbBegin(dbcon)
         for (addCol in toAdd)
         {
           qry = paste0("alter table ",newtab," add column ",addCol," ",
@@ -2048,14 +2071,14 @@ cat ("qry=",qry,"\n")
 cat ("qry=",qry,"\n") 
           dbExecute(dbcon,qry)
         }
-        dbCommit(dbcon)
       }
       qry = if (identical(newColNs,existCols)) 
         paste0("insert into ",newtab," select * from ",newrun,".",newtab) else
         paste0("insert into ",newtab," (",
           paste0(newColNs,collapse=","),") select * from ",newrun,".",newtab)
 cat ("qry=",qry,"\n") 
-      dbExecute(dbcon,qry)
+      rtn=dbExecute(dbcon,qry)
+cat ("rtn=",rtn,"\n")
     } else {
       qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
 cat ("qry=",qry,"\n") 
@@ -2066,7 +2089,7 @@ cat ("qry=",qry,"\n")
   unlink(fn)
   mkDBIndices(dbcon)
   dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
-  dbExecute(dbcon,"select * from FVS_Cases limit 1") 
+  dbListTables(dbcon) #any query will cause the new locking mode to become active
   "data inserted"
 }                                                    
 
@@ -2403,24 +2426,36 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
   }
 }
 
-getProjectList <- function()
+getProjectList <- function(includeLocked=FALSE)
 {
   selChoices = list()
   if (isLocal())
   {  
     dirs = dir("..")
-    for (dir in dirs)
+    if (.Platform$OS.type == "windows"){
+      for (dir in dirs)
     {
       if (file.exists(paste0("../",dir,"/server.R")) && 
           file.exists(paste0("../",dir,"/ui.R"))     &&
           file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
     }
+    } else{
+      for (dir in dirs)
+      {
+        if (file.exists(paste0("../",dir,"/server.R")) && 
+            file.exists(paste0("../",dir,"/ui.R"))     &&
+            file.exists(paste0("../",dir,"/projectId.txt")) &&
+           !file.exists(paste0("../",dir,"/projectIsLocked.txt"))) selChoices = append(selChoices,dir)
+      }
+    }
     if (length(selChoices)) names(selChoices) = selChoices
   } else {
     curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
     curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
-    prjs = dir("..")
-    data = lapply (prjs, function (x) {         
+    dirs = dir("..")
+    data = lapply (dirs, function (x,inc) {         
+      if (!includeLocked) if (file.exists(
+        paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
       fn = paste0("../",x,"/projectId.txt") 
       if (file.exists(fn))
       {
@@ -2429,7 +2464,7 @@ getProjectList <- function()
           title=trim(sub("title=","",prj[2])))
         ans
       } else NULL
-    }) 
+    },) 
     if (length(data))
     {
       data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)

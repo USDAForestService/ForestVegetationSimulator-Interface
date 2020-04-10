@@ -315,9 +315,25 @@ myInlineTextInput <- function (inputId, label, value = "", size=10, style=NULL)
      '" size="', as.character(size),'" value="',gsub('"','',value),'">',
   '</div>'))
 }
+myInlineNumericInput <- function (inputId, label, 
+    value="0", min="0", max="10", step="1", size=10, labelstyle=NULL)
+{
+  labelstyle = if (is.null(labelstyle)) "" else paste0('style="',labelstyle,'"')
+  HTML(paste0(
+  '<div class="form-horizontal control-group">',
+     '<label class="control-label" for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>', 
+     '<input type="number" class="form-horizontal" id="',inputId,
+     '" size="', as.character(size),
+     '" value="',gsub('"','',value),
+     '" min="',gsub('"','',min),
+     '" max="',gsub('"','',max),
+     '" step="',gsub('"','',step),
+     '">',
+  '</div>'))
+}
 
 
-myRadioGroup <- function (inputId, label, mklist, selected=NULL)
+myRadioGroup <- function (inputId, label, mklist, selected=NULL,labelstyle=NULL)
 {
   inputs = NULL
   if (is.null(names(mklist))) names(mklist) = mklist
@@ -329,8 +345,9 @@ myRadioGroup <- function (inputId, label, mklist, selected=NULL)
            if (mklist[item] == selected) "checked" else "",
            '>',names(mklist)[item],"&nbsp;&nbsp;"))
   }
+  labelstyle = if (is.null(labelstyle)) "" else paste0('style="',labelstyle,'"')
   HTML(paste0('<div id="',inputId,'" class="shiny-input-radiogroup">',
-    '<label for="',inputId,'"><b>',label,'&nbsp;&nbsp;</b></label>'), 
+    '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'), 
     paste0(inputs,collapse=""),"</div>")
 }
 

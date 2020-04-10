@@ -387,32 +387,32 @@ See <b>Map data</b> under <a href="#tmin">Import Data</a>
 to see now to load this spatial data.
 </p><p>
 If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
-information from the FVS_StandInit table (failing that, the FVS_TreeInit table)
+information from the FVS_StandInit table (failing that, the FVS_PlotInit table)
 assuming WGS84 geographic coordinates are used. 
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a name="tmin"></a>Import Data</h4>
-<p>You can <b>Replace the existing database</b> by uploading an
+<p>You can <b>Upload inventory database</b> by selecting an 
 FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
 database (use the file suffix .db), as a Microsoft Access database
 (.mdb or .accdb), or as an Excel (.xlsx) database where the sheet names are
 the same as the target table names. The built-in training data or a blank database (and
 FVS-Ready database that contains no rows but has predefined columns)
 can be installed without uploading a file simply by pressing the
-obvious buttons.</p>
-<p>You can <b>Upload and insert new rows</b> to existing database
-tables. This is done by uploading a .csv file that contains column
-headings. Columns in the .csv file that are not in the existing table are added. 
+obvious buttons. Doing so also installs related spatial data.</p>
+<p>You can <b>Upload .csv data to add to existing tables.</b> 
+This is done by uploading a .csv file that contains column
+headings. Columns in the .csv file that are not in the existing table are added to
+the existing tables. 
 Columns in the existing table that have no values in the .csv file are left
 null.</p>
 <p>You can <b>View and edit existing tables</b>. Use the <b>Edit</b>
 mode to change values or delete rows. Make the changes and then
 <b>Commit</b> them to the database. Use the <b>New rows</b> mode to
 add new rows. You can limit the variables to consider in either mode;
-those not considered are simply hide from view and not altered. If
-you hide variables when you add new rows, the hidden variables are
-given null values.</p>
+those not considered are simply hid from view. If editing, they are not altered
+and if adding new rows their values are set to null. </p>
 <p>More information on the input and output database structure is
 in the
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
@@ -429,11 +429,11 @@ the polygons must be identifiable by StandID but frequently the coverage data co
 this information under a different variable name. FVSOnline attempts to discover the 
 correct variable to match to StandID. You can set the variable here if necessary.</p>
 <p>If the geographic projection of your data is not stored with the data (usually it 
-is part of the coverage data), then you can set the projection
-using the provided tools. You can select a projection from the list button or just
+is part of the coverage data), or if it is set and is wrong, then you can set or reset 
+the projection. Select a projection from the list button or just
 type in the proj4 string into the text box if you know what it is. Note the the 
 projection is set or reset here but the spatial data is not reprojected. 
-Any needed reprojection is done automatically.</p>
+Any reprojection needed to display the data is done automatically.</p>
 
 <p><a href="#contents">Back to contents</a> 
 </p>

@@ -75,6 +75,9 @@ End
 
 autoSVS="
 SVS                3                   2         1        15
+FMIn
+SVImages           5
+End
 "
 
 autoEcon="

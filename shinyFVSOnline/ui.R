@@ -11,7 +11,7 @@ library(openxlsx)
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 # cbbPalette is used in the graphics
-cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",
+cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",            
                 "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                 "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
 
@@ -34,16 +34,16 @@ source("modalDialog.R")
 source("mkInputElements.R")
 
 # used in Tools, dlZipSet
-zipList <- list(	
-  "Output data base for for all runs"  = "outdb",	
-  "Keyword file for current run" = "key",	
-  "FVS output file for current run" = "out",	
-  "SVS output files for current run" = "subdir",	
-  "Input data base FVS_Data.db" = "FVS_Data",	
-  "FVS runs (RData files)" = "FVS_Runs",	
-  "Custom SQL query archive (customQueries.RData)" = "customSQL",	
-  "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")	
-selZip <- unlist(zipList[1:4])	
+zipList <- list(  
+  "Output data base for for all runs"  = "outdb",  
+  "Keyword file for current run" = "key",  
+  "FVS output file for current run" = "out",  
+  "SVS output files for current run" = "subdir",  
+  "Input data base FVS_Data.db" = "FVS_Data",  
+  "FVS runs (RData files)" = "FVS_Runs",  
+  "Custom SQL query archive (customQueries.RData)" = "customSQL",  
+  "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")  
+selZip <- unlist(zipList[1:4])  
 
 tableList = list()
 if (file.exists("databaseDescription.xlsx"))
@@ -51,14 +51,6 @@ if (file.exists("databaseDescription.xlsx"))
   if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
     tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
   tableList = as.list(sort(c("",tabs)))
-}
-
-tableList2 = list()
-if (file.exists("databaseDescription.xlsx"))
-{
-  if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
-    tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
-  tableList2 = as.list(sort(c("",tabs)))
 }
 
 shinyUI(fixedPage(
@@ -69,7 +61,7 @@ shinyUI(fixedPage(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
     ".form-control {padding:2px 4px; height:auto;}",
-    ".form-group {margin-bottom:5px}",
+    ".form-group {margin-bottom:4px}",
     ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
     ))),  
   fixedRow(
@@ -90,6 +82,7 @@ shinyUI(fixedPage(
   ) ),
   fixedRow(column(width=12,offset=0,
     tags$style(type="text/css","#topPan {background-color: rgb(227,227,255);}"),
+    uiOutput("appLocked"),
     tabsetPanel(id="topPan",
       tabPanel("Runs",
         fixedRow(column(width=4,offset=0,
@@ -152,17 +145,18 @@ shinyUI(fixedPage(
                 actionButton("inStdFindBut","Find")
               ), 
               tabPanel("Time",
-                       textInput("startyr",  "Common starting year", ""), 
-                       textInput("endyr",    "Common ending year",   ""), 
-                       textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
-                       tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                       textInput("cycleat", "Additional output reporting years", ""),
-                       h4("Projection Timing Summary"),
-                       HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common
-                             starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS
-                             will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),'
-                             years, with the simulation ending at the common ending year, for all stands, of ',htmlOutput("eYr", inline=TRUE),
-                             '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+                textInput("startyr",  "Common starting year", ""), 
+                textInput("endyr",    "Common ending year",   ""), 
+                textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
+                tags$style(type="text/css", "#cycleat { width: 90%; }"),
+                textInput("cycleat", "Additional output reporting years", ""),
+                h4("Projection Timing Summary"),
+                HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common',
+                     ' starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS',
+                     ' will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),
+                     ' years, with the simulation ending at the common ending year, for all stands, of ',
+                     htmlOutput("eYr", inline=TRUE),
+                     '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
               ),
               tabPanel("Components",          
                 tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
@@ -216,11 +210,20 @@ shinyUI(fixedPage(
               ),
               tabPanel("Select Outputs",
                     h4("Select outputs"),
-                    HTML("Note that all outputs are put in output database except for the SVS data.<br>
-                         FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum, 
-                         FVS_DM_Spp_Sum) are always produced."),
+                    HTML(paste0("Note that all outputs are put in output database except for the SVS data.<br>",
+                         "FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum,",
+                         "FVS_DM_Spp_Sum) are always produced.")),h6(),                       
+                    fixedRow(
+                      column(width=2,style="padding-top:6px;",
+                        checkboxGroupInput("autoSVS",NULL,choices=list(
+                          "SVS:"="autoSVS"),width="100%",inline=TRUE)),
+                      column(width=5,style="padding-top:6px;",
+                          myRadioGroup("svsPlotShape","Plot shape",list("Round","Square"),
+                              selected="Round",labelstyle="font-weight:normal")),
+                      column(width=5,
+                          myInlineNumericInput("svsNFire","Images per fire:", value="4", min="1", max="8", 
+                                               step="1",size=15,labelstyle="font-weight:normal;"))),
                     checkboxGroupInput("autoOut",NULL,choices=list(
-                        "SVS: Stand Visualization"="autoSVS",  
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
@@ -262,8 +265,8 @@ shinyUI(fixedPage(
                 ),
                 uiOutput("uiRunPlot"),
                 uiOutput("uiErrorScan"),
-            	  selectInput("bkgRuns", "Background run status", 
-        	        choices  = list(), size=4, width = "95%", selected = NULL, selectize=FALSE),
+                selectInput("bkgRuns", "Background run status", 
+                  choices  = list(), size=4, width = "95%", selected = NULL, selectize=FALSE),
                 actionButton("bkgKill","Kill selected background run"),
                 actionButton("bkgRefresh","Refresh list")
               )
@@ -275,9 +278,11 @@ shinyUI(fixedPage(
           tags$style(type="text/css","#leftPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="leftPan", 
             tabPanel("Load", 
-          	  selectInput("runs", "Runs to consider", 
-      	        choices  = list(), size=5,
-      	        selected = NULL, multiple = TRUE, selectize=FALSE),
+              myRadioGroup("spCodes","Species codes",
+                  c("FVS"="FVS","FIA"="FIA","Plants"="PLANTS"),selected = "PLANTS"),
+              selectInput("runs", "Runs to consider", 
+                choices  = list(), size=4,
+                selected = NULL, multiple = TRUE, selectize=FALSE),
               tags$style(type="text/css", "#sdskwdbh { width: 30%;}"),
               tags$style(type="text/css", "#sdskldbh { width: 50%;}"),
               fixedRow(
@@ -288,44 +293,44 @@ shinyUI(fixedPage(
                   numericInput("sdskldbh", "Large DBH", 48, min=4, 
                                 max=100,step=1))),
               actionButton("bldstdsk","Rebuild StdStk"), 
-          	  selectInput("selectdbtables", "Database tables to consider", 
-      	        choices  = list(), size=8,
-      	        selected = NULL, multiple = TRUE, selectize=FALSE),
-          	  selectInput("selectdbvars", "Database variables to consider", 
+              selectInput("selectdbtables", "Database tables to consider", 
+                choices  = list(), size=8,
+                selected = NULL, multiple = TRUE, selectize=FALSE),
+              selectInput("selectdbvars", "Database variables to consider", 
                 choices  = list(), size=20,
                 selected = NULL, multiple = TRUE, selectize=FALSE)
-      	    ),
+            ),
             tabPanel("Explore", 
-          	  selectInput("stdtitle", "Select run titles", size=4,
-      	          choices  = list("None loaded"), width="100%",
-      	          selected = NULL, multiple = TRUE, selectize=FALSE),
-          	  selectInput("stdgroups", "Groups", size=4,
-      	          choices  = list("None loaded"), width="100%",
-      	          selected = NULL, multiple = TRUE, selectize=FALSE),
+              selectInput("stdtitle", "Select run titles", size=4,
+                  choices  = list("None loaded"), width="100%",
+                  selected = NULL, multiple = TRUE, selectize=FALSE),
+              selectInput("stdgroups", "Groups", size=4,
+                  choices  = list("None loaded"), width="100%",
+                  selected = NULL, multiple = TRUE, selectize=FALSE),
               fixedRow(
                 column(width=8,
-          	      selectInput("stdid", "Stands", size=6,
-      	            choices  = list("None loaded"), 
-      	            selected = NULL, multiple = TRUE, selectize=FALSE)),
+                  selectInput("stdid", "Stands", size=6,
+                    choices  = list("None loaded"), 
+                    selected = NULL, multiple = TRUE, selectize=FALSE)),
                 column(width=4,
                   selectInput("mgmid", "MgmtIDs", size=6, 
-      	            choices  = list("None loaded"), 
-      	            selected = NULL, multiple = TRUE, selectize=FALSE))),
+                    choices  = list("None loaded"), 
+                    selected = NULL, multiple = TRUE, selectize=FALSE))),
               fixedRow(
                 column(width=4,
                   selectInput("year", "Years", size=6,  
-      	              choices  = list("None loaded"), 
-      	              selected = NULL, multiple = TRUE, selectize=FALSE)),    	     
-      	        column(width=4,
-      	          selectInput("species", "Species", size=6, 
-      	            choices  = list("None loaded"), 
-      	            selected = NULL, multiple = TRUE, selectize=FALSE)),
-      	        column(width=4,
-      	          selectInput("dbhclass", "DBHClasses", size=6, 
-      	            choices  = list("None loaded"), 
-      	            selected = NULL, multiple = TRUE, selectize=FALSE))),
-      	      checkboxGroupInput("browsevars","Select variables",
-      	          choices = list("None"),selected = NULL,inline=TRUE)
+                      choices  = list("None loaded"), 
+                      selected = NULL, multiple = TRUE, selectize=FALSE)),           
+                column(width=4,
+                  selectInput("species", "Species", size=6, 
+                    choices  = list("None loaded"), 
+                    selected = NULL, multiple = TRUE, selectize=FALSE)),
+                column(width=4,
+                  selectInput("dbhclass", "DBHClasses", size=6, 
+                    choices  = list("None loaded"), 
+                    selected = NULL, multiple = TRUE, selectize=FALSE))),
+              checkboxGroupInput("browsevars","Select variables",
+                  choices = list("None"),selected = NULL,inline=TRUE)
             ),
             tabPanel("Custom Query",
               selectInput("sqlSel","SQL queries (run on FVSOut.db (SQLite3))", 
@@ -359,7 +364,7 @@ shinyUI(fixedPage(
             fixedRow(
               column(width=4,
                 selectInput("pivVar", choices=list("None"), 
-    	            "Variable to convert to columns", selectize=FALSE)),
+                  "Variable to convert to columns", selectize=FALSE)),
               column(width=3,
                 selectInput("dispVar", choices=list("None"), 
                   "Variable to display", selectize=FALSE)),         
@@ -380,34 +385,34 @@ shinyUI(fixedPage(
             fixedRow(
               column(width=3,
                 selectInput("yaxis", "Y-axis", choices  = list("Year"), 
-    	              selected = NULL, multiple = TRUE, selectize=FALSE)),
+                    selected = NULL, multiple = TRUE, selectize=FALSE)),
               column(width=3,
                 selectInput("xaxis", "X-axis", 
-    	            choices  = list("None"), selected = NULL, selectize=FALSE),
+                  choices  = list("None"), selected = NULL, selectize=FALSE),
                 selectInput("hfacet", "Horizontal facet",
-    	              choices = list("None","StandID","MgmtID","Year","Species"),
+                    choices = list("None","StandID","MgmtID","Year","Species"),
                     selected="None", selectize=FALSE)),
               column(width=6,
-                textInput("ptitle", "Title", value = ""),	            
+                textInput("ptitle", "Title", value = ""),              
                 textInput("xlabel", "X-label", value = ""))),
             fixedRow(
               column(width=3,
-    	          selectInput("vfacet", "Vertical facet",
-    	              choices = list("None","StandID","MgmtID","Year","Species"),
-    	              selected="None", selectize=FALSE)),
+                selectInput("vfacet", "Vertical facet",
+                    choices = list("None","StandID","MgmtID","Year","Species"),
+                    selected="None", selectize=FALSE)),
               column(width=3,
-    	          selectInput("pltby", "Plot-by code",
-    	              choices = list("None","StandID","MgmtID","Year","Species"),
-    	              selected="None", selectize=FALSE)),
+                selectInput("pltby", "Plot-by code",
+                    choices = list("None","StandID","MgmtID","Year","Species"),
+                    selected="None", selectize=FALSE)),
               column(width=6,
-    	          textInput("ylabel", "Y-label", value = ""))),
+                textInput("ylabel", "Y-label", value = ""))),
             fixedRow(
               column(width=3,
                 myInlineTextInput("width",  "Width (in)", value = 4, size=5)),
               column(width=3,
-    	          myInlineTextInput("height", "Height (in)", value = 3, size=5)), 
-    	        column(width=6,
-    	          myRadioGroup("moreControls","More controls", c("Hide","Show")))),
+                myInlineTextInput("height", "Height (in)", value = 3, size=5)), 
+              column(width=6,
+                myRadioGroup("moreControls","More controls", c("Hide","Show")))),
              fixedRow(column(width=12,conditionalPanel("input.moreControls == 'Show'",
                fixedRow(
                  column(width=2,               
@@ -436,7 +441,7 @@ shinyUI(fixedPage(
                    colourInput("color18", "Color 18", value = cbbPalette[18]))),
                fixedRow(
                  column(width=3, 
-  	               radioButtons("res","Resolution (ppi)",c("150","300","600"))),
+                   radioButtons("res","Resolution (ppi)",c("150","300","600"))),
                  column(width=4,
                  sliderInput("transparency", "Transparency", 0, 1, .3, step = .01)),
                  column(width=1),
@@ -497,7 +502,7 @@ shinyUI(fixedPage(
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
             column(width=6,                 
-              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList2,
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
                 selected=1,multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
       ) ) ),
@@ -505,15 +510,29 @@ shinyUI(fixedPage(
         h6(),
         fixedRow(
         column(width=6,offset=0,
-          selectInput(inputId="SVSRunList1",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
-          selectInput(inputId="SVSImgList1",label="Select SVS case", choices=NULL, 
+          checkboxGroupInput("SVSdraw1",label=NULL,width="100%",inline=TRUE,choices=
+            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
+          fixedRow(
+          column(width=8,offset=0,
+            selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
+              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+          column(width=4,offset=0, 
+            colourInput("svsPlotColor1","Plot color", value = "#C5FAC6"))),
+          selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
         column(width=6,offset=0,
-          selectInput(inputId="SVSRunList2",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
-          selectInput(inputId="SVSImgList2",label="Select SVS case", choices=NULL, 
+          checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
+            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
+          fixedRow(
+          column(width=8,offset=0,
+            selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
+              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+          column(width=4,offset=0, 
+            colourInput("svsPlotColor2","Plot color", value = "#C5FAC6"))),
+          selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
             selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
@@ -553,15 +572,11 @@ shinyUI(fixedPage(
         fixedRow(
           tags$head(tags$script(HTML('
              Shiny.addCustomMessageHandler("jsCode",
-                                     function(message) {
-                                     eval(message.code);
-                                     }
-          );
-          '))),
+             function(message) {eval(message.code);});'))),
         column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
-            tabPanel("Replace existing database", 
+            tabPanel("Upload inventory database", 
               h6(),
               fileInput("uploadNewDB",paste0("Step 1: Upload FVS-Ready database ",
                         "(.accdb, .mdb, .db (SQLite3), .sqlite, .xlsx, or .zip that contains one of these)"),
@@ -576,16 +591,15 @@ shinyUI(fixedPage(
               actionButton("addNewDB","Add new database to existing database"),
               tags$style(type="text/css","#step2ActionMsg{color:darkred;}"), 
               uiOutput("step2ActionMsg"),
-              h6(),
-              p(strong("Other options")),
-              actionButton("installTrainDB","Install regional training database"),
+              h5("Other options"),
+              actionButton("installTrainDB","Install training data (inventory and map data)"),
               h6(),
               actionButton("installEmptyDB","Install blank database"),h6()
-      	    ),
-            tabPanel("Upload and add new rows to existing tables (.csv)", 
+            ),
+            tabPanel("Upload .csv data to add to existing tables", 
               h4(),             
-           	  selectInput("uploadSelDBtabs", label="Table to process",
-      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+               selectInput("uploadSelDBtabs", label="Table to process",
+                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               fileInput("uploadStdTree",
                        'Upload .csv file and append to "Table to process"',
                         width="90%"), 
@@ -601,10 +615,10 @@ shinyUI(fixedPage(
                   h6(),
                   myRadioGroup("mode", "Mode ", c("Edit","New rows")),
                   myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
-              	  selectInput("editSelDBtabs", label="Table to process",
-      	                choices  = list(), 
-      	                selected = NULL, multiple = FALSE, selectize=FALSE),
-              	  selectInput("editSelDBvars", "Variables to consider", 
+                  selectInput("editSelDBtabs", label="Table to process",
+                        choices  = list(), 
+                        selected = NULL, multiple = FALSE, selectize=FALSE),
+                  selectInput("editSelDBvars", "Variables to consider", 
                       choices  = list(), size=10,
                       selected = NULL, multiple = TRUE, selectize=FALSE),
                   uiOutput("stdSel"),
@@ -623,20 +637,28 @@ shinyUI(fixedPage(
                 column(width=12,offset=0,
                   h6(),uiOutput("inputTabDesc")
             ))),              
-            tabPanel("Map data", h4("Upload a stand layer to use in the Maps feature."),       
-              fileInput("mapUpload","Upload polygon (best) or point data (.zip that contains spatial data)",
+            tabPanel("Map data", 
+              h4("Upload a stand layer to use in the Maps feature."),       
+              h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
+              fileInput("mapUpload","Step 1: Upload polygon or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
-           	  selectInput("mapUpLayers", label="Layer",
-      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-           	  selectInput("mapUpIDMatch", label="Variable that matches StandID",
-      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-           	  selectInput("mapUpSelectEPSG", label="Projection library (abridged)",
-      	        choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-      	      textInput("mapUpProjection", label="proj4 projection string",width="70%"),
-      	      actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject the data)"),h6(),
-      	      tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
-      	      actionButton("mapUpSave","Save imported map layer"),h6(),            
-      	      textOutput("mapActionMsg") 
+              selectInput("mapUpLayers", label="Layer",
+                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+              selectInput("mapUpIDMatch", label="Variable that matches StandID",
+                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+              selectInput("mapUpSelectEPSG", label="Projection library (abridged)",
+                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+              textInput("mapUpProjection", label="proj4 projection string",width="70%"),
+              actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject uploaded data)"),h6(),
+              h5("Step 2: Do one of the following:"), 
+              tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
+              tags$style(type="text/css","#mapUpAdd{font-size: 120%; color:green;}"),
+              actionButton("mapUpSave","Install imported spatial data"),           
+              actionButton("mapUpAdd", "Add imported spatial to existing data"),h6(),
+              h5("Another option"),
+              actionButton("installTrainDB2","Install training data (inventory and map data)"),   
+              tags$style(type="text/css","#mapActionMsg{color:darkred;}"), 
+              uiOutput("mapActionMsg")
             ) #END tabPanel
           ) #END tabsetPanel
         ) ) #END column and fixed row   
@@ -654,6 +676,7 @@ shinyUI(fixedPage(
                 actionButton("PrjSwitch",if (isLocal()) "Switch to selected project" else
                     "Start selected project"),h4(),
                 h4("Create a new project from your current project"),
+                h5("This does not copy input/output databases or runs and does not start the new project"),
                 textInput("PrjNewTitle", "New project title", ""), 
                 actionButton("PrjNew","Make new project"),
               h4("Delete outputs in current project"),
@@ -687,15 +710,25 @@ shinyUI(fixedPage(
                     "Yes"),
                   tags$button(type = "button", class = "btn btn-primary", 
                     'data-dismiss' = "modal", "Cancel")))
-              )
+              ),h4("Delete entire project"),
+              selectInput("PrjDelSelect", "Select non-active project to delete", multiple=FALSE,
+                          choices = list(), selected="", selectize=FALSE),
+              list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
+                   modalDialog(id="PrjDeleteDlg", footer=list(
+                   modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg", 
+                                     "Yes"),
+                   tags$button(type = "button", class = "btn btn-primary", 
+                              'data-dismiss' = "modal", "No")))),
+              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"), 
+              uiOutput("delPrjActionMsg")
             ), 
             tabPanel("Downloads", h6(),
               downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
               downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
               downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),h6(),
               downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
-              checkboxGroupInput("dlZipSet","Set contents of fvsRun.zip", 	
-                zipList,selZip,inline=FALSE),	
+              checkboxGroupInput("dlZipSet","Set contents of fvsRun.zip",   
+                zipList,selZip,inline=FALSE),  
               downloadButton("dlFVSRunZip","Download fvsRun.zip")
             ),          
             tabPanel("Refresh/copy projects",
@@ -715,11 +748,11 @@ shinyUI(fixedPage(
                 ),           
                 column(width=if (isLocal()) 12 else 7,offset=0,
                   h4("Copy data and software from a source project to target project(s)"),
-                  selectInput("sourcePrj", "Source project", multiple=FALSE,
-                    choices = list(), selected="", selectize=FALSE),
+                  selectInput("sourcePrj", "Source project (Name, Release date)", 
+                    multiple=FALSE, choices = list(), selected="", selectize=FALSE)                                                                                  ,
                   h6(),       
-                  selectInput("targetPrj", "Target project(s)", multiple=TRUE,
-                    choices = list(), selected="", selectize=FALSE),
+                  selectInput("targetPrj", "Target project(s) (Name, Release date)", 
+                     multiple=TRUE,choices = list(), selected="", selectize=FALSE),
                   h6(),
                   checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
                     list("All interface software"="software",
@@ -734,13 +767,12 @@ shinyUI(fixedPage(
                   tags$style(type="text/css","#copyActionMsg{color:darkred;}"), 
                   uiOutput("copyActionMsg"))
                 )
-            )  #END tabPanel                                         
+            )  #END tabPanel                                           
           ) #END tabsetPanel
         ) ) #END column and fixed row   
       ), ## END Tools
       tabPanel("Help",       
-        h5(),
-        uiOutput("uiHelpText")
+        h5(),div(style = 'overflow-y:scroll;height:500px;',uiOutput("uiHelpText"))
       )
 ) ) ) ) )
 

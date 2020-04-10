@@ -392,10 +392,9 @@ cone3d <- function(base=c(0,0,0),tip=c(0,0,1),rad=1,n=8,draw.base=TRUE,
 circle3D <- function (x0=0,y0=0,z0=0,r=1,n=60,col="gray",alpha=.5,...)
 {
   theta <- seq(0, 2*pi, len=n)
-  x <- (cos(theta)*r) + x0
-  y <- (sin(theta)*r) + y0
-  z <- rep(z0, n)
-  polygon3d(x,y,z,color=col,alpha=alpha,...)
+  cords = cbind((cos(theta)*r) + x0,(sin(theta)*r) + y0, 0)
+  polygon3d(cords,color=col,alpha=alpha,...)
+  cords
 }
 
 matRotat <- function(mat,xa=0,ya=0,za=0)
