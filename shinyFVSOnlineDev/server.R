@@ -69,19 +69,19 @@ cat ("Server id=",serverID,"\n")
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
 
-#     if (file.exists("projectIsLocked.txt")) 
-#     { 
-#       hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
-# cat ("Project locked file found, hrs=",hrs,"\n")
-#       if (hrs<3) 
-#       { 
-#         output$appLocked<-renderUI(h1("Project is locked"))
-#         if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
-#         globals$saveOnExit=FALSE
-# cat ("Project is locked, exiting.\n")
-#         stopApp()
-#       }
-#     } 
+    if (file.exists("projectIsLocked.txt")) 
+    {
+      hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
+cat ("Project locked file found, hrs=",hrs,"\n")
+      if (hrs<3) 
+      { 
+        output$appLocked<-renderUI(h1("Project is locked"))
+        if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
+        globals$saveOnExit=FALSE
+cat ("Project is locked, exiting.\n")
+        stopApp()
+      }
+    } 
     cat (file="projectIsLocked.txt",date(),"\n") 
 
     resetGlobals(globals,NULL,prms)
@@ -4776,38 +4776,56 @@ cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n")
     {
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Loading Help File", value = 2)
+      # build the help file if it doesn't exist or if it is older than 
+      # fvsOnlineHelp.html or databaseDescription.xlsx
+      fr = "fvsOnlineHelpRender.html"
       fn = "fvsOnlineHelp.html"
-      help = readChar(fn, file.info(fn)$size) 
       xlsxfile="databaseDescription.xlsx"
-      progress$set(message = "Loading Help File", value = 5)
-      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-      if (class(tabs)!="try-error")
+      info=file.info(c(fr,fn,xlsxfile))
+      if (which.max(info[,4]) != 1)
       {
-        morehtml=paste0(xlsx2html(tab="OutputTableDescriptions"),
-                                '<p><a href="#contents">Back to contents</a></p>')
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
-                                '<p><a href="#contents">Back to contents</a></p>')  
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**OUTPUTHTML**",replacement=morehtml)
-      }
-      progress$set(message = "Loading Table Descriptions", value = 8)
-      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-      if (class(tabs)!="try-error")                                                         
-      {
-        morehtml=paste0(xlsx2html(tab="InputTableDescriptions"),
-                                '<p><a href="#contents">Back to contents</a></p>')
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
-                                '<p><a href="#contents">Back to contents</a></p>')            
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**INPUTHTML**",replacement=morehtml)
-      }
+        help = readChar(fn, info[2,1]) 
+        progress$set(message = "Loading Help File", value = 5)
+        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
+        if (class(tabs)!="try-error")
+        {
+          tablist=xlsx2html(tab="OutputTableDescriptions",addLink=TRUE)
+          morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
+          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
+            xlsx2html(tab=tab),
+          '<p><a href="#outputTables">Back to Output Table Descriptions</a>&nbsp;&nbsp;',
+          '<a href="#contents">Back to Contents</a></p>')  
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**OUTPUTHTML**",replacement=morehtml)
+        }
+        progress$set(message = "Loading Table Descriptions", value = 8)
+        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
+        if (class(tabs)!="try-error")                                                         
+        {
+          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",addLink=TRUE),
+                                  '<p><a href="#contents">Back to Contents</a></p>')
+          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
+            xlsx2html(tab=tab), 
+            '<p><a href="#inputTables">Back to Input Table Descriptions</a>&nbsp;&nbsp;',
+            '<a href="#contents">Back to Contents</a></p>')            
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**INPUTHTML**",replacement=morehtml)
+        }
+        writeChar(help,fr)         
+      } else help=readChar(fr, info[1,1]) 
       output$uiHelpText <- renderUI(HTML(help))
       progress$close()
     }
   })
 
-  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL)
+  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL,
+                        addLink=FALSE)
   {
+    cleanlines=function(line) 
+    {
+      line=gsub(pattern="\n",replacement="",x=line,fixed=TRUE)
+      gsub(pattern="\r",replacement="",x=line,fixed=TRUE)
+    }
     if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
     if (tab %in% getSheetNames(xlsxfile))
     {
@@ -4823,9 +4841,13 @@ cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n")
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
       html = paste0("<b>",tab,"</b>")
       html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-             paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-      for (i in 1:nrow(sdat)) html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-          collapse="</TD><TD>"),"</TD></TR>\n")
+             paste0(cleanlines(colnames(sdat)),collapse="</TH><TH>"),"</TH></TR>")
+      for (i in 1:nrow(sdat))                   
+      {
+        tbrow=cleanlines(as.character(sdat[i,]))
+        if (addLink) tbrow[1] = paste0('<a href="#',tbrow[1],'">',tbrow[1],'</a>')
+        html = paste0(html,"<TR><TD>",paste0(tbrow,collapse="</TD><TD>"),"</TD></TR>")
+      }
       html = paste0(html,"</TABLE><br>")
       return (html)
     } else return (NULL)
