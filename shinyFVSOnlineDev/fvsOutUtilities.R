@@ -292,3 +292,127 @@ errorScan <- function (outfile)
   outerrs
 }
 
+getGraphSettings <- function(input)
+{
+  theSettings=list() 
+  isolate({
+    theSettings$stdgroups   =input$stdgroups    
+    theSettings$stdid       =input$stdid        
+    theSettings$mgmid       =input$mgmid 
+    theSettings$year        =input$year                 
+    theSettings$species     =input$species 
+    theSettings$dbhclass    =input$dbhclass           
+    theSettings$browsevars  =input$browsevars
+    theSettings$plotType    =input$plotType 
+    theSettings$colBW       =input$colBW
+    theSettings$yaxis       =input$yaxis 
+    theSettings$xaxis       =input$xaxis 
+    theSettings$hfacet      =input$hfacet
+    theSettings$ptitle      =input$ptitle 
+    theSettings$xlabel      =input$xlabel 
+    theSettings$vfacet      =input$vfacet 
+    theSettings$pltby       =input$pltby              
+    theSettings$ylabel      =input$ylabel 
+    theSettings$width       =input$width 
+    theSettings$height      =input$height 
+    theSettings$moreControls=input$moreControls
+    theSettings$color1      =input$color1                    
+    theSettings$color2      =input$color2
+    theSettings$color3      =input$color3
+    theSettings$color4      =input$color4  
+    theSettings$color5      =input$color5 
+    theSettings$color6      =input$color6  
+    theSettings$color7      =input$color7      
+    theSettings$color8      =input$color8 
+    theSettings$color9      =input$color9 
+    theSettings$color10     =input$color10 
+    theSettings$color11     =input$color11 
+    theSettings$color12     =input$color12 
+    theSettings$color13     =input$color13 
+    theSettings$color14     =input$color14 
+    theSettings$color15     =input$color15 
+    theSettings$color16     =input$color16 
+    theSettings$color17     =input$color17 
+    theSettings$color18     =input$color18 
+    theSettings$res         =input$res
+    theSettings$transparency=input$transparency 
+    theSettings$YLimMin     =input$YLimMin
+    theSettings$YLimMax     =input$YLimMax
+    theSettings$XLimMin     =input$XLimMin
+    theSettings$XLimMax     =input$XLimMax            
+    theSettings$YlabRot     =input$YlabRot
+    theSettings$XlabRot     =input$XlabRot
+    theSettings$barPlace    =input$barPlace
+    theSettings$legendPlace =input$legendPlace
+    theSettings$YTrans      =input$YTrans
+    theSettings$XTrans      =input$XTrans
+    theSettings$facetWrap   =input$facetWrap
+    theSettings$SDIvals     =input$SDIvals
+    theSettings$YUnits      =input$YUnits
+    theSettings$XUnits      =input$XUnits
+    theSettings$StkChtvals  =input$StkChtvals 
+  })
+  theSettings
+} 
+
+setGraphSettings <- function(session,theSettings)
+{
+  updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
+  updateColourInput       (session=session, inputId="color1",       value   =theSettings$color1)           
+  updateColourInput       (session=session, inputId="color2",       value   =theSettings$color2)
+  updateColourInput       (session=session, inputId="color3",       value   =theSettings$color3)
+  updateColourInput       (session=session, inputId="color4",       value   =theSettings$color4)  
+  updateColourInput       (session=session, inputId="color5",       value   =theSettings$color5) 
+  updateColourInput       (session=session, inputId="color6",       value   =theSettings$color6)  
+  updateColourInput       (session=session, inputId="color7",       value   =theSettings$color7)      
+  updateColourInput       (session=session, inputId="color8",       value   =theSettings$color8) 
+  updateColourInput       (session=session, inputId="color9",       value   =theSettings$color9) 
+  updateColourInput       (session=session, inputId="color10",      value   =theSettings$color10) 
+  updateColourInput       (session=session, inputId="color11",      value   =theSettings$color11) 
+  updateColourInput       (session=session, inputId="color12",      value   =theSettings$color12) 
+  updateColourInput       (session=session, inputId="color13",      value   =theSettings$color13) 
+  updateColourInput       (session=session, inputId="color14",      value   =theSettings$color14) 
+  updateColourInput       (session=session, inputId="color15",      value   =theSettings$color15) 
+  updateColourInput       (session=session, inputId="color16",      value   =theSettings$color16) 
+  updateColourInput       (session=session, inputId="color17",      value   =theSettings$color17) 
+  updateColourInput       (session=session, inputId="color18",      value   =theSettings$color18) 
+  updateRadioButtons      (session=session, inputId="colBW",        selected=theSettings$colBW)
+  updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
+  updateRadioButtons      (session=session, inputId="res",          selected=theSettings$res)
+  updateRadioButtons      (session=session, inputId="XTrans",       selected=theSettings$XTrans)
+  updateRadioButtons      (session=session, inputId="XUnits",       selected=theSettings$XUnits)
+  updateRadioButtons      (session=session, inputId="XlabRot",      selected=theSettings$XlabRot)
+  updateRadioButtons      (session=session, inputId="YTrans",       selected=theSettings$YTrans)
+  updateRadioButtons      (session=session, inputId="YUnits",       selected=theSettings$YUnits)
+  updateRadioButtons      (session=session, inputId="YlabRot",      selected=theSettings$YlabRot)
+  updateRadioButtons      (session=session, inputId="barPlace",     selected=theSettings$barPlace)
+  updateRadioButtons      (session=session, inputId="facetWrap",    selected=theSettings$facetWrap)
+  updateRadioButtons      (session=session, inputId="legendPlace",  selected=theSettings$legendPlace)
+  updateRadioButtons      (session=session, inputId="moreControls", selected=theSettings$moreControls)
+  updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
+  updateSelectInput       (session=session, inputId="hfacet",       selected=theSettings$hfacet)
+  updateSelectInput       (session=session, inputId="mgmid",        selected=theSettings$mgmid) 
+  updateSelectInput       (session=session, inputId="pltby",        selected=theSettings$pltby) 
+  updateSelectInput       (session=session, inputId="species",      selected=theSettings$species) 
+  updateSelectInput       (session=session, inputId="stdgroups",    selected=theSettings$stdgroups)    
+  updateSelectInput       (session=session, inputId="stdid",        selected=theSettings$stdid)        
+  updateSelectInput       (session=session, inputId="vfacet",       selected=theSettings$vfacet) 
+  updateSelectInput       (session=session, inputId="xaxis",        selected=theSettings$xaxis) 
+  updateSelectInput       (session=session, inputId="yaxis",        selected=theSettings$yaxis) 
+  updateSelectInput       (session=session, inputId="year",         selected=theSettings$year)         
+  updateSliderInput       (session=session, inputId="transparency", value   =theSettings$transparency) 
+  updateTextInput         (session=session, inputId="SDIvals",      value   =theSettings$SDIvals)
+  updateTextInput         (session=session, inputId="StkChtvals",   value   =theSettings$StkChtvals)
+  updateTextInput         (session=session, inputId="XLimMax",      value   =theSettings$XLimMax)
+  updateTextInput         (session=session, inputId="XLimMin",      value   =theSettings$XLimMin)
+  updateTextInput         (session=session, inputId="YLimMax",      value   =theSettings$YLimMax)
+  updateTextInput         (session=session, inputId="YLimMin",      value   =theSettings$YLimMin)
+  updateTextInput         (session=session, inputId="height",       value   =theSettings$height) 
+  updateTextInput         (session=session, inputId="ptitle",       value   =theSettings$ptitle) 
+  updateTextInput         (session=session, inputId="width",        value   =theSettings$width)         
+  updateTextInput         (session=session, inputId="xlabel",       value   =theSettings$xlabel) 
+  updateTextInput         (session=session, inputId="ylabel",       value   =theSettings$ylabel) 
+}
+
+
+

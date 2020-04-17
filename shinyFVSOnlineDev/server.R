@@ -219,7 +219,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
-    if (exists("deleteLockFile",envir=globals) && globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    if ( exists("deleteLockFile",envir=globals) && globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    if (!exists("deleteLockFile",envir=globals)) unlink ("projectIsLocked.txt")     
     #note: the stopApp function returns to the R process that called runApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
@@ -1032,7 +1033,7 @@ cat ("cmd=",cmd,"\n")
       }, min=1, max=12)
     } 
   })
-  
+ 
   ## renderTable
   renderTable <- function (dat)
   {
@@ -1078,7 +1079,81 @@ cat("filterRows and/or pivot\n")
     output$table <- renderTable(dat) 
   })
            
+  ##Graphs
+  observe({                 
+    if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
+    {
+cat ("Graphs pan hit\n")
+      # update color pallet
+      for (i in 1:length(cbbPalette))
+        updateColourInput(session=session,inputId=paste0("color",i),value=cbbPalette[i])
+      if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+      if (!exists("GraphSettings")) GraphSettings=list("None"=list())
+      updateSelectInput(session=session, inputId="OPsettings", choices=names(GraphSettings),
+         selected="None")
+      updateTextInput(session=session, "OPname", value = "")
+    }
+  })
   
+  ##OPsettings
+  observe({
+    if (!is.null(input$OPsettings) && input$OPsettings > 0)
+    {
+cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
+      if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+      if (!exists("GraphSettings") || 
+          length(GraphSettings[[input$OPsettings]])<1 ||
+          input$OPsettings == "None")
+        updateTextInput(session=session, "OPname", value = "") else 
+      {
+        updateTextInput(session=session, "OPname", value = input$OPsettings)
+        setGraphSettings(session,GraphSettings[[input$OPsettings]])
+      }
+    }
+  })      
+  observe({
+    if (input$OPsave > 0) 
+    {
+      isolate({
+cat ("OPsave hit, OPname=",input$OPname,"\n")
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings")) GraphSettings=list("None"=list())
+        if (nchar(input$OPname)==0) 
+        {
+          setName=paste0("Setting ",length(GraphSettings)+1)
+          updateTextInput(session=session,inputId="OPname",value=setName)
+        } else setName=input$OPname
+        GraphSettings[[setName]]=getGraphSettings(input)
+        save(GraphSettings,file="GraphSettings.RData")
+        updateSelectInput(session=session, inputId="OPsettings", choices=
+          names(GraphSettings),selected=setName)
+      })
+    }
+  })
+  observe({
+    if (input$OPdel > 0) 
+    {                             
+      isolate({
+cat("OPdel hit, input$OPname=",input$OPname,"\n")
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings")) return() 
+        if (input$OPname == "None") return()
+        if (is.null(GraphSettings[[input$OPname]])) return()
+        GraphSettings[[input$OPname]] = NULL
+        if (length(GraphSettings)==0) 
+        {
+          updateSelectInput(session=session, inputId="OPsettings", choices=list())
+          unlink("GraphSettings.RData")
+        } else {
+          save(GraphSettings,file="GraphSettings.RData")
+          updateSelectInput(session=session, inputId="OPsettings", choices=
+            names(GraphSettings),selected=0)
+        }
+        updateTextInput(session=session, "OPname", value = "") 
+      })
+    }
+  })
+
   ##browsevars/plotType 
   observe({
     if (!is.null(input$browsevars) && !is.null(input$plotType)) 
@@ -1216,9 +1291,7 @@ cat ("browsevars/plotType\n")
         updateSelectInput(session=session, inputId="pltby", selected="None")
       if (input$hfacet == input$vfacet)
         updateSelectInput(session=session, inputId="vfacet", selected="None")
-  }) }) 
-  
-  
+  }) })   
   
   ## renderPlot
   output$outplot <- renderImage(
@@ -1645,9 +1718,6 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
-#ggbld <- ggplot_build(p)
-#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.major_source
-#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.labels
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -1659,7 +1729,8 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     dev.off()
     list(src = outfile)            
   }, deleteFile = FALSE)
-    
+  
+     
   ## Stands tab 
   observe({    
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
@@ -6635,11 +6706,12 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
             curdir=getwd()
-            setwd(newPrj)           
-            cmd = paste0("R=",R.home(),"; ",commandArgs()[1],
-                  ' --no-save  -e "require(shiny);runApp(launch.browser=TRUE)" &')
+            setwd(newPrj)          
+            rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+            cmd = paste0(rscript,' --vanilla -e "require(shiny);runApp(launch.browser=TRUE);quit()"')
+            if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
 cat ("cmd=",cmd,"\n")
-            system (cmd)
+            system (cmd,wait=FALSE)
             setwd(curdir)
           }  
         } else {
