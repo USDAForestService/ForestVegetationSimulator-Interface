@@ -1269,12 +1269,13 @@ cat ("browsevars/plotType\n")
   observe({
     if (is.null(input$vfacet) || input$vfacet  == "None") return()
     isolate({
-      if (input$vfacet == input$xaxis || input$vfacet == input$yaxis) 
+      if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
+          (input$vfacet == input$xaxis || input$vfacet == input$yaxis))
       {
         updateSelectInput(session=session, inputId="vfacet", selected="None")
         return()
       }
-      if (input$vfacet == input$pltby)
+      if (!is.null(input$pltby) && input$vfacet == input$pltby)
         updateSelectInput(session=session, inputId="pltby", selected="None")       
       if (input$vfacet == input$hfacet)
         updateSelectInput(session=session, inputId="hfacet", selected="None")
@@ -1282,12 +1283,13 @@ cat ("browsevars/plotType\n")
   observe({
     if (is.null(input$hfacet) || input$hfacet  == "None") return()                 
     isolate({
-      if (input$hfacet == input$xaxis || input$hfacet == input$yaxis) 
+      if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
+          (input$hfacet == input$xaxis || input$hfacet == input$yaxis))
       {
         updateSelectInput(session=session, inputId="hfacet", selected="None")
         return()
       }
-      if (input$hfacet == input$pltby)
+      if (!is.null(input$pltby) && input$hfacet == input$pltby)
         updateSelectInput(session=session, inputId="pltby", selected="None")
       if (input$hfacet == input$vfacet)
         updateSelectInput(session=session, inputId="vfacet", selected="None")
