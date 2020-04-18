@@ -385,7 +385,7 @@ shinyUI(fixedPage(
               column(width=4,
                 actionButton("OPsave","Save current settings"),
                 actionButton("OPdel","Delete current settings"))),
-            div(style="height:1px;width:100%;background-color:black;"),
+            div(style="height:1px;width:100%;background-color:lightgray;"),
             fixedRow(
               column(width=7,
                 myRadioGroup("plotType","Type", 

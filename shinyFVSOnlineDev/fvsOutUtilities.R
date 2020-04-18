@@ -9,6 +9,37 @@ mkfvsOutData <-
       runs = "character", plotSpecs = "list", 
       render = "data.frame"))
 
+initTableGraphTools <- function ()
+{
+cat ("initTableGraphTools\n")
+  fvsOutData$dbData = data.frame()
+  fvsOutData$runs = character(0)
+  fvsOutData$dbVars = character(0)
+  fvsOutData$browseVars = character(0)
+  fvsOutData$dbSelVars = character(0)
+  fvsOutData$browseSelVars = character(0)
+  choices = list()
+  globals$settingChoices=list()
+  updateSelectInput(session,"pivVar",choices=choices,select="")              
+  updateSelectInput(session,"hfacet",choices=choices,select="") 
+  updateSelectInput(session,"vfacet",choices=choices,select="") 
+  updateSelectInput(session,"pltby", choices=choices,select="") 
+  updateSelectInput(session,"dispVar",choices=choices,select="")       
+  updateSelectInput(session,"xaxis",choices=choices,select="") 
+  updateSelectInput(session,"yaxis",choices=choices,select="")
+  updateCheckboxGroupInput(session, "browsevars", choices=choices) 
+  updateTextInput(session=session, inputId="sqlOutput", label=NULL, value=NULL)
+  choices = list("None loaded")
+  updateSelectInput(session,"stdtitle",choices=choices,select=NULL)
+  updateSelectInput(session,"stdgroups",choices=choices,select=NULL)
+  updateSelectInput(session,"stdid",choices=choices,select=NULL)
+  updateSelectInput(session,"mgmid",choices=choices,select=NULL)
+  updateSelectInput(session,"year",choices=choices,select=NULL)
+  updateSelectInput(session,"species",choices=choices,select=NULL)
+  updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
+  output$table <- renderTable(NULL)
+}                          
+
 pivot <- function(dat,pvar,dvar)
 {
   facts = colnames(dat)[unlist(lapply(dat,is.factor))]
@@ -135,16 +166,6 @@ setupSummary <- function(asum,composite=FALSE)
 }
 
 
-getRptFile <- function (new=FALSE)
-{
-  if (file.exists("FVSReport")) 
-  {
-    if (new) lapply(dir("FVSReport"), function(x) 
-      file.remove(paste0("FVSReport/",x)))
-  } else dir.create("FVSReport")
-  "FVSReport/report.md"
-}
-
 autorecycle <- function(a,n)
 {
   if (length(a)<n) 
@@ -167,74 +188,6 @@ removeComment <- function(string)
 }
 
 
-mkNextPlotFileName <- function()
-{
-  if (!file.exists("FVSReport")) dir.create("FVSReport")
-  files=dir("FVSReport",pattern="[.]png$")
-  sprintf("plot%3.3d.png",length(files)+1)
-}
- 
-
-appendToReport <- function(obj,rptFile=getRptFile())
-{
-  if (missing(obj)) return()
-  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
-  if (class(obj) == "data.frame" || class(obj) == "matrix")
-  {
-    cat (file=con,"Table: Table created",format(Sys.time(),"%a %b %d %X %Z %Y"))
-    cat (file=con,"  \n")
-    if (!is.null(colnames(obj)))
-    {
-      cat (file=con,"\n|") 
-      lapply(colnames(obj),function (x) cat(file=con,x,"|",sep=""))
-      cat (file=con,"\n")
-      cat (file=con,"|")
-      lapply(colnames(obj),function (x) 
-        cat(file=con,paste0(rep("-",max(2,nchar(x)-1)),collapse=""),":|",sep=""))
-      cat (file=con,"\n")
-    }
-    apply(obj,1,function(y)
-    {
-      cat (file=con,"|")
-      lapply(y,function (x) cat(file=con,x,"|",sep="")) 
-      cat (file=con,"\n")
-    })
-    cat (file=con,"\n")
-  } else if (class(obj) == "character") 
-  {
-    lapply(obj,cat,file=con,"  \n")
-    cat (file=con,"  \n")
-  } 
-  if (con != stdout()) close(con)
-}
-
-
-appendPlotToReport <- 
-function (plotFile=mkNextPlotFileName(),rptFile=getRptFile(),width=5,height=5)
-{
-  if (!file.exists("plot.png")) return()
-  ct = format(file.info("plot.png")[,"ctime"], "%a %b %d %X %Z %Y")
-  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
-  cat(file=con,"\n![Figure created ",ct,"](",plotFile,"){width=",
-      as.character(width),"in height=",as.character(height),"in}\n\n",sep="")
-  if (con != stdout()) close(con)
-  file.copy(from="plot.png",to=paste0("FVSReport/",plotFile))
-}
-
-
-generateReport <- function(tf)
-{
-  if (file.exists("FVSReport/report.md"))
-  {
-    setwd("FVSReport")
-    cmd = paste0("pandoc -o ",tf," -t docx report.md")
-cat ("generateReport, cmd=",cmd,"\n")
-    system(cmd)
-    setwd("..")
-  }
-}
-
-  
 errorScan <- function (outfile)
 {
   if (missing(outfile)) return("outfile not specified")
@@ -305,8 +258,8 @@ getGraphSettings <- function(input)
     theSettings$browsevars  =input$browsevars
     theSettings$plotType    =input$plotType 
     theSettings$colBW       =input$colBW
-    theSettings$yaxis       =input$yaxis 
     theSettings$xaxis       =input$xaxis 
+    theSettings$yaxis       =input$yaxis 
     theSettings$hfacet      =input$hfacet
     theSettings$ptitle      =input$ptitle 
     theSettings$xlabel      =input$xlabel 
@@ -357,21 +310,21 @@ getGraphSettings <- function(input)
 
 setGraphSettings <- function(session,theSettings)
 {
+  updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
 
-  updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
   updateSelectInput       (session=session, inputId="stdgroups",    selected=theSettings$stdgroups)    
   updateSelectInput       (session=session, inputId="stdid",        selected=theSettings$stdid)        
   updateSelectInput       (session=session, inputId="species",      selected=theSettings$species) 
   updateSelectInput       (session=session, inputId="mgmid",        selected=theSettings$mgmid) 
   updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
   updateSelectInput       (session=session, inputId="year",         selected=theSettings$year) 
-  
-  updateSelectInput       (session=session, inputId="yaxis",        selected=theSettings$yaxis) 
-  updateSelectInput       (session=session, inputId="xaxis",        selected=theSettings$xaxis) 
-  updateSelectInput       (session=session, inputId="hfacet",       selected=theSettings$hfacet)
-  updateSelectInput       (session=session, inputId="vfacet",       selected=theSettings$vfacet) 
-  updateSelectInput       (session=session, inputId="pltby",        selected=theSettings$pltby) 
+
+  updateSelectInput       (session=session, inputId="yaxis",   choices=globals$settingChoices[["yaxis"]],     selected=theSettings$yaxis) 
+  updateSelectInput       (session=session, inputId="xaxis",   choices=globals$settingChoices[["xaxis"]],     selected=theSettings$xaxis) 
+  updateSelectInput       (session=session, inputId="hfacet",  choices=globals$settingChoices[["hfacet"]],    selected=theSettings$hfacet)
+  updateSelectInput       (session=session, inputId="vfacet",  choices=globals$settingChoices[["vfacet"]],    selected=theSettings$vfacet) 
+  updateSelectInput       (session=session, inputId="pltby",   choices=globals$settingChoices[["pltby"]],     selected=theSettings$pltby) 
 
   updateSliderInput       (session=session, inputId="transparency", value   =theSettings$transparency) 
   updateColourInput       (session=session, inputId="color1",       value   =theSettings$color1)           
@@ -415,6 +368,7 @@ setGraphSettings <- function(session,theSettings)
   updateTextInput         (session=session, inputId="width",        value   =theSettings$width)         
   updateTextInput         (session=session, inputId="xlabel",       value   =theSettings$xlabel) 
   updateTextInput         (session=session, inputId="ylabel",       value   =theSettings$ylabel) 
+
 }
 
     

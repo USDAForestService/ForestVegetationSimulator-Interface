@@ -61,8 +61,7 @@ cat ("Server id=",serverID,"\n")
                     "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                     "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
-    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
-    if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=TRUE
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
@@ -76,7 +75,7 @@ cat ("Project locked file found, hrs=",hrs,"\n")
       if (hrs<3) 
       { 
         output$appLocked<-renderUI(h1("Project is locked"))
-        if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
+        globals$deleteLockFile=FALSE
         globals$saveOnExit=FALSE
 cat ("Project is locked, exiting.\n")
         stopApp()
@@ -219,45 +218,12 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
-    if ( exists("deleteLockFile",envir=globals) && globals$deleteLockFile) unlink ("projectIsLocked.txt")     
-    if (!exists("deleteLockFile",envir=globals)) unlink ("projectIsLocked.txt")     
+    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")     
     #note: the stopApp function returns to the R process that called runApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
   })
-  
-  initTableGraphTools <- function ()
-  {
-cat ("initTableGraphTools\n")    
-    fvsOutData$dbData = data.frame()
-    fvsOutData$runs = character(0)
-    fvsOutData$dbVars = character(0)
-    fvsOutData$browseVars = character(0)
-    fvsOutData$dbSelVars = character(0)
-    fvsOutData$browseSelVars = character(0)
-    choices = list()               
-    updateSelectInput(session,"pivVar",choices=choices,select="")              
-    updateSelectInput(session,"hfacet",choices=choices,select="") 
-    updateSelectInput(session,"vfacet",choices=choices,select="") 
-    updateSelectInput(session,"pltby", choices=choices,select="") 
-    updateSelectInput(session,"dispVar",choices=choices,select="")       
-    updateSelectInput(session,"xaxis",choices=choices,select="") 
-    updateSelectInput(session,"yaxis",choices=choices,select="")
-    updateCheckboxGroupInput(session, "browsevars", choices=choices) 
-    updateTextInput(session=session, inputId="sqlOutput", label=NULL, value=NULL)
-    choices = list("None loaded")
-    updateSelectInput(session,"stdtitle",choices=choices,select=NULL)
-    updateSelectInput(session,"stdgroups",choices=choices,select=NULL)
-    updateSelectInput(session,"stdid",choices=choices,select=NULL)
-    updateSelectInput(session,"mgmid",choices=choices,select=NULL)
-    updateSelectInput(session,"year",choices=choices,select=NULL)
-    updateSelectInput(session,"species",choices=choices,select=NULL)
-    updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
-    output$table <- renderTable(NULL)
-  }                          
-
-cat ("getwd= ",getwd(),"\n")
-  
+    
   ## Load
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
@@ -639,10 +605,17 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               updateSelectInput(session,"hfacet",choices=choices,selected="None") 
               updateSelectInput(session,"vfacet",choices=choices,selected="None") 
               updateSelectInput(session,"pltby", choices=choices,selected="None") 
+              globals$settingChoices[["pivVar"]] = choices
+              globals$settingChoices[["hfacet"]] = choices
+              globals$settingChoices[["vfacet"]] = choices
+              globals$settingChoices[["pltby"]] = choices
               choices = as.list(c("None",
-                colnames(res)[!unlist(lapply(res, is.factor))]))              
+                colnames(res)[!unlist(lapply(res, is.factor))])) 
+              globals$settingChoices[["dispVar"]] = choices
               updateSelectInput(session,"dispVar",choices=choices,selected="None")
               choices = as.list(colnames(res))              
+              globals$settingChoices[["xaxis"]] = choices
+              globals$settingChoices[["yaxis"]] = choices
               updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
               updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
               if (input$outputRightPan != "Tables")
@@ -749,7 +722,6 @@ cat ("sqlNew\n")
         updateTextInput(session=session, inputId="sqlOutput", value="")
     }
   })
-
   
   ## Explore
   observe({ 
@@ -1117,13 +1089,20 @@ cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
       isolate({
 cat ("OPsave hit, OPname=",input$OPname,"\n")
         if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
-        if (!exists("GraphSettings")) GraphSettings=list("None"=list())
+        if (!exists("GraphSettings")) 
+        {
+          GraphSettings=list("None"=list())
+          attr(GraphSettings[[1]],"setTime")=.Machine$integer.max
+        }
         if (nchar(input$OPname)==0) 
         {
           setName=paste0("Setting ",length(GraphSettings)+1)
           updateTextInput(session=session,inputId="OPname",value=setName)
-        } else setName=input$OPname
+        } else setName=input$OPname      
         GraphSettings[[setName]]=getGraphSettings(input)
+        attr(GraphSettings[[setName]],"setTime")=as.integer(Sys.time())
+        GraphSettings <- GraphSettings[order(unlist(lapply(GraphSettings,
+          function(x) attr(x,"setTime"))),decreasing = TRUE)]
         save(GraphSettings,file="GraphSettings.RData")
         updateSelectInput(session=session, inputId="OPsettings", choices=
           names(GraphSettings),selected=setName)
@@ -1147,7 +1126,7 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
         } else {
           save(GraphSettings,file="GraphSettings.RData")
           updateSelectInput(session=session, inputId="OPsettings", choices=
-            names(GraphSettings),selected=0)
+            names(GraphSettings),selected="None")
         }
         updateTextInput(session=session, "OPname", value = "") 
       })
@@ -1182,7 +1161,8 @@ cat ("browsevars/plotType\n")
           selx = if (is.null(curX)) "Year" else curX
           selx = if (selx %in% cont) selx else 
                  if (length(cont) > 0) cont[1] else NULL
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=selx)
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=selx)
           sel = if (is.null(curY)) "BA" else curY
           sel = if (sel %in% cont) sel else 
                 if (length(cont) > 0) cont[1] else NULL
@@ -1191,7 +1171,8 @@ cat ("browsevars/plotType\n")
             sel = grep("BA",cont)[1]
             sel = if (is.na(sel)) cont[2] else cont[sel]
           }
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType == "scat") {
           sel = if (is.null(curX)) "DBH" else curX
           sel = if (sel %in% cont) sel else 
@@ -1200,25 +1181,32 @@ cat ("browsevars/plotType\n")
           sel = if (is.null(curY)) "DG" else curY
           sel = if (sel %in% cont) sel else 
                 if (length(cont) > 0) cont[1] else NULL
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType %in% c("box","bar")) {
           def = if ("Species" %in% cats) "Species" else NULL
           if (!is.null(def) && "Year" %in% cats) "Year" else cats[1]
           sel = if (!is.null(curX) && curX %in% cats) curX else def
-          updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
           if (sel=="Year" && length(cont) > 1) sel = cont[2]
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType=="DMD") {
           updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
           updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
           updateRadioButtons(session=session,inputId="YTrans",selected="log10")
-          updateRadioButtons(session=session,inputId="XTrans",selected="log10")          
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="QMD")
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="Tpa")
+          updateRadioButtons(session=session,inputId="XTrans",selected="log10")
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="QMD")
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="Tpa")
         } else if (input$plotType=="StkCht") {
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="Tpa")
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="BA")
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="BA")
         }
         updateSliderInput(session, "transparency",  
           value = if(input$plotType == "scat") .3 else 0.)
@@ -1769,7 +1757,7 @@ cat ("inTabs\n")
   
   updateVarSelection <- function ()
   {
-    cat ("in updateVarSelection\n") 
+cat ("in updateVarSelection\n") 
     if (length(globals$fvsRun$FVSpgm) == 0) 
     {
       selVarListUse <- sort(intersect(names(globals$selVarList),

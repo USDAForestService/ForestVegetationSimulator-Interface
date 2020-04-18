@@ -44,7 +44,7 @@ mkGlobals <<- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",deleteLockFile="logical"))
+    lastRunVar="character",deleteLockFile="logical",settingChoices="list"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
