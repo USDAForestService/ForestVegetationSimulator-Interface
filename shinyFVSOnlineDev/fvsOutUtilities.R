@@ -20,23 +20,26 @@ cat ("initTableGraphTools\n")
   fvsOutData$browseSelVars = character(0)
   choices = list()
   globals$settingChoices=list()
-  updateSelectInput(session,"pivVar",choices=choices,select="")              
-  updateSelectInput(session,"hfacet",choices=choices,select="") 
-  updateSelectInput(session,"vfacet",choices=choices,select="") 
-  updateSelectInput(session,"pltby", choices=choices,select="") 
-  updateSelectInput(session,"dispVar",choices=choices,select="")       
-  updateSelectInput(session,"xaxis",choices=choices,select="") 
-  updateSelectInput(session,"yaxis",choices=choices,select="")
-  updateCheckboxGroupInput(session, "browsevars", choices=choices) 
-  updateTextInput(session=session, inputId="sqlOutput", label=NULL, value=NULL)
+  updateSelectInput(session=session, inputId="pivVar", choices=choices,select="")              
+  updateSelectInput(session=session, inputId="hfacet", choices=choices,select="") 
+  updateSelectInput(session=session, inputId="vfacet", choices=choices,select="") 
+  updateSelectInput(session=session, inputId="pltby",  choices=choices,select="") 
+  updateSelectInput(session=session, inputId="dispVar",choices=choices,select="")       
+  updateSelectInput(session=session, inputId="xaxis",  choices=choices,select="") 
+  updateSelectInput(session=session, inputId="yaxis",  choices=choices,select="")
+  updateCheckboxGroupInput(session=session, inputId="browsevars", choices=choices) 
+  updateTextInput(session=session,   inputId="sqlOutput", label=NULL, value="")
   choices = list("None loaded")
-  updateSelectInput(session,"stdtitle",choices=choices,select=NULL)
-  updateSelectInput(session,"stdgroups",choices=choices,select=NULL)
-  updateSelectInput(session,"stdid",choices=choices,select=NULL)
-  updateSelectInput(session,"mgmid",choices=choices,select=NULL)
-  updateSelectInput(session,"year",choices=choices,select=NULL)
-  updateSelectInput(session,"species",choices=choices,select=NULL)
-  updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="stdtitle", choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="stdgroups",choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="stdid",    choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="mgmid",    choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="year",     choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="species",  choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="dbhclass", choices=choices,select=NULL)
+  updateTextInput(session=session,   inputId="ptitle",   value="")
+  updateTextInput(session=session,   inputId="ylabel",   value="")
+  updateTextInput(session=session,   inputId="xlabel",   value="")
   output$table <- renderTable(NULL)
 }                          
 
@@ -184,7 +187,8 @@ removeComment <- function(string)
   if (l1==-1) return(string)
   l2 = gregexpr("*/",string,fixed=TRUE)[[1]][1]
   if (l2==-1) return(substring(string,1,l1-1))
-  return(removeComment(paste0(substring(string,1,l1-1),substring(string,l2+2,99999))))
+  return(removeComment(paste0(substring(string,1,l1-1),
+                       substring(string,l2+2,99999))))
 }
 
 
@@ -248,68 +252,70 @@ errorScan <- function (outfile)
 getGraphSettings <- function(input)
 {
   theSettings=list() 
-  isolate({
-    theSettings$stdgroups   =input$stdgroups    
-    theSettings$stdid       =input$stdid        
-    theSettings$mgmid       =input$mgmid 
-    theSettings$year        =input$year                 
-    theSettings$species     =input$species 
-    theSettings$dbhclass    =input$dbhclass           
-    theSettings$browsevars  =input$browsevars
-    theSettings$plotType    =input$plotType 
-    theSettings$colBW       =input$colBW
-    theSettings$xaxis       =input$xaxis 
-    theSettings$yaxis       =input$yaxis 
-    theSettings$hfacet      =input$hfacet
-    theSettings$ptitle      =input$ptitle 
-    theSettings$xlabel      =input$xlabel 
-    theSettings$vfacet      =input$vfacet 
-    theSettings$pltby       =input$pltby              
-    theSettings$ylabel      =input$ylabel 
-    theSettings$width       =input$width 
-    theSettings$height      =input$height 
-    theSettings$moreControls=input$moreControls
-    theSettings$color1      =input$color1                    
-    theSettings$color2      =input$color2
-    theSettings$color3      =input$color3
-    theSettings$color4      =input$color4  
-    theSettings$color5      =input$color5 
-    theSettings$color6      =input$color6  
-    theSettings$color7      =input$color7      
-    theSettings$color8      =input$color8 
-    theSettings$color9      =input$color9 
-    theSettings$color10     =input$color10 
-    theSettings$color11     =input$color11 
-    theSettings$color12     =input$color12 
-    theSettings$color13     =input$color13 
-    theSettings$color14     =input$color14 
-    theSettings$color15     =input$color15 
-    theSettings$color16     =input$color16 
-    theSettings$color17     =input$color17 
-    theSettings$color18     =input$color18 
-    theSettings$res         =input$res
-    theSettings$transparency=input$transparency 
-    theSettings$YLimMin     =input$YLimMin
-    theSettings$YLimMax     =input$YLimMax
-    theSettings$XLimMin     =input$XLimMin
-    theSettings$XLimMax     =input$XLimMax            
-    theSettings$YlabRot     =input$YlabRot
-    theSettings$XlabRot     =input$XlabRot
-    theSettings$barPlace    =input$barPlace
-    theSettings$legendPlace =input$legendPlace
-    theSettings$YTrans      =input$YTrans
-    theSettings$XTrans      =input$XTrans
-    theSettings$facetWrap   =input$facetWrap
-    theSettings$SDIvals     =input$SDIvals
-    theSettings$YUnits      =input$YUnits
-    theSettings$XUnits      =input$XUnits
-    theSettings$StkChtvals  =input$StkChtvals 
+  isolate({   
+    theSettings$selectdbtables = input$selectdbtables
+    theSettings$selectdbvars   = input$selectdbvars
+    theSettings$stdgroups      = input$stdgroups    
+    theSettings$stdid          = input$stdid        
+    theSettings$mgmid          = input$mgmid 
+    theSettings$year           = input$year                 
+    theSettings$species        = input$species 
+    theSettings$dbhclass       = input$dbhclass           
+    theSettings$browsevars     = input$browsevars
+    theSettings$plotType       = input$plotType 
+    theSettings$colBW          = input$colBW
+    theSettings$xaxis          = input$xaxis 
+    theSettings$yaxis          = input$yaxis 
+    theSettings$hfacet         = input$hfacet
+    theSettings$ptitle         = input$ptitle 
+    theSettings$xlabel         = input$xlabel 
+    theSettings$vfacet         = input$vfacet 
+    theSettings$pltby          = input$pltby              
+    theSettings$ylabel         = input$ylabel 
+    theSettings$width          = input$width 
+    theSettings$height         = input$height 
+    theSettings$moreControls   = input$moreControls
+    theSettings$color1         = input$color1                    
+    theSettings$color2         = input$color2
+    theSettings$color3         = input$color3
+    theSettings$color4         = input$color4  
+    theSettings$color5         = input$color5 
+    theSettings$color6         = input$color6  
+    theSettings$color7         = input$color7      
+    theSettings$color8         = input$color8 
+    theSettings$color9         = input$color9 
+    theSettings$color10        = input$color10 
+    theSettings$color11        = input$color11 
+    theSettings$color12        = input$color12 
+    theSettings$color13        = input$color13 
+    theSettings$color14        = input$color14 
+    theSettings$color15        = input$color15 
+    theSettings$color16        = input$color16 
+    theSettings$color17        = input$color17 
+    theSettings$color18        = input$color18 
+    theSettings$res            = input$res
+    theSettings$transparency   = input$transparency 
+    theSettings$YLimMin        = input$YLimMin
+    theSettings$YLimMax        = input$YLimMax
+    theSettings$XLimMin        = input$XLimMin
+    theSettings$XLimMax        = input$XLimMax            
+    theSettings$YlabRot        = input$YlabRot
+    theSettings$XlabRot        = input$XlabRot
+    theSettings$barPlace       = input$barPlace
+    theSettings$legendPlace    = input$legendPlace
+    theSettings$YTrans         = input$YTrans
+    theSettings$XTrans         = input$XTrans
+    theSettings$facetWrap      = input$facetWrap
+    theSettings$SDIvals        = input$SDIvals
+    theSettings$YUnits         = input$YUnits
+    theSettings$XUnits         = input$XUnits
+    theSettings$StkChtvals     = input$StkChtvals 
   })
   theSettings
 } 
 
 setGraphSettings <- function(session,theSettings)
-{
+{ 
   updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
 
@@ -320,11 +326,11 @@ setGraphSettings <- function(session,theSettings)
   updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
   updateSelectInput       (session=session, inputId="year",         selected=theSettings$year) 
 
-  updateSelectInput       (session=session, inputId="yaxis",   choices=globals$settingChoices[["yaxis"]],     selected=theSettings$yaxis) 
-  updateSelectInput       (session=session, inputId="xaxis",   choices=globals$settingChoices[["xaxis"]],     selected=theSettings$xaxis) 
-  updateSelectInput       (session=session, inputId="hfacet",  choices=globals$settingChoices[["hfacet"]],    selected=theSettings$hfacet)
-  updateSelectInput       (session=session, inputId="vfacet",  choices=globals$settingChoices[["vfacet"]],    selected=theSettings$vfacet) 
-  updateSelectInput       (session=session, inputId="pltby",   choices=globals$settingChoices[["pltby"]],     selected=theSettings$pltby) 
+  updateSelectInput       (session=session, inputId="yaxis",   choices=globals$settingChoices[["yaxis"]],  selected=theSettings$yaxis) 
+  updateSelectInput       (session=session, inputId="xaxis",   choices=globals$settingChoices[["xaxis"]],  selected=theSettings$xaxis) 
+  updateSelectInput       (session=session, inputId="hfacet",  choices=globals$settingChoices[["hfacet"]], selected=theSettings$hfacet)
+  updateSelectInput       (session=session, inputId="vfacet",  choices=globals$settingChoices[["vfacet"]], selected=theSettings$vfacet) 
+  updateSelectInput       (session=session, inputId="pltby",   choices=globals$settingChoices[["pltby"]],  selected=theSettings$pltby) 
 
   updateSliderInput       (session=session, inputId="transparency", value   =theSettings$transparency) 
   updateColourInput       (session=session, inputId="color1",       value   =theSettings$color1)           

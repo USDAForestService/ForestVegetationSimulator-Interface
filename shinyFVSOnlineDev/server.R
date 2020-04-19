@@ -67,14 +67,14 @@ cat ("Server id=",serverID,"\n")
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
-
+    
     if (file.exists("projectIsLocked.txt")) 
     {
       hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
 cat ("Project locked file found, hrs=",hrs,"\n")
       if (hrs<3) 
       { 
-        output$appLocked<-renderUI(h1("Project is locked"))
+        output$appLocked<-renderUI(HTML('<h1 style="color:#FF0000">Project is locked</h1>'))
         globals$deleteLockFile=FALSE
         globals$saveOnExit=FALSE
 cat ("Project is locked, exiting.\n")
@@ -246,16 +246,8 @@ cat ("View Outputs & Load\n")
           tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
         tableList = as.list(sort(c("",tabs)))
       }
-      updateSelectInput(session, "tabDescSel2", choices = tableList, 
-                        selected=1)
-      updateSelectInput(session, "runs", choices = fvsOutData$runs, 
-                        selected=0)
-      updateTextInput(session=session, inputId="ptitle", label="Title",
-                      value="")
-      updateTextInput(session=session, inputId="ylabel", label="Y-label",
-                      value="")
-      updateTextInput(session=session, inputId="xlabel", label="X-label",
-                      value="")
+      updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
+      updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
   })
 
@@ -509,6 +501,7 @@ cat("selectdbtables\n")
 
   # selectdbvars
   observe({
+cat("selectdbvars\n")    
     if (!is.null(input$selectdbvars)) 
     {
       # if CaseID is part of the variable set, make sure it is selected at least once
@@ -724,7 +717,7 @@ cat ("sqlNew\n")
   })
   
   ## Explore
-  observe({ 
+  observe({
     if (input$leftPan == "Explore")
     {
 cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
@@ -1064,28 +1057,64 @@ cat ("Graphs pan hit\n")
       updateSelectInput(session=session, inputId="OPsettings", choices=names(GraphSettings),
          selected="None")
       updateTextInput(session=session, "OPname", value = "")
+      output$OPmessage=NULL
     }
   })
   
   ##OPsettings
   observe({
-    if (!is.null(input$OPsettings) && input$OPsettings > 0)
+    if (!is.null(input$OPsettings))
     {
+      isolate({
 cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
-      if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
-      if (!exists("GraphSettings") || 
-          length(GraphSettings[[input$OPsettings]])<1 ||
-          input$OPsettings == "None")
-        updateTextInput(session=session, "OPname", value = "") else 
-      {
-        updateTextInput(session=session, "OPname", value = input$OPsettings)
-        setGraphSettings(session,GraphSettings[[input$OPsettings]])
-      }
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings") || 
+            length(GraphSettings[[input$OPsettings]])<1 ||
+            input$OPsettings == "None")
+        {                  
+          output$OPmessage=NULL
+          updateTextInput(session=session, "OPname", value = "") 
+        } else {
+          updateTextInput(session=session, "OPname", value = input$OPsettings)
+
+          if (all(unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]) %in%
+                   input$selectdbtables) &&
+              all(unlist(GraphSettings[[input$OPsettings]][["dbvars"]]) %in% 
+                  input$selectdbvars)) 
+          {
+            output$OPmessage=NULL 
+            setGraphSettings(session,GraphSettings[[input$OPsettings]]) 
+          } else output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
+              "The data needed for this setting was not selected ",
+              "when you picked data to load.<br>Table(s) needed: ",
+              paste0(GraphSettings[[input$OPsettings]][["selectdbtables"]],
+              collapse=", "),"</p>"))) 
+## I might be able to revist this approach (NLC)...it would automatically reselect
+## the needed tables. This will require reworking the reactivity logic now based on
+## hitting the "Explore" tab.
+##          if (!all(unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]) %in%
+##                   input$selectdbtables) 
+##          {
+##cat ("OPsettings, update selectdbtables, tables=",unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]),"\n")
+##            updateSelectInput(session=session, inputId="selectdbtables",
+##              selected=GraphSettings[[input$OPsettings]][["selectdbtables"]]) 
+##          }
+##          if (!all(unlist(GraphSettings[[input$OPsettings]][["dbvars"]]) %in% 
+##                   input$selectdbvars)) output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
+##              "The data for this setting was not selected ",
+##              "when you picked data to load. Try again.</p>"))) else 
+##          {
+##            output$OPmessage=NULL 
+##            setGraphSettings(session,GraphSettings[[input$OPsettings]]) 
+##          } 
+        } 
+      })
     }
   })      
   observe({
     if (input$OPsave > 0) 
     {
+      output$OPmessage=NULL
       isolate({
 cat ("OPsave hit, OPname=",input$OPname,"\n")
         if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
@@ -1114,6 +1143,7 @@ cat ("OPsave hit, OPname=",input$OPname,"\n")
     {                             
       isolate({
 cat("OPdel hit, input$OPname=",input$OPname,"\n")
+        output$OPmessage=NULL
         if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
         if (!exists("GraphSettings")) return() 
         if (input$OPname == "None") return()
@@ -1187,7 +1217,7 @@ cat ("browsevars/plotType\n")
           def = if ("Species" %in% cats) "Species" else NULL
           if (!is.null(def) && "Year" %in% cats) "Year" else cats[1]
           sel = if (!is.null(curX) && curX %in% cats) curX else def
-          globals$settingChoices[["xaxis"]] = as.list(cont)
+          globals$settingChoices[["xaxis"]] = as.list(cats)
           updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
           if (sel=="Year" && length(cont) > 1) sel = cont[2]

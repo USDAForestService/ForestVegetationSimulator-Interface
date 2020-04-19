@@ -385,6 +385,7 @@ shinyUI(fixedPage(
               column(width=4,
                 actionButton("OPsave","Save current settings"),
                 actionButton("OPdel","Delete current settings"))),
+            uiOutput("OPmessage"),    
             div(style="height:1px;width:100%;background-color:lightgray;"),
             fixedRow(
               column(width=7,
