@@ -61,7 +61,7 @@ cat ("Server id=",serverID,"\n")
                     "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                     "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
-    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE)
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE,gFreeze=FALSE)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
@@ -1167,7 +1167,7 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
   observe({
     if (!is.null(input$browsevars) && !is.null(input$plotType)) 
     {
-cat ("browsevars/plotType\n")
+cat ("browsevars/plotType, globals$gFreeze=",globals$gFreeze,"\n")
       fvsOutData$browseSelVars <- input$browsevars  
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
@@ -1183,7 +1183,8 @@ cat ("browsevars/plotType\n")
       updateSelectInput(session,"pivVar",choices=as.list(c("None",cats)),
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
-                      selected=sdisp)       
+                      selected=sdisp)
+      if (globals$gFreeze) return()
       isolate({
         curX = input$xaxis
         curY = input$yaxis
@@ -1254,12 +1255,14 @@ cat ("browsevars/plotType\n")
         sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
         updateSelectInput(session=session, inputId="pltby",choices=as.list(c("None",cats)),
           selected=sel)
+cat ("end of browsevars/plotType\n")
       })
     }
   })   
 
   ## yaxis, xaxis regarding the Y- and XUnits for DMD
   observe({
+    if (globals$gFreeze) return()
     if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
       updateRadioButtons(session=session,inputId="YUnits",  
        selected=input$yaxis)
@@ -1270,7 +1273,7 @@ cat ("browsevars/plotType\n")
   ## Set a tool to "None" if the same level is selected by another tool (doesn't 
   ## apply to axes selection
   observe({
-    if (is.null(input$pltby) || input$pltby  == "None") return()
+    if (is.null(input$pltby) || input$pltby  == "None" || globals$gFreeze) return()
     isolate({
       if (all(!c(is.null(input$pltby),is.null(input$xaxis),is.null(input$pltby),
                  is.null(input$yaxis))) && 
@@ -1285,7 +1288,8 @@ cat ("browsevars/plotType\n")
         updateSelectInput(session=session, inputId="hfacet", selected="None")
   }) }) 
   observe({
-    if (is.null(input$vfacet) || input$vfacet  == "None") return()
+cat ("vfacet change, globals$gFreeze=",globals$gFreeze,"\n")
+    if (is.null(input$vfacet) || input$vfacet  == "None" || globals$gFreeze) return()
     isolate({
       if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
           (input$vfacet == input$xaxis || input$vfacet == input$yaxis))
@@ -1299,7 +1303,8 @@ cat ("browsevars/plotType\n")
         updateSelectInput(session=session, inputId="hfacet", selected="None")
   }) }) 
   observe({
-    if (is.null(input$hfacet) || input$hfacet  == "None") return()                 
+cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
+    if (is.null(input$hfacet) || input$hfacet  == "None" || globals$gFreeze) return()                 
     isolate({
       if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
           (input$hfacet == input$xaxis || input$hfacet == input$yaxis))
@@ -1747,7 +1752,8 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
                  res=fvsOutData$plotSpecs$res)              
     print(p)
     dev.off()
-    list(src = outfile)            
+    globals$gFreeze = FALSE
+    list(src = outfile) 
   }, deleteFile = FALSE)
   
      

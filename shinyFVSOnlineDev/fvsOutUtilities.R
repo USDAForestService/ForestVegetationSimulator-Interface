@@ -12,6 +12,7 @@ mkfvsOutData <-
 initTableGraphTools <- function ()
 {
 cat ("initTableGraphTools\n")
+  globals$gFreeze = TRUE
   fvsOutData$dbData = data.frame()
   fvsOutData$runs = character(0)
   fvsOutData$dbVars = character(0)
@@ -41,6 +42,7 @@ cat ("initTableGraphTools\n")
   updateTextInput(session=session,   inputId="ylabel",   value="")
   updateTextInput(session=session,   inputId="xlabel",   value="")
   output$table <- renderTable(NULL)
+  globals$gFreeze = FALSE
 }                          
 
 pivot <- function(dat,pvar,dvar)
@@ -316,6 +318,7 @@ getGraphSettings <- function(input)
 
 setGraphSettings <- function(session,theSettings)
 { 
+  globals$gFreeze = TRUE
   updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
 
