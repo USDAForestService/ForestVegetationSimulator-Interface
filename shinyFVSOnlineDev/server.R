@@ -1088,25 +1088,7 @@ cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
               "The data needed for this setting was not selected ",
               "when you picked data to load.<br>Table(s) needed: ",
               paste0(GraphSettings[[input$OPsettings]][["selectdbtables"]],
-              collapse=", "),"</p>"))) 
-## I might be able to revist this approach (NLC)...it would automatically reselect
-## the needed tables. This will require reworking the reactivity logic now based on
-## hitting the "Explore" tab.
-##          if (!all(unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]) %in%
-##                   input$selectdbtables) 
-##          {
-##cat ("OPsettings, update selectdbtables, tables=",unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]),"\n")
-##            updateSelectInput(session=session, inputId="selectdbtables",
-##              selected=GraphSettings[[input$OPsettings]][["selectdbtables"]]) 
-##          }
-##          if (!all(unlist(GraphSettings[[input$OPsettings]][["dbvars"]]) %in% 
-##                   input$selectdbvars)) output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
-##              "The data for this setting was not selected ",
-##              "when you picked data to load. Try again.</p>"))) else 
-##          {
-##            output$OPmessage=NULL 
-##            setGraphSettings(session,GraphSettings[[input$OPsettings]]) 
-##          } 
+              collapse=", "),"</p>")))
         } 
       })
     }
@@ -1347,6 +1329,22 @@ cat ("renderPlot\n")
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
+    # fix DBHClass if it is in the data.
+    if ("DBHClass" %in% names(dat))
+    { 
+      dld=levels(dat$DBHClass)
+      dla=levels(fvsOutData$dbData$DBHClass)
+      mdld=min(dld);xdld=max(dld)
+      lvs=dla[match(mdld,dla):match(xdld,dla)]
+      dat$DBHClass=as.character(dat$DBHClass)
+      for (lms in setdiff(lvs,dld)) 
+      {
+        dat=rbind(dat,dat[1,,drop=FALSE])
+        dat$DBHClass[nrow(dat)]=lms
+      }
+      dat$DBHClass=factor(as.character(dat$DBHClass))
+      dat[nrow(dat),!unlist(lapply(dat,is.factor))]=0
+    }
     if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
     {
       for (il in 1:length(levels(dat$Groups)))
@@ -1411,7 +1409,8 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
       names(nd)[ncol(nd)]="Y"
     }
-    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) == "0") 
+    if (nlevels(nd[[input$xaxis]])>5 && max(nchar(levels(nd[[input$xaxis]]))) > 3 && 
+        isolate(input$XlabRot) == "0") 
       updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
     if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
@@ -1485,7 +1484,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     linetypes = autorecycle(c("solid","dashed","dotted","dotdash","longdash","twodash"),
                              nlevels(nd$Legend))
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
-cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
+cat ("Legend nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
       hjust = if(input$XlabRot=="45") 1 else .5))
     p = p + theme(axis.text.y = element_text(angle = as.numeric(input$YlabRot), 
