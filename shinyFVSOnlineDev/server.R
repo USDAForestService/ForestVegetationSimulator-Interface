@@ -1329,6 +1329,7 @@ cat ("renderPlot\n")
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
+    if (nrow(dat)==0) return(nullPlot("No observations using these selections"))
     # fix DBHClass if it is in the data.
     if ("DBHClass" %in% names(dat))
     { 
@@ -1336,15 +1337,27 @@ cat ("renderPlot\n")
       dla=levels(fvsOutData$dbData$DBHClass)
       mdld=min(dld);xdld=max(dld)
       lvs=dla[match(mdld,dla):match(xdld,dla)]
-      dat$DBHClass=as.character(dat$DBHClass)
-      for (lms in setdiff(lvs,dld)) 
+      mlv=setdiff(lvs,dld)
+      if (length(mlv))
       {
-        dat=rbind(dat,dat[1,,drop=FALSE])
-        dat$DBHClass[nrow(dat)]=lms
+        # this bit makes sure CaseID is first
+        byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+                        c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
+        newrows = ddply(dat,byset,function(x) x[1,])
+        newrows[,!unlist(lapply(dat,is.factor))]=0
+        newrows$DBHClass=as.character(newrows$DBHClass)
+        dat$DBHClass=as.character(dat$DBHClass)
+        for (lms in mlv) 
+        {
+          newrows$DBHClass = lms
+          dat=rbind(dat,newrows)
+        }
+        dat$DBHClass=factor(as.character(dat$DBHClass))
+        cmd=paste0("idx=with(dat,order(",paste0(c(byset,"DBHClass"),collapse=","),"))")
+        eval(parse(text=cmd))
+        dat = dat[idx,]
       }
-      dat$DBHClass=factor(as.character(dat$DBHClass))
-      dat[nrow(dat),!unlist(lapply(dat,is.factor))]=0
-    }
+    } # end of DBHClass fixup
     if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
     {
       for (il in 1:length(levels(dat$Groups)))
@@ -6594,7 +6607,8 @@ cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",inp
                                "inDBS"="FVS_Data.db",
                                "inSpace"="SpatialData.RData",
                                "kcps"="FVS_kcps.RData",
-                               "custQ"="customQueries.RData"))
+                               "custQ"="customQueries.RData",
+                               "graphSet"="GraphSettings.RData"))
         }
         progress$set(message = "Copying files to target project",value = 6)
 cat ("cpyNow files=",files,"\n")
