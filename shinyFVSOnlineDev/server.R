@@ -70,23 +70,18 @@ cat ("Server id=",serverID,"\n")
     
     if (file.exists("projectIsLocked.txt")) 
     {
-      hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
-cat ("Project locked file found, hrs=",hrs,"\n")
-      if (hrs<3) 
-      { 
-        output$appLocked<-renderUI(HTML('<h1 style="color:#FF0000">Project is locked</h1>'))
-        globals$deleteLockFile=FALSE
-        globals$saveOnExit=FALSE
-cat ("Project is locked, exiting.\n")
-        stopApp()
-      }
-    } 
-    cat (file="projectIsLocked.txt",date(),"\n") 
+cat ("Project is locked.\n")
+      output$appLocked<-renderUI(HTML(paste0('<h1 style="color:#FF0000">',
+        'Warning: This project may already be opened.</h1>',
+        '<h3>Insure the project is not opened in another window.</h3>',
+        '<button id="clearLock" type="button" class="btn btn-default action-button">Clear this message and proceed</button>',
+        '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" class="btn btn-default action-button">Exit now</button><h3></h3>')))
+    } else cat (file="projectIsLocked.txt",date(),"\n") 
 
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
-    globals$fvsRun <- mkfvsRun()
-    if (!file.exists("FVS_Runs.RData"))
+    globals$fvsRun <- mkfvsRun()                                             
+    if (!file.exists("FVS_Runs.RData"))       
     {
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
@@ -200,6 +195,7 @@ cat ("sending closeWindow\n")
   session$onSessionEnded(function ()
   { 
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
+     " globals$deleteLockFile=",globals$deleteLockFile,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
@@ -223,7 +219,47 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
   })
-    
+
+  ## clearLock, exitNow
+  observe({
+    if (!is.null(input$clearLock) && input$clearLock==0)
+    {
+      withProgress(session, {  
+        for (i in 1:5)
+        {
+          setProgress(message = "5 second delay  ", 
+                detail  = paste(i,"of 5"), value = i)
+          Sys.sleep(1)
+        }
+        setProgress(value = NULL)          
+      }, min=1, max=10)
+    }
+  })
+  observe({
+    if (!is.null(input$exitNow) && input$exitNow>0)
+    {
+      globals$deleteLockFile=FALSE
+      globals$saveOnExit=FALSE
+      session$sendCustomMessage(type = "closeWindow"," ")
+    }
+  })
+  observe({
+    if (!is.null(input$clearLock) && input$clearLock>0)
+    {
+      output$appLocked<-NULL
+      # remake the lock file.
+      cat (file="projectIsLocked.txt",date(),"\n")
+    }
+  })
+  observe({
+    if (!is.null(input$exitNow) && input$exitNow>0)
+    {
+      globals$deleteLockFile=FALSE
+      globals$saveOnExit=FALSE
+      session$sendCustomMessage(type = "closeWindow"," ")
+    }
+  })
+      
   ## Load
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")

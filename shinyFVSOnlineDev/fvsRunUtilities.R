@@ -2324,12 +2324,12 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
           newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
           grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
             grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
-                 fixed=TRUE) else c()   
-          if (length(grprow) > 0) 
+                 fixed=TRUE) else c()
+          for (grow in grprow)
           {
             addkeys <- globals$inData$
-                       FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
-            if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
+                       FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
+            if (!is.null(addkeys)) newgrp$cmps[[length(newgrp$cmps)+1]] <- 
                mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
                         kwdName="From: FVS_GroupAddFilesAndKeywords",
                           title="From: FVS_GroupAddFilesAndKeywords")
