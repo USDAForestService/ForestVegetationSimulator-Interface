@@ -5178,12 +5178,14 @@ cat ("cmd=",cmd,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      tbls = grep ("CREATE TABLE",schema)
-      schema = schema[tbls[1]:length(schema)]
       tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
-      schema = gsub("]","",schema,fixed=TRUE)
-      schema = gsub("[","",schema,fixed=TRUE) 
+      schema = schema[tbls[1]:length(schema)]
       schema = gsub("\t"," ",schema,fixed=TRUE)   
+      schema = gsub("[","]",schema,fixed=TRUE) 
+      tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
+      tbln=unlist(lapply(schema[tbls],function(x) if (length(grep("]",x,fixed=TRUE)))
+        scan(text=x,what="character",sep="]",quiet=TRUE)[2] else
+        scan(text=x,what="character",quiet=TRUE)[3]))
       schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
@@ -5193,20 +5195,20 @@ cat ("cmd=",cmd,"\n")
       schema = gsub(" SHORT_DATE_TIME,"," Text,",schema,ignore.case=TRUE)
       schema = gsub(" FLOAT,"," Real,",schema,ignore.case=TRUE)
       schema = gsub(" NOT NULL"," ",schema,,ignore.case=TRUE)
-      tbls=unlist(lapply(schema[tbls],function(x) scan(text=x,what="character",quiet=TRUE)[3]))
+      schema = gsub(" Single"," Real",schema)                    
+      schema = gsub("]",'"',schema,fixed=TRUE) 
       cat ("begin;\n",file="sqlite3.import")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Extract data", value = 3)  
-      tblsU <- toupper(tbls)
-      if(!length(grep("FVS_STANDINIT",tblsU))){
+      if(!length(grep("FVS_StandInit",tbln,ignore.case=TRUE))){
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      for (tab in tbls) 
+      for (tab in tbln) 
       {
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
         cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
@@ -6782,14 +6784,15 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             globals$reloadAppIsSet=1
             curdir=getwd()
             setwd(newPrj)          
-            rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+            rscript = if (exists("RscriptLocation")) RscriptLocation else 
+              commandArgs(trailingOnly=FALSE)[1]     
             cmd = paste0(rscript,' --vanilla -e "require(shiny);runApp(launch.browser=TRUE);quit()"')
-            if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
+            if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
 cat ("cmd=",cmd,"\n")
             system (cmd,wait=FALSE)
             setwd(curdir)
           }  
-        } else {
+        } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
 cat ("launch url:",url,"\n")
