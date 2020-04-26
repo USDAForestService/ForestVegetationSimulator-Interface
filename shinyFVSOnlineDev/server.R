@@ -5229,7 +5229,8 @@ cat ("cmd done.\n")
       sheets = getSheetNames(fname)
       progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
       sheetsU <- toupper(sheets)
-      if(!length(grep("FVS_STANDINIT",sheetsU))){
+      if(!length(grep("FVS_STANDINIT",sheetsU)))
+      {
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
@@ -5270,7 +5271,8 @@ cat ("sheet = ",sheet," i=",i,"\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       progress <- shiny::Progress$new(session,min=1,max=3)
       tabs = toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])
-      if(!length(grep("FVS_STANDINIT",tabs))){
+      if(!length(grep("FVS_STANDINIT",tabs)))
+      {
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
@@ -5291,7 +5293,7 @@ cat("loaded table=",tab,"\n")
     fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
     # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
     grpmsg=NULL
-    if (!is.na(match("fvs_groupaddfilesandkeywords",ltabs)))
+    if ("fvs_groupaddfilesandkeywords" %in% ltabs)
     {
       addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
       if (class(addgrps)!="try-error")
@@ -5300,32 +5302,38 @@ cat("loaded table=",tab,"\n")
         for (idx in fixTabs)
         {
           tab2fix=tabs[idx]
-          grps=try(dbGetQuery(dbo,paste0('select distinct groups from ',tab2fix)))
+          grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
           if (class(grps)=="try-error") next
           grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
           if (all(is.na(match(addgrps,grps)))) 
           {
-            Tb=dbReadTable(dbo,tab2fix)
+            Tb=try(dbReadTable(dbo,tab2fix))
+            if (class(Tb)=="try-error") next
             idx=match("groups",tolower(names(Tb)))
-            if (!is.na(idx) && length(Tb[,1])) 
+            if (!is.na(idx) && nrow(Tb)) 
             {
               Tb[,idx]=paste0(addgrps," ",Tb[,idx])
-              dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)
-              grpmsg=c(grpmsg,tab2fix)
+              if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
+                  grpmsg=c(grpmsg,tab2fix)
             }
           }
         }
       }
     }
+cat ("checking duplicate stand or standplot ids\n")
     # loop over tables and omit duplicate stand or standplot id's from being uploaded
     sidmsg=NULL
     newID=NULL  
     for (idx in fixTabs)
     {
+cat ("checking tabs[idx]=",tabs[idx],"\n")
       if (tolower(tabs[idx])=="fvs_standinit_plot") next
       tab2fix=tabs[idx]
       idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-      sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
+      qry = paste0("select ",idf," from '",tab2fix,"'")
+cat ("qry=",qry,"\n") 
+      sidTb=try(dbGetQuery(dbo,qry))
+      if (class(sidTb)=="try-error") next
       dups = duplicated(sidTb[,1])
       if (all(!dups)) next
       keep <- list()
@@ -5336,22 +5344,35 @@ cat("loaded table=",tab,"\n")
           cntr <- cntr +1
         }
       }
-      sidTb=dbReadTable(dbo,tab2fix)
+      sidTb=try(dbReadTable(dbo,tab2fix))
+      if (class(sidTb)=="try-error") next
       sidTb=sidTb[as.numeric(keep),]
       dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
       sidmsg=c(sidmsg,tab2fix)
-    }    
+    }
+cat ("sidmsg=",sidmsg,"\n")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
-      paste0("select count(*) as ",x," from ",x,";"))))
+      paste0("select count(*) as '",x,"' from '",x,"';"))))
+cat ("rowCnts=",unlist(rowCnts),"\n")
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
     if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
         paste0(grpmsg,collapse=", "))
     if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were found in table(s): ",
-        paste0(sidmsg,collapse=", "),". All duplicate values after the first value were ignored and not uploaded.")
-    fixFVSKeywords(dbo) 
-    checkMinColumnDefs(dbo,progress)
-    output$step1ActionMsg = renderText(HTML(msg))
+        paste0(sidmsg,collapse=", "),". <br>All duplicate values after the first value were not kept.")
+cat ("calling fixFVSKeywords\n")
+    tt = try(fixFVSKeywords(dbo))
+    canuse=class(tt) == "NULL"
+    if (class(tt)=="character") msg = paste0(msg,
+      "<br>Checking keywords: ",tt)
+    tt = try(checkMinColumnDefs(dbo,progress))
+    canuse=canuse && class(tt) == "NULL"
+    if (class(tt)=="character") msg = paste0(msg,
+      "<br>Checking columns: ",tt)
+    if (!canuse) msg = paste0(msg,
+      "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
+cat ("msg=",msg,"\n")
+    output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
