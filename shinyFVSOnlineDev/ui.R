@@ -40,6 +40,8 @@ zipList <- list(
   "FVS output file for current run" = "out",  
   "SVS output files for current run" = "subdir",  
   "Input data base FVS_Data.db" = "FVS_Data",  
+  "Spatial data (SpatialData.RData)" = "SpatialData",  
+  "Graph settings (GraphSettings.RData)" = "GraphSettings",  
   "FVS runs (RData files)" = "FVS_Runs",  
   "Custom SQL query archive (customQueries.RData)" = "customSQL",  
   "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")  
@@ -722,7 +724,7 @@ shinyUI(fixedPage(
                   tags$button(type = "button", class = "btn btn-primary", 
                     'data-dismiss' = "modal", "Cancel")))
               ),h4("Delete entire project"),
-              selectInput("PrjDelSelect", "Select non-active project to delete", multiple=FALSE,
+              selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
                           choices = list(), selected="", selectize=FALSE),
               list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
                    modalDialog(id="PrjDeleteDlg", footer=list(

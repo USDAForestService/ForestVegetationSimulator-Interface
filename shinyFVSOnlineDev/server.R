@@ -3714,6 +3714,10 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
                  }
                },
+               SpatialData = if (file.exists("SpatialData.RData")) 
+                 file.copy(from="SpatialData.RData",to=paste0(tempDir,"/SpatialData.RData")),
+               GraphSettings = if (file.exists("GraphSettings.RData")) 
+                 file.copy(from="GraphSettings.RData",to=paste0(tempDir,"/GraphSettings.RData")),
                customSQL = if (file.exists("customQueries.RData")) 
                  file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData")),
                FVS_kcps = if (file.exists("FVS_kcps.RData"))
@@ -4875,45 +4879,60 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       })
     }
   })
+   
   
   ## PrjDelete 
   observe({
-    if(isLocal()){
-      if(length(input$PrjDelete) && input$PrjDelete > 0)
-      {
-        session$sendCustomMessage(type = "dialogContentUpdate",
-          message = list(id = "PrjDeleteDlg",
-            message = "Are you sure you want to delete this project?"))
-      }
+    if(input$PrjDelete > 0)
+    {
+      isolate({
+        if (is.null(input$PrjDelSelect)) 
+        {
+          output$delPrjActionMsg <- renderUI(HTML("No project selected."))
+          session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "PrjDeleteDlg", message=
+              paste0('Select a project to delete, press Yes or No to continue.')))
+        } else {
+cat ("PrjDelete, input$PrjDelSelect=",input$PrjDelSelect,"\n")
+          prjList=getProjectList()
+          nm = names(prjList)[charmatch(input$PrjDelSelect,prjList)]
+          output$delPrjActionMsg <- NULL
+          session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "PrjDeleteDlg", message = 
+              paste0('Are you sure you want to delete this project "',nm,'"?')))
+        }
+      })
     }
   })
   observe({
-    if (length(input$PrjDeleteDlgBtn) && input$PrjDeleteDlgBtn > 0) 
+    if (input$PrjDeleteDlgBtn > 0) 
     {
-cat("delete project button.")                                           
-      if (length(getProjectList()) == 1)  
-      { 
-cat ("PrjDeleteDlgBtn only 1 project\n") 
-         output$delPrjActionMsg <- renderText(HTML(
-           "FVS cannot delete the last existing project."))                       
-      } else {
-        isolate({    
-          delPrj=paste0("../",input$PrjDelSelect)
-          if (!dir.exists(delPrj) 
-              || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
+cat("delete project button.") 
+      isolate({
+        if (is.null(input$PrjDelSelect)) 
+        {
+          output$delPrjActionMsg <- renderUI(HTML("No project selected."))
+        } else 
+        {
+          delPrj=paste0("../",input$PrjDelSelect)                  
+          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")))
           {
-cat ("PrjDeleteDlgBtn prj=",delPrj," NOT deleted\n") 
-              output$delPrjActionMsg <- renderText(HTML("<b>Project NOT deleted</b>"))
-          } else {
-cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n") 
-            unlink(delPrj, recursive=TRUE, force=TRUE)        
-            output$delPrjActionMsg <- renderText(HTML("<b>Project deleted</b>"))
-            updateProjectSelections()
+            output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
+          } else 
+          {
+            if (nchar(delPrj)<5 || !dir.exists(delPrj))    
+            {
+              output$delPrjActionMsg <- renderUI(HTML("<b>Project directory not found.</b>"))
+            } else {
+              unlink(delPrj, recursive=TRUE)        
+              output$delPrjActionMsg <- renderUI(HTML("<b>Disabled Project deleted</b>"))
+              updateProjectSelections()
+            }
           }
-        })
-      }
+        } 
+      })
     }
-  }) 
+  })
 
   ##topHelp
   observe({
@@ -6687,7 +6706,6 @@ cat ("cpyNow files=",files,"\n")
   updateProjectSelections <- function ()
   {
       selChoices = getProjectList() 
-cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       nsel = charmatch(basename(getwd()),selChoices)
       nsel = if(is.na(nsel)) NULL else nsel[1]
       sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
