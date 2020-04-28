@@ -2407,8 +2407,8 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
     names(grpIdxs) = need
     for (cn in 1:length(cnts)) 
     {
-      cnt <- cnts[cn]   
-      reps <- grep(names(cnt),stds,fixed=TRUE)
+      cnt <- cnts[cn]
+      reps <- (1:length(stds))[names(cnt) == stds]
       if (length(reps) > 1)
       {                                                                                             
         i <- 1
