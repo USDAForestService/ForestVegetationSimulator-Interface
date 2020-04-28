@@ -11,14 +11,19 @@ mkStdSel <- function (dbGlb)
       
 fixEmptyTable <- function (dbGlb)
 {
-cat("in fixEmptyTable, dbGlb$tblName=",dbGlb$tblName,"\n")
-  qry = paste0("select count(*) from ",dbGlb$tblName)
-  tmp = dbGetQuery(dbGlb$dbIcon,qry)
+  qry = paste0("select count(*) from '",dbGlb$tblName,"'")
+cat("in fixEmptyTable, qry=",qry,"\n")
+  tmp = try(dbGetQuery(dbGlb$dbIcon,qry))
+  if (class(tmp)=="try-error") return()
   if (tmp[1,1] > 0) return()    
   tmp = dbReadTable(dbGlb$dbIcon,dbGlb$tblName)
   tmp[1,] = tmp[1,]  
   dbWriteTable(dbGlb$dbIcon,dbGlb$tblName,tmp,overwrite=TRUE)
-  dbGlb$tbl  <- dbGetQuery(dbGlb$dbIcon,paste0("select _ROWID_,* from ",dbGlb$tblName))
+  qry=paste0("select _ROWID_,* from '",dbGlb$tblName,"'")
+cat(" qry=",qry,"\n")
+  tmp = try(dbGetQuery(dbGlb$dbIcon,qry))
+  if (class(tmp)=="try-error") return()
+  dbGlb$tbl  <- tmp
   rownames(dbGlb$tbl) = dbGlb$tbl$rowid
   dbGlb$rows = c(1,1)
   dbGlb$tbl$Delete = FALSE
@@ -27,29 +32,17 @@ cat("in fixEmptyTable, dbGlb$tblName=",dbGlb$tblName,"\n")
     
 checkMinColumnDefs <- function(dbo,progress=NULL)
 {
-  #this routine may need to be rebuilt. One issue is that the Stand_CN may not be
-  # in the TreeInit table. That is not checked in this code.
 cat ("in checkMinColumnDefs\n")
-  stdInit <- NULL
-  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
-    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit")))){
-      stdInit <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
-    }
-  }
-  plotInit <- NULL
-  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
-    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_PlotInit")))){
-      plotInit <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
-    }
-  }
-  stdInit_cond <- NULL
-  for (i in 1:length(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])){
-    if (!is.na(match(toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]), toupper("FVS_StandInit_Cond")))){
-      stdInit_cond <- dbGetQuery(dbo,"select name from sqlite_master where type='table';")[[1]][i]
-    }
-  }
-  if (is.null(stdInit)) return("No StandInit table was found.")
-
+  tbls = dbGetQuery(dbo,"select name from sqlite_master where type='table';")
+  tbls = toupper(tbls$name)
+cat ("tbls=",tbls,"\n")
+  initnms=c("FVS_StandInit","FVS_PlotInit","FVS_StandInit_Cond")
+  idx=charmatch(tbls,toupper(initnms))
+  idx=if (any(!is.na(idx))) idx=idx[!is.na(idx)] else 0
+cat ("idx=",idx,"\n")
+  if (idx[1]==0) return("No standinit tables found.")
+  initnms=initnms[idx]
+  stdInit=initnms[min(idx)]
   fields = try(dbListFields(dbo,stdInit))
   # if this is an error, then FVS_StandInit does not exist and this is an error
   # where the standard fixup in this case is to try recovery of the database.
@@ -63,8 +56,8 @@ cat ("in checkMinColumnDefs\n")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     qt = try(dbExecute(dbo,paste0("alter table '",stdInit,
-       "' add column Groups text not null default 'All_Stands'")))
-    if (class(qt)=="try-error") return ("Adding group 'All_Stands' to StandInit failed.")
+       "' add column Groups text default 'All All_Stands'")))
+    if (class(qt)=="try-error") return ("Adding group 'All All_Stands' to StandInit failed.")
     grp = TRUE
   }
   # make sure Stand_ID is defined
@@ -158,7 +151,7 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
       value = 10, detail = "FVS_GroupAddFilesAndKeywords")
   addkeys = getTableName(dbo,"FVS_GroupAddFilesAndKeywords")
-  if (is.null(addkeys)) need = TRUE else
+  if (is.na(addkeys)) need = TRUE else
   {
     gtab = try(dbReadTable(dbo,addkeys))
     need = class(gtab) == "try-error"
@@ -170,22 +163,22 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
   if (need)
   {                  
     treeInit = getTableName(dbo,"FVS_TreeInit")
-    if (is.null(treeInit)) treeInit = "FVS_TreeInit"
-    if (is.null(plotInit)) treeInit = "FVS_PlotInit"
-    dfinstand = data.frame(Groups = "All All_Stands",Addfiles = "",
-      FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-        "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
-        "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
-        "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")    
-    )
-    dfinplot = data.frame(Groups = "All All_Plots",Addfiles = "",
-      FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-        "SELECT * FROM ",plotInit,"\nWHERE StandPlot_ID= '%StandID%'\n",
-        "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
-        "WHERE StandPlot_ID= '%StandID%'\nEndSQL\nEND")    
-    )
+    if (is.na(treeInit)) return("Needed FVS_GroupAddFilesAndKeywords not added.")
+    dfinstand=NULL
+    for (stdInit in initnms)
+    {
+      grps = switch(stdInit,
+        "FVS_StandInit"="All All_Stands",
+        "FVS_PlotInit"="All All_Plots",
+        "FVS_StandInit_Cond"="All All_Conds")
+      dfinstand = rbind(dfinstand,
+        data.frame(Groups = grps,Addfiles = "",
+          FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
+            "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
+            "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
+            "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")))
+    }
     dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
-    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinplot,append=TRUE)
   }
   return(NULL)
 }

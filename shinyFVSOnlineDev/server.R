@@ -5388,6 +5388,7 @@ cat ("calling fixFVSKeywords\n")
     canuse=canuse && class(tt) == "NULL"
     if (class(tt)=="character") msg = paste0(msg,
       "<br>Checking columns: ",tt)
+cat ("msg=",msg,"\n")
     if (!canuse) msg = paste0(msg,
       "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
 cat ("msg=",msg,"\n")
@@ -6031,13 +6032,19 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     {         
       dbGlb$tblName <- input$editSelDBtabs
       fixEmptyTable(dbGlb)                                
-      checkMinColumnDefs(dbGlb$dbIcon)
+      msg=checkMinColumnDefs(dbGlb$dbIcon)
+cat ("msg=",msg,"\n")
       dbGlb$tbl <- NULL                                           
       dbGlb$tblCols <- names(dbGlb$tbsCTypes[[dbGlb$tblName]])
       if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
       {
-        dbGlb$sids = dbGetQuery(dbGlb$dbIcon,
-          paste0("select distinct Stand_ID from ",dbGlb$tblName))[,1]
+        rtn = try(dbGetQuery(dbGlb$dbIcon,
+          paste0("select distinct Stand_ID from '",dbGlb$tblName,"'")))
+        if (class(rtn)=="try-error")
+        {
+cat ("stand_ID query error.\n")
+           break
+        } else dbGlb$sids = rtn[,1]
         if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
         if (length(dbGlb$sids) > 0)                                           
         {
@@ -6067,6 +6074,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
       }
       output$inputTabDesc <- renderUI(HTML(html))
     }
+cat ("editSelDBtabs returns\n")
   })              
   
   observe({              
@@ -6090,7 +6098,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
         },
         Edit = 
         {
-          qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+          qry <- paste0("select _ROWID_,* from '",dbGlb$tblName,"'")
           qry <- if (length(intersect("stand_id",tolower(dbGlb$tblCols))) && 
                      length(input$rowSelector))
             paste0(qry," where Stand_ID in (",
