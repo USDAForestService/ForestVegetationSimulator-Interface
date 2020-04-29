@@ -1185,7 +1185,7 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
   observe({
     if (!is.null(input$browsevars) && !is.null(input$plotType)) 
     {
-cat ("browsevars/plotType, globals$gFreeze=",globals$gFreeze,"\n")
+cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",globals$gFreeze,"\n")
       fvsOutData$browseSelVars <- input$browsevars  
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
@@ -1339,7 +1339,8 @@ cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
   ## renderPlot
   output$outplot <- renderImage(
   {
-cat ("renderPlot\n")    
+cat ("renderPlot\n")
+    output$plotMessage=NULL
     nullPlot <- function (msg="Select different data, variables, plot type, or facet settings.")
     {
       outfile = "nullPlot.png"
@@ -1409,22 +1410,22 @@ cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\
     if (!is.null(hf) && nlevels(dat[,hf]) > 8)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
-      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf])," > 8")))
+      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf]),"> 8")))
     }
     if (!is.null(vf) && nlevels(dat[,vf]) > 8)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
-      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
+      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
     }
     for (v in c("MgmtID","StandID","Year")) 
     {
-      if (isolate(input$plotType) %in% c("line","scat","DMD","StkCht") && v=="Year") next
+      if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
-    pltp = isolate(input$plotType) 
+    pltp = input$plotType
     if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
@@ -1459,10 +1460,10 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       names(nd)[ncol(nd)]="Y"
     }
     if (nlevels(nd[[input$xaxis]])>5 && max(nchar(levels(nd[[input$xaxis]]))) > 3 && 
-        isolate(input$XlabRot) == "0") 
+        isolate(input$XlabRot) == "0" && !globals$gFreeze) 
       updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
-    if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
+    if (input$plotType %in% c("line","DMD","StkCht"))
     {
       if (is.null(dat[["RmvCode"]]))
       {                
@@ -1497,6 +1498,9 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }
+    if (input$plotType %in% c("line","DMD","StkCht") &&
+        length(unique(nd$X)) < 2) return(nullPlot(
+          "Selected plot type requires more than 1 unique value on the X-axis"))    
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
@@ -1554,7 +1558,7 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
     DMDguideLines = NULL
-    if (isolate(input$plotType) == "DMD")
+    if (input$plotType == "DMD")
     {
       sdis=input$SDIvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
@@ -1593,7 +1597,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
       }
     }
     StkChtguideLines = NULL
-    if (isolate(input$plotType) == "StkCht")
+    if (input$plotType == "StkCht")
     {
       sdis=input$StkChtvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
@@ -1652,10 +1656,12 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
         p = p + scale_x_log10(breaks=brkx,limits=rngx)
       } else {
         brkx=brks(rngx)
-        if (! (pltp %in% c("bar","box"))) p = p + scale_x_continuous(breaks=brkx,limits=rngx)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_x_continuous(breaks=brkx,
+          limits=rngx,guide=guide_axis(check.overlap = TRUE))
       }
 cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
-    }
+    } else p = p + scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+
     if (!is.factor(nd$Y)) 
     {
       rngy=range(if (!is.null(ylim)) ylim else range(c(nd$Y,ymaxlim),na.rm=TRUE))
@@ -1666,10 +1672,11 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
         p = p + scale_y_log10(breaks=brky,limits=rngy)
       } else {
         brky=brks(rngy)
-        if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,limits=rngy)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,
+          limits=rngy,guide = guide_axis(check.overlap = TRUE))
       }
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
-    }
+    } else p = p + scale_y_discrete(guide = guide_axis(check.overlap = TRUE))
     # add the guidelines and annotation here (now that we know the range limits of x and y
     if (!is.null(DMDguideLines)) 
     {
@@ -1728,7 +1735,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
  
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    pltp = isolate(input$plotType) 
+    pltp = input$plotType 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     p = p + switch(pltp,
