@@ -3602,7 +3602,7 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
          } 
          for (tab in tabs)
          {
-           qry = if (cmpYes && substr(tab,1,3) == "Cmp")
+           qry = if (!is.null(cmpYes) && cmpYes && substr(tab,1,3) == "Cmp")
              paste0("select * from ",tab," limit ",excelRowLimit,";") else
              paste0("select * from ",tab," where ",tab,".CaseID in",
                     " (select CaseID from ",casesToGet,") limit ",excelRowLimit,";")
