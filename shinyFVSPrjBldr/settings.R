@@ -53,7 +53,7 @@ FVSOnlineNeeded = c(
 "prms.RData",
 "treeforms.RData",
 "runScripts.R",
-"SpatialData.RData",
+"SpatialData.RData.default",
 "server.R", 
 "sqlQueries.R",
 "svsTree.R",
