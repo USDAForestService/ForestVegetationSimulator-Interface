@@ -19,12 +19,12 @@ shinyUI(fluidPage(
     uiOutput("uivariants"),    
     actionButton("submitnew","Submit"),
     tags$style(type="text/css","#actionMsg{color:darkred;}"), 
-    textOutput("actionMsg"),
-    hr(),
+    textOutput("actionMsg"),p(),
+    div(style="height:1px;width:100%;background-color:lightgray;"),
     p("Get a list of existing projects"),
     textInput("emailexist", "Your Email address", ""),
-    actionButton("submitexist","Submit"),
-    hr(),
+    actionButton("submitexist","Submit"),p(),
+    div(style="height:1px;width:100%;background-color:lightgray;"),
     h4("Notice"),
     p("The software is provided “as is”, without warranty of any kind, express or ",
     "implied, including but not limited to the warranties of merchantability, ",
@@ -32,8 +32,7 @@ shinyUI(fluidPage(
     "authors or copyright holders be liable for any claim, damages or other ",
     "liability, whether in an action of contract, tort or otherwise, arising ",
     "from, out of or in connection with the software or the use or other dealings ",
-    "in the software."),
-    h5("This edition of FVSOnline is intented for educational use.")
+    "in the software.")
   )
 ))
 
