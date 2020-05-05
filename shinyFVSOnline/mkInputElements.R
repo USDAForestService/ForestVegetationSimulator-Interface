@@ -481,7 +481,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
            HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
     tags$style(type="text/css", 
       "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-    tags$textarea(id="freeEdit", rows=10, kwds), 
+    tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
     myInlineListButton ("freeOps","Math:",list(
        " "=" ",
        "+ Simple addition"="+",

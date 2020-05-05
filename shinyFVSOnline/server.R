@@ -37,10 +37,10 @@ cat ("Server id=",serverID,"\n")
   # set serverDate to be the release date
 
   # use the floating date for the dev version
-  # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  serverDate="20200403"
+  # serverDate="20191101"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -61,33 +61,27 @@ cat ("Server id=",serverID,"\n")
                     "#D55E00","#8F7800","#D608FA","#009100","#CF2C73","#00989D",
                     "#00FF00","#BAF508","#202020","#6B6B6A","#56B4E9","#20D920")
     load("prms.RData") 
-    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0)
-    if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=TRUE
+    globals <- mkGlobals(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE,gFreeze=FALSE)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
-
-#     if (file.exists("projectIsLocked.txt")) 
-#     { 
-#       hrs = (as.integer(Sys.time())-as.integer(file.mtime("projectIsLocked.txt")))/3600
-# cat ("Project locked file found, hrs=",hrs,"\n")
-#       if (hrs<3) 
-#       { 
-#         output$appLocked<-renderUI(h1("Project is locked"))
-#         if (exists("deleteLockFile",envir=globals)) globals$deleteLockFile=FALSE
-#         globals$saveOnExit=FALSE
-# cat ("Project is locked, exiting.\n")
-#         stopApp()
-#       }
-#     } 
-    cat (file="projectIsLocked.txt",date(),"\n") 
+    
+    if (file.exists("projectIsLocked.txt")) 
+    {
+cat ("Project is locked.\n")
+      output$appLocked<-renderUI(HTML(paste0('<h1 style="color:#FF0000">',
+        'Warning: This project may already be opened.</h1>',
+        '<h3>Insure the project is not opened in another window.</h3>',
+        '<button id="clearLock" type="button" class="btn btn-default action-button">Clear this message and proceed</button>',
+        '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" class="btn btn-default action-button">Exit now</button><h3></h3>')))
+    } else cat (file="projectIsLocked.txt",date(),"\n") 
 
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
-    globals$fvsRun <- mkfvsRun()
-    if (!file.exists("FVS_Runs.RData"))
+    globals$fvsRun <- mkfvsRun()                                             
+    if (!file.exists("FVS_Runs.RData"))       
     {
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
@@ -201,6 +195,7 @@ cat ("sending closeWindow\n")
   session$onSessionEnded(function ()
   { 
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
+     " globals$deleteLockFile=",globals$deleteLockFile,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
@@ -219,44 +214,52 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file="projectId.txt",prjid)
       }
     }
-    if (exists("deleteLockFile",envir=globals) && globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")     
     #note: the stopApp function returns to the R process that called runApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
   })
-  
-  initTableGraphTools <- function ()
-  {
-cat ("initTableGraphTools\n")    
-    fvsOutData$dbData = data.frame()
-    fvsOutData$runs = character(0)
-    fvsOutData$dbVars = character(0)
-    fvsOutData$browseVars = character(0)
-    fvsOutData$dbSelVars = character(0)
-    fvsOutData$browseSelVars = character(0)
-    choices = list()               
-    updateSelectInput(session,"pivVar",choices=choices,select="")              
-    updateSelectInput(session,"hfacet",choices=choices,select="") 
-    updateSelectInput(session,"vfacet",choices=choices,select="") 
-    updateSelectInput(session,"pltby", choices=choices,select="") 
-    updateSelectInput(session,"dispVar",choices=choices,select="")       
-    updateSelectInput(session,"xaxis",choices=choices,select="") 
-    updateSelectInput(session,"yaxis",choices=choices,select="")
-    updateCheckboxGroupInput(session, "browsevars", choices=choices) 
-    updateTextInput(session=session, inputId="sqlOutput", label=NULL, value=NULL)
-    choices = list("None loaded")
-    updateSelectInput(session,"stdtitle",choices=choices,select=NULL)
-    updateSelectInput(session,"stdgroups",choices=choices,select=NULL)
-    updateSelectInput(session,"stdid",choices=choices,select=NULL)
-    updateSelectInput(session,"mgmid",choices=choices,select=NULL)
-    updateSelectInput(session,"year",choices=choices,select=NULL)
-    updateSelectInput(session,"species",choices=choices,select=NULL)
-    updateSelectInput(session,"dbhclass",choices=choices,select=NULL)
-    output$table <- renderTable(NULL)
-  }                          
 
-cat ("getwd= ",getwd(),"\n")
-  
+  ## clearLock, exitNow
+  observe({
+    if (!is.null(input$clearLock) && input$clearLock==0)
+    {
+      withProgress(session, {  
+        for (i in 1:5)
+        {
+          setProgress(message = "5 second delay  ", 
+                detail  = paste(i,"of 5"), value = i)
+          Sys.sleep(1)
+        }
+        setProgress(value = NULL)          
+      }, min=1, max=10)
+    }
+  })
+  observe({
+    if (!is.null(input$exitNow) && input$exitNow>0)
+    {
+      globals$deleteLockFile=FALSE
+      globals$saveOnExit=FALSE
+      session$sendCustomMessage(type = "closeWindow"," ")
+    }
+  })
+  observe({
+    if (!is.null(input$clearLock) && input$clearLock>0)
+    {
+      output$appLocked<-NULL
+      # remake the lock file.
+      cat (file="projectIsLocked.txt",date(),"\n")
+    }
+  })
+  observe({
+    if (!is.null(input$exitNow) && input$exitNow>0)
+    {
+      globals$deleteLockFile=FALSE
+      globals$saveOnExit=FALSE
+      session$sendCustomMessage(type = "closeWindow"," ")
+    }
+  })
+      
   ## Load
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
@@ -279,16 +282,8 @@ cat ("View Outputs & Load\n")
           tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
         tableList = as.list(sort(c("",tabs)))
       }
-      updateSelectInput(session, "tabDescSel2", choices = tableList, 
-                        selected=1)
-      updateSelectInput(session, "runs", choices = fvsOutData$runs, 
-                        selected=0)
-      updateTextInput(session=session, inputId="ptitle", label="Title",
-                      value="")
-      updateTextInput(session=session, inputId="ylabel", label="Y-label",
-                      value="")
-      updateTextInput(session=session, inputId="xlabel", label="X-label",
-                      value="")
+      updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
+      updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
   })
 
@@ -542,6 +537,7 @@ cat("selectdbtables\n")
 
   # selectdbvars
   observe({
+cat("selectdbvars\n")    
     if (!is.null(input$selectdbvars)) 
     {
       # if CaseID is part of the variable set, make sure it is selected at least once
@@ -638,10 +634,17 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               updateSelectInput(session,"hfacet",choices=choices,selected="None") 
               updateSelectInput(session,"vfacet",choices=choices,selected="None") 
               updateSelectInput(session,"pltby", choices=choices,selected="None") 
+              globals$settingChoices[["pivVar"]] = choices
+              globals$settingChoices[["hfacet"]] = choices
+              globals$settingChoices[["vfacet"]] = choices
+              globals$settingChoices[["pltby"]] = choices
               choices = as.list(c("None",
-                colnames(res)[!unlist(lapply(res, is.factor))]))              
+                colnames(res)[!unlist(lapply(res, is.factor))])) 
+              globals$settingChoices[["dispVar"]] = choices
               updateSelectInput(session,"dispVar",choices=choices,selected="None")
               choices = as.list(colnames(res))              
+              globals$settingChoices[["xaxis"]] = choices
+              globals$settingChoices[["yaxis"]] = choices
               updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
               updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
               if (input$outputRightPan != "Tables")
@@ -748,10 +751,9 @@ cat ("sqlNew\n")
         updateTextInput(session=session, inputId="sqlOutput", value="")
     }
   })
-
   
   ## Explore
-  observe({ 
+  observe({
     if (input$leftPan == "Explore")
     {
 cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
@@ -1032,7 +1034,7 @@ cat ("cmd=",cmd,"\n")
       }, min=1, max=12)
     } 
   })
-  
+ 
   ## renderTable
   renderTable <- function (dat)
   {
@@ -1078,12 +1080,112 @@ cat("filterRows and/or pivot\n")
     output$table <- renderTable(dat) 
   })
            
+  ##Graphs
+  observe({                 
+    if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
+    {
+cat ("Graphs pan hit\n")
+      # update color pallet
+      for (i in 1:length(cbbPalette))
+        updateColourInput(session=session,inputId=paste0("color",i),value=cbbPalette[i])
+      if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+      if (!exists("GraphSettings")) GraphSettings=list("None"=list())
+      updateSelectInput(session=session, inputId="OPsettings", choices=names(GraphSettings),
+         selected="None")
+      updateTextInput(session=session, "OPname", value = "")
+      output$OPmessage=NULL
+    }
+  })
   
+  ##OPsettings
+  observe({
+    if (!is.null(input$OPsettings))
+    {
+      isolate({
+cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings") || 
+            length(GraphSettings[[input$OPsettings]])<1 ||
+            input$OPsettings == "None")
+        {                  
+          output$OPmessage=NULL
+          updateTextInput(session=session, "OPname", value = "") 
+        } else {
+          updateTextInput(session=session, "OPname", value = input$OPsettings)
+
+          if (all(unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]) %in%
+                   input$selectdbtables) &&
+              all(unlist(GraphSettings[[input$OPsettings]][["dbvars"]]) %in% 
+                  input$selectdbvars)) 
+          {
+            output$OPmessage=NULL 
+            setGraphSettings(session,GraphSettings[[input$OPsettings]]) 
+          } else output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
+              "The data needed for this setting was not selected ",
+              "when you picked data to load.<br>Table(s) needed: ",
+              paste0(GraphSettings[[input$OPsettings]][["selectdbtables"]],
+              collapse=", "),"</p>")))
+        } 
+      })
+    }
+  })      
+  observe({
+    if (input$OPsave > 0) 
+    {
+      output$OPmessage=NULL
+      isolate({
+cat ("OPsave hit, OPname=",input$OPname,"\n")
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings")) 
+        {
+          GraphSettings=list("None"=list())
+          attr(GraphSettings[[1]],"setTime")=.Machine$integer.max
+        }
+        if (nchar(input$OPname)==0) 
+        {
+          setName=paste0("Setting ",length(GraphSettings)+1)
+          updateTextInput(session=session,inputId="OPname",value=setName)
+        } else setName=input$OPname      
+        GraphSettings[[setName]]=getGraphSettings(input)
+        attr(GraphSettings[[setName]],"setTime")=as.integer(Sys.time())
+        GraphSettings <- GraphSettings[order(unlist(lapply(GraphSettings,
+          function(x) attr(x,"setTime"))),decreasing = TRUE)]
+        save(GraphSettings,file="GraphSettings.RData")
+        updateSelectInput(session=session, inputId="OPsettings", choices=
+          names(GraphSettings),selected=setName)
+      })
+    }
+  })
+  observe({
+    if (input$OPdel > 0) 
+    {                             
+      isolate({
+cat("OPdel hit, input$OPname=",input$OPname,"\n")
+        output$OPmessage=NULL
+        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (!exists("GraphSettings")) return() 
+        if (input$OPname == "None") return()
+        if (is.null(GraphSettings[[input$OPname]])) return()
+        GraphSettings[[input$OPname]] = NULL
+        if (length(GraphSettings)==0) 
+        {
+          updateSelectInput(session=session, inputId="OPsettings", choices=list())
+          unlink("GraphSettings.RData")
+        } else {
+          save(GraphSettings,file="GraphSettings.RData")
+          updateSelectInput(session=session, inputId="OPsettings", choices=
+            names(GraphSettings),selected="None")
+        }
+        updateTextInput(session=session, "OPname", value = "") 
+      })
+    }
+  })
+
   ##browsevars/plotType 
   observe({
     if (!is.null(input$browsevars) && !is.null(input$plotType)) 
     {
-cat ("browsevars/plotType\n")
+cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",globals$gFreeze,"\n")
       fvsOutData$browseSelVars <- input$browsevars  
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
@@ -1099,7 +1201,8 @@ cat ("browsevars/plotType\n")
       updateSelectInput(session,"pivVar",choices=as.list(c("None",cats)),
                       selected=spiv)    
       updateSelectInput(session,"dispVar",choices=as.list(ccont),
-                      selected=sdisp)       
+                      selected=sdisp)
+      if (globals$gFreeze) return()
       isolate({
         curX = input$xaxis
         curY = input$yaxis
@@ -1107,7 +1210,8 @@ cat ("browsevars/plotType\n")
           selx = if (is.null(curX)) "Year" else curX
           selx = if (selx %in% cont) selx else 
                  if (length(cont) > 0) cont[1] else NULL
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected=selx)
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=selx)
           sel = if (is.null(curY)) "BA" else curY
           sel = if (sel %in% cont) sel else 
                 if (length(cont) > 0) cont[1] else NULL
@@ -1116,7 +1220,8 @@ cat ("browsevars/plotType\n")
             sel = grep("BA",cont)[1]
             sel = if (is.na(sel)) cont[2] else cont[sel]
           }
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType == "scat") {
           sel = if (is.null(curX)) "DBH" else curX
           sel = if (sel %in% cont) sel else 
@@ -1125,25 +1230,32 @@ cat ("browsevars/plotType\n")
           sel = if (is.null(curY)) "DG" else curY
           sel = if (sel %in% cont) sel else 
                 if (length(cont) > 0) cont[1] else NULL
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType %in% c("box","bar")) {
           def = if ("Species" %in% cats) "Species" else NULL
           if (!is.null(def) && "Year" %in% cats) "Year" else cats[1]
           sel = if (!is.null(curX) && curX %in% cats) curX else def
-          updateSelectInput(session, "xaxis",choices=as.list(cats), selected=sel)
+          globals$settingChoices[["xaxis"]] = as.list(cats)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
           if (sel=="Year" && length(cont) > 1) sel = cont[2]
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected=sel)
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType=="DMD") {
           updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
           updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
           updateRadioButtons(session=session,inputId="YTrans",selected="log10")
-          updateRadioButtons(session=session,inputId="XTrans",selected="log10")          
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="QMD")
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="Tpa")
+          updateRadioButtons(session=session,inputId="XTrans",selected="log10")
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="QMD")
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="Tpa")
         } else if (input$plotType=="StkCht") {
-          updateSelectInput(session, "xaxis",choices=as.list(cont), selected="Tpa")
-          updateSelectInput(session, "yaxis",choices=as.list(cont), selected="BA")
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="BA")
         }
         updateSliderInput(session, "transparency",  
           value = if(input$plotType == "scat") .3 else 0.)
@@ -1161,12 +1273,14 @@ cat ("browsevars/plotType\n")
         sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
         updateSelectInput(session=session, inputId="pltby",choices=as.list(c("None",cats)),
           selected=sel)
+cat ("end of browsevars/plotType\n")
       })
     }
   })   
 
   ## yaxis, xaxis regarding the Y- and XUnits for DMD
   observe({
+    if (globals$gFreeze) return()
     if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
       updateRadioButtons(session=session,inputId="YUnits",  
        selected=input$yaxis)
@@ -1177,7 +1291,7 @@ cat ("browsevars/plotType\n")
   ## Set a tool to "None" if the same level is selected by another tool (doesn't 
   ## apply to axes selection
   observe({
-    if (is.null(input$pltby) || input$pltby  == "None") return()
+    if (is.null(input$pltby) || input$pltby  == "None" || globals$gFreeze) return()
     isolate({
       if (all(!c(is.null(input$pltby),is.null(input$xaxis),is.null(input$pltby),
                  is.null(input$yaxis))) && 
@@ -1192,38 +1306,41 @@ cat ("browsevars/plotType\n")
         updateSelectInput(session=session, inputId="hfacet", selected="None")
   }) }) 
   observe({
-    if (is.null(input$vfacet) || input$vfacet  == "None") return()
+cat ("vfacet change, globals$gFreeze=",globals$gFreeze,"\n")
+    if (is.null(input$vfacet) || input$vfacet  == "None" || globals$gFreeze) return()
     isolate({
-      if (input$vfacet == input$xaxis || input$vfacet == input$yaxis) 
+      if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
+          (input$vfacet == input$xaxis || input$vfacet == input$yaxis))
       {
         updateSelectInput(session=session, inputId="vfacet", selected="None")
         return()
       }
-      if (input$vfacet == input$pltby)
+      if (!is.null(input$pltby) && input$vfacet == input$pltby)
         updateSelectInput(session=session, inputId="pltby", selected="None")       
       if (input$vfacet == input$hfacet)
         updateSelectInput(session=session, inputId="hfacet", selected="None")
   }) }) 
   observe({
-    if (is.null(input$hfacet) || input$hfacet  == "None") return()                 
+cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
+    if (is.null(input$hfacet) || input$hfacet  == "None" || globals$gFreeze) return()                 
     isolate({
-      if (input$hfacet == input$xaxis || input$hfacet == input$yaxis) 
+      if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
+          (input$hfacet == input$xaxis || input$hfacet == input$yaxis))
       {
         updateSelectInput(session=session, inputId="hfacet", selected="None")
         return()
       }
-      if (input$hfacet == input$pltby)
+      if (!is.null(input$pltby) && input$hfacet == input$pltby)
         updateSelectInput(session=session, inputId="pltby", selected="None")
       if (input$hfacet == input$vfacet)
         updateSelectInput(session=session, inputId="vfacet", selected="None")
-  }) }) 
-  
-  
+  }) })   
   
   ## renderPlot
   output$outplot <- renderImage(
   {
-cat ("renderPlot\n")    
+cat ("renderPlot\n")
+    output$plotMessage=NULL
     nullPlot <- function (msg="Select different data, variables, plot type, or facet settings.")
     {
       outfile = "nullPlot.png"
@@ -1249,6 +1366,35 @@ cat ("renderPlot\n")
       droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
+    if (nrow(dat)==0) return(nullPlot("No observations using these selections"))
+    # fix DBHClass if it is in the data.
+    if ("DBHClass" %in% names(dat))
+    { 
+      dld=levels(dat$DBHClass)
+      dla=levels(fvsOutData$dbData$DBHClass)
+      mdld=min(dld);xdld=max(dld)
+      lvs=dla[match(mdld,dla):match(xdld,dla)]
+      mlv=setdiff(lvs,dld)
+      if (length(mlv))
+      {
+        # this bit makes sure CaseID is first
+        byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+                        c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
+        newrows = ddply(dat,byset,function(x) x[1,])
+        newrows[,!unlist(lapply(dat,is.factor))]=0
+        newrows$DBHClass=as.character(newrows$DBHClass)
+        dat$DBHClass=as.character(dat$DBHClass)
+        for (lms in mlv) 
+        {
+          newrows$DBHClass = lms
+          dat=rbind(dat,newrows)
+        }
+        dat$DBHClass=factor(as.character(dat$DBHClass))
+        cmd=paste0("idx=with(dat,order(",paste0(c(byset,"DBHClass"),collapse=","),"))")
+        eval(parse(text=cmd))
+        dat = dat[idx,]
+      }
+    } # end of DBHClass fixup
     if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
     {
       for (il in 1:length(levels(dat$Groups)))
@@ -1264,22 +1410,22 @@ cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\
     if (!is.null(hf) && nlevels(dat[,hf]) > 8)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
-      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf])," > 8")))
+      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf]),"> 8")))
     }
     if (!is.null(vf) && nlevels(dat[,vf]) > 8)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
-      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf])," > 8")))
+      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
     }
     for (v in c("MgmtID","StandID","Year")) 
     {
-      if (isolate(input$plotType) %in% c("line","scat","DMD","StkCht") && v=="Year") next
+      if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
-    pltp = isolate(input$plotType) 
+    pltp = input$plotType
     if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
@@ -1313,10 +1459,11 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
       names(nd)[ncol(nd)]="Y"
     }
-    if (nlevels(nd[[input$xaxis]])>5 && isolate(input$XlabRot) == "0") 
+    if (nlevels(nd[[input$xaxis]])>5 && max(nchar(levels(nd[[input$xaxis]]))) > 3 && 
+        isolate(input$XlabRot) == "0" && !globals$gFreeze) 
       updateSelectInput(session=session,inputId="XlabRot",selected="90")
     hrvFlag = NULL
-    if (isolate(input$plotType) %in% c("line","DMD","StkCht"))
+    if (input$plotType %in% c("line","DMD","StkCht"))
     {
       if (is.null(dat[["RmvCode"]]))
       {                
@@ -1351,6 +1498,9 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd$Legend = if (nlevels(as.factor(nd$Legend)) == 1)
         nd[,pb] else paste(nd$Legend,nd[,pb],sep=":")
     }
+    if (input$plotType %in% c("line","DMD","StkCht") &&
+        length(unique(nd$X)) < 2) return(nullPlot(
+          "Selected plot type requires more than 1 unique value on the X-axis"))    
     if (!is.null(nd$vfacet)) nd$vfacet = ordered(nd$vfacet, levels=sort(unique(nd$vfacet)))
     if (!is.null(nd$hfacet)) nd$hfacet = ordered(nd$hfacet, levels=sort(unique(nd$hfacet)))
     if (!is.null(nd$Legend)) nd$Legend = ordered(nd$Legend, levels=sort(unique(nd$Legend)))
@@ -1387,7 +1537,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     linetypes = autorecycle(c("solid","dashed","dotted","dotdash","longdash","twodash"),
                              nlevels(nd$Legend))
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
-cat ("nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
+cat ("Legend nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
       hjust = if(input$XlabRot=="45") 1 else .5))
     p = p + theme(axis.text.y = element_text(angle = as.numeric(input$YlabRot), 
@@ -1408,7 +1558,7 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
     DMDguideLines = NULL
-    if (isolate(input$plotType) == "DMD")
+    if (input$plotType == "DMD")
     {
       sdis=input$SDIvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
@@ -1447,7 +1597,7 @@ cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
       }
     }
     StkChtguideLines = NULL
-    if (isolate(input$plotType) == "StkCht")
+    if (input$plotType == "StkCht")
     {
       sdis=input$StkChtvals
       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
@@ -1506,10 +1656,12 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
         p = p + scale_x_log10(breaks=brkx,limits=rngx)
       } else {
         brkx=brks(rngx)
-        if (! (pltp %in% c("bar","box"))) p = p + scale_x_continuous(breaks=brkx,limits=rngx)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_x_continuous(breaks=brkx,
+          limits=rngx,guide=guide_axis(check.overlap = TRUE))
       }
 cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
-    }
+    } else p = p + scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+
     if (!is.factor(nd$Y)) 
     {
       rngy=range(if (!is.null(ylim)) ylim else range(c(nd$Y,ymaxlim),na.rm=TRUE))
@@ -1520,10 +1672,11 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
         p = p + scale_y_log10(breaks=brky,limits=rngy)
       } else {
         brky=brks(rngy)
-        if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,limits=rngy)
+        if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,
+          limits=rngy,guide = guide_axis(check.overlap = TRUE))
       }
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
-    }
+    } else p = p + scale_y_discrete(guide = guide_axis(check.overlap = TRUE))
     # add the guidelines and annotation here (now that we know the range limits of x and y
     if (!is.null(DMDguideLines)) 
     {
@@ -1582,7 +1735,7 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
  
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    pltp = isolate(input$plotType) 
+    pltp = input$plotType 
     if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     p = p + switch(pltp,
@@ -1645,9 +1798,6 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
-#ggbld <- ggplot_build(p)
-#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.major_source
-#ggbld$layout$coord$labels(ggbld$layout$panel_params)[[1]]$x.labels
     outfile = "plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
@@ -1657,9 +1807,11 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
                  res=fvsOutData$plotSpecs$res)              
     print(p)
     dev.off()
-    list(src = outfile)            
+    globals$gFreeze = FALSE
+    list(src = outfile) 
   }, deleteFile = FALSE)
-    
+  
+     
   ## Stands tab 
   observe({    
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
@@ -1696,7 +1848,7 @@ cat ("inTabs\n")
   
   updateVarSelection <- function ()
   {
-    cat ("in updateVarSelection\n") 
+cat ("in updateVarSelection\n") 
     if (length(globals$fvsRun$FVSpgm) == 0) 
     {
       selVarListUse <- sort(intersect(names(globals$selVarList),
@@ -3569,6 +3721,10 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
                  }
                },
+               SpatialData = if (file.exists("SpatialData.RData")) 
+                 file.copy(from="SpatialData.RData",to=paste0(tempDir,"/SpatialData.RData")),
+               GraphSettings = if (file.exists("GraphSettings.RData")) 
+                 file.copy(from="GraphSettings.RData",to=paste0(tempDir,"/GraphSettings.RData")),
                customSQL = if (file.exists("customQueries.RData")) 
                  file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData")),
                FVS_kcps = if (file.exists("FVS_kcps.RData"))
@@ -4454,8 +4610,6 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
   observe({    
     if (input$toolsPan == "Refresh/copy projects") 
     {
-      srcprjs = 
-      
 cat ("Tools,Refresh/copy projects\n") 
       if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir) &&
           exists("pgmList")) 
@@ -4730,45 +4884,60 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       })
     }
   })
+   
   
   ## PrjDelete 
   observe({
-    if(isLocal()){
-      if(length(input$PrjDelete) && input$PrjDelete > 0)
-      {
-        session$sendCustomMessage(type = "dialogContentUpdate",
-          message = list(id = "PrjDeleteDlg",
-            message = "Are you sure you want to delete this project?"))
-      }
+    if(input$PrjDelete > 0)
+    {
+      isolate({
+        if (is.null(input$PrjDelSelect)) 
+        {
+          output$delPrjActionMsg <- renderUI(HTML("No project selected."))
+          session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "PrjDeleteDlg", message=
+              paste0('Select a project to delete, press Yes or No to continue.')))
+        } else {
+cat ("PrjDelete, input$PrjDelSelect=",input$PrjDelSelect,"\n")
+          prjList=getProjectList()
+          nm = names(prjList)[charmatch(input$PrjDelSelect,prjList)]
+          output$delPrjActionMsg <- NULL
+          session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "PrjDeleteDlg", message = 
+              paste0('Are you sure you want to delete this project "',nm,'"?')))
+        }
+      })
     }
   })
   observe({
-    if (length(input$PrjDeleteDlgBtn) && input$PrjDeleteDlgBtn > 0) 
+    if (input$PrjDeleteDlgBtn > 0) 
     {
-cat("delete project button.")                                           
-      if (length(getProjectList()) == 1)  
-      { 
-cat ("PrjDeleteDlgBtn only 1 project\n") 
-         output$delPrjActionMsg <- renderText(HTML(
-           "FVS cannot delete the last existing project."))                       
-      } else {
-        isolate({    
-          delPrj=paste0("../",input$PrjDelSelect)
-          if (!dir.exists(delPrj) 
-              || file.exists(paste0(delPrj,"/projectIsLocked.txt"))) 
+cat("delete project button.") 
+      isolate({
+        if (is.null(input$PrjDelSelect)) 
+        {
+          output$delPrjActionMsg <- renderUI(HTML("No project selected."))
+        } else 
+        {
+          delPrj=paste0("../",input$PrjDelSelect)                  
+          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")))
           {
-cat ("PrjDeleteDlgBtn prj=",delPrj," NOT deleted\n") 
-              output$delPrjActionMsg <- renderText(HTML("<b>Project NOT deleted</b>"))
-          } else {
-cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n") 
-            unlink(delPrj, recursive=TRUE, force=TRUE)        
-            output$delPrjActionMsg <- renderText(HTML("<b>Project deleted</b>"))
-            updateProjectSelections()
+            output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
+          } else 
+          {
+            if (nchar(delPrj)<5 || !dir.exists(delPrj))    
+            {
+              output$delPrjActionMsg <- renderUI(HTML("<b>Project directory not found.</b>"))
+            } else {
+              unlink(delPrj, recursive=TRUE)        
+              output$delPrjActionMsg <- renderUI(HTML("<b>Disabled Project deleted</b>"))
+              updateProjectSelections()
+            }
           }
-        })
-      }
+        } 
+      })
     }
-  }) 
+  })
 
   ##topHelp
   observe({
@@ -4776,38 +4945,56 @@ cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n")
     {
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Loading Help File", value = 2)
+      # build the help file if it doesn't exist or if it is older than 
+      # fvsOnlineHelp.html or databaseDescription.xlsx
+      fr = "fvsOnlineHelpRender.html"
       fn = "fvsOnlineHelp.html"
-      help = readChar(fn, file.info(fn)$size) 
       xlsxfile="databaseDescription.xlsx"
-      progress$set(message = "Loading Help File", value = 5)
-      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-      if (class(tabs)!="try-error")
+      info=file.info(c(fr,fn,xlsxfile))
+      if (which.max(info[,4]) != 1)
       {
-        morehtml=paste0(xlsx2html(tab="OutputTableDescriptions"),
-                                '<p><a href="#contents">Back to contents</a></p>')
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
-                                '<p><a href="#contents">Back to contents</a></p>')  
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**OUTPUTHTML**",replacement=morehtml)
-      }
-      progress$set(message = "Loading Table Descriptions", value = 8)
-      tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-      if (class(tabs)!="try-error")                                                         
-      {
-        morehtml=paste0(xlsx2html(tab="InputTableDescriptions"),
-                                '<p><a href="#contents">Back to contents</a></p>')
-        for (tab in tabs$Table) morehtml=paste0(morehtml,xlsx2html(tab=tab),
-                                '<p><a href="#contents">Back to contents</a></p>')            
-        if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                pattern="**INPUTHTML**",replacement=morehtml)
-      }
+        help = readChar(fn, info[2,1]) 
+        progress$set(message = "Loading Help File", value = 5)
+        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
+        if (class(tabs)!="try-error")
+        {
+          tablist=xlsx2html(tab="OutputTableDescriptions",addLink=TRUE)
+          morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
+          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
+            xlsx2html(tab=tab),
+          '<p><a href="#outputTables">Back to Output Table Descriptions</a>&nbsp;&nbsp;',
+          '<a href="#contents">Back to Contents</a></p>')  
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**OUTPUTHTML**",replacement=morehtml)
+        }
+        progress$set(message = "Loading Table Descriptions", value = 8)
+        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
+        if (class(tabs)!="try-error")                                                         
+        {
+          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",addLink=TRUE),
+                                  '<p><a href="#contents">Back to Contents</a></p>')
+          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
+            xlsx2html(tab=tab), 
+            '<p><a href="#inputTables">Back to Input Table Descriptions</a>&nbsp;&nbsp;',
+            '<a href="#contents">Back to Contents</a></p>')            
+          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
+                  pattern="**INPUTHTML**",replacement=morehtml)
+        }
+        writeChar(help,fr)         
+      } else help=readChar(fr, info[1,1]) 
       output$uiHelpText <- renderUI(HTML(help))
       progress$close()
     }
   })
 
-  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL)
+  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL,
+                        addLink=FALSE)
   {
+    cleanlines=function(line) 
+    {
+      line=gsub(pattern="\n",replacement="",x=line,fixed=TRUE)
+      gsub(pattern="\r",replacement="",x=line,fixed=TRUE)
+    }
     if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
     if (tab %in% getSheetNames(xlsxfile))
     {
@@ -4823,9 +5010,13 @@ cat ("PrjDeleteDlgBtn prj=",delPrj," deleted\n")
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
       html = paste0("<b>",tab,"</b>")
       html = paste0(html,'<p><TABLE border="1"><TR><TH>', 
-             paste0(colnames(sdat),collapse="</TH><TH>"),"</TH></TR>\n")
-      for (i in 1:nrow(sdat)) html = paste0(html,"<TR><TD>",paste0(as.character(sdat[i,]),
-          collapse="</TD><TD>"),"</TD></TR>\n")
+             paste0(cleanlines(colnames(sdat)),collapse="</TH><TH>"),"</TH></TR>")
+      for (i in 1:nrow(sdat))                   
+      {
+        tbrow=cleanlines(as.character(sdat[i,]))
+        if (addLink) tbrow[1] = paste0('<a href="#',tbrow[1],'">',tbrow[1],'</a>')
+        html = paste0(html,"<TR><TD>",paste0(tbrow,collapse="</TD><TD>"),"</TD></TR>")
+      }
       html = paste0(html,"</TABLE><br>")
       return (html)
     } else return (NULL)
@@ -5011,12 +5202,14 @@ cat ("cmd=",cmd,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      tbls = grep ("CREATE TABLE",schema)
-      schema = schema[tbls[1]:length(schema)]
       tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
-      schema = gsub("]","",schema,fixed=TRUE)
-      schema = gsub("[","",schema,fixed=TRUE) 
+      schema = schema[tbls[1]:length(schema)]
       schema = gsub("\t"," ",schema,fixed=TRUE)   
+      schema = gsub("[","]",schema,fixed=TRUE) 
+      tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
+      tbln=unlist(lapply(schema[tbls],function(x) if (length(grep("]",x,fixed=TRUE)))
+        scan(text=x,what="character",sep="]",quiet=TRUE)[2] else
+        scan(text=x,what="character",quiet=TRUE)[3]))
       schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
@@ -5026,20 +5219,20 @@ cat ("cmd=",cmd,"\n")
       schema = gsub(" SHORT_DATE_TIME,"," Text,",schema,ignore.case=TRUE)
       schema = gsub(" FLOAT,"," Real,",schema,ignore.case=TRUE)
       schema = gsub(" NOT NULL"," ",schema,,ignore.case=TRUE)
-      tbls=unlist(lapply(schema[tbls],function(x) scan(text=x,what="character",quiet=TRUE)[3]))
+      schema = gsub(" Single"," Real",schema)                    
+      schema = gsub("]",'"',schema,fixed=TRUE) 
       cat ("begin;\n",file="sqlite3.import")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Extract data", value = 3)  
-      tblsU <- toupper(tbls)
-      if(!length(grep("FVS_STANDINIT",tblsU))){
+      if(!length(grep("FVS_StandInit",tbln,ignore.case=TRUE))){
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      for (tab in tbls) 
+      for (tab in tbln) 
       {
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
         cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
@@ -5060,7 +5253,8 @@ cat ("cmd done.\n")
       sheets = getSheetNames(fname)
       progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
       sheetsU <- toupper(sheets)
-      if(!length(grep("FVS_STANDINIT",sheetsU))){
+      if(!length(grep("FVS_STANDINIT",sheetsU)))
+      {
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
@@ -5101,7 +5295,8 @@ cat ("sheet = ",sheet," i=",i,"\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       progress <- shiny::Progress$new(session,min=1,max=3)
       tabs = toupper(dbGetQuery(dbo,"select name from sqlite_master where type='table';")[,1])
-      if(!length(grep("FVS_STANDINIT",tabs))){
+      if(!length(grep("FVS_STANDINIT",tabs)))
+      {
         setwd(curDir) 
         progress$close()     
         output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
@@ -5122,7 +5317,7 @@ cat("loaded table=",tab,"\n")
     fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
     # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
     grpmsg=NULL
-    if (!is.na(match("fvs_groupaddfilesandkeywords",ltabs)))
+    if ("fvs_groupaddfilesandkeywords" %in% ltabs)
     {
       addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
       if (class(addgrps)!="try-error")
@@ -5131,32 +5326,38 @@ cat("loaded table=",tab,"\n")
         for (idx in fixTabs)
         {
           tab2fix=tabs[idx]
-          grps=try(dbGetQuery(dbo,paste0('select distinct groups from ',tab2fix)))
+          grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
           if (class(grps)=="try-error") next
           grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
           if (all(is.na(match(addgrps,grps)))) 
           {
-            Tb=dbReadTable(dbo,tab2fix)
+            Tb=try(dbReadTable(dbo,tab2fix))
+            if (class(Tb)=="try-error") next
             idx=match("groups",tolower(names(Tb)))
-            if (!is.na(idx) && length(Tb[,1])) 
+            if (!is.na(idx) && nrow(Tb)) 
             {
               Tb[,idx]=paste0(addgrps," ",Tb[,idx])
-              dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)
-              grpmsg=c(grpmsg,tab2fix)
+              if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
+                  grpmsg=c(grpmsg,tab2fix)
             }
           }
         }
       }
     }
+cat ("checking duplicate stand or standplot ids\n")
     # loop over tables and omit duplicate stand or standplot id's from being uploaded
     sidmsg=NULL
     newID=NULL  
     for (idx in fixTabs)
     {
+cat ("checking tabs[idx]=",tabs[idx],"\n")
       if (tolower(tabs[idx])=="fvs_standinit_plot") next
       tab2fix=tabs[idx]
       idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-      sidTb=dbGetQuery(dbo,paste0("select ",idf," from ",tab2fix))
+      qry = paste0("select ",idf," from '",tab2fix,"'")
+cat ("qry=",qry,"\n") 
+      sidTb=try(dbGetQuery(dbo,qry))
+      if (class(sidTb)=="try-error") next
       dups = duplicated(sidTb[,1])
       if (all(!dups)) next
       keep <- list()
@@ -5167,22 +5368,36 @@ cat("loaded table=",tab,"\n")
           cntr <- cntr +1
         }
       }
-      sidTb=dbReadTable(dbo,tab2fix)
+      sidTb=try(dbReadTable(dbo,tab2fix))
+      if (class(sidTb)=="try-error") next
       sidTb=sidTb[as.numeric(keep),]
       dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
       sidmsg=c(sidmsg,tab2fix)
-    }    
+    }
+cat ("sidmsg=",sidmsg,"\n")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
-      paste0("select count(*) as ",x," from ",x,";"))))
+      paste0("select count(*) as '",x,"' from '",x,"';"))))
+cat ("rowCnts=",unlist(rowCnts),"\n")
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
     if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
         paste0(grpmsg,collapse=", "))
     if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were found in table(s): ",
-        paste0(sidmsg,collapse=", "),". All duplicate values after the first value were ignored and not uploaded.")
-    fixFVSKeywords(dbo) 
-    checkMinColumnDefs(dbo,progress)
-    output$step1ActionMsg = renderText(HTML(msg))
+        paste0(sidmsg,collapse=", "),". <br>All duplicate values after the first value were not kept.")
+cat ("calling fixFVSKeywords\n")
+    tt = try(fixFVSKeywords(dbo))
+    canuse=class(tt) == "NULL"
+    if (class(tt)=="character") msg = paste0(msg,
+      "<br>Checking keywords: ",tt)
+    tt = try(checkMinColumnDefs(dbo,progress))
+    canuse=canuse && class(tt) == "NULL"
+    if (class(tt)=="character") msg = paste0(msg,
+      "<br>Checking columns: ",tt)
+cat ("msg=",msg,"\n")
+    if (!canuse) msg = paste0(msg,
+      "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
+cat ("msg=",msg,"\n")
+    output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
     file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
@@ -5822,13 +6037,19 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     {         
       dbGlb$tblName <- input$editSelDBtabs
       fixEmptyTable(dbGlb)                                
-      checkMinColumnDefs(dbGlb$dbIcon)
+      msg=checkMinColumnDefs(dbGlb$dbIcon)
+cat ("msg=",msg,"\n")
       dbGlb$tbl <- NULL                                           
       dbGlb$tblCols <- names(dbGlb$tbsCTypes[[dbGlb$tblName]])
       if (length(grep("Stand_ID",dbGlb$tblCols,ignore.case=TRUE))) 
       {
-        dbGlb$sids = dbGetQuery(dbGlb$dbIcon,
-          paste0("select distinct Stand_ID from ",dbGlb$tblName))[,1]
+        rtn = try(dbGetQuery(dbGlb$dbIcon,
+          paste0("select distinct Stand_ID from '",dbGlb$tblName,"'")))
+        if (class(rtn)=="try-error")
+        {
+cat ("stand_ID query error.\n")
+           break
+        } else dbGlb$sids = rtn[,1]
         if (any(is.na(dbGlb$sids))) dbGlb$sids[is.na(dbGlb$sids)] = ""
         if (length(dbGlb$sids) > 0)                                           
         {
@@ -5858,6 +6079,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
       }
       output$inputTabDesc <- renderUI(HTML(html))
     }
+cat ("editSelDBtabs returns\n")
   })              
   
   observe({              
@@ -5881,7 +6103,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
         },
         Edit = 
         {
-          qry <- paste0("select _ROWID_,* from ",dbGlb$tblName)
+          qry <- paste0("select _ROWID_,* from '",dbGlb$tblName,"'")
           qry <- if (length(intersect("stand_id",tolower(dbGlb$tblCols))) && 
                      length(input$rowSelector))
             paste0(qry," where Stand_ID in (",
@@ -6476,7 +6698,8 @@ cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",inp
                                "inDBS"="FVS_Data.db",
                                "inSpace"="SpatialData.RData",
                                "kcps"="FVS_kcps.RData",
-                               "custQ"="customQueries.RData"))
+                               "custQ"="customQueries.RData",
+                               "graphSet"="GraphSettings.RData"))
         }
         progress$set(message = "Copying files to target project",value = 6)
 cat ("cpyNow files=",files,"\n")
@@ -6496,7 +6719,6 @@ cat ("cpyNow files=",files,"\n")
   updateProjectSelections <- function ()
   {
       selChoices = getProjectList() 
-cat (names(selChoices)," names(selChoices)=",names(selChoices),"\n")
       nsel = charmatch(basename(getwd()),selChoices)
       nsel = if(is.na(nsel)) NULL else nsel[1]
       sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
@@ -6613,14 +6835,16 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
             curdir=getwd()
-            setwd(newPrj)           
-            cmd = paste0("R=",R.home(),"; ",commandArgs()[1],
-                  ' --no-save  -e "require(shiny);runApp(launch.browser=TRUE)" &')
+            setwd(newPrj)          
+            rscript = if (exists("RscriptLocation")) RscriptLocation else 
+              commandArgs(trailingOnly=FALSE)[1]     
+            cmd = paste0(rscript,' --vanilla -e "require(shiny);runApp(launch.browser=TRUE);quit()"')
+            if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
 cat ("cmd=",cmd,"\n")
-            system (cmd)
+            system (cmd,wait=FALSE)
             setwd(curdir)
           }  
-        } else {
+        } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
 cat ("launch url:",url,"\n")

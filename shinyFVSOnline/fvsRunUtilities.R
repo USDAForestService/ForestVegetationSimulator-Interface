@@ -44,7 +44,7 @@ mkGlobals <<- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",deleteLockFile="logical"))
+    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",settingChoices="list"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -133,7 +133,7 @@ loadVarData <- function(globals,prms,dbIcon)
     }
   }
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
-  if (!is.null(fvsKeys)) 
+  if (!is.na(fvsKeys)) 
   {
     globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,fvsKeys)
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
@@ -2324,12 +2324,12 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
           newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
           grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
             grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
-                 fixed=TRUE) else c()   
-          if (length(grprow) > 0) 
+                 fixed=TRUE) else c()
+          for (grow in grprow)
           {
             addkeys <- globals$inData$
-                       FVS_GroupAddFilesAndKeywords[grprow,"FVSKEYWORDS"]
-            if (!is.null(addkeys)) newgrp$cmps[[1]] <- 
+                       FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
+            if (!is.null(addkeys)) newgrp$cmps[[length(newgrp$cmps)+1]] <- 
                mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
                         kwdName="From: FVS_GroupAddFilesAndKeywords",
                           title="From: FVS_GroupAddFilesAndKeywords")
@@ -2407,8 +2407,8 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
     names(grpIdxs) = need
     for (cn in 1:length(cnts)) 
     {
-      cnt <- cnts[cn]   
-      reps <- grep(names(cnt),stds,fixed=TRUE)
+      cnt <- cnts[cn]
+      reps <- (1:length(stds))[names(cnt) == stds]
       if (length(reps) > 1)
       {                                                                                             
         i <- 1
@@ -2428,33 +2428,24 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
 
 getProjectList <- function(includeLocked=FALSE)
 {
-  selChoices = list()
   if (isLocal())
   {  
-    dirs = dir("..")
-    if (.Platform$OS.type == "windows"){
-      for (dir in dirs)
+    selChoices = unlist(lapply (dir(".."), function (x,inc) {         
+      if (!inc) if (file.exists(
+        paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
+      fn = paste0("../",x,"/projectId.txt") 
+      if (file.exists(paste0("../",x,"/projectId.txt"))) x
+    },includeLocked))  
+    if (length(selChoices)) 
     {
-      if (file.exists(paste0("../",dir,"/server.R")) && 
-          file.exists(paste0("../",dir,"/ui.R"))     &&
-          file.exists(paste0("../",dir,"/projectId.txt"))) selChoices = append(selChoices,dir)
-    }
-    } else{
-      for (dir in dirs)
-      {
-        if (file.exists(paste0("../",dir,"/server.R")) && 
-            file.exists(paste0("../",dir,"/ui.R"))     &&
-            file.exists(paste0("../",dir,"/projectId.txt")) &&
-           !file.exists(paste0("../",dir,"/projectIsLocked.txt"))) selChoices = append(selChoices,dir)
-      }
-    }
-    if (length(selChoices)) names(selChoices) = selChoices
+      names(selChoices) = selChoices
+      selChoices = as.list(selChoices)
+    } else selChoices=NULL
   } else {
     curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
     curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
-    dirs = dir("..")
-    data = lapply (dirs, function (x,inc) {         
-      if (!includeLocked) if (file.exists(
+    data = lapply (dir(".."), function (x,inc) {         
+      if (!inc) if (file.exists(
         paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
       fn = paste0("../",x,"/projectId.txt") 
       if (file.exists(fn))
@@ -2464,7 +2455,7 @@ getProjectList <- function(includeLocked=FALSE)
           title=trim(sub("title=","",prj[2])))
         ans
       } else NULL
-    },) 
+    },includeLocked) 
     if (length(data))
     {
       data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)

@@ -9,6 +9,42 @@ mkfvsOutData <-
       runs = "character", plotSpecs = "list", 
       render = "data.frame"))
 
+initTableGraphTools <- function ()
+{
+cat ("initTableGraphTools\n")
+  globals$gFreeze = TRUE
+  fvsOutData$dbData = data.frame()
+  fvsOutData$runs = character(0)
+  fvsOutData$dbVars = character(0)
+  fvsOutData$browseVars = character(0)
+  fvsOutData$dbSelVars = character(0)
+  fvsOutData$browseSelVars = character(0)
+  choices = list()
+  globals$settingChoices=list()
+  updateSelectInput(session=session, inputId="pivVar", choices=choices,select="")              
+  updateSelectInput(session=session, inputId="hfacet", choices=choices,select="") 
+  updateSelectInput(session=session, inputId="vfacet", choices=choices,select="") 
+  updateSelectInput(session=session, inputId="pltby",  choices=choices,select="") 
+  updateSelectInput(session=session, inputId="dispVar",choices=choices,select="")       
+  updateSelectInput(session=session, inputId="xaxis",  choices=choices,select="") 
+  updateSelectInput(session=session, inputId="yaxis",  choices=choices,select="")
+  updateCheckboxGroupInput(session=session, inputId="browsevars", choices=choices) 
+  updateTextInput(session=session,   inputId="sqlOutput", label=NULL, value="")
+  choices = list("None loaded")
+  updateSelectInput(session=session, inputId="stdtitle", choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="stdgroups",choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="stdid",    choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="mgmid",    choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="year",     choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="species",  choices=choices,select=NULL)
+  updateSelectInput(session=session, inputId="dbhclass", choices=choices,select=NULL)
+  updateTextInput(session=session,   inputId="ptitle",   value="")
+  updateTextInput(session=session,   inputId="ylabel",   value="")
+  updateTextInput(session=session,   inputId="xlabel",   value="")
+  output$table <- renderTable(NULL)
+  globals$gFreeze = FALSE
+}                          
+
 pivot <- function(dat,pvar,dvar)
 {
   facts = colnames(dat)[unlist(lapply(dat,is.factor))]
@@ -135,16 +171,6 @@ setupSummary <- function(asum,composite=FALSE)
 }
 
 
-getRptFile <- function (new=FALSE)
-{
-  if (file.exists("FVSReport")) 
-  {
-    if (new) lapply(dir("FVSReport"), function(x) 
-      file.remove(paste0("FVSReport/",x)))
-  } else dir.create("FVSReport")
-  "FVSReport/report.md"
-}
-
 autorecycle <- function(a,n)
 {
   if (length(a)<n) 
@@ -163,78 +189,11 @@ removeComment <- function(string)
   if (l1==-1) return(string)
   l2 = gregexpr("*/",string,fixed=TRUE)[[1]][1]
   if (l2==-1) return(substring(string,1,l1-1))
-  return(removeComment(paste0(substring(string,1,l1-1),substring(string,l2+2,99999))))
+  return(removeComment(paste0(substring(string,1,l1-1),
+                       substring(string,l2+2,99999))))
 }
 
 
-mkNextPlotFileName <- function()
-{
-  if (!file.exists("FVSReport")) dir.create("FVSReport")
-  files=dir("FVSReport",pattern="[.]png$")
-  sprintf("plot%3.3d.png",length(files)+1)
-}
- 
-
-appendToReport <- function(obj,rptFile=getRptFile())
-{
-  if (missing(obj)) return()
-  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
-  if (class(obj) == "data.frame" || class(obj) == "matrix")
-  {
-    cat (file=con,"Table: Table created",format(Sys.time(),"%a %b %d %X %Z %Y"))
-    cat (file=con,"  \n")
-    if (!is.null(colnames(obj)))
-    {
-      cat (file=con,"\n|") 
-      lapply(colnames(obj),function (x) cat(file=con,x,"|",sep=""))
-      cat (file=con,"\n")
-      cat (file=con,"|")
-      lapply(colnames(obj),function (x) 
-        cat(file=con,paste0(rep("-",max(2,nchar(x)-1)),collapse=""),":|",sep=""))
-      cat (file=con,"\n")
-    }
-    apply(obj,1,function(y)
-    {
-      cat (file=con,"|")
-      lapply(y,function (x) cat(file=con,x,"|",sep="")) 
-      cat (file=con,"\n")
-    })
-    cat (file=con,"\n")
-  } else if (class(obj) == "character") 
-  {
-    lapply(obj,cat,file=con,"  \n")
-    cat (file=con,"  \n")
-  } 
-  if (con != stdout()) close(con)
-}
-
-
-appendPlotToReport <- 
-function (plotFile=mkNextPlotFileName(),rptFile=getRptFile(),width=5,height=5)
-{
-  if (!file.exists("plot.png")) return()
-  ct = format(file.info("plot.png")[,"ctime"], "%a %b %d %X %Z %Y")
-  con = if (rptFile==stdout()) stdout() else file(description=rptFile,open="at") 
-  cat(file=con,"\n![Figure created ",ct,"](",plotFile,"){width=",
-      as.character(width),"in height=",as.character(height),"in}\n\n",sep="")
-  if (con != stdout()) close(con)
-  file.copy(from="plot.png",to=paste0("FVSReport/",plotFile))
-}
-
-
-generateReport <- function(tf)
-{
-  if (file.exists("FVSReport/report.md"))
-  {
-    setwd("FVSReport")
-    cmd = paste0("pandoc -o ",tf," -t docx report.md")
-cat ("generateReport, cmd=",cmd,"\n")
-    system(cmd)
-    setwd("..")
-  }
-}
-
-  
 errorScan <- function (outfile)
 {
   if (missing(outfile)) return("outfile not specified")
@@ -291,4 +250,135 @@ errorScan <- function (outfile)
   attr(outerrs,"pgmRV")=if (is.na(pgmRV)) " " else pgmRV
   outerrs
 }
+
+getGraphSettings <- function(input)
+{
+  theSettings=list() 
+  isolate({   
+    theSettings$selectdbtables = input$selectdbtables
+    theSettings$selectdbvars   = input$selectdbvars
+    theSettings$stdgroups      = input$stdgroups    
+    theSettings$stdid          = input$stdid        
+    theSettings$mgmid          = input$mgmid 
+    theSettings$year           = input$year                 
+    theSettings$species        = input$species 
+    theSettings$dbhclass       = input$dbhclass           
+    theSettings$browsevars     = input$browsevars
+    theSettings$plotType       = input$plotType 
+    theSettings$colBW          = input$colBW
+    theSettings$xaxis          = input$xaxis 
+    theSettings$yaxis          = input$yaxis 
+    theSettings$hfacet         = input$hfacet
+    theSettings$ptitle         = input$ptitle 
+    theSettings$xlabel         = input$xlabel 
+    theSettings$vfacet         = input$vfacet 
+    theSettings$pltby          = input$pltby              
+    theSettings$ylabel         = input$ylabel 
+    theSettings$width          = input$width 
+    theSettings$height         = input$height 
+    theSettings$moreControls   = input$moreControls
+    theSettings$color1         = input$color1                    
+    theSettings$color2         = input$color2
+    theSettings$color3         = input$color3
+    theSettings$color4         = input$color4  
+    theSettings$color5         = input$color5 
+    theSettings$color6         = input$color6  
+    theSettings$color7         = input$color7      
+    theSettings$color8         = input$color8 
+    theSettings$color9         = input$color9 
+    theSettings$color10        = input$color10 
+    theSettings$color11        = input$color11 
+    theSettings$color12        = input$color12 
+    theSettings$color13        = input$color13 
+    theSettings$color14        = input$color14 
+    theSettings$color15        = input$color15 
+    theSettings$color16        = input$color16 
+    theSettings$color17        = input$color17 
+    theSettings$color18        = input$color18 
+    theSettings$res            = input$res
+    theSettings$transparency   = input$transparency 
+    theSettings$YLimMin        = input$YLimMin
+    theSettings$YLimMax        = input$YLimMax
+    theSettings$XLimMin        = input$XLimMin
+    theSettings$XLimMax        = input$XLimMax            
+    theSettings$YlabRot        = input$YlabRot
+    theSettings$XlabRot        = input$XlabRot
+    theSettings$barPlace       = input$barPlace
+    theSettings$legendPlace    = input$legendPlace
+    theSettings$YTrans         = input$YTrans
+    theSettings$XTrans         = input$XTrans
+    theSettings$facetWrap      = input$facetWrap
+    theSettings$SDIvals        = input$SDIvals
+    theSettings$YUnits         = input$YUnits
+    theSettings$XUnits         = input$XUnits
+    theSettings$StkChtvals     = input$StkChtvals 
+  })
+  theSettings
+} 
+
+setGraphSettings <- function(session,theSettings)
+{ 
+  globals$gFreeze = TRUE
+  updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
+  updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
+
+  updateSelectInput       (session=session, inputId="stdgroups",    selected=theSettings$stdgroups)    
+  updateSelectInput       (session=session, inputId="stdid",        selected=theSettings$stdid)        
+  updateSelectInput       (session=session, inputId="species",      selected=theSettings$species) 
+  updateSelectInput       (session=session, inputId="mgmid",        selected=theSettings$mgmid) 
+  updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
+  updateSelectInput       (session=session, inputId="year",         selected=theSettings$year) 
+
+  updateSelectInput       (session=session, inputId="yaxis",   choices=globals$settingChoices[["yaxis"]],  selected=theSettings$yaxis) 
+  updateSelectInput       (session=session, inputId="xaxis",   choices=globals$settingChoices[["xaxis"]],  selected=theSettings$xaxis) 
+  updateSelectInput       (session=session, inputId="hfacet",  choices=globals$settingChoices[["hfacet"]], selected=theSettings$hfacet)
+  updateSelectInput       (session=session, inputId="vfacet",  choices=globals$settingChoices[["vfacet"]], selected=theSettings$vfacet) 
+  updateSelectInput       (session=session, inputId="pltby",   choices=globals$settingChoices[["pltby"]],  selected=theSettings$pltby) 
+
+  updateSliderInput       (session=session, inputId="transparency", value   =theSettings$transparency) 
+  updateColourInput       (session=session, inputId="color1",       value   =theSettings$color1)           
+  updateColourInput       (session=session, inputId="color2",       value   =theSettings$color2)
+  updateColourInput       (session=session, inputId="color3",       value   =theSettings$color3)
+  updateColourInput       (session=session, inputId="color4",       value   =theSettings$color4)  
+  updateColourInput       (session=session, inputId="color5",       value   =theSettings$color5) 
+  updateColourInput       (session=session, inputId="color6",       value   =theSettings$color6)  
+  updateColourInput       (session=session, inputId="color7",       value   =theSettings$color7)      
+  updateColourInput       (session=session, inputId="color8",       value   =theSettings$color8) 
+  updateColourInput       (session=session, inputId="color9",       value   =theSettings$color9) 
+  updateColourInput       (session=session, inputId="color10",      value   =theSettings$color10) 
+  updateColourInput       (session=session, inputId="color11",      value   =theSettings$color11) 
+  updateColourInput       (session=session, inputId="color12",      value   =theSettings$color12) 
+  updateColourInput       (session=session, inputId="color13",      value   =theSettings$color13) 
+  updateColourInput       (session=session, inputId="color14",      value   =theSettings$color14) 
+  updateColourInput       (session=session, inputId="color15",      value   =theSettings$color15) 
+  updateColourInput       (session=session, inputId="color16",      value   =theSettings$color16) 
+  updateColourInput       (session=session, inputId="color17",      value   =theSettings$color17) 
+  updateColourInput       (session=session, inputId="color18",      value   =theSettings$color18) 
+  updateRadioButtons      (session=session, inputId="colBW",        selected=theSettings$colBW)
+  updateRadioButtons      (session=session, inputId="res",          selected=theSettings$res)
+  updateRadioButtons      (session=session, inputId="XTrans",       selected=theSettings$XTrans)
+  updateRadioButtons      (session=session, inputId="XUnits",       selected=theSettings$XUnits)
+  updateRadioButtons      (session=session, inputId="XlabRot",      selected=theSettings$XlabRot)
+  updateRadioButtons      (session=session, inputId="YTrans",       selected=theSettings$YTrans)
+  updateRadioButtons      (session=session, inputId="YUnits",       selected=theSettings$YUnits)
+  updateRadioButtons      (session=session, inputId="YlabRot",      selected=theSettings$YlabRot)
+  updateRadioButtons      (session=session, inputId="barPlace",     selected=theSettings$barPlace)
+  updateRadioButtons      (session=session, inputId="facetWrap",    selected=theSettings$facetWrap)
+  updateRadioButtons      (session=session, inputId="legendPlace",  selected=theSettings$legendPlace)
+  updateRadioButtons      (session=session, inputId="moreControls", selected=theSettings$moreControls)
+  updateTextInput         (session=session, inputId="SDIvals",      value   =theSettings$SDIvals)
+  updateTextInput         (session=session, inputId="StkChtvals",   value   =theSettings$StkChtvals)
+  updateTextInput         (session=session, inputId="XLimMax",      value   =theSettings$XLimMax)
+  updateTextInput         (session=session, inputId="XLimMin",      value   =theSettings$XLimMin)
+  updateTextInput         (session=session, inputId="YLimMax",      value   =theSettings$YLimMax)
+  updateTextInput         (session=session, inputId="YLimMin",      value   =theSettings$YLimMin)
+  updateTextInput         (session=session, inputId="height",       value   =theSettings$height) 
+  updateTextInput         (session=session, inputId="ptitle",       value   =theSettings$ptitle) 
+  updateTextInput         (session=session, inputId="width",        value   =theSettings$width)         
+  updateTextInput         (session=session, inputId="xlabel",       value   =theSettings$xlabel) 
+  updateTextInput         (session=session, inputId="ylabel",       value   =theSettings$ylabel) 
+
+}
+
+    
 
