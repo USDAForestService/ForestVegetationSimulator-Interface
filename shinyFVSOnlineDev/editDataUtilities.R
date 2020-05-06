@@ -33,16 +33,13 @@ cat(" qry=",qry,"\n")
 checkMinColumnDefs <- function(dbo,progress=NULL)
 {
 cat ("in checkMinColumnDefs\n")
-  tbls = dbGetQuery(dbo,"select name from sqlite_master where type='table';")
-  tbls = toupper(tbls$name)
-cat ("tbls=",tbls,"\n")
-  initnms=c("FVS_StandInit","FVS_PlotInit","FVS_StandInit_Cond")
-  idx=charmatch(tbls,toupper(initnms))
-  idx=if (any(!is.na(idx))) idx=idx[!is.na(idx)] else 0
-cat ("idx=",idx,"\n")
-  if (idx[1]==0) return("No standinit tables found.")
-  initnms=initnms[idx]
-  stdInit=initnms[min(idx)]
+  for (initnm in c("FVS_StandInit","FVS_PlotInit","FVS_StandInit_Cond"))
+  {
+    stdInit = getTableName(dbo,initnm)
+    if (!is.null(stdInit)) break
+  }
+cat ("stdInit=",stdInit,"\n")
+  if (is.null(stdInit)) return("No standinit table was found.")
   fields = try(dbListFields(dbo,stdInit))
   # if this is an error, then FVS_StandInit does not exist and this is an error
   # where the standard fixup in this case is to try recovery of the database.

@@ -2502,13 +2502,11 @@ mkFileNameUnique <- function(fn)
 
 getTableName <- function(dbcon,basename)
 {
-  tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-  itab1 <- match(tolower(basename),tolower(tbs)) 
-  if (is.na(itab1)) itab2 <- grep (tolower(basename),tolower(tbs)) 
-  if (length(itab1) == 1){ 
-    return(tbs[itab1])
-  }else if (length(itab2) == 1){
-    return(tbs[itab2])  
-  }else return(NULL)
+  tbs <- dbListTables(dbcon)
+  ltbs <- tolower(tbs)
+  basename <- tolower(basename)
+  itab <- match(basename,ltbs) 
+  if (is.na(itab)) itab <- grep(basename,ltbs,fixed=TRUE)[1]
+  if (is.na(itab)) return(NULL) else return(tbs[itab])  
 }
 

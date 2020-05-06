@@ -609,19 +609,6 @@ shinyUI(fixedPage(
               h6(),
               actionButton("installEmptyDB","Install blank database"),h6()
             ),
-            tabPanel("Upload .csv data to add to existing tables", 
-              h4(),             
-               selectInput("uploadSelDBtabs", label="Table to process",
-                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-              fileInput("uploadStdTree",
-                       'Upload .csv file and append to "Table to process"',
-                        width="90%"), 
-              fileInput("climateFVSUpload",
-                        "Upload and commit Climate-FVS data (replace existing, append new); FVSClimAttrs.csv or answers.zip).",
-                        width="90%"),
-              tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
-              uiOutput("uploadActionMsg")     
-            ),
             tabPanel("View and edit existing tables",        
               fixedRow(
                 column(width=3,offset=0,
@@ -672,6 +659,24 @@ shinyUI(fixedPage(
               actionButton("installTrainDB2","Install training data (inventory and map data)"),   
               tags$style(type="text/css","#mapActionMsg{color:darkred;}"), 
               uiOutput("mapActionMsg")
+            ),
+            tabPanel("Append .csv data to existing tables", 
+              h4(),             
+               selectInput("uploadSelDBtabs", label="Table to process",
+                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
+              fileInput("uploadStdTree",
+                       'Upload .csv file and append to "Table to process"',
+                        width="90%"), 
+              tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
+              uiOutput("uploadActionMsg")     
+            ),
+            tabPanel("Upload Climate-FVS data", 
+              h4(),             
+              fileInput("climateFVSUpload",
+                        "Upload and commit Climate-FVS data; (FVSClimAttrs.csv or answers.zip)",
+                        width="90%"),
+              tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
+              uiOutput("uploadClimActionMsg")     
             ) #END tabPanel
           ) #END tabsetPanel
         ) ) #END column and fixed row   
