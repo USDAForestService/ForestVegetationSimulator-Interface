@@ -871,15 +871,6 @@ cat ("Explore, len(dat)=",length(dat),"\n")
         mdat = NULL
         for (tb in names(dat))      
         {
-          #avoid name conflicts with the TreeList table and others.
-          if (tb %in% c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
-                   "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"))
-          {
-            toren = c("TCuFt","MCuFt","BdFt","PrdLen","SCuFt","SBdFt")
-            cols = match(toren,names(dat[[tb]]))
-            names(dat[[tb]])[cols] = paste0(if (inch==0) "T." else paste0("T",inch,".",toren))
-            inch = inch+1
-          }
 cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n") 
           if (is.null(mdat)) mdat = dat[[tb]] else
           {
