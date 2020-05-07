@@ -4494,9 +4494,9 @@ cat ("mapDsRunList idxLng=",idxLng," idxLat=",idxLat," names=",names(dbGlb$Spati
 cat ("mapDsRunList trying PlotInit\n")
           inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
           latLng = try(dbGetQuery(dbGlb$dbIcon, 
-                   paste0("select Stand_ID,avg(Latitude) as Latitude, ",
-                          "avg(Longitude) as Longitude from ",inInit,
-                          " group by Stand_ID;")))
+                     paste0("select Stand_ID,avg(Latitude) as Latitude, ",
+                            "avg(Longitude) as Longitude from ",inInit,
+                            " group by Stand_ID;")))
           if (class(latLng)!="try-error")
           {
             latLng$Longitude = as.numeric(latLng$Longitude)
@@ -5153,8 +5153,10 @@ cat ("fext=",fext,"\n")
                                 list(code= "$('#installEmptyDB').prop('disabled',true)"))
     }
     fdir = dirname(input$uploadNewDB$datapath)
+    progress <- shiny::Progress$new(session,min=1,max=20)
     if (fext == "zip") 
     {
+      progress$set(message = "Unzip data", value = 1)
       unzip(input$uploadNewDB$datapath, junkpaths = TRUE, exdir = fdir)
       unlink(input$uploadNewDB$datapath)
       fname = dir(dirname(input$uploadNewDB$datapath))
@@ -5162,9 +5164,11 @@ cat ("fext=",fext,"\n")
       {
         output$step1ActionMsg = renderText(".zip contains more than one file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
+        progress$close()
         return()
       } else if (length(fname) == 0) {
         output$actionMsg = renderText(".zip was empty.")
+        progress$close()
         return()
       } 
       fext = tools::file_ext(fname)
@@ -5172,21 +5176,15 @@ cat ("fext=",fext,"\n")
       {
         output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
+        progress$close()
         return()
       }
     } else fname = basename(input$uploadNewDB$datapath)
 cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
-    standNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_StandInit"))
-    standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
-    treeNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_TreeInit"))
-    treeNT = if (class(treeNT) == "tre-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
-    plotNT = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="FVS_PlotInit"))
-    plotNT = if (class(treeNT) == "tre-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
     curDir=getwd()
     setwd(fdir)
     if (fext %in% c("accdb","mdb"))
     {
-      progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
@@ -5199,7 +5197,7 @@ cat ("cmd=",cmd,"\n")
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("No data loaded. Perhaps mdbtools are not installed.")
+        output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
@@ -5235,6 +5233,7 @@ cat ("cmd=",cmd,"\n")
       }
       for (tab in tbln) 
       {
+        progress$set(message = paste0("Export table ",tab), value = 3)
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
         cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
                        "mdb-export -I sqlite ",fname," ",tab," >> sqlite3.import")
@@ -5250,9 +5249,11 @@ cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-    } else if (fext == "xlsx") {
+      progress$close()     
+    } else if (fext == "xlsx") 
+    {
+      progress$set(message = "Get data sheets", value = 3)
       sheets = getSheetNames(fname)
-      progress <- shiny::Progress$new(session,min=1,max=length(sheets)+5)
       sheetsU <- toupper(sheets)
       if(!length(grep("FVS_STANDINIT",sheetsU)))
       {
@@ -5262,10 +5263,17 @@ cat ("cmd done.\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      i = 0
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
+      dbdis=paste0(curDir,"/databaseDescription.xlsx")
+      standNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_StandInit"))
+      standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
+      treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
+      treeNT = if (class(treeNT) == "try-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
+      plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
+      plotNT = if (class(treeNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
+      i = 3
       for (sheet in sheets)
       {
         i = i+1
@@ -5294,7 +5302,6 @@ cat ("sheet = ",sheet," i=",i,"\n")
       i = 0
       file.rename(from=fname,to="FVS_Data.db")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      progress <- shiny::Progress$new(session,min=1,max=3)
       tabs = toupper(dbListTables(dbo))
       if(!length(grep("FVS_STANDINIT",tabs)))
       {
@@ -5306,102 +5313,113 @@ cat ("sheet = ",sheet," i=",i,"\n")
       }
     }
     tabs = dbListTables(dbo)
-    # get rid of "NRIS_" part of names if any
-    for (tab in tabs)
+    fiaData = "BEGINEND" %in% toupper(tabs)
+    if (fiaData) progress$set(message = "FIA data detected, data checks skipped", value = 1) else 
     {
-cat("loaded table=",tab,"\n")      
-      nn = sub("NRIS_","",tab)
-      if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
-    }
-    tabs = dbListTables(dbo)
-    ltabs = tolower(tabs)
-    fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
-    # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
-    grpmsg=NULL
-    if ("fvs_groupaddfilesandkeywords" %in% ltabs)
-    {
-      addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
-      if (class(addgrps)!="try-error")
+      # get rid of "NRIS_" part of names if any
+      for (tab in tabs)
       {
-        addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-        for (idx in fixTabs)
+cat("loaded table=",tab,"\n")      
+        nn = sub("NRIS_","",tab)
+        if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
+      }
+      tabs = dbListTables(dbo)
+      ltabs = tolower(tabs)
+      fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
+      # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
+      grpmsg=NULL
+      progress$set(message = "Checking FVS_GroupAddFilesAndKeywords", value = 4)
+      if ("fvs_groupaddfilesandkeywords" %in% ltabs)
+      {
+        addgrps=try(dbGetQuery(dbo,'select distinct groups from "fvs_groupaddfilesandkeywords"'))
+        if (class(addgrps)!="try-error")
         {
-          tab2fix=tabs[idx]
-          grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
-          if (class(grps)=="try-error") next
-          grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-          if (all(is.na(match(addgrps,grps)))) 
+          addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+          for (idx in fixTabs)
           {
-            Tb=try(dbReadTable(dbo,tab2fix))
-            if (class(Tb)=="try-error") next
-            idx=match("groups",tolower(names(Tb)))
-            if (!is.na(idx) && nrow(Tb)) 
+            tab2fix=tabs[idx]
+            grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
+            if (class(grps)=="try-error") next
+            grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+            if (all(is.na(match(addgrps,grps)))) 
             {
-              Tb[,idx]=paste0(addgrps," ",Tb[,idx])
-              if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
-                  grpmsg=c(grpmsg,tab2fix)
+              Tb=try(dbReadTable(dbo,tab2fix))
+              if (class(Tb)=="try-error") next
+              idx=match("groups",tolower(names(Tb)))
+              if (!is.na(idx) && nrow(Tb)) 
+              {
+                Tb[,idx]=paste0(addgrps," ",Tb[,idx])
+                if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
+                    grpmsg=c(grpmsg,tab2fix)
+              }
             }
           }
         }
       }
-    }
 cat ("checking duplicate stand or standplot ids\n")
-    # loop over tables and omit duplicate stand or standplot id's from being uploaded
-    sidmsg=NULL
-    newID=NULL  
-    for (idx in fixTabs)
-    {
+      progress$set(message = "Checking for duplicate StandID values", value = 5)
+      # loop over tables and omit duplicate stand or standplot id's from being uploaded
+      sidmsg=NULL
+      newID=NULL  
+      for (idx in fixTabs)
+      {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-      if (tolower(tabs[idx])=="fvs_standinit_plot") next
-      tab2fix=tabs[idx]
-      idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-      qry = paste0("select ",idf," from '",tab2fix,"'")
+        if (tolower(tabs[idx])=="fvs_standinit_plot") next
+        tab2fix=tabs[idx]
+        idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
+        qry = paste0("select ",idf," from '",tab2fix,"'")
 cat ("qry=",qry,"\n") 
-      sidTb=try(dbGetQuery(dbo,qry))
-      if (class(sidTb)=="try-error") next
-      dups = duplicated(sidTb[,1])
-      if (all(!dups)) next
-      keep <- list()
-      cntr <- 1
-      for (i in 1:length(dups)){
-        if (dups[i]==FALSE){
-          keep[cntr] <- i
-          cntr <- cntr +1
+        sidTb=try(dbGetQuery(dbo,qry))
+        if (class(sidTb)=="try-error") next
+        dups = duplicated(sidTb[,1])
+        if (all(!dups)) next
+        keep <- list()
+        cntr <- 1
+        for (i in 1:length(dups)){
+          if (dups[i]==FALSE){
+            keep[cntr] <- i
+            cntr <- cntr +1
+          }
         }
+        sidTb=try(dbReadTable(dbo,tab2fix))
+        if (class(sidTb)=="try-error") next
+        sidTb=sidTb[as.numeric(keep),]
+        dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
+        sidmsg=c(sidmsg,tab2fix)
       }
-      sidTb=try(dbReadTable(dbo,tab2fix))
-      if (class(sidTb)=="try-error") next
-      sidTb=sidTb[as.numeric(keep),]
-      dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
-      sidmsg=c(sidmsg,tab2fix)
-    }
 cat ("sidmsg=",sidmsg,"\n")
+    }
+    progress$set(message = "Getting row counts", value = 6)
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbo,
       paste0("select count(*) as '",x,"' from '",x,"';"))))
-cat ("rowCnts=",unlist(rowCnts),"\n")
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
     msg = paste0("<b>Uploaded data:</b><br>",paste0(msg,collapse="<br>"))
-    if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
-        paste0(grpmsg,collapse=", "))
-    if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were found in table(s): ",
-        paste0(sidmsg,collapse=", "),". <br>All duplicate values after the first value were not kept.")
+    if (!fiaData)
+    {
+      if (!is.null(grpmsg)) msg=paste0(msg,"<br>Groups values were modified in table(s): ",
+          paste0(grpmsg,collapse=", "))
+      if (!is.null(sidmsg)) msg=paste0(msg,"<br>Duplicate Stand_ID or StandPlot_ID values were found in table(s): ",
+          paste0(sidmsg,collapse=", "),". <br>All duplicate values after the first value were not kept.")
 cat ("calling fixFVSKeywords\n")
-    tt = try(fixFVSKeywords(dbo))
-    canuse=class(tt) == "NULL"
-    if (class(tt)=="character") msg = paste0(msg,
-      "<br>Checking keywords: ",tt)
-    tt = try(checkMinColumnDefs(dbo,progress))
-    canuse=canuse && class(tt) == "NULL"
-    if (class(tt)=="character") msg = paste0(msg,
-      "<br>Checking columns: ",tt)
+      progress$set(message = "Checking FVSKeywords", value = 7)      
+      tt = try(fixFVSKeywords(dbo))
+      canuse=class(tt) == "NULL"
+      if (class(tt)=="character") msg = paste0(msg,
+        "<br>Checking keywords: ",tt)
+      progress$set(message = "Checking for minimum column definitions", value = 8)      
+      tt = try(checkMinColumnDefs(dbo,progress,9))
+      canuse=canuse && class(tt) == "NULL"
+      if (class(tt)=="character") msg = paste0(msg,"<br>Checking columns: ",tt)
 cat ("msg=",msg,"\n")
-    if (!canuse) msg = paste0(msg,
-      "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
+      if (!canuse) msg = paste0(msg,
+        "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
 cat ("msg=",msg,"\n")
+    } else msg = paste0(msg,
+        "<h4>Data checks are skipped when FIA data is detected.</h4>")
     output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
-    file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     dbDisconnect(dbo)
+    file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
     session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installNewDB').prop('disabled',false)"))
@@ -5592,7 +5610,7 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
       if ("STAND_ID" %in% toupper(dbListFields(dbGlb$dbIcon,tab)) &&
-          "STAND_ID" %in% toupper(dbListFields(dbGlb$dbIcon,tab)))
+          "STAND_ID" %in% toupper(dbListFields(dbGlb$dbIcon,paste0("addnew.",tab))))
         dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
                     "(select Stand_ID from addnew.",tab,")"))
       if (tolower(tab) == "fvs_groupaddfilesandkeywords") 
@@ -5767,6 +5785,7 @@ cat ("add column qry=",qry,"\n")
         indx=match(nn,lnams)
         indat[,indx] = as.numeric(indat[,indx])
       }
+
       sids=try(dbGetQuery(dbGlb$dbIcon,paste0("select distinct stand_id from ",
                           isolate(input$uploadSelDBtabs))))
       sids=if (class(sids)=="try-error") NA else sids[,1]
@@ -6004,7 +6023,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     if(input$inputDBPan == "View and edit existing tables") 
     {
 cat ("dataEditor View and edit existing tables\n")
-      tbs <- dbListTables(dbGlb$dbIcon)
+      tbs <- myGetTableNames(dbGlb$dbIcon)
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))

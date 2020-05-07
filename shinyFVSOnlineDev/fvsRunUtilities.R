@@ -133,7 +133,7 @@ loadVarData <- function(globals,prms,dbIcon)
     }
   }
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
-  if (!is.na(fvsKeys)) 
+  if (!is.null(fvsKeys)) 
   {
     globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,fvsKeys)
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 

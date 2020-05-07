@@ -29,8 +29,12 @@ cat(" qry=",qry,"\n")
   dbGlb$tbl$Delete = FALSE
 }
 
+myGetTableNames <- function(db)
+{
+  dbGetQuery(db,"select name from sqlite_master where type='table';")[,1]
+}
     
-checkMinColumnDefs <- function(dbo,progress=NULL)
+checkMinColumnDefs <- function(dbo,progress=NULL,pn=0)
 {
 cat ("in checkMinColumnDefs\n")
   for (initnm in c("FVS_StandInit","FVS_PlotInit","FVS_StandInit_Cond"))
@@ -49,7 +53,7 @@ cat ("stdInit=",stdInit,"\n")
   grp = FALSE
   # make sure groups are defined, if missing set one to "All_Stands"
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 2, detail = "Groups")
+    value = pn+1, detail = "Groups")
   if (length(grep("Groups",fields,ignore.case=TRUE)) == 0)
   {
     qt = try(dbExecute(dbo,paste0("alter table '",stdInit,
@@ -59,7 +63,7 @@ cat ("stdInit=",stdInit,"\n")
   }
   # make sure Stand_ID is defined
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 3, detail = "Stand_ID")
+    value = pn+2, detail = "Stand_ID")
   if (length(grep("Stand_ID",fields,ignore.case=TRUE)) == 0)
   {
     qt = try(dbExecute(dbo,paste0("alter table '",stdInit,
@@ -69,7 +73,7 @@ cat ("stdInit=",stdInit,"\n")
   }
   # make sure Stand_CN is defined
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 4, detail = "Stand_CN")
+    value = pn+3, detail = "Stand_CN")
   if (length(grep("Stand_CN",fields,ignore.case=TRUE)) == 0)
   {
     qt = try(dbExecute(dbo,paste0("alter table '",stdInit,
@@ -79,7 +83,7 @@ cat ("stdInit=",stdInit,"\n")
   }
   # make sure Inv_Year is defined
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 5, detail = "Inv_Year ")
+    value = pn+4, detail = "Inv_Year ")
   if (length(grep("Inv_Year",fields,ignore.case=TRUE)) == 0)
   {
     year=substring(as.character(Sys.time()),1,4)
@@ -89,7 +93,7 @@ cat ("stdInit=",stdInit,"\n")
   }
   # make sure FVSKeywords is defined
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 6, detail = "FVSKeywords ")
+    value = pn+5, detail = "FVSKeywords ")
   if (length(grep("FVSKeywords",fields,ignore.case=TRUE)) == 0)
   {
     year=substring(as.character(Sys.time()),1,4)
@@ -99,7 +103,7 @@ cat ("stdInit=",stdInit,"\n")
   }
   # make sure Sam_Wt is defined
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-    value = 7, detail = "Sam_Wt")
+    value = pn+6, detail = "Sam_Wt")
   if (length(grep("Sam_Wt",fields,ignore.case=TRUE)) == 0)
   {
     qt=try(dbExecute(dbo,paste0("alter table ",stdInit,
@@ -112,7 +116,7 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
     fvsInit = try(dbReadTable(dbo,stdInit))
     if (class(fvsInit)=="try-error") return ("Can not read StandInit.")
     if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-      value = 8, detail = "Stand_ID and Stand_CN consistent")
+      value = pn+7, detail = "Stand_ID and Stand_CN consistent")
     if (nrow(fvsInit))
     {
       isCN = grep("Stand_CN",names(fvsInit),ignore.case=TRUE)
@@ -133,7 +137,7 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
   if (!grp)
   {
     if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-        value = 9, detail = "Groups content")
+        value = pn+8, detail = "Groups content")
     grps = try(dbGetQuery(dbo,paste0("select Groups from '",stdInit,"'"))) 
     if (class(grps)=="try-error") return ("Can not read Groups from StandInit.")
     names(grps) = toupper(names(grps))
@@ -146,9 +150,9 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
   }
   # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
   if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-      value = 10, detail = "FVS_GroupAddFilesAndKeywords")
+      value = pn+9, detail = "FVS_GroupAddFilesAndKeywords")
   addkeys = getTableName(dbo,"FVS_GroupAddFilesAndKeywords")
-  if (is.na(addkeys)) need = TRUE else
+  if (is.null(addkeys)) need = TRUE else
   {
     gtab = try(dbReadTable(dbo,addkeys))
     need = class(gtab) == "try-error"
@@ -158,18 +162,19 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
     if (!need) need = all(gtab$FVSKEYWORDS == "")
   }
   if (need)
-  {                  
+  { 
     treeInit = getTableName(dbo,"FVS_TreeInit")
-    if (is.na(treeInit)) return("Needed FVS_GroupAddFilesAndKeywords not added.")
+    if (is.null(treeInit)) return("Needed FVS_GroupAddFilesAndKeywords not added.")
     dfinstand=NULL
-    for (stdInit in initnms)
+    grps = list("FVS_StandInit"="All All_Stands",
+                "FVS_PlotInit"="All All_Plots",
+                "FVS_StandInit_Cond"="All All_Conds")
+    for (std in names(grps))
     {
-      grps = switch(stdInit,
-        "FVS_StandInit"="All All_Stands",
-        "FVS_PlotInit"="All All_Plots",
-        "FVS_StandInit_Cond"="All All_Conds")
+      stdInit = getTableName(dbo,std)
+      if (is.null(stdInit)) next
       dfinstand = rbind(dfinstand,
-        data.frame(Groups = grps,Addfiles = "",
+        data.frame(Groups = grps[[std]],Addfiles = "",
           FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
             "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
             "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
