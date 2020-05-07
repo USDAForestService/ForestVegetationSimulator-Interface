@@ -6812,7 +6812,7 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
       write(file="projectId.txt",prjid)
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
-      progress$set(message = "Saving new prohect",value = 9)
+      progress$set(message = "Saving new project",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
