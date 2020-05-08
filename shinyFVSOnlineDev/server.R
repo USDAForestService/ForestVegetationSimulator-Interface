@@ -1224,9 +1224,19 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
                 if (length(cont) > 0) cont[1] else NULL
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
-        } else if (input$plotType %in% c("box","bar")) {
+        } else if (input$plotType == "bar") {
           def = if ("Species" %in% cats) "Species" else NULL
-          if (!is.null(def) && "Year" %in% cats) "Year" else cats[1]
+          def = if (is.null(def) && "Year" %in% cats) "Year" else cats[1]
+          sel = if (!is.null(curX) && curX %in% cats) curX else def
+          globals$settingChoices[["xaxis"]] = as.list(cats)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
+          sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
+          if (sel=="Year" && length(cont) > 1) sel = cont[2]
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
+        } else if (input$plotType == "box") {
+          def = if ("Species" %in% cats) "Species" else NULL
+          def = if (is.null(def) && "Year" %in% cats) "Year" else cats[1]
           sel = if (!is.null(curX) && curX %in% cats) curX else def
           globals$settingChoices[["xaxis"]] = as.list(cats)
           updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
@@ -1256,13 +1266,13 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           updateRadioButtons(session=session,inputId="YTrans",selected="identity")
           updateRadioButtons(session=session,inputId="XTrans",selected="identity") 
         }
-        sel = if (length(intersect(cats,"StandID")) > 0) "StandID" else "None"
+        sel = if ("StandID" %in% cats && input$plotType != "box") "StandID" else "None"
         updateSelectInput(session=session, inputId="hfacet",choices=as.list(c("None",cats)),
           selected=sel) 
-        sel = if (length(intersect(cats,"MgmtID")) > 0) "MgmtID" else "None"
+        sel = if ("MgmtID" %in% cats && input$plotType != "box") "MgmtID" else "None"
         updateSelectInput(session=session, inputId="vfacet",choices=as.list(c("None",cats)),
           selected=sel) 
-        sel = if (length(intersect(cats,"Species")) > 0) "Species" else "None"
+        sel = if ("Species" %in% cats && input$plotType != "box") "Species" else "None"
         updateSelectInput(session=session, inputId="pltby",choices=as.list(c("None",cats)),
           selected=sel)
 cat ("end of browsevars/plotType\n")
@@ -1409,8 +1419,8 @@ cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
     }
-    for (v in c("MgmtID","StandID","Year")) 
-    {
+    if (input$plotType != "box") for (v in c("MgmtID","StandID","Year")) 
+    {                                                                                         
       if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
@@ -1531,7 +1541,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     alpha = if (is.null(input$transparency)) .7 else (1-input$transparency)
 cat ("Legend nlevels=",nlevels(nd$Legend)," colors=",colors,"\n")
     p = p + theme(axis.text.x = element_text(angle = as.numeric(input$XlabRot), 
-      hjust = if(input$XlabRot=="45") 1 else .5))
+      hjust = if(input$XlabRot=="0") .5 else 1))
     p = p + theme(axis.text.y = element_text(angle = as.numeric(input$YlabRot), 
       hjust = if(input$YlabRot!="0") .5 else 1))
     p = p + scale_colour_manual(values=colors)
