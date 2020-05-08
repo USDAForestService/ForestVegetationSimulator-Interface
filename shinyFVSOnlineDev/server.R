@@ -267,7 +267,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     {
 cat ("View Outputs & Load\n")
       initTableGraphTools()
-      tbs <- dbListTables(dbGlb$dbOcon)     
+      tbs <- myListTables(dbGlb$dbOcon)     
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
         runsdf = dbGetQuery(dbGlb$dbOcon,
@@ -294,7 +294,7 @@ cat ("View Outputs & Load\n")
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
     if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
     {
-      tbs <- dbListTables(dbGlb$dbOcon)
+      tbs <- myListTables(dbGlb$dbOcon)
 cat ("tbs related to the run",tbs,"\n")
       if (length(tbs) == 0) 
       {
@@ -316,7 +316,7 @@ cat ("tbs related to the run",tbs,"\n")
           if (trycnt > 1000) 
           {
             dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
-            dbListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
+            myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
             setProgress(value = NULL)
             return()
           }
@@ -3287,7 +3287,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
-        newSum = !("FVS_Summary" %in% try(dbListTables(dbGlb$dbOcon)))
+        newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         writeKeyFile(globals$fvsRun,dbGlb$dbIcon,prms,newSum=newSum)
         if(globals$timeissue==1){
           progress$close()
@@ -3576,7 +3576,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
          excelRowLimit=1048576
          runuuid = globals$fvsRun$uuid
          if (is.null(runuuid)) return()
-         tabs = dbListTables(dbGlb$dbOcon)
+         tabs = myListTables(dbGlb$dbOcon)
          if (!("FVS_Cases" %in% tabs)) return()
          cases = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
@@ -4352,7 +4352,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       cases = cases[!duplicated(cases$StandID),]
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
       dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
-      tabs = setdiff(dbListTables(dbGlb$dbOcon),
+      tabs = setdiff(myListTables(dbGlb$dbOcon),
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
       for (tab in tabs)
@@ -5293,7 +5293,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
       i = 0
       file.rename(from=fname,to="FVS_Data.db")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      tabs = toupper(dbListTables(dbo))
+      tabs = toupper(myListTables(dbo))
       if(!length(grep("FVS_STANDINIT",tabs)))
       {
         setwd(curDir) 
@@ -5303,7 +5303,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
         return()
       }
     }
-    tabs = dbListTables(dbo)
+    tabs = myListTables(dbo)
     fiaData = "BEGINEND" %in% toupper(tabs)
     if (fiaData) progress$set(message = "FIA data detected, data checks skipped", value = 1) else 
     {
@@ -5314,7 +5314,7 @@ cat("loaded table=",tab,"\n")
         nn = sub("NRIS_","",tab)
         if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
       }
-      tabs = dbListTables(dbo)
+      tabs = myListTables(dbo)
       ltabs = tolower(tabs)
       fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs))
       # if there is a FVS_GroupAddFilesAndKeywords table, grab the unique group codes
@@ -5432,7 +5432,7 @@ cat ("msg=",msg,"\n")
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    tabs = dbListTables(dbGlb$dbIcon)
+    tabs = myListTables(dbGlb$dbIcon)
     progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
     i = 0
     for (tb in tabs)
@@ -5562,7 +5562,7 @@ cat ("index creation, qry=",qry,"\n")
       if (trycnt > 1000) 
       {
         dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
-        dbListTables(dbGlb$dbIcon) # this forces the new locking mode to take effect
+        myListTables(dbGlb$dbIcon) # this forces the new locking mode to take effect
         output$step2ActionMsg <- renderText("Error: Exclusive lock was not obtained.")
         return()
       }
@@ -5574,9 +5574,9 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
     dbExecute(dbGlb$dbIcon,"drop table if exists dummy")    
     oldInds = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='index';")[,1]
     for (idx in oldInds) dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",idx,";"))
-    oldtabs = dbListTables(dbGlb$dbIcon)
+    oldtabs = myListTables(dbGlb$dbIcon)
     dbo = dbConnect(dbDrv,dbGlb$newFVSData)
-    newtabs = dbListTables(dbo)
+    newtabs = myListTables(dbo)
     progress <- shiny::Progress$new(session,min=1,max=length(newtabs)*2+1)
     i = 0
     dbDisconnect(dbo)
@@ -5665,7 +5665,7 @@ cat ("homogenize qry=",qry,"\n")
     if(input$inputDBPan == "Append .csv data to existing tables") 
     {
 cat ("Upload new rows\n")
-      tbs <- dbListTables(dbGlb$dbIcon)
+      tbs <- myListTables(dbGlb$dbIcon)
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
@@ -5904,7 +5904,7 @@ cat ("processing FVSClimAttrs.csv\n")
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
     unlink("FVSClimAttrs.csv")
-    climTab <- dbListTables(dbGlb$dbIcon)
+    climTab <- myListTables(dbGlb$dbIcon)
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
@@ -6014,7 +6014,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     if(input$inputDBPan == "View and edit existing tables") 
     {
 cat ("dataEditor View and edit existing tables\n")
-      tbs <- myGetTableNames(dbGlb$dbIcon)
+      tbs <- myListTables(dbGlb$dbIcon)
       dbGlb$tbsCTypes <- lapply(tbs,function(x,dbIcon) 
         {
           tb <- dbGetQuery(dbIcon,paste0("PRAGMA table_info('",x,"')"))
