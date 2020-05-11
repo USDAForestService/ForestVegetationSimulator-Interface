@@ -109,7 +109,7 @@ End
 
 if ("climate" %in% extns) autoClimate="
 Database
-Climate
+CLIMREPT
 End
 " else NULL
 
