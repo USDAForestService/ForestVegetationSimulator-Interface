@@ -4841,13 +4841,25 @@ cat ("Refresh interface file=",frm,"\n")
       fvsPgms = dir("FVSbin",pattern=shlibsufx)
       fvsPgms = paste0("FVSbin/",fvsPgms)
       flst = c(flst,fvsPgms)
+      # close the input and output databases if they are openned
+      ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+      icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+      if (ocon) dbDisconnect(dbGlb$dbOcon)
+      if (icon) dbDisconnect(dbGlb$dbIcon)
       progress <- shiny::Progress$new(session,min=1,max=length(flst))
       for (i in 1:length(flst))
       {
         x = flst[i]
         progress$set(message = paste0("Adding ",x," to ",zfile), value = i)
-        zipr(zfile,x)
+        rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
+        if (class(rtn)=="try-error") 
+        {
+          progress$set(message = paste0("Failed to add ",x," to ",zfile), value = i+1)
+          Sys.sleep(.2)
+        }
       }
+      if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+      if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)   
       Sys.sleep(.2)
       progress$close()
       backups = dir (pattern="ProjectBackup")
@@ -5314,7 +5326,8 @@ cat ("sheet = ",sheet," i=",i,"\n")
       }
     }
     tabs = myListTables(dbo)
-    fiaData = "BEGINEND" %in% toupper(tabs)
+    fiaData = "FVS_STANDINIT_COND" %in% toupper(tabs) && 
+              "FVS_STANDINIT_PLOT" %in% toupper(tabs)
     if (fiaData) progress$set(message = "FIA data detected, data checks skipped", value = 1) else 
     {
       # get rid of "NRIS_" part of names if any

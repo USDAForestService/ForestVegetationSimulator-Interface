@@ -202,8 +202,7 @@ getBkgRunList = function ()
     scan(file=x,what="character",sep="\n",quiet=TRUE)))
   pidfiles=as.list(pidfiles)
   names(pidfiles) = theList
-  pidfiles
-  
+  pidfiles 
 }
 
 killIfRunning = function (uuid)
