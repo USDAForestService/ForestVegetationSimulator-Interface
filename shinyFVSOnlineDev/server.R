@@ -4835,12 +4835,6 @@ cat ("Refresh interface file=",frm,"\n")
       flst=dir()
       del = grep("^ProjectBackup",flst)
       if (length(del)) flst = flst[-del]
-      del = grep ("^FVSbin",flst)
-      if (length(del)) flst = flst[-del]
-      shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-      fvsPgms = dir("FVSbin",pattern=shlibsufx)
-      fvsPgms = paste0("FVSbin/",fvsPgms)
-      flst = c(flst,fvsPgms)
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
       icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
