@@ -121,6 +121,7 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
       if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
   } 
   if(!length(sel) && edt==0) sel="0"
+  if(!length(sel) && edt==1 && !valpair) sel=mklist[1]
   if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- " "
   if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
   if (valpair && gsub('"','',mklist[1])==" "  && edt==0) sel <- as.character(as.numeric(sel)-1)
@@ -372,7 +373,6 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
         } 
       }
     first <- 0
-    # browser()
     for (item in 1:length(mklist))
      {
 
