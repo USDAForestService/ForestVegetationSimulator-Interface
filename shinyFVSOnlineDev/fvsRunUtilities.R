@@ -1588,7 +1588,8 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
   for (i in 1:length(input)){
-    if(length(grep(" ", input[i])) && length(strsplit((input[i])," ")) > 1) input[i] <- strsplit((input[i])," ")[[1]][2]
+    if(input[i]==" ") next 
+    if(length(grep(" ", input[i]))) input[i] <- strsplit((input[i])," ")[[1]][length(strsplit((input[i])," ")[[1]])]
   }
   for (i in 1:nchar(ansFrm))
   {
