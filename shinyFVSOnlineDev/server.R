@@ -6755,7 +6755,16 @@ cat ("cpyNow files=",files,"\n")
       }
       updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                         selected=0)
+      backups = dir (pattern="ProjectBackup")
+      if (length(backups)) 
+      {
+        backups = sort(backups,decreasing=TRUE)
+        names(backups) = backups 
+      } else backups=list()
+      updateSelectInput(session=session, inputId="pickBackup", 
+        choices = backups, selected="")
   }
+
    ## Projects hit
   observe({    
     if (input$topPan == "Tools" && input$toolsPan == "Manage project") 
