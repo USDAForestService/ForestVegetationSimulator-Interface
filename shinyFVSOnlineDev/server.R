@@ -4503,7 +4503,17 @@ cat ("rows to keep=",length(keep),"\n")
             uids = latLng[,"Stand_ID"]
             uidsFound = c(uidsFound,uids)
             coordinates(latLng) <- ~Longitude+Latitude
-            proj4string(latLng) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")                 
+            setProj <- function (o) 
+            {
+              proj4string(o) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+              o
+            }
+            latLng <- try(setProj(latLng))             
+            if (class(latLng)=="try-error")
+            {
+               output$leafletMessage=renderText("Error setting projection in location data.")
+               return()
+            }
             pp = spTransform(latLng,CRS("+init=epsg:4326"))
             pts=    if (is.null(pts))    pp   else rbind(pts,pp)
             ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
