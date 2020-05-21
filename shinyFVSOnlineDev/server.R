@@ -823,7 +823,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               fix = grep ("Hrv",colnames(dtab))
               if (length(fix)) for (ifx in fix) dtab[[ifx]] = as.numeric(dtab[[ifx]])
             } else if (tb == "FVS_Summary" || tb == "FVS_Summary_East") 
-            { 
+            {
               dtab <- ddply(dtab,.(CaseID),.fun=setupSummary)
               dtab$ForTyp =as.factor(dtab$ForTyp)
               dtab$SizeCls=as.factor(dtab$SizeCls)
@@ -834,7 +834,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
-            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle)          
+            } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle) 
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
             for (col in colnames(dtab)) if (is.character(dtab[,col])) 
@@ -850,10 +850,10 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
             {
               if (is.null(dtab$Species)) dtab$Species=dtab[,spcd] else 
               {
-              na=is.na(dtab$Species)
-              dtab$Species = as.character(dtab$Species)
-              dtab$Species[na] = as.character(dtab[na,spcd])
-              dtab$Species = as.factor(dtab$Species)
+                na=is.na(dtab$Species)
+                dtab$Species = as.character(dtab$Species)
+                dtab$Species[na] = as.character(dtab[na,spcd])
+                dtab$Species = as.factor(dtab$Species)
               }
             }
             dat[[tb]] = dtab
@@ -879,7 +879,24 @@ cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n")
              setProgress(message = "Merging selected tables", 
                          detail  = tb, value = iprg)
 cat ("tb=",tb," mrgVars=",mrgVars,"\n")
-             mdat = merge(mdat,dat[[tb]], by=mrgVars)
+             merged = merge(mdat,dat[[tb]], by=mrgVars)
+             mdat = if (nrow(merged)) merged else
+             {
+               common = intersect(names(mdat),names(dat[[tb]]))
+               unique = setdiff(names(dat[[tb]]),c(common,mrgVars))
+               nd=matrix(data=NA,ncol=length(unique),nrow=nrow(mdat))
+               colnames(nd)=unique
+               mdat=cbind(mdat,nd)
+               common = intersect(names(mdat),names(dat[[tb]]))
+               unique = setdiff(names(mdat),c(common,mrgVars,"MgmtID","RunTitle"))
+               nd=matrix(data=NA,ncol=length(unique),nrow=nrow(dat[[tb]]))
+               colnames(nd)=unique
+               nd = data.frame(nd)
+               idr=match(as.character(dat[[tb]]$CaseID),as.character(dat$FVS_Cases$CaseID))            
+               nd=cbind(dat$FVS_Cases[idr,c("MgmtID","RunTitle")],nd)
+               dat[[tb]]=cbind(dat[[tb]],nd)
+               rbind(mdat,dat[[tb]])
+             }
           }
         }
         if (!is.null(mdat$CaseID))
