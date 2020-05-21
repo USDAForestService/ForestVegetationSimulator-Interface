@@ -1835,7 +1835,13 @@ cat ("in updateStandTableSelection, length(globals$fvsRun$stands)=",length(globa
         selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else "") else
     {
       if (length(globals$fvsRun$refreshDB) == 0 && length(globals$selStandTableList)) 
-        globals$fvsRun$refreshDB = globals$selStandTableList[[1]]
+        globals$fvsRun$refreshDB = globals$selStandTableList[[1]] else
+      {
+        hit=match(globals$fvsRun$refreshDB,globals$selStandTableList)
+        if (is.na(hit)) hit = match(globals$fvsRun$refreshDB,names(globals$selStandTableList))
+        if (is.na(hit)) return()
+        globals$fvsRun$refreshDB = globals$selStandTableList[[hit]]
+      }     
       updateSelectInput(session=session, inputId="inTabs", choices=list(globals$fvsRun$refreshDB),
         selected=globals$fvsRun$refreshDB)
     }   
