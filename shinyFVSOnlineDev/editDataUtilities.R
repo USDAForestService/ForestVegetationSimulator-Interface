@@ -29,11 +29,6 @@ cat(" qry=",qry,"\n")
   dbGlb$tbl$Delete = FALSE
 }
 
-myListTables <- function(db)
-{
-  dbGetQuery(db,"select name from sqlite_master where type = 'table';")[,1]
-}
-    
 checkMinColumnDefs <- function(dbo,progress=NULL,pn=0)
 {
 cat ("in checkMinColumnDefs\n")

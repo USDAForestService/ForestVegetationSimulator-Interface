@@ -48,41 +48,15 @@ mkGlobals <<- setRefClass("globals",
 
 loadStandTableData <- function (globals, dbIcon)
 {
-  globals$selStandTableList = list()
-  ith <- 1
-  dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-  dbtabsU = toupper(dbtabs)
-  for (i in 1:length(dbtabs)){
-   if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-   globals$selStandTableList[ith] <- "Stands (FVS_StandInit)"
-   ith <- ith +1
-   }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-      globals$selStandTableList[ith] <- "Plots within stands (FVS_PlotInit)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-      globals$selStandTableList[ith] <- "Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-      globals$selStandTableList[ith] <- "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-      globals$selStandTableList[ith] <- "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"
-    ith <- ith +1
-    }
-  }
-  globals$selStandTableList <- subset(globals$selStandTableList,!is.na(globals$selStandTableList))
+  tbls=myListTables(dbIcon)
+  globals$selStandTableList = list(
+    "Stands (FVS_StandInit)"                                     = "FVS_StandInit",
+    "Plots within stands (FVS_PlotInit)"                         = "FVS_PlotInit",
+    "Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"      = "FVS_StandInit_Plot",
+    "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)" = "FVS_PlotInit_Plot",
+    "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"      = "FVS_StandInit_Cond")
+  have=na.omit(match(toupper(tbls),toupper(globals$selStandTableList)))
+  if (length(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
 } 
 
 loadVarData <- function(globals,prms,dbIcon)
@@ -226,12 +200,12 @@ removeFVSRunFiles = function (uuid,all=FALSE)
 {
   if (file.exists(uuid)) 
   {
-    file.remove(paste0(uuid,"/",dir(uuid)))
-    file.remove(uuid)
+    unlink(paste0(uuid,"/",dir(uuid)), recursive = TRUE, force = TRUE)
+    unlink(uuid)
   }
   fls = dir(pattern=uuid)
   if (!all) fls = setdiff(fls,paste0(uuid,".RData"))
-  file.remove(fls)
+  unlink(fls, recursive = TRUE, force = TRUE)
 }
 
 
@@ -248,7 +222,7 @@ cat("findCmp, cmp=",cmp,"\n")
     icm = findIdx(std$cmps,cmp)
     if (!is.null(icm)) return(std$cmps[[icm]])
   }
-  NULL
+  NULL                                 
 }
 
 
@@ -257,110 +231,29 @@ writeKeyFile <- function (fvsRun,dbIcon,prms,newSum=TRUE)
   stds = unlist(lapply(fvsRun$stands,function(x) x$sid))
 cat("writeKeyFile, num stds=",length(stds),
     " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
-  if (length(stds)==0) return()
-  dbExecute(dbIcon,'drop table if exists temp.RunStds') 
+  globals$timeissue <- 0
+  if (length(stds)==0) return("No stands to process.")
+  dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
-  dbtabs = myListTables(dbIcon)
-  dbtabsU = toupper(dbtabs)
-  stdInit <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-      stdInit <- dbtabs[i]
-    }
-  }
-  plotInit <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-      plotInit <- dbtabs[i]
-    }
-  }
-  stdInit_cond <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-      stdInit_cond <-dbtabs[i]
-    }
-  }
-  stdInit_plot <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-      stdInit_plot <- dbtabs[i]
-    }
-  }
-  plotInit_plot <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-      plotInit_plot <- dbtabs[i]
-    }
-  }
-  intable=fvsRun$refreshDB
-  if (!is.na(match(intable,"Stands (FVS_StandInit)")) && 
-      (!is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) ||
-      is.na(!is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))))) return()
-  if (!is.null(stdInit) && is.na(match(intable,"Plots within stands (FVS_PlotInit)"))){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit,
-                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit,
-                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(plotInit) && is.na(match(intable,"Stands (FVS_StandInit)"))){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year,Sam_Wt from ',plotInit,
-                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select StandPlot_ID,Groups,Inv_Year,Sam_Wt from ',plotInit,
-                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(stdInit_cond) && 
-            (is.na(match(intable,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))
-             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_cond,
-                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit_cond,
-                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(stdInit_plot) && 
-            (is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
-             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
-    SCD <- try(dbGetQuery(dbIcon,
-            paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
-                   ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-              paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
-                     ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else{ 
-    SCD <- try(dbGetQuery(dbIcon,
-            paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year,Sam_Wt from ',plotInit_plot,
-                   ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-              paste0('select StandPlot_ID,Groups,Inv_Year,Sam_Wt from ',plotInit_plot,
-                     ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }
+ 
+  # get the preferred ids depending on the table that was used to build the run
+  intable=toupper(fvsRun$refreshDB)
+  queryIDs=switch(intable,
+                  "FVS_STANDINIT"     =c("STAND_ID","STAND_CN"),
+                  "FVS_PLOTINIT"      =c("STANDPLOT_ID","STANDPLOT_CN"),
+                  "FVS_STANDINIT_COND"=c("STAND_ID","STAND_CN"),
+                  "FVS_STANDINIT_PLOT"=c("STAND_ID","STAND_CN"),
+                  "FVS_PLOTINIT_PLOT" =c("STANDPLOT_ID","STANDPLOT_CN"))
+  initfields = toupper(dbListFields(dbIcon,intable))     
+  queryIDs = queryIDs[queryIDs %in% initfields] 
+  if (length(queryIDs) == 0) return("Needed stand id fields are missing")
+  qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
+              intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
+cat ("qry=",qry,"\n")
+
+  fvsInit = try(dbGetQuery(dbIcon,qry))
+  if (class(fvsInit) == "try-error") return("Run data query failed.")
+  if (nrow(fvsInit) == 0) return("Run data query returned not data to run.")
   # compute replication weights
   stofix=table(stds)
   stofix=names(stofix[stofix>1])
@@ -382,7 +275,6 @@ cat("writeKeyFile, num stds=",length(stds),
   cat ("!!built:",format(Sys.time(), 
         "%Y-%m-%d_%H:%M:%S"),"\n",file=fc)
   thisYr = as.numeric(format(Sys.time(), "%Y"))
-  globals$timeissue <- 0
   # Start year checks
   for(i in 1:length(globals$fvsRun$stands)){
     if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
@@ -407,39 +299,44 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   # End year checks
   for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
+    if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
+      (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
          ((input$endyr !="") && nchar(input$endyr) > 4))){
       session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr," is more than 40 growth cycles from the current year of ", thisYr))
+              message = paste0("The common ending year of ", input$endyr,
+              " is more than 40 growth cycles from the current year of ", thisYr))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
-    if ((input$endyr !="") && ((as.numeric(input$endyr) < as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
+    if ((input$endyr !="") && ((as.numeric(input$endyr) < 
+      as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
       session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+              message = paste0("The common ending year of ", input$endyr,
+              " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
     if (input$endyr =="") {
       session$sendCustomMessage(type = "infomessage",
               message = paste0("The common ending year is blank."))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
   }
   # Cycle length checks
   if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
        ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
     session$sendCustomMessage(type = "infomessage",
-            message = paste0("The growth interval of ", input$cyclelen," years is greater than the maximum 50 years"))
+            message = paste0("The growth interval of ", input$cyclelen,
+            " years is greater than the maximum 50 years"))
     globals$timeissue <- 1
-    return()
+    return("Year check error")
   }
   if (input$cyclelen =="") {
     session$sendCustomMessage(type = "infomessage",
             message = paste0("The growth interval is blank."))
     globals$timeissue <- 1
-    return()
+    return("Year check error")
   }
   baseCycles = seq(as.numeric(fvsRun$startyr),as.numeric(fvsRun$endyr),
                    as.numeric(fvsRun$cyclelen))
@@ -451,20 +348,22 @@ cat("writeKeyFile, num stds=",length(stds),
       for(j in 1:length(cycleat)){
         if ((cycleat[j] > (thisYr + 400))){
           session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
+                  message = paste0("The additional reporting year of ", cycleat[j],
+                  " is more than 400 years from the current year of", thisYr))
           globals$timeissue <- 1
-          return()
+          return("Cycle break check error")
         }
         if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
           session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+                  message = paste0("The additional reporting year of ", cycleat[j],
+                  " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
           globals$timeissue <- 1
-          return()
+          return("Cycle break check error")
         }
       }
     }
   }
-  cycleat = sort(union(baseCycles,cycleat))
+  cycleat = union(baseCycles,cycleat)
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr))) 
   for (std in fvsRun$stands)
   {
@@ -476,7 +375,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
         fvsInit$STAND_CN[sRows] != " "){ 
       cat ("StandCN\n",fvsInit$STAND_CN[sRows],"\n",file=fc,sep="")
-    }else if (!is.null(fvsInit$STANDPLOT_CN[sRowp]) && !is.na(fvsInit$STANDPLOT_CN[sRowp]) && 
+    } else if (!is.null(fvsInit$STANDPLOT_CN[sRowp]) && !is.na(fvsInit$STANDPLOT_CN[sRowp]) && 
         fvsInit$STANDPLOT_CN[sRowp] != " "){ 
       cat ("StandCN\n",fvsInit$STANDPLOT_CN[sRowp],"\n",file=fc,sep="")
       }else cat ("StandCN\n",std$sid,"\n",file=fc,sep="")
@@ -496,8 +395,10 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
     cat (defaultOut,file=fc)
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
-    autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else unlist(fvsRun$autoOut[["autoOut"]])
-    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else c(autos,"autoDelOTab")
+    autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else 
+                unlist(fvsRun$autoOut[["autoOut"]])
+    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else 
+                c(autos,"autoDelOTab")
     for (out in autos) if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
 
     if (!is.null(fvsRun$autoOut[["svsOut"]]) && !is.null(fvsRun$autoOut[["svsOut"]][["svs"]]) && 
@@ -1265,7 +1166,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
   cat ("Stop\n",file=fc)    
   close(fc)
 cat ("end of writeKeyFile\n")
-  
+  return("Keyword file write complete")
 }
 
 mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
@@ -2126,105 +2027,32 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
     names(vlst) = selVarListUse
     updateSelectInput(session=session, inputId="inVars", NULL, 
                       vlst, vlst[[1]])
-    globals$fvsRun$startyr <- format(Sys.time(), "%Y")
+    if (length(globals$fvsRun$startyr)==0) globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
-    stdInit <- NULL
-    dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-    dbtabsU = toupper(dbtabs)
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-        stdInit <- dbtabs[i]
-      }
-    }
-    plotInit <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-        plotInit <- dbtabs[i]
-      }
-    }
-    stdInit_cond <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-        stdInit_cond <- dbtabs[i]
-      }
-    }
-    stdInit_plot <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-        stdInit_plot <- dbtabs[i]
-      }
-    }
-    plotInit_plot <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-        plotInit_plot <- dbtabs[i]
-      }
-    }
-    if (is.null(stdInit) && (is.null(stdInit_cond) || is.null(stdInit_plot) ||
-                             is.null(plotInit) && is.null(plotInit_plot))) 
+    stdInit <- input$inTabs
+    fields = dbListFields(dbGlb$dbIcon,stdInit)
+    if (stdInit %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) 
     {
-cat ("error: stdInit is null\n")
-      return()
+      sidid = "StandPlot_ID" 
+      needFs = c("StandPlot_ID","StandPlot_CN") 
+    } else {
+      sidid = "Stand_ID"
+      needFs = c("Stand_ID","Stand_CN")
     }
-    globals$fvsRun$refreshDB=input$inTabs
-    allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
-    if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,plotInit)
-      needFs = c("StandPlot_ID","StandPlot_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit_cond)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit_plot)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else {
-      fields = dbListFields(dbGlb$dbIcon,plotInit_plot)
-      needFs = c("StandPlot_ID","StandPlot_CN",allNeed)
-    }
-    fields = intersect(toupper(fields),toupper(needFs))
-    dbQ = NULL
+    allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
+    fields = intersect(toupper(fields),toupper(allNeed))
     if (selType == "inAdd")
     {
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       if (length(input$inStds))
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
-        if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
-                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else 
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
-                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
       } else return()
     } else {
       # use if inAddGrp
-      if ((!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)) ||
-          (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs))||
-          (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)))
-      {
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
-                   'where Grp in (select SelGrps from temp.SGrps)')))
-      }else { 
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID from temp.Grps ',
-                        'where Grp in (select SelGrps from temp.SGrps)')))
-      }
+      qry = paste0('select ',sidid,' from temp.Grps',
+                 ' where Grp in (select SelGrps from temp.SGrps)')
+      stds = try(dbGetQuery(dbGlb$dbIcon,qry))
       if (class(stds) == "try-error") return()                                                             
       if (nrow(stds) == 0) return()
       stds = stds[,1]
@@ -2236,29 +2064,12 @@ cat ("error: stdInit is null\n")
       if (length(stds) == 0) return()  
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
-      if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
-                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else 
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
-                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-    }       
-    if (is.null(dbQ) || class(dbQ) == "try-error") return()
-    fvsInit = dbFetch(dbQ,n=-1)
+    }
+    qry = paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+                 ' where ',sidid,' in (select SelStds from temp.Stds)')
+cat ("qry=",qry,"\n")
+    fvsInit = try(dbGetQuery(dbGlb$dbIcon,qry))
+    if (class(fvsInit)=="try-error") return()
     if (nrow(fvsInit) == 0) return()
     names(fvsInit) = toupper(names(fvsInit))
     maxMsgs = (nrow(fvsInit) %/% 10) + 2
@@ -2279,10 +2090,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
         msgVal = msgVal+1
         progress$set(value = msgVal)
       }
-      if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) 
-          || !is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))) {
-        sid = fvsInit[row,"STANDPLOT_ID"]  
-      } else sid = fvsInit[row,"STAND_ID"]
+      sid = fvsInit[row,toupper(sidid)]  
       iwt = 0
       for (rep in 1:nreps)
       {
@@ -2470,6 +2278,11 @@ getProjectList <- function(includeLocked=FALSE)
 }
 
 
+myListTables <- function(db)
+{
+  dbGetQuery(db,"select name from sqlite_master where type = 'table';")[,1]
+}
+    
 mkNameUnique <- function(name,setOfNames=NULL)
 {
   origname=name
