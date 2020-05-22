@@ -637,7 +637,7 @@ shinyUI(fixedPage(
                 column(width=12,offset=0,
                   h6(),uiOutput("inputTabDesc")
             ))),              
-            tabPanel("Map data", 
+            tabPanel("Upload Map data", 
               h4("Upload a stand layer to use in the Maps feature."),       
               h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
               fileInput("mapUpload","Step 1: Upload polygon or point data (.zip that contains spatial data)",
@@ -650,7 +650,7 @@ shinyUI(fixedPage(
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               textInput("mapUpProjection", label="proj4 projection string",width="70%"),
               actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject uploaded data)"),h6(),
-              h5("Step 2: Do one of the following:"), 
+               p(strong("Step 2: Do one of the following:")),  
               tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
               tags$style(type="text/css","#mapUpAdd{font-size: 120%; color:green;}"),
               actionButton("mapUpSave","Install imported spatial data"),           

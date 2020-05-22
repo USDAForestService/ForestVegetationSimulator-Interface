@@ -6372,7 +6372,7 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
 
 ##### Map data mapUpload
    observe({
-    if(input$inputDBPan == "Map data") 
+    if(input$inputDBPan == "Upload Map data") 
     {
 cat ("Map data hit.\n")
       require(rgdal) 
