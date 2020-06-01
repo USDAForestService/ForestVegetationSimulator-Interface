@@ -9,7 +9,7 @@ mkfvsStd <<- setRefClass("fvsStd",
 if (exists("mkfvsGrp",envir=.GlobalEnv)) rm (mkfvsGrp,envir=.GlobalEnv)
 mkfvsGrp <<- setRefClass("fvsGrp",
   fields = list(grp = "character", cmps = "list", uuid="character"))
-
+                          
 if (exists("mkfvsCmp",envir=.GlobalEnv)) rm (mkfvsCmp,envir=.GlobalEnv)
 mkfvsCmp <<- setRefClass("fvsCmp",
   fields = list(kwds = "character", kwdName = "character", exten="character",
@@ -128,7 +128,7 @@ reorderFVSRuns <- function(FVS_Runs)
 
 findIdx = function (list, uuid)
 {
-  if (length(list) == 0) return(NULL)
+  if (length(list) == 0 || is.null(uuid)) return(NULL)
   for (i in 1:length(list)) if (list[[i]]$uuid == uuid) return (i)
   NULL
 }
@@ -1160,7 +1160,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       grp = std$grps[[i]]$grp
       cat ("  ",grp,if (i == length(std$grps)) "\n" else 
                         ", & \n",file=fc,sep="")
-    }
+    }                       
     cat ("Process\n\n",file=fc)    
   }
   cat ("Stop\n",file=fc)    
@@ -1169,100 +1169,123 @@ cat ("end of writeKeyFile\n")
   return("Keyword file write complete")
 }
 
-mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
+mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
 {
   tmpcnts = list()
   tmptags = list()                         
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
-  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL
-  start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
-  if (!is.null(sels) && length(sels) == 1)
+  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL 
+  if (justGrps) 
   {
-    if (substr(sels[[1]],1,1) == "-") 
+    start=1
+    end=0
+    for (grp in fvsRun$grps) 
     {
-      start = max((-as.numeric(sels[[1]]))-50,1) 
-    } else if (substr(sels[[1]],1,1)== "+") 
-    {
-      start = min(as.numeric(sels[[1]])+50,length(fvsRun$stands)-49)
-      if(start<1) start=1
-    }     
-  }
-  end = min(start+length(fvsRun$stands)-1,start+49)
-  if (foundStand > 0L) 
-  {
-    if (foundStand < start || foundStand > end) 
-    {
-      start = foundStand
-      end = min(start+length(fvsRun$stands)-1,start+49)
-      if (end > length(fvsRun$stands))
+      end=end+1+length(grp$cmps)
+      tmpcnts <- append(tmpcnts,paste(">",grp$grp))
+      tmptags <- append(tmptags,grp$uuid)
+      if (length(grp$cmps)) for (k in 1:length(grp$cmps))
       {
-        start = max(length(fvsRun$stands)-50,1)
-        end = length(fvsRun$stands)
+        tag = switch(grp$cmps[[k]]$atag,
+              "c" = "-> Cnd:",
+              "k" = "-> Kwd:",
+                    "--> Kwd:")
+        tmpcnts <- append(tmpcnts,paste(tag,grp$cmps[[k]]$title))
+        tmptags <- append(tmptags,grp$cmps[[k]]$uuid)
       }
     }
-  } 
-  fvsRun$startDisp = as.character(start)
+    if (length(intersect(unlist(fvsRun$selsim),unlist(tmptags))) == 0)
+      fvsRun$selsim = tmptags[1]
+  } else {
+    start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
+    if (!is.null(sels) && length(sels) == 1)
+    {
+      if (substr(sels[[1]],1,1) == "-") 
+      {
+        start = max((-as.numeric(sels[[1]]))-50,1) 
+      } else if (substr(sels[[1]],1,1)== "+") 
+      {
+        start = min(as.numeric(sels[[1]])+50,length(fvsRun$stands)-49)
+        if(start<1) start=1
+      }      
+    }
+    end = min(start+length(fvsRun$stands)-1,start+49) 
+    if (foundStand > 0L) 
+    {
+      if (foundStand < start || foundStand > end) 
+      {
+        start = foundStand
+        end = min(start+length(fvsRun$stands)-1,start+49)
+        if (end > length(fvsRun$stands))
+        {
+          start = max(length(fvsRun$stands)-50,1)
+          end = length(fvsRun$stands)
+        }
+      }
+    } 
+    fvsRun$startDisp = as.character(start)
 cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
 " sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
-paste0("list n=",length(list)) else sels,"\n")
-  if (length(fvsRun$stands)) for (i in start:end) 
-  {
-    ## these two lines are needed to deal with old runs that may not have these elements in the stand class
-    if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
-    if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
-    tmpcnts<-append(tmpcnts, 
-      if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
-          sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
-                  fvsRun$stands[[i]]$repwt))          
-    tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
-    if (length(fvsRun$stands[[i]]$grps) > 0)
-      for (j in 1:length(fvsRun$stands[[i]]$grps))
-      { 
-        tmpcnts <- append(tmpcnts,
-          paste("> Grp:",fvsRun$stands[[i]]$grps[[j]]$grp))
-        tmptags <- append(tmptags,fvsRun$stands[[i]]$grps[[j]]$uuid)
-        if (length(fvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
-          for (k in 1:length(fvsRun$stands[[i]]$grps[[j]]$cmps))
-          {
-            tag = switch(fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$atag,
-                  "c" = "-> Cnd:",
-                  "k" = "-> Kwd:",
-                        "--> Kwd:")
-            tmpcnts<-append(tmpcnts, paste(tag,
-                fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$title))
-            tmptags <- append(tmptags,
-               fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$uuid)
-          }
-      }
-    if (length(fvsRun$stands[[i]]$cmps) > 0)
-      for (k in 1:length(fvsRun$stands[[i]]$cmps))
-      { 
-        tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
-              "c" = "> Cnd:",
-              "k" = "> Kwd:",
-              "-> Kwd:")
-        tmpcnts<-append(tmpcnts, 
-          paste(tag,fvsRun$stands[[i]]$cmps[[k]]$title))
-        tmptags <- append(tmptags,fvsRun$stands[[i]]$cmps[[k]]$uuid)
-      }
+paste0("length(list)=",length(list)) else sels,"\n")
+    if (length(fvsRun$stands)) for (i in start:end) 
+    {
+      ## these two lines are needed to deal with old runs that may not have these elements in the stand class
+      if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
+      if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
+      tmpcnts<-append(tmpcnts, 
+        if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
+            sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
+                    fvsRun$stands[[i]]$repwt))          
+      tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
+      if (length(fvsRun$stands[[i]]$grps))
+        for (j in 1:length(fvsRun$stands[[i]]$grps))
+        { 
+          tmpcnts <- append(tmpcnts,
+            paste("> Grp:",fvsRun$stands[[i]]$grps[[j]]$grp))
+          tmptags <- append(tmptags,fvsRun$stands[[i]]$grps[[j]]$uuid)
+          if (length(fvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
+            for (k in 1:length(fvsRun$stands[[i]]$grps[[j]]$cmps))
+            {
+              tag = switch(fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$atag,
+                    "c" = "-> Cnd:",
+                    "k" = "-> Kwd:",
+                          "--> Kwd:")
+              tmpcnts<-append(tmpcnts, paste(tag,
+                  fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$title))
+              tmptags <- append(tmptags,
+                 fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$uuid)
+            }
+        }
+      if (length(fvsRun$stands[[i]]$cmps))
+        for (k in 1:length(fvsRun$stands[[i]]$cmps))
+        { 
+          tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
+                "c" = "> Cnd:",
+                "k" = "> Kwd:",
+                "-> Kwd:")
+          tmpcnts<-append(tmpcnts, 
+            paste(tag,fvsRun$stands[[i]]$cmps[[k]]$title))
+          tmptags <- append(tmptags,fvsRun$stands[[i]]$cmps[[k]]$uuid)
+        }
+    }
+    if (start > 1) 
+    {
+      tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
+      newstart <- max(start-50,1) 
+      if(newstart<1) newstart=1
+      newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
+      tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+                 " of ",length(fvsRun$stands)," stands >>"),after=0)
+    }
+    if (end < length(fvsRun$stands))
+    {
+      tmptags <- append(tmptags,paste0("+",as.character(start)))
+      newstart <- min(start+50,length(fvsRun$stands)-49)
+      newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
+      tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+                 " of ",length(fvsRun$stands)," stands >>"))
+    }
   }
-  if (start > 1) 
-  {
-    tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
-    newstart <- max(start-50,1) 
-    if(newstart<1) newstart=1
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
-    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
-               " of ",length(fvsRun$stands)," stands >>"),after=0)
-  }
-  if (end < length(fvsRun$stands))
-  {
-    tmptags <- append(tmptags,paste0("+",as.character(start)))
-    newstart <- min(start+50,length(fvsRun$stands)-49)
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
-    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
-               " of ",length(fvsRun$stands)," stands >>"))
-  }       
   fvsRun$simcnts <- tmptags
   names(fvsRun$simcnts) <- tmpcnts
   if (is.null(sels) && length(fvsRun$selsim)) 
@@ -1271,7 +1294,6 @@ paste0("list n=",length(list)) else sels,"\n")
        names(fvsRun$simcnts)[match(fvsRun$selsim,fvsRun$simcnts)]
      if (any(is.na(names(fvsRun$selsim)))) fvsRun$selsim = list()
   }
-
   if (!is.null(sels) || length(fvsRun$selsim) == 0) 
   {
     selset <- NULL
@@ -1294,7 +1316,7 @@ paste0("list n=",length(list)) else sels,"\n")
        names(fvsRun$selsim) <- tmpcnts[selset]
     }
   }
-  cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
+cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
 }
 
 findStand <- function(globals,search=NULL)
@@ -1764,17 +1786,13 @@ pasteComponent <- function(fvsRun,sel,topaste)
       test <- globals$pastelist[[1]]$kwds
       spgname <- list()
       spgname<- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
-                                            split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-      if(!length(globals$GrpNum)){
-        globals$GrpNum[1] <- 1
-      }else
+                split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+      if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
         globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-      
       spgname <- gsub(" ","", spgname)
       tmpk <- match(spgname, globals$GenGrp)
-      if (!is.na(tmpk)){
-        globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-      }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+      if (!is.na(tmpk)) globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)] else 
+        globals$GenGrp[length(globals$GrpNum)]<-spgname
     }
     return(idx)
   } 
@@ -2004,6 +2022,21 @@ ncmps <- function(fvsRun)
 
 addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 {
+  AddFiles <- function (addfiles)
+  {
+    addkeys = list()
+    if (!is.null(addfiles) && !is.na(addfiles))
+    { 
+      fns=scan(text=addfiles,what="character",sep="\n",quiet=TRUE)
+      for (fn in fns)
+      {
+        addkeys[length(addkeys)+1]=paste0("Open        133.\n",fn,
+                       "\nAddFile     133.\nClose       133.\n")
+        names(addkeys)[length(addkeys)] = fn
+      }
+    }
+    return(addkeys)
+  }
   isolate({
 cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
@@ -2097,23 +2130,12 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
         iwt = iwt+1
         if (iwt>length(rwts)) iwt=1
         newstd <- mkfvsStd(sid=sid,uuid=uuidgen(),repwt=rwts[iwt])
-        addfiles <- fvsInit[row,"ADDFILES"]
-        if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
-        {           
-          fns=scan(text=addfiles,what="character",quiet=TRUE)
-          for (fn in fns)
-          {
-            if (file.exists(fn))
-            {
-              addkeys = paste0("Open        133.\n",fn,
-                             "\nAddFile     133.\nClose       133.\n")
-              newstd$cmps <- append(newstd$cmps,
-                   mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                     exten="base", atag="k",kwdName=paste0("From AddFile: ",fn),
-                      title=paste0("From AddFile: ",fn)))                    
-            }
-          }
-        }
+        addfiles = AddFiles(fvsInit[row,"ADDFILES"])
+        for (addf in names(addfiles))
+          newstd$cmps <- append(newstd$cmps,
+                   mkfvsCmp(kwds=addfiles[[addf]],uuid=uuidgen(),
+                     exten="base", atag="k",kwdName=paste0("AddFile: ",addf),
+                     title=paste0("AddFile: ",addf)))                    
         addkeys <- fvsInit[row,"FVSKEYWORDS"]
         if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
           newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
@@ -2137,10 +2159,17 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
           {
             addkeys <- globals$inData$
                        FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
-            if (!is.null(addkeys)) newgrp$cmps[[length(newgrp$cmps)+1]] <- 
-               mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
-                        kwdName="From: FVS_GroupAddFilesAndKeywords",
-                          title="From: FVS_GroupAddFilesAndKeywords")
+            if (!is.null(addkeys) && !is.na(addkeys)) 
+              newgrp$cmps[[length(newgrp$cmps)+1]] <- 
+                mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
+                         kwdName="From: FVS_GroupAddFilesAndKeywords",
+                           title="From: FVS_GroupAddFilesAndKeywords")
+            addfiles <- AddFiles(globals$inData$
+                        FVS_GroupAddFilesAndKeywords[grow,"ADDFILES"])
+            for (addf in names(addfiles))
+              mkfvsCmp(kwds=addfiles[adddf],uuid=uuidgen(),atag="k",exten="base",
+                      kwdName=paste0("AddFile: ",addf),
+                        title=paste0("AddFile: ",addf))
           }
           globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
         }
@@ -2177,7 +2206,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     updateReps(globals)
     msgVal = msgVal+1
     progress$set(detail="Loading contents listbox",value = msgVal)
-    mkSimCnts(globals$fvsRun)
+    mkSimCnts(globals$fvsRun,justGrps=isolate(input$simContType=="Just groups"))
     updateSelectInput(session=session, inputId="simCont", 
       choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
     output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",

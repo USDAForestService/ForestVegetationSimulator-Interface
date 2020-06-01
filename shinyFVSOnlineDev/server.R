@@ -146,12 +146,9 @@ cat ("serious start up error\n")
            if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
            "<br>Last accessed: <b>",
            format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
-    cat ("tstring=",tstring,"\n")    
+cat ("tstring=",tstring,"\n")    
     output$projectTitle = renderText(HTML(paste0("<p>",tstring,"<p/>")))            
-    updateTextInput(session=session, inputId="rpTitle", 
-      value=paste0("Custom report",if (length(tit)) 
-            paste0(" for project: ",tit) else "")) 
-    mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
+    mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim)
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
     names(selChoices) = globals$FVS_Runs
@@ -2204,14 +2201,14 @@ cat("setting uiRunPlot to NULL\n")
         } 
       }
       resetGlobals(globals,globals$fvsRun,prms)
-      mkSimCnts(globals$fvsRun,globals$fvsRun$selsim)
+      mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
+        justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
 cat ("reloaded globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")      
 cat ("reloaded globals$fvsRun$runScript=",globals$fvsRun$runScript,"\n")
       if (length(globals$fvsRun$uiCustomRunOps)) lapply(names(globals$fvsRun$uiCustomRunOps), function (x,y)
 cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$uiCustomRunOps) else
 cat ("globals$fvsRun$uiCustomRunOps is empty\n")
-
       isolate({
         if ((globals$changeind==0 && !length(globals$currentQuickPlot)) && length(globals$fvsRun$simcnts)>0)
         {
@@ -2264,19 +2261,19 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
   })
   
-   ##autoOut
-   observe({
-     if(length(input$autoOut) || length(input$autoSVS))
-     {
-       out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
-                 autoOut=as.list(input$autoOut))
-       if (identical(out,globals$fvsRun$autoOut)) return()
-       globals$fvsRun$autoOut <- out
-       updateAutoOut(session, globals$fvsRun$autoOut)
-       globals$changeind <- 1
-       output$contChange <- renderText(HTML("<b>*Run*</b>"))
-     }
-   })
+  ##autoOut
+  observe({
+    if(length(input$autoOut) || length(input$autoSVS))
+    {
+      out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
+                autoOut=as.list(input$autoOut))
+      if (identical(out,globals$fvsRun$autoOut)) return()
+      globals$fvsRun$autoOut <- out
+      updateAutoOut(session, globals$fvsRun$autoOut)
+      globals$changeind <- 1
+      output$contChange <- renderText(HTML("<b>*Run*</b>"))
+    }
+  })
 
   ## inAdd:    Add Selected Stands
   observe({
@@ -2307,12 +2304,12 @@ cat ("input$inStdFindBut=",input$inStdFindBut,"\n")
     if (length(input$simCont) == 0) return()
 cat ("run element selection\n")
     if (all(input$simCont == globals$fvsRun$selsim)) return()
-    mkSimCnts(globals$fvsRun,input$simCont[[1]])
+    mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=isolate(input$simContType=="Just groups"))
     updateSelectInput(session=session, inputId="simCont", 
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
   })
   
-  ## findStand (set run element to item if found.
+  ## findStand (set run element to item if found)
   observe({
     if (input$searchNext== 0) return()      
     isolate ({
@@ -2321,9 +2318,11 @@ cat ("searchNext: string=",input$searchString,"\n")
     elt = findStand(globals,search=input$searchString)
 cat ("elt=",elt,"\n")
     if (is.null(elt)) return()
-    mkSimCnts(globals$fvsRun,elt,globals$foundStand)
+    if (input$simContType=="Just groups") updateRadioButtons(session=session, 
+       inputId="simContType", selected="Full run")
+    mkSimCnts(globals$fvsRun,sels=elt,justGrps=input$simContType=="Just groups")
     updateSelectInput(session=session, inputId="simCont", 
-         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+         choices=globals$fvsRun$simcnts, selected=elt)
   })})
 
   ## Edit  
@@ -2488,7 +2487,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       {
         globals$foundStand=0L 
         updateReps(globals)
-        mkSimCnts(globals$fvsRun) 
+        mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
@@ -2500,9 +2499,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
               globals$pastelistShadow[[1]] else 0)
       }
       globals$changeind <- 1
-      output$contChange <- renderText({
-        HTML("<b>*Run*</b>")
-      })
+      output$contChange <- renderText(HTML("<b>*Run*</b>"))
     })
   })
 
@@ -2535,16 +2532,18 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (length(input$selpaste) == 0) return()
       if (nchar(input$selpaste) == 0) return()
       pidx = findIdx (globals$pastelist, input$selpaste)
+cat("paste, pidx=",pidx,"\n")
       if (is.null(pidx)) return()
       topaste = globals$pastelist[[pidx]]
-      if (length(grep("^SpGroup",topaste$kwds))){
+      if (length(grep("^SpGroup",topaste$kwds)))
+      {
+cat("paste, SpGroup hit\n")
         cntr <- 0
-        if(!length(globals$GrpNum)){
-          globals$GrpNum[1] <- 1
-        }else
+        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
           globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-          globals$GenGrp[length(globals$GrpNum)] <- topaste$reopn[[1]]
+        globals$GenGrp[length(globals$GrpNum)] <- topaste$reopn[[1]]
       }
+cat("paste, class(topaste)=",class(topaste),"\n")
       if (class(topaste) != "fvsCmp") return()
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
               exten=topaste$exten,variant=topaste$variant,uuid=uuidgen(),
@@ -2552,7 +2551,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       idx = pasteComponent(globals$fvsRun,input$simCont[1],topaste)
       if (!is.null(idx))
       {
-        mkSimCnts(globals$fvsRun)   
+        mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
@@ -2561,9 +2560,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       }
       globals$foundStand=0L 
       globals$changeind <- 1
-      output$contChange <- renderText({
-        HTML("<b>*Run*</b>")
-      })
+      output$contChange <- renderText(HTML("<b>*Run*</b>"))
     })
   })
 
@@ -2601,7 +2598,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
         cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
         cmp$title = paste0("Freeform: ",cmp$title)
         cmp$reopn = character(0)
-        mkSimCnts(globals$fvsRun,toed)   
+        mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
         updateSelectInput(session=session, inputId="simCont", 
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -2915,7 +2912,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
         idx = pasteComponent(globals$fvsRun,input$simCont[1],globals$currentEditCmp)
         if (!is.null(idx))
         { 
-          mkSimCnts(globals$fvsRun)   
+          mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
           updateSelectInput(session=session, inputId="simCont", 
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         }
@@ -2978,7 +2975,7 @@ cat ("Editing as freeform\n")
           globals$currentEditCmp$kwds = input$freeEdit
           globals$currentEditCmp$reopn = character(0)
           globals$currentEditCmp$title = input$cmdTitle
-          mkSimCnts(globals$fvsRun,input$simCont[[1]])
+          mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
           updateSelectInput(session=session, inputId="simCont", 
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
           closeCmp()
@@ -3146,14 +3143,12 @@ cat ("building component kwPname=",kwPname,"\n")
 cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")       
         globals$currentEditCmp$reopn=if (is.null(reopn)) character(0) else reopn
         globals$currentEditCmp=globals$NULLfvsCmp
-      }
-      mkSimCnts(globals$fvsRun,input$simCont[[1]])
+      }      
+      mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       globals$changeind <- 1
-      output$contChange <- renderText({
-        HTML("<b>*Run*</b>")
-      })
+      output$contChange <- renderText(HTML("<b>*Run*</b>"))
       closeCmp()
       globals$schedBoxPkey <- character(0)
     })
@@ -3725,12 +3720,11 @@ is.null(input$kcpTitle),"\n")
         updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
            selected=newTit)
+        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+        updateSelectInput(session=session, inputId="simCont",
+           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        closeCmp()
       })
-      mkSimCnts(globals$fvsRun,input$simCont[[1]])
-      updateSelectInput(session=session, inputId="simCont",
-         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-      closeCmp()
-      
     }
   })
   
@@ -3778,7 +3772,7 @@ cat ("kcpSaveInRun\n")
               append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
               append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
         }
-        mkSimCnts(globals$fvsRun,input$simCont[[1]])
+        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
@@ -6876,6 +6870,13 @@ cat ("launch url:",url,"\n")
         }
       }          
     })
+  })
+  
+  observe(
+  {
+    mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
+    updateSelectInput(session=session, inputId="simCont", 
+         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
   })
                                       
   saveRun <- function() 
