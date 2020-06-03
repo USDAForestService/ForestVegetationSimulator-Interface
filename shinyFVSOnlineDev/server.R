@@ -2444,7 +2444,8 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])      
       insertStrinIntoFreeEdit(string)
     })
-  })   
+  }) 
+  
   insertStrinIntoFreeEdit <- function(string)
   {
     if (is.null(string) || nchar(string) == 0 || string == " ") return()
@@ -2475,7 +2476,6 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
       session$sendCustomMessage(type="refocus", "freeEdit")
     })
   }
-
  
   ## Cut  
   observe({
@@ -2659,7 +2659,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
             label="Keywords", choices=list())
         output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
-      "Addfile"   = 
+      "Editor"   = 
       {
         customCmps = NULL
         if (length(globals$customCmps) == 0 && file.exists("FVS_kcps.RData")) 
@@ -2670,9 +2670,114 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         if (!is.null(customCmps)) updateSelectInput(session=session,
           inputId="kcpSel",choices=as.list(names(customCmps)), 
           selected=names(customCmps)[1]) 
+          eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
+                              globals$currentEditCmp$kwds)
+          output$cmdBuild <-renderUI (eltList)
+          output$fvsFuncRender <- renderUI (NULL)
+          # output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       NULL)   
+  })
+  
+  observe({
+    if (length(input$kcpEdit)) 
+    {
+#cat("call sendcustomMessage\n")          
+      session$sendCustomMessage(type="getStart", "kcpEdit")
+    }
+  })
+  observe({
+    if (length(input$freeSpeciesKCP) && nchar(input$freeSpeciesKCP)) isolate({
+      if (length(input$kcpEdit) == 0) return()
+      insertStrinIntokcpEdit(input$freeSpeciesKCP)
+    })
+  })
+  observe({
+    if (length(input$freeVarsKCP) && nchar(input$freeVarsKCP)) isolate({
+      if (length(input$kcpEdit) == 0) return()
+      insertStrinIntokcpEdit(input$freeVarsKCP)
+    })
+  })
+  observe({
+    if (length(input$freeOpsKCP) && nchar(input$freeOpsKCP)) isolate({
+      if (length(input$kcpEdit) == 0) return()
+      insertStrinIntokcpEdit(input$freeOpsKCP)
+    })
   })  
+  observe({
+    if (length(input$freeFuncsKCP) && nchar(input$freeFuncsKCP)) isolate({
+      if (length(input$kcpEdit) == 0) return()
+      pkeys = prms[[paste0("evmon.function.",input$freeFuncsKCP)]] 
+      if (is.null(pkeys)) return()
+      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+      eltList <- append(eltList,list(
+        actionButton("fvsFuncInsertKCP","Insert function"),
+        actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
+      output$fvsFuncRender <- renderUI(eltList)
+    })
+  })
+  
+  observe({  #fvsFuncCancelKCP
+    if (length(input$fvsFuncCancelKCP) && input$fvsFuncCancelKCP) 
+    {
+      output$fvsFuncRender <- renderUI (NULL)
+      updateSelectInput(session=session, inputId="freeFuncsKCP",selected=1)
+    }
+  })
+  observe({  #fvsFuncInsert
+    if (length(input$fvsFuncInsertKCP) && input$fvsFuncInsertKCP)
+    isolate({
+      pkeys = prms[[paste0("evmon.function.",input$freeFuncsKCP)]]
+      ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+      reopn = NULL
+      fn = 0
+      repeat
+      {
+        fn = fn+1
+        pkey = paste0("f",fn)
+        fps = getPstring(pkeys,pkey,globals$activeVariants[1])
+        if (is.null(fps)) break
+        pkey = paste0("func.f",fn)
+        instr = input[[pkey]]
+        reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+        names(reopn)[fn] = pkey
+      }
+      string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])      
+      insertStrinIntokcpEdit(string)
+    })
+  }) 
+  
+  insertStrinIntokcpEdit <- function(string)
+  {
+    if (is.null(string) || nchar(string) == 0 || string == " ") return()
+    isolate({
+      if (length(input$selectionStart)) 
+      {
+        start = input$selectionStart
+        end   = input$selectionEnd
+      } else { start=0;end=0 } 
+      len   = nchar(input$kcpEdit)
+cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=",len,"\n")
+      if (nchar(string) == 0) return()
+      if (start == end && end == len) {         # prepend 
+        updateTextInput(session, "kcpEdit", value = paste0(input$kcpEdit,string))
+      } else if (start == 0 && end == start) {  # append
+        updateTextInput(session, "kcpEdit", value = paste0(string,input$kcpEdit))
+      } else if (end >= start) {                # insert/replace
+        str = input$kcpEdit
+        updateTextInput(session, "kcpEdit", value = 
+          paste0(substring(input$kcpEdit,1,max(1,start)),string,
+                 substring(input$kcpEdit,min(end+1,len))))
+      }
+      updateSelectInput(session=session, inputId="freeOpsKCP", selected=1)
+      updateSelectInput(session=session, inputId="freeVarsKCP",selected=1)
+      updateSelectInput(session=session, inputId="freeSpeciesKCP",selected=1)
+      updateSelectInput(session=session, inputId="freeFuncsKCP",selected=1)
+      output$fvsFuncRender <- renderUI (NULL)
+      session$sendCustomMessage(type="refocus", "kcpEdit")
+    })
+  }
+  
   ## addMgmtCats
   observe({
     if (is.null(input$addMgmtCats)) return()
@@ -3736,9 +3841,9 @@ is.null(input$kcpTitle),"\n")
 cat ("kcpSaveInRun\n")
         if (nchar(input$kcpTitle) == 0)
         {
-          newTit = paste0("Freeform: Component ",length(globals$customCmps)+1) 
+          newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
           updateTextInput(session=session, inputId="kcpTitle", value=newTit)
-        } else newTit = paste0("Addfile: ",trim(input$kcpTitle))
+        } else newTit = paste0("Editor: ",trim(input$kcpTitle))
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
              variant=globals$activeVariants[1],kwdName=character(0),
              title=newTit,reopn=character(0))
