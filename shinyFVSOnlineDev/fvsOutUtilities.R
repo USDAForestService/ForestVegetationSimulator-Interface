@@ -257,12 +257,12 @@ getGraphSettings <- function(input)
   isolate({   
     theSettings$selectdbtables = input$selectdbtables
     theSettings$selectdbvars   = input$selectdbvars
-    theSettings$stdgroups      = input$stdgroups    
-    theSettings$stdid          = input$stdid        
-    theSettings$mgmid          = input$mgmid 
-    theSettings$year           = input$year                 
-    theSettings$species        = input$species 
-    theSettings$dbhclass       = input$dbhclass           
+    # theSettings$stdgroups      = input$stdgroups    
+    # theSettings$stdid          = input$stdid        
+    # theSettings$mgmid          = input$mgmid 
+    # theSettings$year           = input$year                 
+    # theSettings$species        = input$species 
+    # theSettings$dbhclass       = input$dbhclass           
     theSettings$browsevars     = input$browsevars
     theSettings$plotType       = input$plotType 
     theSettings$colBW          = input$colBW
@@ -322,12 +322,12 @@ setGraphSettings <- function(session,theSettings)
   updateCheckboxGroupInput(session=session, inputId="browsevars",   selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",     selected=theSettings$plotType)
 
-  updateSelectInput       (session=session, inputId="stdgroups",    selected=theSettings$stdgroups)    
-  updateSelectInput       (session=session, inputId="stdid",        selected=theSettings$stdid)        
-  updateSelectInput       (session=session, inputId="species",      selected=theSettings$species) 
-  updateSelectInput       (session=session, inputId="mgmid",        selected=theSettings$mgmid) 
-  updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
-  updateSelectInput       (session=session, inputId="year",         selected=theSettings$year) 
+  # updateSelectInput       (session=session, inputId="stdgroups",    selected=theSettings$stdgroups)    
+  # updateSelectInput       (session=session, inputId="stdid",        selected=theSettings$stdid)        
+  # updateSelectInput       (session=session, inputId="species",      selected=theSettings$species) 
+  # updateSelectInput       (session=session, inputId="mgmid",        selected=theSettings$mgmid) 
+  # updateSelectInput       (session=session, inputId="dbhclass",     selected=theSettings$dbhclass)
+  # updateSelectInput       (session=session, inputId="year",         selected=theSettings$year) 
 
   updateSelectInput       (session=session, inputId="yaxis",   choices=globals$settingChoices[["yaxis"]],  selected=theSettings$yaxis) 
   updateSelectInput       (session=session, inputId="xaxis",   choices=globals$settingChoices[["xaxis"]],  selected=theSettings$xaxis) 

@@ -5075,7 +5075,8 @@ cat("delete project button.")
       if (which.max(info[,4]) != 1)
       {
         help = readChar(fn, info[2,1]) 
-        progress$set(message = "Loading Help File", value = 5)
+        progress$set(message = "Loading Help File. This will be pre-loaded the 
+                     next time you access the Help menu.", value = 5)
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
         if (class(tabs)!="try-error")
         {
@@ -5088,7 +5089,8 @@ cat("delete project button.")
           if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
                   pattern="**OUTPUTHTML**",replacement=morehtml)
         }
-        progress$set(message = "Loading Table Descriptions", value = 8)
+        progress$set(message = "Loading Table Descriptions. This will be pre-loaded the 
+                     next time you access the Help menu.", value = 8)
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
         if (class(tabs)!="try-error")                                                         
         {
