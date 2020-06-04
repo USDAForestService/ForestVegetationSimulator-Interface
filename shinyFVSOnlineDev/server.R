@@ -2063,7 +2063,27 @@ cat ("saveRun\n")
                         selected="Management")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
-      isolate ({
+      updateCheckboxGroupInput(session=session, "autoOut", choices=list(
+                        "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                        "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
+                        "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
+                        "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
+                        "FFE canopy profile (FVS_CanProfile)"="autoCanProfile",          
+                        "FFE detailed snag (FVS_SnagDet)"="autoSnagDet",  
+                        "Stand structure (FVS_StrClass)"="autoStrClass",
+                        "Calibration stats (FVS_CalibStats)"="autoCalibStats",  
+                        "Climate-FVS (FVS_Climate)"="autoClimate",                                    
+                        "Economics (FVS_EconSummary, FVS_EconHarvestValue)"="autoEcon",
+                        "Mistletoe detail by tree size (FVS_DM_Sz_Sum)"="autoDM_Sz_Sum",  
+                        "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
+                        "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
+                        "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
+                        "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
+                        "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
+                         AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
+                        "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
+                        ), selected=list())   
+    isolate ({
         if (!is.null(input$inVars) && !is.null(input$inTabs))
         {
           loadStandTableData(globals, dbGlb$dbIcon)
@@ -2565,7 +2585,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   })
 
 
-  # Convert to freeform
+  # Change to freeform
   observe({
     if (input$mkfree == 0) return()
     isolate ({
