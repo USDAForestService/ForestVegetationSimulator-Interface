@@ -366,7 +366,8 @@ cat ("qry=",qry,"\n")
   cycleat = union(baseCycles,cycleat)
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr))) 
   for (std in fvsRun$stands)
-  {
+  { 
+    names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
 cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
