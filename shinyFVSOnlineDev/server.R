@@ -3367,13 +3367,23 @@ cat("Nulling uiRunPlot at Save and Run\n")
         }
         if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
         {
+          if(msg=="Run data query returned no data to run."){
+cat ("Run data query returned no data to run.\n")  
+          progress$set(message = "Error: Keyword file was not created. Try re-importing
+                       the inventory database associated with this run.",
+                      detail = msg, value = 3) 
+          Sys.sleep(10)
+          progress$close()     
+          return()  
+          } else {
 cat ("keyword file was not created.\n")
           progress$set(message = "Error: Keyword file was not created.",
                       detail = msg, value = 3) 
           Sys.sleep(5)
           progress$close()     
           return()
-        }          
+          }
+        }
         dir.create(globals$fvsRun$uuid)
         locrFVSDir = if (isLocal() && exists("rFVSDir") && 
                          !is.null(rFVSDir)) rFVSDir else "rFVS/R"
@@ -3465,7 +3475,6 @@ cat ("cmd=",cmd,"\n")
           progress$close()
           return()
         }
-
         fvschild = makePSOCKcluster(1)
         cmd = paste0("clusterEvalQ(fvschild,for (rf in dir('",locrFVSDir,
           "')) source(paste0('",locrFVSDir,"','/',rf)))")
