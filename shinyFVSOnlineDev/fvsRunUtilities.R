@@ -253,7 +253,7 @@ cat ("qry=",qry,"\n")
 
   fvsInit = try(dbGetQuery(dbIcon,qry))
   if (class(fvsInit) == "try-error") return("Run data query failed.")
-  if (nrow(fvsInit) == 0) return("Run data query returned not data to run.")
+  if (nrow(fvsInit) == 0) return("Run data query returned no data to run.")
   # compute replication weights
   stofix=table(stds)
   stofix=names(stofix[stofix>1])
