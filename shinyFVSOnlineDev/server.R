@@ -2694,7 +2694,15 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
                               globals$currentEditCmp$kwds)
           output$cmdBuild <-renderUI (eltList)
           output$fvsFuncRender <- renderUI (NULL)
-          # output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+          output$cmdBuildDesc <- renderUI ("Description: This Editor menu allows you to 
+          utilize the advanced features of the freeform text format for creating custom 
+          component sets by directly adding & editing keyword records and Event Monitor 
+          functions. You can upload an existing keyword component file (.kcp), or keyword 
+          component archive (FVS_kcps.Rdata) and then save it into the Run Contents window 
+          on the left (Save in run), and also save it in the component collection (Save in 
+          component collection).You can even create your own component sets by appending 
+          items from the Run Contents on the left (Append selected component from run)
+          and then saving them into your component collection (Save in component collection).")
       },
       NULL)   
   })

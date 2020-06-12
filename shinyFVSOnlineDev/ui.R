@@ -187,16 +187,9 @@ shinyUI(fixedPage(
                                multiple=FALSE,selectize=FALSE)),
                  tabPanel("Editor",
                           h5(),
-                   p(strong("NOTE: This Editor menu allows you to utilize the advanced features of the freeform text format 
-                            for creating custom component sets by directly adding & editing keyword records and Event 
-                            Monitor functions. There are two ways to accomplish this:")),
                    fileInput("kcpUpload",
-                             "1) Uploading an existing Keyword component file (.kcp), or Keyword component archive (FVS_kcps.Rdata),
-                              to be edited in the section below. It can then saved into the Run Contents on the
-                              left (Save in run), or even saved into the component collection (Save in component collection).",
+                             "Upload an existing Keyword component file (.kcp), or Keyword component archive (FVS_kcps.Rdata)",
                              width="90%"),
-                   p(strong("2) Creating your own component sets by appending items from the run contents on the left 
-                             (Append selected component from run) and then saving them into your component collection (Save in component collection). ")),
                    selectInput("kcpSel","Existing component collection", NULL, 
                               NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
                    actionButton("kcpNew","New"),
@@ -216,8 +209,8 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", 
                       "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                    tags$textarea(id="kcpEdit", rows=15),h6())),                 
-               uiOutput("cmdBuild"),
-               uiOutput("cmdBuildDesc")
+               uiOutput("cmdBuild"),h5(),
+               uiOutput("cmdBuildDesc"),h5()
               ),
               tabPanel("Select Outputs",
                     h4("Select outputs"),
