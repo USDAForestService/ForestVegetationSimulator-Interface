@@ -2384,14 +2384,21 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       eltList <- append(eltList,list(
         h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)        
       eltList <- append(eltList,list(
-           tags$style(type="text/css", "#cmdCancel {color:red;}"),
-           actionButton("cmdCancel","Cancel"),
-           tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
-           actionButton("cmdSaveInRun","Save in run")))
-      output$cmdBuild <- renderUI(eltList)
-      output$fvsFuncRender <- renderUI (NULL)
-      if (input$rightPan != "Components") updateTabsetPanel(session=session, 
+           tags$style(type="text/css", "#editcmdCancel {color:red;}"),
+           actionButton("editcmdCancel","Cancel"),
+           tags$style(type="text/css", "#editcmdSaveInRun {color:green;}"),
+           actionButton("editcmdSaveInRun","Save in run")))
+      output$editcmdBuild <- renderUI(eltList)
+      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
+      if (input$rightPan != "Components") {
+        updateTabsetPanel(session=session,
         inputId="rightPan",selected="Components")
+      }
+      if (input$rightPan == "Components" && input$compTabSet !="Management") {
+        updateSelectInput(session=session,
+        inputId="compTabSet", selected="Management")
+      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
+      }
     })
   })
   
@@ -3018,6 +3025,12 @@ cat("make condElts, input$condList=",input$condList,"\n")
     closeCmp()
   })
   
+  observe({  
+    # command Cancel
+    if (length(input$editcmdCancel) && input$editcmdCancel == 0) return()
+    closeCmp()
+  })
+  
   closeCmp <- function ()
   {
     globals$currentEditCmp <- globals$NULLfvsCmp
@@ -3026,7 +3039,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
     updateSelectInput(session=session, inputId="addModCmps", selected = 0)     
     updateSelectInput(session=session, inputId="addKeyWds", selected = 0)     
     updateSelectInput(session=session, inputId="addEvCmps",selected = 0)
-    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$editcmdBuild <-output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   }
 
   observe({  

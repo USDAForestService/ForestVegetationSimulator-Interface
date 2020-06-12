@@ -169,7 +169,9 @@ shinyUI(fixedPage(
                     selectInput ("addMgmtCats","Categories",NULL,
                                  multiple=FALSE,selectize=FALSE),
                     selectInput("addMgmtCmps","Components",NULL,
-                                 multiple=FALSE,selectize=FALSE)),
+                                 multiple=FALSE,selectize=FALSE),
+                    uiOutput("editcmdBuild")
+                    ),
                  tabPanel("Modifiers",                    
                    selectInput("addModCats","Categories",NULL,
                                multiple=FALSE,selectize=FALSE),
@@ -209,7 +211,7 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", 
                       "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                    tags$textarea(id="kcpEdit", rows=15),h6())),                 
-               uiOutput("cmdBuild"),h5(),
+               uiOutput("cmdBuild"),
                uiOutput("cmdBuildDesc"),h5()
               ),
               tabPanel("Select Outputs",

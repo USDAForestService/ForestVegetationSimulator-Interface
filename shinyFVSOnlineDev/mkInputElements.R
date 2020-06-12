@@ -472,7 +472,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   indx = sort(funcName,index.return=TRUE)$ix
   funcName = as.list(funcName[indx])
   names(funcName) = funcDef[indx]
-  if (input$compTabSet=="Editor"){
+  if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0){
     eltList <- list(
     myInlineListButton ("freeOpsKCP","Math:",list(
        " "=" ",
@@ -512,7 +512,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
      myInlineListButton ("freeFuncsKCP","FVS Functions:",funcName,deltll=NULL),
      uiOutput("fvsFuncRender")
   )
-  }else {
+  } else {
     eltList <- list(
     tags$style(type="label/css", "#cmdTitle{display: inline;}"),
     myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
