@@ -5,33 +5,39 @@ function(fvsProgram,bin="../../trunk/bin")
   # strip program suffix if it is present
   fvsProgram=strsplit(fvsProgram,".",fixed=TRUE)[[1]][1]
   # add the suffix that is consistent for the platform
-  fvsProgram=paste(fvsProgram,.Platform$dynlib.ext,sep="")
+  fvsProgram=paste0(fvsProgram,.Platform$dynlib.ext)
   # if the last char of the bin is not a file separator, add one.
   if (substring(bin,nchar(bin)) != .Platform$file.sep) bin=paste(bin,.Platform$file.sep,sep="")
   
-  loaded = vector("list")
-  file = paste(bin,fvsProgram,sep="")
-  if (file.exists(file))
+  ldfile = paste0(bin,fvsProgram)
+  if (exists(".FVSLOADEDLIBRARY",envir=.GlobalEnv)) 
   {
-    if (exists(".FVSLOADEDLIBRARY",envir=.GlobalEnv)) 
-    {
-      loaded=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)
-      remove(".FVSLOADEDLIBRARY",envir=.GlobalEnv)
-      lapply (loaded,dyn.unload)
-    }
-    # # if on windows, we also need the sql dll.
-    # if (.Platform$OS.type == "windows")
-    # {
-    #   sql = paste(bin,"libfvsSQL.dll",sep="")
-    #   load = dyn.load(sql)[[3]]
-    #   if (! load) stop (paste (sql,"was not loaded."))
-    #   loaded$sql = sql
-    # }
-    load = dyn.load(file)[[3]]
-    if (! load) stop (paste (file,"was not loaded."))
-    loaded$pgm = file
-    assign(".FVSLOADEDLIBRARY",loaded,envir=.GlobalEnv)
+    loaded=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)
+    remove(".FVSLOADEDLIBRARY",envir=.GlobalEnv)
+    lapply (loaded,dyn.unload)
   }
-  invisible(loaded)
+  if (file.exists(ldfile))
+  {
+    load = try(dyn.load(ldfile,local=TRUE,now=TRUE))
+    if (class(load) == "try-error") stop (paste (ldfile,"was not loaded."))
+
+    # this is a list of the routines needed by the API. Normally, all will
+    # be present or all absent, if some are absent, the DLL is unloaded.
+    neededRoutines = c("CfvsEvmonAttr","CfvsFFEAttrs","CfvsSVSObjData",
+      "CfvsSetCmdLine","CfvsSpeciesAttr","CfvsSpeciesCode","CfvsStandID",
+      "CfvsTreeAttr","CfvsUnitConversion",
+      tolower(c("fvs","fvsAddActivity","fvsAddTrees","fvsDimSizes",
+      "fvsGetRestartCode","fvsSVSDimSizes",
+      "fvsSetStoppointCodes","fvsSummary")))
+    found=unlist(lapply(neededRoutines,is.loaded))
+    if (!all(found)) 
+    {
+      try(dyn.unload(ldfile))
+      stop(paste0(paste0(neededRoutines[!found],collapse=","),
+      ": needed routines that are not available in ",ldfile,
+      " (maybe they were not exported when the library was built)"))
+    }       
+    assign(".FVSLOADEDLIBRARY",list("pgm"=ldfile),envir=.GlobalEnv)
+  } else stop(paste0(ldfile," does not exist."))
+  invisible(ldfile)                   
 }
-        
