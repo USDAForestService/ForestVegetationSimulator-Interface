@@ -188,7 +188,7 @@ shinyUI(fixedPage(
                    selectInput("addKeyWds","Keywords",NULL,
                                multiple=FALSE,selectize=FALSE)),
                  tabPanel("Editor",
-                          h5(),
+                   h5(),
                    fileInput("kcpUpload",
                              "Upload an existing Keyword component file (.kcp), or Keyword component archive (FVS_kcps.Rdata)",
                              width="90%"),

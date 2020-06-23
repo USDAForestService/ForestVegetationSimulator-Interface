@@ -373,7 +373,6 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
         } 
       }
     first <- 0
-    # browser()
     for (item in 1:length(mklist))
      {
       if (trim(mklist[[item]][1]) == trim(selected) && first==0){
@@ -472,9 +471,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   indx = sort(funcName,index.return=TRUE)$ix
   funcName = as.list(funcName[indx])
   names(funcName) = funcDef[indx]
-  if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0){
-    eltList <- list(
-    myInlineListButton ("freeOpsKCP","Math:",list(
+  mathList = list(
        " "=" ",
        "+ Simple addition"="+",
        "- Subtraction or change sign"="-",
@@ -505,13 +502,16 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
        "Mod() Remainder of first argument divided by the second"="Mod()",
        "Sin() Sine (argument in radians)"="Sin()",
        "Sqrt() Square root"="Sqrt()",
-       "Tan() Tangent (argument in radians)"="Tan()"), 0, deltll=NULL),
-     myInlineListButton ("freeVarsKCP","Variables:",varsName, deltll=NULL),
+       "Tan() Tangent (argument in radians)"="Tan()")
+  if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0)
+  {
+    eltList <- list(
+     myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
+     myInlineListButton ("freeVarsKCP","Variables:",varsName,deltll=NULL),
      mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
           choices=NULL,globals$activeVariants[1]),
      myInlineListButton ("freeFuncsKCP","FVS Functions:",funcName,deltll=NULL),
-     uiOutput("fvsFuncRender")
-  )
+     uiOutput("fvsFuncRender"))
   } else {
     eltList <- list(
     tags$style(type="label/css", "#cmdTitle{display: inline;}"),
@@ -523,44 +523,12 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
     tags$style(type="text/css", 
       "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
     tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
-    myInlineListButton ("freeOps","Math:",list(
-       " "=" ",
-       "+ Simple addition"="+",
-       "- Subtraction or change sign"="-",
-       "* Multiplication"="*",
-       "/ Division"="/",
-       "** Exponentiate, X**Y is X raised to the power Y"="**",
-       "EQ Logical Equal"="EQ",
-       "NE Logical Not Equal"="NE",
-       "LT Logical Less than"="LT",
-       "LE Logical Less than or equal"="LE",
-       "GT Logical Greater than"="GT",
-       "GE Logical Greater than or equal"="GE",
-       "AND Logical AND"="AND",
-       "OR Logical OR"="OR",
-       "NOT Logical NOT"="NOT",
-       "ABS() Absolute value, ABS(-3) is 3."="ABS()",
-       "ALog() Natural logarithm (base e)"="ALog()",
-       "ALog10() Common logarithm (base 10)"="ALog10()",
-       "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
-       "ArcSin() Arc sine (argument in radians)"="ArcSin()",
-       "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
-       "Cos() Cosine (argument in radians)"="Cos()",
-       "Exp() e raised to power"="Exp()",
-       "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
-       "Int() Integer part of a number, Int(3.4) is 3"="Int()",
-       "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
-       "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
-       "Mod() Remainder of first argument divided by the second"="Mod()",
-       "Sin() Sine (argument in radians)"="Sin()",
-       "Sqrt() Square root"="Sqrt()",
-       "Tan() Tangent (argument in radians)"="Tan()"), 0, deltll=NULL),
-     myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
-     mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+    myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
+    myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
+    mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
           choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
-     uiOutput("fvsFuncRender")
-  )
+    myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
+    uiOutput("fvsFuncRender"))
   }
   eltList
 }

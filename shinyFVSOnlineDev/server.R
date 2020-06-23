@@ -585,82 +585,85 @@ cat("Custom Query\n")
       output$table <- renderTable(NULL)
     }
   })
-     
+                                                            
   ## sqlRunQuery
   observe({ 
-    if (input$sqlRunQuery > 0)
+    if (input$sqlRunQuery > 0)                          
     {
-cat ("sqlRunQuery\n")      
+cat ("sqlRunQuery\n")                                                                        
       isolate({
         msgtxt = character(0)
         qrys = trim(gsub("\n"," ",removeComment(input$sqlQuery)," ",input$sqlQuery))
         qrys = scan(text=qrys,sep=";",what="",quote="",quiet=TRUE)
+        qrys = qrys[nchar(qrys)>0]
         output$table <- renderTable(NULL)        
         iq = 0
         dfrtn = NULL
-        for (qry in qrys) 
-        {                                 
-          if (nchar(qry))
-          {
-            iq = iq+1
+        # attempt to attach the input database is attached as "input"
+        attInput = if (!dbGlb$dbIcon@dbname %in% dbGetQuery(dbGlb$dbOcon,"PRAGMA database_list")$file) 
+          try(dbExecute(dbGlb$dbOcon,paste0("attach database '",dbGlb$dbIcon@dbname,
+                    "' as input"))) else NULL             
+        for (qry in qrys)                  
+        {                                  
+          iq = iq+1
 cat ("sqlRunQuery, qry=",qry,"\n")
-            res = try (dbGetQuery(dbGlb$dbOcon,qry))
-            msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
-              paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
-                    " rows and ",ncol(res)," cols\n") else  
-              if (class(res) == "try-error") paste0(msgtxt,"query ",iq,
-                " returned\n",attr(res,"condition"),"\n") else
-                paste0(msgtxt,"query ",iq," ran\n")         
-            updateTextInput(session=session, inputId="sqlOutput", label="", 
-                            value=msgtxt)                          
-            if (class(res) == "try-error") break
-            if (class(res) == "data.frame" && ncol(res) && nrow(res))
+          res = try (dbGetQuery(dbGlb$dbOcon,qry))
+          msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
+            paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
+                  " rows and ",ncol(res)," cols\n") else  
+            if (class(res) == "try-error") paste0(msgtxt,"query ",iq,
+              " returned\n",attr(res,"condition"),"\n") else
+              paste0(msgtxt,"query ",iq," ran\n")         
+          updateTextInput(session=session, inputId="sqlOutput", label="", 
+                          value=msgtxt)                          
+          if (class(res) == "try-error") break
+          if (class(res) == "data.frame" && ncol(res) && nrow(res))
+          {
+            for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
+              res[[col]] = factor(res[[col]],unique(res[[col]]))
+            if (!is.null(res$Year)) res$Year = as.factor(res$Year)
+            fvsOutData$dbData = res
+            fvsOutData$render = res
+            fvsOutData$runs = character(0)
+            fvsOutData$dbVars = colnames(res)
+            fvsOutData$browseVars = colnames(res)
+            fvsOutData$dbSelVars = character(0)
+            fvsOutData$browseSelVars = colnames(res)
+            choices = as.list(c("None",
+              colnames(res)[unlist(lapply(res, is.factor))]))
+            updateSelectInput(session,"pivVar",choices=choices,selected="None")              
+            updateSelectInput(session,"hfacet",choices=choices,selected="None") 
+            updateSelectInput(session,"vfacet",choices=choices,selected="None") 
+            updateSelectInput(session,"pltby", choices=choices,selected="None") 
+            globals$settingChoices[["pivVar"]] = choices
+            globals$settingChoices[["hfacet"]] = choices
+            globals$settingChoices[["vfacet"]] = choices
+            globals$settingChoices[["pltby"]] = choices
+            choices = as.list(c("None",
+              colnames(res)[!unlist(lapply(res, is.factor))])) 
+            globals$settingChoices[["dispVar"]] = choices
+            updateSelectInput(session,"dispVar",choices=choices,selected="None")
+            choices = as.list(colnames(res))              
+            globals$settingChoices[["xaxis"]] = choices
+            globals$settingChoices[["yaxis"]] = choices
+            updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
+            updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
+            if (input$outputRightPan != "Tables")
+              updateSelectInput(session,"outputRightPan",selected="Tables")
+            tableDisplayLimit = 5000
+            if (nrow(res) > tableDisplayLimit) 
             {
-              for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
-                res[[col]] = factor(res[[col]],unique(res[[col]]))
-              if (!is.null(res$Year)) res$Year = as.factor(res$Year)
-              fvsOutData$dbData = res
-              fvsOutData$render = res
-              fvsOutData$runs = character(0)
-              fvsOutData$dbVars = colnames(res)
-              fvsOutData$browseVars = colnames(res)
-              fvsOutData$dbSelVars = character(0)
-              fvsOutData$browseSelVars = colnames(res)
-              choices = as.list(c("None",
-                colnames(res)[unlist(lapply(res, is.factor))]))
-              updateSelectInput(session,"pivVar",choices=choices,selected="None")              
-              updateSelectInput(session,"hfacet",choices=choices,selected="None") 
-              updateSelectInput(session,"vfacet",choices=choices,selected="None") 
-              updateSelectInput(session,"pltby", choices=choices,selected="None") 
-              globals$settingChoices[["pivVar"]] = choices
-              globals$settingChoices[["hfacet"]] = choices
-              globals$settingChoices[["vfacet"]] = choices
-              globals$settingChoices[["pltby"]] = choices
-              choices = as.list(c("None",
-                colnames(res)[!unlist(lapply(res, is.factor))])) 
-              globals$settingChoices[["dispVar"]] = choices
-              updateSelectInput(session,"dispVar",choices=choices,selected="None")
-              choices = as.list(colnames(res))              
-              globals$settingChoices[["xaxis"]] = choices
-              globals$settingChoices[["yaxis"]] = choices
-              updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
-              updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
-              if (input$outputRightPan != "Tables")
-                updateSelectInput(session,"outputRightPan",selected="Tables")
-              tableDisplayLimit = 5000
-              if (nrow(res) > tableDisplayLimit) 
-              {
-                msg=paste0("Table display limit exceeded. ",
-                  tableDisplayLimit," of ",nrow(res)," displayed. Use Download table",
-                  " to download all rows.")
-                output$tableLimitMsg<-renderText(msg)
-                res = res[1:tableDisplayLimit,,drop=FALSE] 
-              } else output$tableLimitMsg<-NULL
-              output$table <- renderTable(res)
-              return()
-            }        
-          }
-        }
+              msg=paste0("Table display limit exceeded. ",
+                tableDisplayLimit," of ",nrow(res)," displayed. Use Download table",
+                " to download all rows.")
+              output$tableLimitMsg<-renderText(msg)
+              res = res[1:tableDisplayLimit,,drop=FALSE] 
+            } else output$tableLimitMsg<-NULL
+            output$table <- renderTable(res)
+            break;
+          }        
+        }       
+        if (!is.null(attInput)) try(dbExecute(dbGlb$dbOcon,"detach database 'input'"))     
       })
     }
   })

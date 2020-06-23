@@ -303,14 +303,14 @@ Here is a select statement that will result in just the cases for a given run:</
 A similar select statement is used by FVSOnline to build a temporary table that 
 contains a list of all the CaseID values associated with one or more KeywordFile values. 
 This table, called, temp.Cases, is automatically built or rebuilt every time the you 
-change the <b>Runs to consider</b>. In turn, when you desire to explore one of the 
-other FVS output tables, FVS uses this table to limit the rows to include just the 
-runs that are loaded for exploration. For example, to select just the rows in the 
+change the selections in <b>"Runs to consider"</b>. In turn, when you desire to explore one of the 
+other FVS output tables, FVSOnline uses this table to limit the rows to include just the rows
+related to runs that are loaded for exploration. For example, to select just the rows in the 
 FVS_Summary2 table that are related to the selected runs, FVSOnline uses this query:
 <p>
 <code>select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases);</code></p>
 <p>
-The <b>Custom Query</b> tab allows you to build and save there your custom output 
+The <b>Custom Query</b> tab allows you to build and save your custom output 
 database queries. Queries like those show above can be used to select just the data 
 for a specific run or runs. Note that the FVS_Cases table also contains the RunTitle. 
 If you insure run titles are unique, they can be used in place of the KeywordFile 
@@ -321,10 +321,15 @@ table associated with two runs names <i>Run 1</i> and <i>Run 2</i>.
 <code>select * from FVS_TreeList_East where CaseID in<br> 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(select CaseID from FVS_Cases where RunTitle in ('Run 1', 'Run 2'));</code></p>
 <p>
-Note that SQLite3 allows the attachment additional databases. For example, 
-the input database can be attached and tables from the input can then be 
-joined to tables in the output. A <i>query</i> can
-actually be several queries each separated by a semicolon. They can
+Note that SQLite3 allows the attachment other databases and tables from those
+databases can be include in queries. 
+As a convenience, FVSOnline automatically attaches the FVS input database (FVS_Data.db) 
+to the output database when the Custom Query tab is used. This attached database is given 
+the alias <i>input</i> so that tables from the input can be joined to the output. 
+For example, the stand identification code from the input database might be 
+<code>input.FVS_standInit.Stand_ID</code>.
+<p>
+A <i>query</i> can actually be several queries each separated by a semicolon. They can
 be stored and recovered for later use. Lastly, comments can be included in 
 the query by surrounding it with /*  */ character sequences.
 </p>
