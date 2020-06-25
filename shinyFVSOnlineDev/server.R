@@ -4430,7 +4430,8 @@ cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n")
 cat ("Maps hit\n")
       require(rgdal) 
       theRuns = try(dbGetQuery(dbGlb$dbOcon,
-                paste0("select distinct RunTitle, KeywordFile from FVS_Cases")))
+                paste0("select distinct RunTitle, KeywordFile from FVS_Cases",
+                       " order by RunDateTime desc")))
       if (class(theRuns)!="try-error" && nrow(theRuns)>0) 
       {
         allRuns=theRuns[,2]
@@ -4484,6 +4485,9 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       cat ("mapDsRunList input$mapDsTable=",input$mapDsTable,"\n")
       vars = setdiff(dbListFields(dbGlb$dbOcon,input$mapDsTable),
                      c("CaseID","StandID","Year"))
+      sps = na.omit(match(c("SpeciesFVS","SpeciesPLANTS","SpeciesFIA"),vars))
+      if (length(sps)==3) vars = vars[-sps]
+      vars = vars[! vars == "Characteristic"]
       vars = as.list(vars)
       names(vars) = vars
       updateSelectInput(session=session, inputId="mapDsVar", choices=vars,
@@ -4496,17 +4500,23 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
     {
 cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
-     " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")
-      
+     " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")     
       # prepare display data
       dispData = try(dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
                    isolate(input$mapDsTable),
                    " where CaseID in (select CaseID from temp.mapsCases)")))
       if (class(dispData)=="try-error" || nrow(dispData)==0) return()
-        
       dispData = dispData[,-1] #remove CaseID
-      keys = setdiff(colnames(dispData),c("StandID","Year"))
-      extra = NULL
+      # if species is a variable, pick the one to display and ditch the others
+      sps = na.omit(match(c("SpeciesFVS","SpeciesPLANTS","SpeciesFIA"),names(dispData)))
+      if (length(sps)==3) 
+      {
+        spk = match(paste0("Species",input$spCodes),names(dispData))
+        names(dispData)[spk]="Species"
+        dispData = dispData[,-sps[sps!=spk]]
+        spk = "Species"
+      } else { spk = NULL }
+      keys = setdiff(colnames(dispData),c("StandID","Year","Characteristic",spk))
       for (var in keys) 
       {
         if (class(dispData[,var]) == "character") 
@@ -4515,21 +4525,16 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
           if (!any(is.na(x))) dispData[,var] = x
         }
       }
-      if (class(dispData[,input$mapDsVar]) == "numeric") dispData[,input$mapDsVar] = 
-        format(dispData[,input$mapDsVar],digits=3,scientific=FALSE)
-      if (isolate(input$mapDsTable)=="FVS_Stats_Species" && input$mapDsVar!="Species") {
-        dispData = dispData[,c("StandID","Year","SpeciesFVS",input$mapDsVar)]
-      } else if (isolate(input$mapDsTable)=="FVS_Stats_Stand" && input$mapDsVar!="Species") {
-        dispData = dispData[,c("StandID","Year","Characteristic",input$mapDsVar)]
-      } else dispData = dispData[,c("StandID","Year",input$mapDsVar)]
-
+      dvs = intersect(names(dispData),
+            c("StandID","Year","Characteristic",spk,input$mapDsVar))
+      isp = match("Species",dvs)
+      if (!is.na(isp) && isp != 3) dvs=c(dvs[1:2],"Species",dvs[-c(1,2,isp)])
+      dispData = dispData[,dvs]
       uidsToGet = unique(dispData$StandID)
 cat ("length(uidsToGet)=",length(uidsToGet),"\n")
       if (!length(uidsToGet)) return()        
-      uidsFound = NULL
-    
-      require(rgdal)
-      
+      uidsFound = NULL   
+      require(rgdal)     
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
           file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
       if (exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
@@ -4655,10 +4660,10 @@ cat ("rows to keep=",length(keep),"\n")
             uids = latLng[,"Stand_ID"]
             uidsFound = c(uidsFound,uids)
             coordinates(latLng) <- ~Longitude+Latitude
-            setProj <- function (o) 
+            setProj <- function (obj) 
             {
-              proj4string(o) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-              o
+              proj4string(obj) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+              obj
             }
             latLng <- try(setProj(latLng))             
             if (class(latLng)=="try-error")
@@ -4682,35 +4687,24 @@ cat ("rows to keep=",length(keep),"\n")
       for (sid in uidsFound)
       {
         tab = subset(dispData,StandID == sid)[,-1]
-        if(length(tab) > 2 && input$mapDsType == "table")
-        {
-          temp <- data.frame()
-          for(i in 1:(length(tab[,1]))){
-            temp[i,1] <- paste0("-----------",tab[i,3])
-          }
-          tab[,3] <- temp
-        }
         labs[[length(labs)+1]] = 
-          if (input$mapDsType == "table" || any(is.na(as.numeric(tab[,input$mapDsVar]))))
+          if (input$mapDsType == "table")
           {
-            HTML(paste0('<p style="LINE-HEIGHT:1">StandID=',sid,"<br>",
-                        paste(names(tab),collapse=" "),"<br>",paste0(apply(tab,1,function (x)
-                          paste0(paste0(x,collapse=" "))), collapse="<br>"),"</p>",collapse=""))
+            HTML(paste0('<p style="line-height:1">StandID=',sid,df2html(tab)))
           } else {
-            tab = subset(dispData,StandID == sid)[,-1]          
-            tab[,input$mapDsVar] = as.numeric(tab[,input$mapDsVar]) 
+            pvar = input$mapDsVar[1]
+            tab = subset(dispData,StandID == sid)[,intersect(names(dispData),c("Year","Species",pvar))]          
             pfile=paste0("www/s",sid,".png")
 cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
-            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent") 
-            p = ggplot(tab, if (!is.null(extra))
-              aes_string(x="Year",y=input$mapDsVar,linetype=extra) else
-                aes_string(x="Year",y=input$mapDsVar)) +
-              geom_line()+geom_point()+ggtitle(sid)+
-              theme(
+            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent")
+            if (length(intersect(c("Species","Characteristic"),names(tab))) || 
+                length(table(tab$Year)) == 1) tab$Year = as.factor(tab$Year)
+            p = ggplot(tab,aes_string(x="Year",y=pvar)) + geom_point() + theme(
+                legend.position="none",
                 text=element_text(size=8),axis.text=element_text(face="bold"),
                 panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
-                plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1))
-              )
+                plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1)))
+            if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
             pfile=paste0("s",sid,".png")
@@ -5143,6 +5137,21 @@ cat("delete project button.")
     }
   })
 
+  df2html <- function(sdat=NULL)
+  {
+    if (is.null(sdat) || nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
+    sdat[sdat == " "]=NA
+    html = paste0('<table border="1" style="text-align:right"><tr><th style="text-align:center">', 
+           paste0(colnames(sdat),collapse='</th><th  style="text-align:center">'),"</th></tr>")
+    for (i in 1:nrow(sdat))                   
+    {
+      tbrow=unlist(lapply(sdat[i,],function (x) if (is.character(x)) x else format(x,digits=3)))
+      html = paste0(html,"<tr><td>",paste0(tbrow,collapse="</td><td>"),"</td></tr>")
+    }
+    paste0(html,"</table>")
+  }
+  
+  
   xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL,
                         addLink=FALSE)
   {

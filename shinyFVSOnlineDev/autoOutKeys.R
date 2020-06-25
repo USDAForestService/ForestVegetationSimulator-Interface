@@ -39,9 +39,9 @@ FuelOut         0
 FuelRept
 End
 Database
-CarbRpts        1
-FuelRept        1
-FuelsOut        1
+CarbRpts        2
+FuelRept        2
+FuelsOut        2
 End
 " else NULL
 
@@ -53,9 +53,9 @@ BurnRept        0
 PotFire         0
 End
 Database
-MortRept        1        2
-BurnRept        1
-PotFire         1
+MortRept        2        2
+BurnRept        2
+PotFire         2
 End
 " else NULL
 
@@ -67,9 +67,9 @@ DWDVlout
 DWDCvOut
 End
 Database
-SnagSum        1
-DWDVlout       1
-DWDCvOut       1
+SnagSum        2
+DWDVlout       2
+DWDCvOut       2
 End
 " else NULL
 
@@ -85,7 +85,7 @@ Econ
 NoTable            1
 End
 Database
-EconRpts           1
+EconRpts           2
 End
 "
 
@@ -124,7 +124,7 @@ FMIn
 SnagOut
 End
 Database
-SnagOut        1         2
+SnagOut        2         2
 End
 " else NULL
 
@@ -155,6 +155,6 @@ End
 autoStrClass="
 StrClass
 Database
-StrClass         1
+StrClass         2
 End
 "
