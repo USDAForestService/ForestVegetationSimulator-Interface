@@ -5473,8 +5473,27 @@ cat ("sheet = ",sheet," i=",i,"\n")
     tabs = myListTables(dbo)
     fiaData = "FVS_STANDINIT_COND" %in% toupper(tabs) && 
               "FVS_STANDINIT_PLOT" %in% toupper(tabs)
-    if (fiaData) progress$set(message = "FIA data detected, data checks skipped", value = 1) else 
+    if (fiaData) 
     {
+      fiaMsg=NULL
+      progress$set(message = "FIA data detected, most checks skipped", value = 1) 
+      # insure that the DSNIn keywords address FVS_Data.db in the FVS_GroupAddFilesAndKeywords table
+      grpAdd = try(dbGetQuery(dbo,'select * from "fvs_groupaddfilesandkeywords"'))
+      if (class(grpAdd) != "try.error") 
+      {
+        kwi = match("FVSKEYWORDS",toupper(names(grpAdd)))[1]
+        if (!is.na(kwi)) 
+        {
+          ch = gsub("\nDSNIn\n.{1,}\nStandSQL","\nDSNIn\nFVS_Data.db\nStandSQL",grpAdd[,kwi])
+          if (any(ch!=grpAdd[,kwi])) 
+          {
+            grpAdd[,kwi] = ch
+            fiaMsg = "FVS_GroupAddFilesAndKeywords FVSKeywords field was modified"
+            dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",grpAdd,overwrite=TRUE)
+          }
+        }
+      }
+    } else {
       # get rid of "NRIS_" part of names if any
       for (tab in tabs)
       {
@@ -5573,7 +5592,7 @@ cat ("msg=",msg,"\n")
       if (!canuse) msg = paste0(msg,
         "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
 cat ("msg=",msg,"\n")
-    } else msg = paste0(msg,
+    } else msg = paste0(msg,if (!is.null(fiaMsg)) paste0("<br>",fiaMsg) else "",
         "<h4>Data checks are skipped when FIA data is detected.</h4>")
     output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
