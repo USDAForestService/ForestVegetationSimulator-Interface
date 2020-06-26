@@ -2387,10 +2387,10 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       eltList <- append(eltList,list(
         h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)        
       eltList <- append(eltList,list(
-           tags$style(type="text/css", "#editcmdCancel {color:red;}"),
-           actionButton("editcmdCancel","Cancel"),
-           tags$style(type="text/css", "#editcmdSaveInRun {color:green;}"),
-           actionButton("editcmdSaveInRun","Save in run")))
+           tags$style(type="text/css", "#cmdCancel {color:red;}"),
+           actionButton("cmdCancel","Cancel"),
+           tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
+           actionButton("cmdSaveInRun","Save in run")))
       output$editcmdBuild <- renderUI(eltList)
       output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
       if (input$rightPan != "Components") {
@@ -3027,13 +3027,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
     if (length(input$cmdCancel) && input$cmdCancel == 0) return()
     closeCmp()
   })
-  
-  observe({  
-    # command Cancel
-    if (length(input$editcmdCancel) && input$editcmdCancel == 0) return()
-    closeCmp()
-  })
-  
+
   closeCmp <- function ()
   {
     globals$currentEditCmp <- globals$NULLfvsCmp
