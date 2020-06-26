@@ -235,7 +235,7 @@ cat("writeKeyFile, num stds=",length(stds),
   if (length(stds)==0) return("No stands to process.")
   dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
- 
+
   # get the preferred ids depending on the table that was used to build the run
   intable=toupper(fvsRun$refreshDB)
   queryIDs=switch(intable,
@@ -398,12 +398,9 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
     autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else 
                 unlist(fvsRun$autoOut[["autoOut"]])
-    autos = if ("autoDelOTab" %in% autos) 
-    { 
-      aa = setdiff(autos,"autoDelOTab")
-      unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
-    } else c(autos,"autoDelOTab")
-    for (out in autos) if (exists(out) && !is.null(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
+    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else 
+                c(autos,"autoDelOTab")
+    for (out in autos) if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
 
     if (!is.null(fvsRun$autoOut[["svsOut"]]) && !is.null(fvsRun$autoOut[["svsOut"]][["svs"]]) && 
       exists("autoSVS"))
@@ -423,7 +420,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
       {
-        if (length(grep("Addfile:",cmp$title))){
+        if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))){
           # we have ourselves an addfile
           basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
                            "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
@@ -2031,7 +2028,13 @@ addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
     addkeys = list()
     if (!is.null(addfiles) && !is.na(addfiles))
     { 
-      fns=scan(text=addfiles,what="character",sep="\n",quiet=TRUE)
+      fns=scan(text=addfiles,what="character",sep=",",quiet=TRUE)
+      semicolon <- grep(";",fns)
+      if(length(semicolon)){
+        splits <- unlist(strsplit(fns[semicolon],";"))
+        fns <- fns[-semicolon]
+        fns <- append(fns,splits)
+      }
       for (fn in fns)
       {
         addkeys[length(addkeys)+1]=paste0("Open        133.\n",fn,
@@ -2171,7 +2174,8 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
             addfiles <- AddFiles(globals$inData$
                         FVS_GroupAddFilesAndKeywords[grow,"ADDFILES"])
             for (addf in names(addfiles))
-              mkfvsCmp(kwds=addfiles[adddf],uuid=uuidgen(),atag="k",exten="base",
+              newgrp$cmps[[length(newgrp$cmps)+1]] <-
+                mkfvsCmp(kwds=as.character(addfiles[addf]),uuid=uuidgen(),atag="k",exten="base",
                       kwdName=paste0("AddFile: ",addf),
                         title=paste0("AddFile: ",addf))
           }
