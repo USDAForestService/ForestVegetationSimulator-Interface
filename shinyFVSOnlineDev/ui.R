@@ -247,7 +247,7 @@ shinyUI(fixedPage(
                         "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
                         "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
                          AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
-                        "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
+                        "Include text outputs in the .out file (otherwise many are suppressed)"="autoDelOTab"  
                         ),width="100%",inline=FALSE),
                    selectInput("tabDescSel","Describe tables",choices=tableList,
                         selected=1,multiple=FALSE,selectize=FALSE),

@@ -45,6 +45,22 @@ FuelsOut        2
 End
 " else NULL
 
+autoCarbon.withText = if ("fire" %in% extns) "
+* FVS_Carbon, FVS_Hrv_Carbon, FVS_Fuels, FVS_Consumption
+FMIn
+CarbRept        2
+CarbCut
+CarbCalc        0         0
+FuelOut         0
+FuelRept
+End
+Database
+CarbRpts        1
+FuelRept        1
+FuelsOut        1
+End
+" else NULL
+
 autoFire = if ("fire" %in% extns) "
 * FVS_Potfire, FVS_BurnReport, FVS_Mortality
 FMIn
@@ -59,7 +75,21 @@ PotFire         2
 End
 " else NULL
 
-if ("fire" %in% extns) autoDead="
+autoFire.withText = if ("fire" %in% extns) "
+* FVS_Potfire, FVS_BurnReport, FVS_Mortality
+FMIn
+MortRept        0
+BurnRept        0
+PotFire         0
+End
+Database
+MortRept        1        2
+BurnRept        1
+PotFire         1
+End
+" else NULL
+
+autoDead = if ("fire" %in% extns) "
 *FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
 FMIn
 SnagSum
@@ -70,6 +100,20 @@ Database
 SnagSum        2
 DWDVlout       2
 DWDCvOut       2
+End
+" else NULL
+
+autoDead.withText = if ("fire" %in% extns)  "
+*FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol
+FMIn
+SnagSum
+DWDVlout
+DWDCvOut
+End
+Database
+SnagSum        1
+DWDVlout       1
+DWDCvOut       1
 End
 " else NULL
 
@@ -106,20 +150,19 @@ Database
 REGREPTS
 End
 "
-
-if ("climate" %in% extns) autoClimate="
+autoClimate = if ("climate" %in% extns) "
 Database
-CLIMREPT
+ClimRept
 End
 " else NULL
 
-if ("fire" %in% extns) autoCanProfile="
+autoCanProfile = if ("fire" %in% extns) "
 FMIn
 CanfProf
 End
 " else NULL
 
-if ("fire" %in% extns) autoSnagDet="
+autoSnagDet = if ("fire" %in% extns) "
 FMIn
 SnagOut
 End
@@ -127,20 +170,28 @@ Database
 SnagOut        2         2
 End
 " else NULL
+autoSnagDet.withText <- if ("fire" %in% extns) "
+FMIn
+SnagOut
+End
+Database
+SnagOut        1         2
+End
+" else NULL
 
-if ("mist" %in% extns) autoDM_Sz_Sum="
+autoDM_Sz_Sum = if ("mist" %in% extns) "
 Mistoe
 MistPrt         1
 End
 " else NULL
 
-if ("phewrd3" %in% extns) autoRD_Sum="
+autoRD_Sum = if ("phewrd3" %in% extns) "
 Database
 RDSum
 End
 " else NULL
 
-if ("phewrd3" %in% extns) autoRD_Det="
+autoRD_Det = if ("phewrd3" %in% extns) "
 Database
 RDDetail
 End
@@ -152,9 +203,15 @@ RDBBMort
 End
 " else NULL
 
-autoStrClass="
+autoStrClass <- "
 StrClass
 Database
 StrClass         2
+End
+"
+autoStrClass.withText <- "
+StrClass
+Database
+StrClass         1
 End
 "

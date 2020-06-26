@@ -398,9 +398,12 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
     autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else 
                 unlist(fvsRun$autoOut[["autoOut"]])
-    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else 
-                c(autos,"autoDelOTab")
-    for (out in autos) if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
+    autos = if ("autoDelOTab" %in% autos) 
+    { 
+      aa = setdiff(autos,"autoDelOTab")
+      unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
+    } else c(autos,"autoDelOTab")
+    for (out in autos) if (exists(out) && !is.null(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
 
     if (!is.null(fvsRun$autoOut[["svsOut"]]) && !is.null(fvsRun$autoOut[["svsOut"]][["svs"]]) && 
       exists("autoSVS"))
