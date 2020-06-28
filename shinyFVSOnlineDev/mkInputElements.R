@@ -411,7 +411,6 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
     #initial rendering of the species list dropdown (deleteAll pkeys)
     # first option is blank (SpGroup, Plant/Natural, etc)
     else 
-      # browser()
       for (item in 1:length(mklist))
       {if (item==1){# first option is blank
         inputs = c(inputs,'<option value=" "></option>',

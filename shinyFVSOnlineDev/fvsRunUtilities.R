@@ -40,11 +40,12 @@ mkGlobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
+    customQueries = "list", fvsRun = "fvsRun", foundStand="integer", 
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",settingChoices="list"))
+    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
+    settingChoices="list",exploreChoices="list"))
 
 loadStandTableData <- function (globals, dbIcon)
 {

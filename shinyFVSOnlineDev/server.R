@@ -967,28 +967,39 @@ cat ("cmd=",cmd,"\n")
         iprg = iprg+1
         setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
         if (is.null(mdat$StandID)) 
-          updateSelectInput(session, "stdid", choices  = list("None loaded"), 
-            selected = NULL) else 
+        {
+          cho = "None loaded"
+          updateSelectInput(session,"stdid",choices =list(cho),selected = NULL) 
+        } else {
+          cho = levels(mdat$StandID)
+          sel = cho
+          if (length(cho) > 500) 
           {
-            if (length(levels(mdat$StandID)) > 500) 
-              updateSelectInput(session, "stdid", 
-                choices=as.list(paste0("None loaded (",
-                length(levels(mdat$StandID))," stands)")), selected=NULL) else
-              updateSelectInput(session, "stdid", 
-                choices=as.list(levels(mdat$StandID)), selected=levels(mdat$StandID))
+            cho = paste0("None loaded (",length(cho)," stands)")
+            sel = NULL
           }
-        if (is.null(mdat$Groups)) updateSelectInput(session, "stdgroups", 
-            choices  = list("None loaded"), selected = NULL) else
-          {
-            grps = sort(unique(unlist(lapply(levels(mdat$Groups), function (x)
-              trim(scan(text=x,what="character",sep=",",quiet=TRUE))))))           
-            updateSelectInput(session, "stdgroups",choices=as.list(grps), 
-              selected=grps)
-          }
-        if (is.null(mdat$MgmtID)) updateSelectInput(session, "mgmid", 
-            choices  = list("None loaded"), selected = NULL) else 
-          updateSelectInput(session, "mgmid",choices=as.list(levels(mdat$MgmtID)), 
-            selected=levels(mdat$MgmtID))
+          updateSelectInput(session,"stdid",choices=as.list(cho),selected=sel)
+        }
+        globals$exploreChoices$stdid = cho
+        if (is.null(mdat$Groups)) 
+        {
+          cho = "None loaded"
+          updateSelectInput(session,"stdgroups",choices=as.list(cho),selected = NULL) 
+        } else {
+          cho = sort(unique(unlist(lapply(levels(mdat$Groups), function (x)
+                trim(scan(text=x,what="character",sep=",",quiet=TRUE))))))           
+          updateSelectInput(session, "stdgroups",choices=as.list(cho),selected=cho)
+        }
+        globals$exploreChoices$stdgroups = cho
+        if (is.null(mdat$MgmtID)) 
+        {
+          cho = "None loaded"         
+          updateSelectInput(session,"mgmid",choices=as.list(cho),selected=NULL) 
+        } else {
+          cho = levels(mdat$MgmtID)
+          updateSelectInput(session, "mgmid",choices=as.list(cho),selected=cho)
+        }
+        globals$exploreChoices$mgmid = cho
         if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
                 "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"),names(dat))))
           updateSelectInput(session, "plotType",selected="scat") else 
@@ -997,34 +1008,46 @@ cat ("cmd=",cmd,"\n")
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
         setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
-        if (is.null(mdat$Year)) updateSelectInput(session, "year", 
-            choices  = list("None loaded"), selected = NULL) else 
-          {
-            sel  = levels(mdat$Year)
-            isel = max(1,length(sel) %/% 2)
-            sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
-                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
-                "StdStk","StdStk_East","CmpStdStk","CmpStdStk_East"),names(dat)))) 
-                sel[isel] else sel 
-            updateSelectInput(session, "year", choices=as.list(levels(mdat$Year)), 
-              selected=sel)
-          }
-        if (is.null(mdat$Species)) updateSelectInput(session, "species", 
-            choices  = list("None loaded"), selected = NULL) else
-            updateSelectInput(session, "species",
-              choices=as.list(levels(mdat$Species)), selected=setdiff(mdat$Species,"All"))
-        if (is.null(mdat$DBHClass)) updateSelectInput(session, "dbhclass", 
-            choices  = list("None loaded"), selected = NULL) else
-          {
-            sel = if ("All" %in% levels(mdat$DBHClass)) "All" else mdat$DBHClass
-            updateSelectInput(session, "dbhclass", 
-              choices=as.list(levels(mdat$DBHClass)), selected=sel)
-          }           
+        if (is.null(mdat$Year)) 
+        {
+          cho = "None loaded"       
+          updateSelectInput(session,"year",choices=as.list(cho),selected = NULL) 
+        } else {
+          cho  = levels(mdat$Year)
+          isel = max(1,length(cho) %/% 2)
+          sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
+              "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
+              "StdStk","StdStk_East","CmpStdStk","CmpStdStk_East"),names(dat)))) 
+              cho[isel] else cho 
+          updateSelectInput(session, "year", choices=as.list(cho), selected=sel)
+        }        
+        globals$exploreChoices$year = cho
+        if (is.null(mdat$Species)) 
+        {
+          cho = "None loaded"       
+          updateSelectInput(session, "species", choices  = list(cho), selected = NULL) 
+        } else {
+          cho = levels(mdat$Species)
+          updateSelectInput(session, "species",
+             choices=as.list(cho), selected=setdiff(cho,"All"))
+        }
+        globals$exploreChoices$species = cho        
+        if (is.null(mdat$DBHClass)) 
+        {
+          cho = "None loaded"
+          updateSelectInput(session,"dbhclass",choices=list(cho),selected = NULL) 
+        } else {
+          cho = levels(mdat$DBHClass)
+          sel = if ("All" %in%  cho) "All" else cho
+          updateSelectInput(session, "dbhclass", choices=as.list(cho), selected=sel)
+        }           
+        globals$exploreChoices$dbhclass = cho        
         iprg = iprg+1
         setProgress(message = "Finishing", detail  = "", value = iprg)
         selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
           "AGE","CCF","SDI","QMD","TopHt","BA$","TPA","Species","^Ht$",
-          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle","Groups","^MY"),
+          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle","Groups","^MY",
+          "^Stratum","^Removal","^Structure"),
           function (x,vs) 
             {
               hits = unlist(grep(x,vs,ignore.case = TRUE))
@@ -1087,7 +1110,7 @@ cat("filterRows and/or pivot\n")
       dat = dat[1:tableDisplayLimit,,drop=FALSE] 
     } else output$tableLimitMsg<-NULL
     output$table <- renderTable(dat) 
-  })
+  })               
            
   ##Graphs
   observe({                 
