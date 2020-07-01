@@ -2419,6 +2419,8 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (input$rightPan != "Components") {
         updateTabsetPanel(session=session,
         inputId="rightPan",selected="Components")
+        updateSelectInput(session=session,
+        inputId="compTabSet", selected="Management")
       }
       if (input$rightPan == "Components" && input$compTabSet !="Management") {
         updateSelectInput(session=session,
@@ -2715,6 +2717,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       "Editor"   = 
       {
         customCmps = NULL
+        if(length(globals$currentEditCmp$kwds) > 0) closeCmp()
         if (length(globals$customCmps) == 0 && file.exists("FVS_kcps.RData")) 
         {
           load("FVS_kcps.RData")

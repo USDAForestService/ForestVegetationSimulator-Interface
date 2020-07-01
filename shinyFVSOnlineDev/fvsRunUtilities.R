@@ -245,13 +245,13 @@ cat("writeKeyFile, num stds=",length(stds),
                   "FVS_STANDINIT_COND"=c("STAND_ID","STAND_CN"),
                   "FVS_STANDINIT_PLOT"=c("STAND_ID","STAND_CN"),
                   "FVS_PLOTINIT_PLOT" =c("STANDPLOT_ID","STANDPLOT_CN"))
-  initfields = toupper(dbListFields(dbIcon,intable))     
+  initfields = try(toupper(dbListFields(dbIcon,intable)))
+  if (class(initfields) == "try-error") return("Run data query returned no data to run.")
   queryIDs = queryIDs[queryIDs %in% initfields] 
   if (length(queryIDs) == 0) return("Needed stand id fields are missing")
   qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
               intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
 cat ("qry=",qry,"\n")
-
   fvsInit = try(dbGetQuery(dbIcon,qry))
   if (class(fvsInit) == "try-error") return("Run data query failed.")
   if (nrow(fvsInit) == 0) return("Run data query returned no data to run.")
