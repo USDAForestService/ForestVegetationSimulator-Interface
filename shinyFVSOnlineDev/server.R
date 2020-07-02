@@ -1410,13 +1410,9 @@ cat ("renderPlot\n")
           input$dbhclass),])
     if (nrow(dat)==0) return(nullPlot("No observations using these selections"))
     # fix DBHClass if it is in the data.
-    if ("DBHClass" %in% names(dat))
+    if (!is.null(dat$DBHClass))
     { 
-      dld=levels(dat$DBHClass)
-      dla=levels(fvsOutData$dbData$DBHClass)
-      mdld=min(dld);xdld=max(dld)
-      lvs=dla[match(mdld,dla):match(xdld,dla)]
-      mlv=setdiff(lvs,dld)
+      mlv=setdiff(input$dbhclass,levels(dat$DBHClass))
       if (length(mlv))
       {
         # this bit makes sure CaseID is first
