@@ -5587,6 +5587,28 @@ cat ("qry=",qry,"\n")
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
         sidmsg=c(sidmsg,tab2fix)
       }
+       # remove any leading or trailing spaces in stand id's which blow up the SQL queries at run time
+        fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs),grep ("treeinit",ltabs))
+        for (idx in fixTabs)
+      {
+cat ("checking tabs[idx]=",tabs[idx],"\n")
+        if (tolower(tabs[idx])=="fvs_standinit_plot") next
+        tab2fix=tabs[idx]
+        idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
+        qry = paste0("select ",idf," from '",tab2fix,"'")
+cat ("qry=",qry,"\n") 
+        sidTb=try(dbGetQuery(dbo,qry))
+        if (class(sidTb)=="try-error") next
+        if(length(sidTb[[1]])==0) next
+        sidTb <- data.frame(trim(sidTb[[1]]))
+        names(sidTb) <- toupper(idf)
+        sidTbAll=try(dbReadTable(dbo,tab2fix))
+        oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
+        sidTbAll <- sidTbAll[,-oldSID]
+        sidTbAll <- append(sidTbAll,sidTb, after=0)
+        if (class(sidTbAll)=="try-error") next
+        dbWriteTable(dbo,tab2fix,data.frame(sidTbAll),overwrite=TRUE)
+        }
 cat ("sidmsg=",sidmsg,"\n")
     }
     progress$set(message = "Getting row counts", value = 6)
