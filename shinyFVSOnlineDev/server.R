@@ -5564,7 +5564,11 @@ cat ("checking duplicate stand or standplot ids\n")
       for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-        if (tolower(tabs[idx])=="fvs_standinit_plot") next
+       if (tolower(tabs[idx])=="fvs_standinit_plot") next  
+        if (tolower(tabs[idx])=="fvs_standinit_cond") next
+        if (tolower(tabs[idx])=="fvs_treeinit_plot") next
+        if (tolower(tabs[idx])=="fvs_treeinit_cond") next
+        if (tolower(tabs[idx])=="fvs_plotinit_plot") next  
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
         qry = paste0("select ",idf," from '",tab2fix,"'")
