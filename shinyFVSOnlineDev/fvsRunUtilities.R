@@ -1115,8 +1115,27 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                                          sep=",",quote=FALSE,row.names=FALSE))
             cat ("-999\n",file=fc,sep="")
           }
-        } else cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
+        } else {
+          # remove trailing spaces after last parameter of keywords with supplemental 
+          # records entered in the GAAK table (i.e., SPGROUP, MGMTID, etc.)
+          if (length(grep("FVS_GroupAddFilesAndKeywords",cmp$title))){
+            kwdlist <- strsplit(cmp$kwds,"\n")[[1]]  
+            cmpkwds <- length(kwdlist)
+            for(i in 1:cmpkwds){
+              space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])-1]==" "
+              if(space){
+                keyrec <- strsplit(kwdlist[i],"")[[1]]
+                keyrec <- keyrec[-(length(keyrec)-1)]
+                keyrec <- paste0(keyrec, collapse="")
+                kwdlist[i] <- keyrec
+              }
+            }
+            kwdlist<- gsub("[\r]", "", kwdlist)
+            cmp$kwds <- paste(kwdlist,collapse="\n")
+          }
+          cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                     cmp$kwds,"\n",file=fc,sep="")
+        }
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
