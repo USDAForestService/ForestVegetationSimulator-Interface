@@ -6250,7 +6250,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   })  
   
   observe({
-    if(input$inputDBPan == "View and edit existing tables") 
+    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Import Data") 
     {
 cat ("dataEditor View and edit existing tables\n")
       tbs <- myListTables(dbGlb$dbIcon)
