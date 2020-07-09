@@ -7034,7 +7034,10 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(pattern=".RData$",filesToCopy)
       progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData","/treeforms.RData")))
+      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData",
+         "/SpatialData.RData.default","/SpatialData.RData",
+         "/FVS_Data.db.default","/FVS_Data.db",       
+         "/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
@@ -7042,6 +7045,8 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(pattern=".png$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern="projectIsLocked.txt",filesToCopy,fixed=TRUE)
+      if (length(del)) filesToCopy = filesToCopy[-del]
+      del = grep(pattern=".zip$",filesToCopy,fixed=TRUE)
       if (length(del)) filesToCopy = filesToCopy[-del]
       lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
       prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
