@@ -4468,7 +4468,7 @@ cat ("Maps hit\n")
     }
    })
   observe({
-    if (length(input$mapDsRunList))
+    if (length(input$mapDsRunList) && input$topPan == "Maps")
     {
 cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
       cases = try(dbGetQuery(dbGlb$dbOcon,
