@@ -4735,7 +4735,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                    paste0("https://mts1.google.com/vt/lyrs=",input$mapDsProvider,
                           "&hl=en&src=app&x={x}&y={y}&z={z}&s=G"),attribution = 'Google')
       lops = labelOptions(opacity=.7)
-      pops = popupOptions(autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
+      pops = popupOptions(maxWidth = 2000,autoClose=FALSE,closeButton=TRUE,closeOnClick=FALSE,textOnly=TRUE)
       if (length(pts))
       {
         lbidx = match(ptsLbs,uidsFound)
