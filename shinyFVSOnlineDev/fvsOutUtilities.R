@@ -319,18 +319,26 @@ getGraphSettings <- function(input)
 setGraphSettings <- function(session,theSettings)
 { 
   globals$gFreeze = TRUE
-
+  msg = NULL
   setSettings <- function(session,inputId,cho,theS)
   {
-    if (cho[[inputId]] != "None loaded" && any(theS[[inputId]] %in% cho[[inputId]]))
-      updateSelectInput(session=session, inputId=inputId, selected=theS[[inputId]])
+    sel = intersect(theS[[inputId]],cho[[inputId]])
+    if (length(sel)) updateSelectInput(session=session, inputId=inputId, 
+                     selected=sel)
+    return(all(theS[[inputId]] %in% cho[[inputId]]))
   }  
-  setSettings (session,"stdgroups",globals$exploreChoices,theSettings)
-  setSettings (session,"stdid",    globals$exploreChoices,theSettings)
-  setSettings (session,"species",  globals$exploreChoices,theSettings)
-  setSettings (session,"mgmid",    globals$exploreChoices,theSettings)
-  setSettings (session,"dbhclass", globals$exploreChoices,theSettings)
-  setSettings (session,"year",     globals$exploreChoices,theSettings)
+  rtn = setSettings (session,"stdgroups",globals$exploreChoices,theSettings) 
+  if (!rtn) msg = "Groups"
+  rtn = setSettings (session,"stdid",    globals$exploreChoices,theSettings)
+  if (!rtn) msg = c(msg,"Stands")
+  rtn = setSettings (session,"species",  globals$exploreChoices,theSettings)
+  if (!rtn) msg = c(msg,"Species")
+  rtn = setSettings (session,"mgmid",    globals$exploreChoices,theSettings)
+  if (!rtn) msg = c(msg,"MgmtIDs")
+  rtn = setSettings (session,"dbhclass", globals$exploreChoices,theSettings)
+  if (!rtn) msg = c(msg,"DBHClasses")
+  rtn = setSettings (session,"year",     globals$exploreChoices,theSettings)
+  if (!rtn) msg = c(msg,"Year")
 
   updateCheckboxGroupInput(session=session, inputId="browsevars",selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",  selected=theSettings$plotType)
@@ -382,7 +390,7 @@ setGraphSettings <- function(session,theSettings)
   updateTextInput   (session=session, inputId="width",        value   =theSettings$width)         
   updateTextInput   (session=session, inputId="xlabel",       value   =theSettings$xlabel) 
   updateTextInput   (session=session, inputId="ylabel",       value   =theSettings$ylabel) 
-
+  return (msg)
 }
 
     

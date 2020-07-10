@@ -1133,6 +1133,7 @@ cat ("Graphs pan hit\n")
   observe({
     if (!is.null(input$OPsettings))
     {
+      input$OPredo
       isolate({
 cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
         if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
@@ -1144,14 +1145,18 @@ cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
           updateTextInput(session=session, "OPname", value = "") 
         } else {
           updateTextInput(session=session, "OPname", value = input$OPsettings)
-
           if (all(unlist(GraphSettings[[input$OPsettings]][["selectdbtables"]]) %in%
                    input$selectdbtables) &&
               all(unlist(GraphSettings[[input$OPsettings]][["dbvars"]]) %in% 
                   input$selectdbvars)) 
           {
             output$OPmessage=NULL 
-            setGraphSettings(session,GraphSettings[[input$OPsettings]]) 
+            msg = setGraphSettings(session,GraphSettings[[input$OPsettings]])
+cat ("msg=",msg,"\n")
+            if (! is.null(msg)) output$OPmessage=
+              renderUI(HTML(paste0('<p style="color:darkred">',
+                "Warning: Possible choices for ",paste0(msg,collapse=","),
+                " don't include all saved selections.</p>")))  
           } else output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
               "The data needed for this setting was not selected ",
               "when you picked data to load.<br>Table(s) needed: ",
