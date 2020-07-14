@@ -327,7 +327,8 @@ setGraphSettings <- function(session,theSettings)
     if (length(sel)) 
       updateSelectInput(session=session, inputId=inputId, selected=sel) else
     {
-      sel = cho[[inputId]][1:min(length(theS[[inputId]]),length(cho[[inputId]]))]
+      cch = if (inputId %in% c("species","dbhclass")) setdiff(cho[[inputId]],"All") else cho[[inputId]]
+      sel = cch[1:min(length(theS[[inputId]]),length(cch))]
       msg = if (length(sel)==1 && sel=="None loaded") NULL else
         paste0('All saved selections of "',tag,'" are missing, the first ',length(sel),
                    if (length(sel)==1) ' is' else ' are',' selected.')
