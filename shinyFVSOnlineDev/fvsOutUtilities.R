@@ -319,26 +319,28 @@ getGraphSettings <- function(input)
 setGraphSettings <- function(session,theSettings)
 { 
   globals$gFreeze = TRUE
-  msg = NULL
-  setSettings <- function(session,inputId,cho,theS)
+  setSettings <- function(session,inputId,cho,theS,tag)
   {
     sel = intersect(theS[[inputId]],cho[[inputId]])
-    if (length(sel)) updateSelectInput(session=session, inputId=inputId, 
-                     selected=sel)
-    return(all(theS[[inputId]] %in% cho[[inputId]]))
+    msg = if (length(sel) == length(theS[[inputId]])) NULL else 
+      paste0('Some saved selections of "',tag,'" are missing, those present are selected.')
+    if (length(sel)) 
+      updateSelectInput(session=session, inputId=inputId, selected=sel) else
+    {
+      sel = cho[[inputId]][1:min(length(theS[[inputId]]),length(cho[[inputId]]))]
+      msg = if (length(sel)==1 && sel=="None loaded") NULL else
+        paste0('All saved selections of "',tag,'" are missing, the first ',length(sel),
+                   if (length(sel)==1) ' is' else ' are',' selected.')
+      updateSelectInput(session=session, inputId=inputId, selected=sel)
+    }   
+    return(msg)
   }  
-  rtn = setSettings (session,"stdgroups",globals$exploreChoices,theSettings) 
-  if (!rtn) msg = "Groups"
-  rtn = setSettings (session,"stdid",    globals$exploreChoices,theSettings)
-  if (!rtn) msg = c(msg,"Stands")
-  rtn = setSettings (session,"species",  globals$exploreChoices,theSettings)
-  if (!rtn) msg = c(msg,"Species")
-  rtn = setSettings (session,"mgmid",    globals$exploreChoices,theSettings)
-  if (!rtn) msg = c(msg,"MgmtIDs")
-  rtn = setSettings (session,"dbhclass", globals$exploreChoices,theSettings)
-  if (!rtn) msg = c(msg,"DBHClasses")
-  rtn = setSettings (session,"year",     globals$exploreChoices,theSettings)
-  if (!rtn) msg = c(msg,"Year")
+  msg =       setSettings (session,"stdgroups",globals$exploreChoices,theSettings,"Groups")
+  msg = c(msg,setSettings (session,"stdid",    globals$exploreChoices,theSettings,"Stands"))
+  msg = c(msg,setSettings (session,"species",  globals$exploreChoices,theSettings,"Species"))
+  msg = c(msg,setSettings (session,"mgmid",    globals$exploreChoices,theSettings,"MgmtIDs"))
+  msg = c(msg,setSettings (session,"dbhclass", globals$exploreChoices,theSettings,"DBHClasses"))
+  msg = c(msg,setSettings (session,"year",     globals$exploreChoices,theSettings,"Year"))
 
   updateCheckboxGroupInput(session=session, inputId="browsevars",selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",  selected=theSettings$plotType)

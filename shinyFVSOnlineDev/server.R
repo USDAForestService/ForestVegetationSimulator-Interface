@@ -1155,10 +1155,9 @@ cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
 cat ("msg=",msg,"\n")
             if (! is.null(msg)) output$OPmessage=
               renderUI(HTML(paste0('<p style="color:darkred">',
-                "Warning: Possible choices for ",paste0(msg,collapse=","),
-                " don't include all saved selections.</p>")))  
+                "Warning(s): <br>",paste0(msg,collapse="<br>"),"</p>")))  
           } else output$OPmessage=renderUI(HTML(paste0('<p style="color:darkred">',
-              "The data needed for this setting was not selected ",
+              "Error: The data needed for this setting was not selected ",
               "when you picked data to load.<br>Table(s) needed: ",
               paste0(GraphSettings[[input$OPsettings]][["selectdbtables"]],
               collapse=", "),"</p>")))
