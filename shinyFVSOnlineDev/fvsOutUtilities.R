@@ -335,13 +335,13 @@ setGraphSettings <- function(session,theSettings)
       updateSelectInput(session=session, inputId=inputId, selected=sel)
     }   
     return(msg)
-  }  
+  }
   msg =       setSettings (session,"stdgroups",globals$exploreChoices,theSettings,"Groups")
   msg = c(msg,setSettings (session,"stdid",    globals$exploreChoices,theSettings,"Stands"))
-  msg = c(msg,setSettings (session,"species",  globals$exploreChoices,theSettings,"Species"))
   msg = c(msg,setSettings (session,"mgmid",    globals$exploreChoices,theSettings,"MgmtIDs"))
-  msg = c(msg,setSettings (session,"dbhclass", globals$exploreChoices,theSettings,"DBHClasses"))
   msg = c(msg,setSettings (session,"year",     globals$exploreChoices,theSettings,"Year"))
+  msg = c(msg,setSettings (session,"species",  globals$exploreChoices,theSettings,"Species"))
+  msg = c(msg,setSettings (session,"dbhclass", globals$exploreChoices,theSettings,"DBHClasses"))
 
   updateCheckboxGroupInput(session=session, inputId="browsevars",selected=theSettings$browsevars)           
   updateRadioButtons      (session=session, inputId="plotType",  selected=theSettings$plotType)
