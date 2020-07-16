@@ -121,6 +121,7 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
       if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
   } 
   if(!length(sel) && edt==0) sel="0"
+  if(!length(sel) && edt==1 && !valpair) sel=mklist[1]
   if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- " "
   if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
   if (valpair && gsub('"','',mklist[1])==" "  && edt==0) sel <- as.character(as.numeric(sel)-1)
@@ -128,7 +129,7 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
     if(choices[1]==""){
     sel <- as.character(mklist[mklist[[1]][1]])
     mklist[1] <- as.character((mklist[1]))
-    }else sel <- as.character(as.numeric(sel))
+    } else sel <- as.character(as.numeric(sel))
   }
   switch (type,
     "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
@@ -372,10 +373,8 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
         } 
       }
     first <- 0
-    # browser()
     for (item in 1:length(mklist))
      {
-
       if (trim(mklist[[item]][1]) == trim(selected) && first==0){
         tag <- "selected"
         first <- 1
@@ -412,7 +411,6 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
     #initial rendering of the species list dropdown (deleteAll pkeys)
     # first option is blank (SpGroup, Plant/Natural, etc)
     else 
-      # browser()
       for (item in 1:length(mklist))
       {if (item==1){# first option is blank
         inputs = c(inputs,'<option value=" "></option>',
@@ -471,18 +469,8 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   }
   indx = sort(funcName,index.return=TRUE)$ix
   funcName = as.list(funcName[indx])
-  names(funcName) = funcDef[indx]    
-  eltList <- list(
-    tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-    myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
-    tags$style(type="text/css", 
-      "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
-    tags$p(id="freeEditCols", 
-           HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
-    tags$style(type="text/css", 
-      "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-    tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
-    myInlineListButton ("freeOps","Math:",list(
+  names(funcName) = funcDef[indx]
+  mathList = list(
        " "=" ",
        "+ Simple addition"="+",
        "- Subtraction or change sign"="-",
@@ -513,13 +501,34 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
        "Mod() Remainder of first argument divided by the second"="Mod()",
        "Sin() Sine (argument in radians)"="Sin()",
        "Sqrt() Square root"="Sqrt()",
-       "Tan() Tangent (argument in radians)"="Tan()"), 0, deltll=NULL),
-     myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
-     mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+       "Tan() Tangent (argument in radians)"="Tan()")
+  if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0)
+  {
+    eltList <- list(
+     myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
+     myInlineListButton ("freeVarsKCP","Variables:",varsName,deltll=NULL),
+     mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
           choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
-     uiOutput("fvsFuncRender")
-  )
+     myInlineListButton ("freeFuncsKCP","FVS Functions:",funcName,deltll=NULL),
+     uiOutput("fvsFuncRender"))
+  } else {
+    eltList <- list(
+    tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+    myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
+    tags$style(type="text/css", 
+      "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+    tags$p(id="freeEditCols", 
+           HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+    tags$style(type="text/css", 
+      "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+    tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
+    myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
+    myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
+    mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+          choices=NULL,globals$activeVariants[1]),
+    myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
+    uiOutput("fvsFuncRender"))
+  }
   eltList
 }
 

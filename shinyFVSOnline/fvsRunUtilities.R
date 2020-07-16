@@ -9,7 +9,7 @@ mkfvsStd <<- setRefClass("fvsStd",
 if (exists("mkfvsGrp",envir=.GlobalEnv)) rm (mkfvsGrp,envir=.GlobalEnv)
 mkfvsGrp <<- setRefClass("fvsGrp",
   fields = list(grp = "character", cmps = "list", uuid="character"))
-
+                          
 if (exists("mkfvsCmp",envir=.GlobalEnv)) rm (mkfvsCmp,envir=.GlobalEnv)
 mkfvsCmp <<- setRefClass("fvsCmp",
   fields = list(kwds = "character", kwdName = "character", exten="character",
@@ -40,49 +40,24 @@ mkGlobals <<- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list", fvsRun = "fvsRun", foundStand="integer",
+    customQueries = "list", fvsRun = "fvsRun", foundStand="integer", 
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",settingChoices="list"))
+    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
+    settingChoices="list",exploreChoices="list"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
-  globals$selStandTableList = list()
-  ith <- 1
-  dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-  dbtabsU = toupper(dbtabs)
-  for (i in 1:length(dbtabs)){
-   if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-   globals$selStandTableList[ith] <- "Stands (FVS_StandInit)"
-   ith <- ith +1
-   }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-      globals$selStandTableList[ith] <- "Plots within stands (FVS_PlotInit)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-      globals$selStandTableList[ith] <- "Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-      globals$selStandTableList[ith] <- "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"
-    ith <- ith +1
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-      globals$selStandTableList[ith] <- "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"
-    ith <- ith +1
-    }
-  }
-  globals$selStandTableList <- subset(globals$selStandTableList,!is.na(globals$selStandTableList))
+  tbls=myListTables(dbIcon)
+  globals$selStandTableList = list(
+    "Stands (FVS_StandInit)"                                     = "FVS_StandInit",
+    "Plots within stands (FVS_PlotInit)"                         = "FVS_PlotInit",
+    "Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"      = "FVS_StandInit_Plot",
+    "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)" = "FVS_PlotInit_Plot",
+    "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"      = "FVS_StandInit_Cond")
+  have=na.omit(match(toupper(tbls),toupper(globals$selStandTableList)))
+  if (length(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
 } 
 
 loadVarData <- function(globals,prms,dbIcon)
@@ -133,7 +108,7 @@ loadVarData <- function(globals,prms,dbIcon)
     }
   }
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
-  if (!is.na(fvsKeys)) 
+  if (!is.null(fvsKeys)) 
   {
     globals$inData$FVS_GroupAddFilesAndKeywords <- dbReadTable (dbIcon,fvsKeys)
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
@@ -154,7 +129,7 @@ reorderFVSRuns <- function(FVS_Runs)
 
 findIdx = function (list, uuid)
 {
-  if (length(list) == 0) return(NULL)
+  if (length(list) == 0 || is.null(uuid)) return(NULL)
   for (i in 1:length(list)) if (list[[i]]$uuid == uuid) return (i)
   NULL
 }
@@ -202,8 +177,7 @@ getBkgRunList = function ()
     scan(file=x,what="character",sep="\n",quiet=TRUE)))
   pidfiles=as.list(pidfiles)
   names(pidfiles) = theList
-  pidfiles
-  
+  pidfiles 
 }
 
 killIfRunning = function (uuid)
@@ -227,12 +201,12 @@ removeFVSRunFiles = function (uuid,all=FALSE)
 {
   if (file.exists(uuid)) 
   {
-    file.remove(paste0(uuid,"/",dir(uuid)))
-    file.remove(uuid)
+    unlink(paste0(uuid,"/",dir(uuid)), recursive = TRUE, force = TRUE)
+    unlink(uuid)
   }
   fls = dir(pattern=uuid)
   if (!all) fls = setdiff(fls,paste0(uuid,".RData"))
-  file.remove(fls)
+  unlink(fls, recursive = TRUE, force = TRUE)
 }
 
 
@@ -249,7 +223,7 @@ cat("findCmp, cmp=",cmp,"\n")
     icm = findIdx(std$cmps,cmp)
     if (!is.null(icm)) return(std$cmps[[icm]])
   }
-  NULL
+  NULL                                 
 }
 
 
@@ -258,110 +232,29 @@ writeKeyFile <- function (fvsRun,dbIcon,prms,newSum=TRUE)
   stds = unlist(lapply(fvsRun$stands,function(x) x$sid))
 cat("writeKeyFile, num stds=",length(stds),
     " fvsRun$title=",fvsRun$title," uuid=",fvsRun$uuid,"\n")
-  if (length(stds)==0) return()
-  dbExecute(dbIcon,'drop table if exists temp.RunStds') 
+  globals$timeissue <- 0
+  if (length(stds)==0) return("No stands to process.")
+  dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
-  dbtabs = dbListTables(dbIcon)
-  dbtabsU = toupper(dbtabs)
-  stdInit <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-      stdInit <- dbtabs[i]
-    }
-  }
-  plotInit <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-      plotInit <- dbtabs[i]
-    }
-  }
-  stdInit_cond <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-      stdInit_cond <-dbtabs[i]
-    }
-  }
-  stdInit_plot <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-      stdInit_plot <- dbtabs[i]
-    }
-  }
-  plotInit_plot <- NULL
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-      plotInit_plot <- dbtabs[i]
-    }
-  }
-  intable=fvsRun$refreshDB
-  if (!is.na(match(intable,"Stands (FVS_StandInit)")) && 
-      (!is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) ||
-      is.na(!is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))))) return()
-  if (!is.null(stdInit) && is.na(match(intable,"Plots within stands (FVS_PlotInit)"))){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit,
-                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit,
-                      ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(plotInit) && is.na(match(intable,"Stands (FVS_StandInit)"))){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year,Sam_Wt from ',plotInit,
-                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select StandPlot_ID,Groups,Inv_Year,Sam_Wt from ',plotInit,
-                      ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(stdInit_cond) && 
-            (is.na(match(intable,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))
-             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
-    SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_cond,
-                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-               paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit_cond,
-                       ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else if (!is.null(stdInit_plot) && 
-            (is.na(match(intable,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))
-             && is.na(match(intable,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)")))){ 
-    SCD <- try(dbGetQuery(dbIcon,
-            paste0('select Stand_ID,Stand_CN,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
-                   ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-              paste0('select Stand_ID,Groups,Inv_Year,Sam_Wt from ',stdInit_plot,
-                     ' where Stand_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("Stand_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }else{ 
-    SCD <- try(dbGetQuery(dbIcon,
-            paste0('select StandPlot_ID,StandPlot_CN,Groups,Inv_Year,Sam_Wt from ',plotInit_plot,
-                   ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    if(class(SCD)=="try-error"){
-      SCD <- try(dbGetQuery(dbIcon,
-              paste0('select StandPlot_ID,Groups,Inv_Year,Sam_Wt from ',plotInit_plot,
-                     ' where StandPlot_ID in (select RunStds from temp.RunStds)')))
-    }           
-    if(class(SCD)=="try-error") return("StandPlot_ID Not Found")
-    fvsInit <- SCD
-    names(fvsInit) = toupper(names(fvsInit))
-  }
+ 
+  # get the preferred ids depending on the table that was used to build the run
+  intable=toupper(fvsRun$refreshDB)
+  queryIDs=switch(intable,
+                  "FVS_STANDINIT"     =c("STAND_ID","STAND_CN"),
+                  "FVS_PLOTINIT"      =c("STANDPLOT_ID","STANDPLOT_CN"),
+                  "FVS_STANDINIT_COND"=c("STAND_ID","STAND_CN"),
+                  "FVS_STANDINIT_PLOT"=c("STAND_ID","STAND_CN"),
+                  "FVS_PLOTINIT_PLOT" =c("STANDPLOT_ID","STANDPLOT_CN"))
+  initfields = try(toupper(dbListFields(dbIcon,intable)))
+  if (class(initfields) == "try-error") return("Run data query returned no data to run.")
+  queryIDs = queryIDs[queryIDs %in% initfields] 
+  if (length(queryIDs) == 0) return("Needed stand id fields are missing")
+  qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
+              intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
+cat ("qry=",qry,"\n")
+  fvsInit = try(dbGetQuery(dbIcon,qry))
+  if (class(fvsInit) == "try-error") return("Run data query failed.")
+  if (nrow(fvsInit) == 0) return("Run data query returned no data to run.")
   # compute replication weights
   stofix=table(stds)
   stofix=names(stofix[stofix>1])
@@ -383,7 +276,6 @@ cat("writeKeyFile, num stds=",length(stds),
   cat ("!!built:",format(Sys.time(), 
         "%Y-%m-%d_%H:%M:%S"),"\n",file=fc)
   thisYr = as.numeric(format(Sys.time(), "%Y"))
-  globals$timeissue <- 0
   # Start year checks
   for(i in 1:length(globals$fvsRun$stands)){
     if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
@@ -408,39 +300,44 @@ cat("writeKeyFile, num stds=",length(stds),
   }
   # End year checks
   for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$endyr !="" && ((as.numeric(input$endyr)) > (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
+    if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
+      (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
          ((input$endyr !="") && nchar(input$endyr) > 4))){
       session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr," is more than 40 growth cycles from the current year of ", thisYr))
+              message = paste0("The common ending year of ", input$endyr,
+              " is more than 40 growth cycles from the current year of ", thisYr))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
-    if ((input$endyr !="") && ((as.numeric(input$endyr) < as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
+    if ((input$endyr !="") && ((as.numeric(input$endyr) < 
+      as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
       session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+              message = paste0("The common ending year of ", input$endyr,
+              " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
     if (input$endyr =="") {
       session$sendCustomMessage(type = "infomessage",
               message = paste0("The common ending year is blank."))
       globals$timeissue <- 1
-      return()
+      return("Year check error")
     }
   }
   # Cycle length checks
   if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
        ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
     session$sendCustomMessage(type = "infomessage",
-            message = paste0("The growth interval of ", input$cyclelen," years is greater than the maximum 50 years"))
+            message = paste0("The growth interval of ", input$cyclelen,
+            " years is greater than the maximum 50 years"))
     globals$timeissue <- 1
-    return()
+    return("Year check error")
   }
   if (input$cyclelen =="") {
     session$sendCustomMessage(type = "infomessage",
             message = paste0("The growth interval is blank."))
     globals$timeissue <- 1
-    return()
+    return("Year check error")
   }
   baseCycles = seq(as.numeric(fvsRun$startyr),as.numeric(fvsRun$endyr),
                    as.numeric(fvsRun$cyclelen))
@@ -452,23 +349,26 @@ cat("writeKeyFile, num stds=",length(stds),
       for(j in 1:length(cycleat)){
         if ((cycleat[j] > (thisYr + 400))){
           session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j]," is more than 400 years from the current year of", thisYr))
+                  message = paste0("The additional reporting year of ", cycleat[j],
+                  " is more than 400 years from the current year of", thisYr))
           globals$timeissue <- 1
-          return()
+          return("Cycle break check error")
         }
         if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
           session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j]," is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+                  message = paste0("The additional reporting year of ", cycleat[j],
+                  " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
           globals$timeissue <- 1
-          return()
+          return("Cycle break check error")
         }
       }
     }
   }
-  cycleat = sort(union(baseCycles,cycleat))
+  cycleat = union(baseCycles,cycleat)
   cycleat = sort(union(cycleat,as.numeric(fvsRun$endyr))) 
   for (std in fvsRun$stands)
-  {
+  { 
+    names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
 cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
@@ -477,7 +377,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
         fvsInit$STAND_CN[sRows] != " "){ 
       cat ("StandCN\n",fvsInit$STAND_CN[sRows],"\n",file=fc,sep="")
-    }else if (!is.null(fvsInit$STANDPLOT_CN[sRowp]) && !is.na(fvsInit$STANDPLOT_CN[sRowp]) && 
+    } else if (!is.null(fvsInit$STANDPLOT_CN[sRowp]) && !is.na(fvsInit$STANDPLOT_CN[sRowp]) && 
         fvsInit$STANDPLOT_CN[sRowp] != " "){ 
       cat ("StandCN\n",fvsInit$STANDPLOT_CN[sRowp],"\n",file=fc,sep="")
       }else cat ("StandCN\n",std$sid,"\n",file=fc,sep="")
@@ -497,9 +397,14 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     cat ("NumCycle    ",as.character(i),"\n",file=fc)
     cat (defaultOut,file=fc)
     # "checking" the FVS Outputs suppresses adding autoDelOTab so make that logical switch here
-    autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else unlist(fvsRun$autoOut[["autoOut"]])
-    autos = if ("autoDelOTab" %in% autos) setdiff(autos,"autoDelOTab") else c(autos,"autoDelOTab")
-    for (out in autos) if (exists(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
+    autos = if (is.null(names(fvsRun$autoOut))) unlist(fvsRun$autoOut) else 
+                unlist(fvsRun$autoOut[["autoOut"]])
+    autos = if ("autoDelOTab" %in% autos) 
+    { 
+      aa = setdiff(autos,"autoDelOTab")
+      unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
+    } else c(autos,"autoDelOTab")
+    for (out in autos) if (exists(out) && !is.null(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
 
     if (!is.null(fvsRun$autoOut[["svsOut"]]) && !is.null(fvsRun$autoOut[["svsOut"]][["svs"]]) && 
       exists("autoSVS"))
@@ -519,7 +424,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
       {
-        if (length(grep("Addfile:",cmp$title))){
+        if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))){
           # we have ourselves an addfile
           basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
                            "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
@@ -1210,8 +1115,27 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                                          sep=",",quote=FALSE,row.names=FALSE))
             cat ("-999\n",file=fc,sep="")
           }
-        } else cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
+        } else {
+          # remove trailing spaces after last parameter of keywords with supplemental 
+          # records entered in the GAAK table (i.e., SPGROUP, MGMTID, etc.)
+          if (length(grep("FVS_GroupAddFilesAndKeywords",cmp$title))){
+            kwdlist <- strsplit(cmp$kwds,"\n")[[1]]  
+            cmpkwds <- length(kwdlist)
+            for(i in 1:cmpkwds){
+              space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])-1]==" "
+              if(space){
+                keyrec <- strsplit(kwdlist[i],"")[[1]]
+                keyrec <- keyrec[-(length(keyrec)-1)]
+                keyrec <- paste0(keyrec, collapse="")
+                kwdlist[i] <- keyrec
+              }
+            }
+            kwdlist<- gsub("[\r]", "", kwdlist)
+            cmp$kwds <- paste(kwdlist,collapse="\n")
+          }
+          cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                     cmp$kwds,"\n",file=fc,sep="")
+        }
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
@@ -1260,109 +1184,132 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       grp = std$grps[[i]]$grp
       cat ("  ",grp,if (i == length(std$grps)) "\n" else 
                         ", & \n",file=fc,sep="")
-    }
+    }                       
     cat ("Process\n\n",file=fc)    
   }
   cat ("Stop\n",file=fc)    
   close(fc)
 cat ("end of writeKeyFile\n")
-  
+  return("Keyword file write complete")
 }
 
-mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L)
+mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
 {
   tmpcnts = list()
   tmptags = list()                         
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
-  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL
-  start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
-  if (!is.null(sels) && length(sels) == 1)
+  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL 
+  if (justGrps) 
   {
-    if (substr(sels[[1]],1,1) == "-") 
+    start=1
+    end=0
+    for (grp in fvsRun$grps) 
     {
-      start = max((-as.numeric(sels[[1]]))-50,1) 
-    } else if (substr(sels[[1]],1,1)== "+") 
-    {
-      start = min(as.numeric(sels[[1]])+50,length(fvsRun$stands)-49)
-      if(start<1) start=1
-    }     
-  }
-  end = min(start+length(fvsRun$stands)-1,start+49)
-  if (foundStand > 0L) 
-  {
-    if (foundStand < start || foundStand > end) 
-    {
-      start = foundStand
-      end = min(start+length(fvsRun$stands)-1,start+49)
-      if (end > length(fvsRun$stands))
+      end=end+1+length(grp$cmps)
+      tmpcnts <- append(tmpcnts,paste(">",grp$grp))
+      tmptags <- append(tmptags,grp$uuid)
+      if (length(grp$cmps)) for (k in 1:length(grp$cmps))
       {
-        start = max(length(fvsRun$stands)-50,1)
-        end = length(fvsRun$stands)
+        tag = switch(grp$cmps[[k]]$atag,
+              "c" = "-> Cnd:",
+              "k" = "-> Kwd:",
+                    "--> Kwd:")
+        tmpcnts <- append(tmpcnts,paste(tag,grp$cmps[[k]]$title))
+        tmptags <- append(tmptags,grp$cmps[[k]]$uuid)
       }
     }
-  } 
-  fvsRun$startDisp = as.character(start)
+    if (length(intersect(unlist(fvsRun$selsim),unlist(tmptags))) == 0)
+      fvsRun$selsim = tmptags[1]
+  } else {
+    start = if (length(fvsRun$startDisp)) as.numeric(fvsRun$startDisp) else 1
+    if (!is.null(sels) && length(sels) == 1)
+    {
+      if (substr(sels[[1]],1,1) == "-") 
+      {
+        start = max((-as.numeric(sels[[1]]))-50,1) 
+      } else if (substr(sels[[1]],1,1)== "+") 
+      {
+        start = min(as.numeric(sels[[1]])+50,length(fvsRun$stands)-49)
+        if(start<1) start=1
+      }      
+    }
+    end = min(start+length(fvsRun$stands)-1,start+49) 
+    if (foundStand > 0L) 
+    {
+      if (foundStand < start || foundStand > end) 
+      {
+        start = foundStand
+        end = min(start+length(fvsRun$stands)-1,start+49)
+        if (end > length(fvsRun$stands))
+        {
+          start = max(length(fvsRun$stands)-50,1)
+          end = length(fvsRun$stands)
+        }
+      }
+    } 
+    fvsRun$startDisp = as.character(start)
 cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
 " sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
-paste0("list n=",length(list)) else sels,"\n")
-  if (length(fvsRun$stands)) for (i in start:end) 
-  {
-    ## these two lines are needed to deal with old runs that may not have these elements in the stand class
-    if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
-    if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
-    tmpcnts<-append(tmpcnts, 
-      if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
-          sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
-                  fvsRun$stands[[i]]$repwt))          
-    tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
-    if (length(fvsRun$stands[[i]]$grps) > 0)
-      for (j in 1:length(fvsRun$stands[[i]]$grps))
-      { 
-        tmpcnts <- append(tmpcnts,
-          paste("> Grp:",fvsRun$stands[[i]]$grps[[j]]$grp))
-        tmptags <- append(tmptags,fvsRun$stands[[i]]$grps[[j]]$uuid)
-        if (length(fvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
-          for (k in 1:length(fvsRun$stands[[i]]$grps[[j]]$cmps))
-          {
-            tag = switch(fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$atag,
-                  "c" = "-> Cnd:",
-                  "k" = "-> Kwd:",
-                        "--> Kwd:")
-            tmpcnts<-append(tmpcnts, paste(tag,
-                fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$title))
-            tmptags <- append(tmptags,
-               fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$uuid)
-          }
-      }
-    if (length(fvsRun$stands[[i]]$cmps) > 0)
-      for (k in 1:length(fvsRun$stands[[i]]$cmps))
-      { 
-        tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
-              "c" = "> Cnd:",
-              "k" = "> Kwd:",
-              "-> Kwd:")
-        tmpcnts<-append(tmpcnts, 
-          paste(tag,fvsRun$stands[[i]]$cmps[[k]]$title))
-        tmptags <- append(tmptags,fvsRun$stands[[i]]$cmps[[k]]$uuid)
-      }
+paste0("length(list)=",length(list)) else sels,"\n")
+    if (length(fvsRun$stands)) for (i in start:end) 
+    {
+      ## these two lines are needed to deal with old runs that may not have these elements in the stand class
+      if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
+      if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
+      tmpcnts<-append(tmpcnts, 
+        if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
+            sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
+                    fvsRun$stands[[i]]$repwt))          
+      tmptags <- append(tmptags,fvsRun$stands[[i]]$uuid)
+      if (length(fvsRun$stands[[i]]$grps))
+        for (j in 1:length(fvsRun$stands[[i]]$grps))
+        { 
+          tmpcnts <- append(tmpcnts,
+            paste("> Grp:",fvsRun$stands[[i]]$grps[[j]]$grp))
+          tmptags <- append(tmptags,fvsRun$stands[[i]]$grps[[j]]$uuid)
+          if (length(fvsRun$stands[[i]]$grps[[j]]$cmps) > 0)
+            for (k in 1:length(fvsRun$stands[[i]]$grps[[j]]$cmps))
+            {
+              tag = switch(fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$atag,
+                    "c" = "-> Cnd:",
+                    "k" = "-> Kwd:",
+                          "--> Kwd:")
+              tmpcnts<-append(tmpcnts, paste(tag,
+                  fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$title))
+              tmptags <- append(tmptags,
+                 fvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$uuid)
+            }
+        }
+      if (length(fvsRun$stands[[i]]$cmps))
+        for (k in 1:length(fvsRun$stands[[i]]$cmps))
+        { 
+          tag = switch(fvsRun$stands[[i]]$cmps[[k]]$atag,
+                "c" = "> Cnd:",
+                "k" = "> Kwd:",
+                "-> Kwd:")
+          tmpcnts<-append(tmpcnts, 
+            paste(tag,fvsRun$stands[[i]]$cmps[[k]]$title))
+          tmptags <- append(tmptags,fvsRun$stands[[i]]$cmps[[k]]$uuid)
+        }
+    }
+    if (start > 1) 
+    {
+      tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
+      newstart <- max(start-50,1) 
+      if(newstart<1) newstart=1
+      newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
+      tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+                 " of ",length(fvsRun$stands)," stands >>"),after=0)
+    }
+    if (end < length(fvsRun$stands))
+    {
+      tmptags <- append(tmptags,paste0("+",as.character(start)))
+      newstart <- min(start+50,length(fvsRun$stands)-49)
+      newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
+      tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
+                 " of ",length(fvsRun$stands)," stands >>"))
+    }
   }
-  if (start > 1) 
-  {
-    tmptags <- append(tmptags,paste0("-",as.character(start)),after=0)
-    newstart <- max(start-50,1) 
-    if(newstart<1) newstart=1
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
-    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
-               " of ",length(fvsRun$stands)," stands >>"),after=0)
-  }
-  if (end < length(fvsRun$stands))
-  {
-    tmptags <- append(tmptags,paste0("+",as.character(start)))
-    newstart <- min(start+50,length(fvsRun$stands)-49)
-    newend <-  min(newstart+length(fvsRun$stands)-1,newstart+49)  
-    tmpcnts <- append(tmpcnts,paste0("<< Display ",newstart," to ",newend,
-               " of ",length(fvsRun$stands)," stands >>"))
-  }       
   fvsRun$simcnts <- tmptags
   names(fvsRun$simcnts) <- tmpcnts
   if (is.null(sels) && length(fvsRun$selsim)) 
@@ -1371,7 +1318,6 @@ paste0("list n=",length(list)) else sels,"\n")
        names(fvsRun$simcnts)[match(fvsRun$selsim,fvsRun$simcnts)]
      if (any(is.na(names(fvsRun$selsim)))) fvsRun$selsim = list()
   }
-
   if (!is.null(sels) || length(fvsRun$selsim) == 0) 
   {
     selset <- NULL
@@ -1394,7 +1340,7 @@ paste0("list n=",length(list)) else sels,"\n")
        names(fvsRun$selsim) <- tmpcnts[selset]
     }
   }
-  cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
+cat("...return, loaded=",start," to ",end," of ",length(fvsRun$stands),"\n")
 }
 
 findStand <- function(globals,search=NULL)
@@ -1589,7 +1535,8 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
   for (i in 1:length(input)){
-    if(length(grep(" ", input[i])) && length(strsplit((input[i])," ")) > 1) input[i] <- strsplit((input[i])," ")[[1]][2]
+    if(input[i]==" ") next
+    if(length(grep(" ", input[i]))) input[i] <- trim(input[i])
   }
   for (i in 1:nchar(ansFrm))
   {
@@ -1863,17 +1810,13 @@ pasteComponent <- function(fvsRun,sel,topaste)
       test <- globals$pastelist[[1]]$kwds
       spgname <- list()
       spgname<- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
-                                            split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-      if(!length(globals$GrpNum)){
-        globals$GrpNum[1] <- 1
-      }else
+                split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
+      if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
         globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-      
       spgname <- gsub(" ","", spgname)
       tmpk <- match(spgname, globals$GenGrp)
-      if (!is.na(tmpk)){
-        globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-      }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+      if (!is.na(tmpk)) globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)] else 
+        globals$GenGrp[length(globals$GrpNum)]<-spgname
     }
     return(idx)
   } 
@@ -2011,7 +1954,7 @@ cat ("addNewRun2DB, runuuid=",runuuid,"\n")
     if (trycnt > 1000) 
     {
       dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
-      dbListTables(dbcon) #any query will cause the locking mode to become active
+      myListTables(dbcon) #any query will cause the locking mode to become active
       return("could not get exclusive lock.")
     }
 cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
@@ -2089,7 +2032,7 @@ cat ("qry=",qry,"\n")
   unlink(fn)
   mkDBIndices(dbcon)
   dbExecute(dbcon,"PRAGMA locking_mode = NORMAL")
-  dbListTables(dbcon) #any query will cause the new locking mode to become active
+  myListTables(dbcon) #any query will cause the new locking mode to become active
   "data inserted"
 }                                                    
 
@@ -2103,6 +2046,27 @@ ncmps <- function(fvsRun)
 
 addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 {
+  AddFiles <- function (addfiles)
+  {
+    addkeys = list()
+    if (!is.null(addfiles) && !is.na(addfiles))
+    { 
+      fns=scan(text=addfiles,what="character",sep="\n",quiet=TRUE)
+      semicolon <- grep(";",fns)
+      if(length(semicolon)){
+        splits <- unlist(strsplit(fns[semicolon],";"))
+        fns <- fns[-semicolon]
+        fns <- append(fns,splits)
+      }
+      for (fn in fns)
+      {
+        addkeys[length(addkeys)+1]=paste0("Open        133.\n",fn,
+                       "\nAddFile     133.\nClose       133.\n")
+        names(addkeys)[length(addkeys)] = fn
+      }
+    }
+    return(addkeys)
+  }
   isolate({
 cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
@@ -2126,105 +2090,32 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
     names(vlst) = selVarListUse
     updateSelectInput(session=session, inputId="inVars", NULL, 
                       vlst, vlst[[1]])
-    globals$fvsRun$startyr <- format(Sys.time(), "%Y")
+    if (length(globals$fvsRun$startyr)==0) globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
-    stdInit <- NULL
-    dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
-    dbtabsU = toupper(dbtabs)
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-        stdInit <- dbtabs[i]
-      }
-    }
-    plotInit <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit")))){
-        plotInit <- dbtabs[i]
-      }
-    }
-    stdInit_cond <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-        stdInit_cond <- dbtabs[i]
-      }
-    }
-    stdInit_plot <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-        stdInit_plot <- dbtabs[i]
-      }
-    }
-    plotInit_plot <- NULL
-    for (i in 1:length(dbtabs)){
-      if (!is.na(match(dbtabsU[i], toupper("FVS_PlotInit_Plot")))){
-        plotInit_plot <- dbtabs[i]
-      }
-    }
-    if (is.null(stdInit) && (is.null(stdInit_cond) || is.null(stdInit_plot) ||
-                             is.null(plotInit) && is.null(plotInit_plot))) 
+    stdInit <- input$inTabs
+    fields = dbListFields(dbGlb$dbIcon,stdInit)
+    if (stdInit %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) 
     {
-cat ("error: stdInit is null\n")
-      return()
+      sidid = "StandPlot_ID" 
+      needFs = c("StandPlot_ID","StandPlot_CN") 
+    } else {
+      sidid = "Stand_ID"
+      needFs = c("Stand_ID","Stand_CN")
     }
-    globals$fvsRun$refreshDB=input$inTabs
-    allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt")
-    if (!is.na(match(input$inTabs, "Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,plotInit)
-      needFs = c("StandPlot_ID","StandPlot_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit_cond)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
-      fields = dbListFields(dbGlb$dbIcon,stdInit_plot)
-      needFs = c("Stand_ID","Stand_CN",allNeed)
-    }else {
-      fields = dbListFields(dbGlb$dbIcon,plotInit_plot)
-      needFs = c("StandPlot_ID","StandPlot_CN",allNeed)
-    }
-    fields = intersect(toupper(fields),toupper(needFs))
-    dbQ = NULL
+    allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
+    fields = intersect(toupper(fields),toupper(allNeed))
     if (selType == "inAdd")
     {
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       if (length(input$inStds))
       {
         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
-        if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
-                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)){
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
-                           ' where Stand_ID in (select SelStds from temp.Stds)')))
-        }else 
-          dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                    paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
-                           ' where StandPlot_ID in (select SelStds from temp.Stds)')))
       } else return()
     } else {
       # use if inAddGrp
-      if ((!is.na(match(input$inTabs,"Stands (FVS_StandInit)")) && !is.null(input$inTabs)) ||
-          (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)")) && !is.null(input$inTabs))||
-          (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)")) && !is.null(input$inTabs)))
-      {
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from temp.Grps ',
-                   'where Grp in (select SelGrps from temp.SGrps)')))
-      }else { 
-        stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select StandPlot_ID from temp.Grps ',
-                        'where Grp in (select SelGrps from temp.SGrps)')))
-      }
+      qry = paste0('select ',sidid,' from temp.Grps',
+                 ' where Grp in (select SelGrps from temp.SGrps)')
+      stds = try(dbGetQuery(dbGlb$dbIcon,qry))
       if (class(stds) == "try-error") return()                                                             
       if (nrow(stds) == 0) return()
       stds = stds[,1]
@@ -2236,29 +2127,12 @@ cat ("error: stdInit is null\n")
       if (length(stds) == 0) return()  
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
-      if (!is.na(match(input$inTabs,"Stands (FVS_StandInit)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit,
-                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_cond,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else if (!is.na(match(input$inTabs,"Inventory Plots (FVS_StandInit_Plot)(e.g.: FIA plots)"))){
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',stdInit_plot,
-                                     ' where Stand_ID in (select SelStds from temp.Stds)')))
-      }else 
-        dbQ = try(dbSendQuery(dbGlb$dbIcon,
-                              paste0('select ',paste0(fields,collapse=","),' from ',plotInit_plot,
-                                     ' where StandPlot_ID in (select SelStds from temp.Stds)')))
-    }       
-    if (is.null(dbQ) || class(dbQ) == "try-error") return()
-    fvsInit = dbFetch(dbQ,n=-1)
+    }
+    qry = paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
+                 ' where ',sidid,' in (select SelStds from temp.Stds)')
+cat ("qry=",qry,"\n")
+    fvsInit = try(dbGetQuery(dbGlb$dbIcon,qry))
+    if (class(fvsInit)=="try-error") return()
     if (nrow(fvsInit) == 0) return()
     names(fvsInit) = toupper(names(fvsInit))
     maxMsgs = (nrow(fvsInit) %/% 10) + 2
@@ -2279,33 +2153,19 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
         msgVal = msgVal+1
         progress$set(value = msgVal)
       }
-      if (!is.na(match(input$inTabs,"Plots within stands (FVS_PlotInit)")) 
-          || !is.na(match(input$inTabs,"Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)"))) {
-        sid = fvsInit[row,"STANDPLOT_ID"]  
-      } else sid = fvsInit[row,"STAND_ID"]
+      sid = fvsInit[row,toupper(sidid)]  
       iwt = 0
       for (rep in 1:nreps)
       {
         iwt = iwt+1
         if (iwt>length(rwts)) iwt=1
         newstd <- mkfvsStd(sid=sid,uuid=uuidgen(),repwt=rwts[iwt])
-        addfiles <- fvsInit[row,"ADDFILES"]
-        if (!is.null(addfiles) && !is.na(addfiles) && nchar(addfiles) && addfiles != "NA")
-        {           
-          fns=scan(text=addfiles,what="character",quiet=TRUE)
-          for (fn in fns)
-          {
-            if (file.exists(fn))
-            {
-              addkeys = paste0("Open        133.\n",fn,
-                             "\nAddFile     133.\nClose       133.\n")
-              newstd$cmps <- append(newstd$cmps,
-                   mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
-                     exten="base", atag="k",kwdName=paste0("From AddFile: ",fn),
-                      title=paste0("From AddFile: ",fn)))                    
-            }
-          }
-        }
+        addfiles = AddFiles(fvsInit[row,"ADDFILES"])
+        for (addf in names(addfiles))
+          newstd$cmps <- append(newstd$cmps,
+                   mkfvsCmp(kwds=addfiles[[addf]],uuid=uuidgen(),
+                     exten="base", atag="k",kwdName=paste0("AddFile: ",addf),
+                     title=paste0("AddFile: ",addf)))                    
         addkeys <- fvsInit[row,"FVSKEYWORDS"]
         if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
           newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
@@ -2329,10 +2189,18 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
           {
             addkeys <- globals$inData$
                        FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
-            if (!is.null(addkeys)) newgrp$cmps[[length(newgrp$cmps)+1]] <- 
-               mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
-                        kwdName="From: FVS_GroupAddFilesAndKeywords",
-                          title="From: FVS_GroupAddFilesAndKeywords")
+            if (!is.null(addkeys) && !is.na(addkeys)) 
+              newgrp$cmps[[length(newgrp$cmps)+1]] <- 
+                mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
+                         kwdName="From: FVS_GroupAddFilesAndKeywords",
+                           title="From: FVS_GroupAddFilesAndKeywords")
+            addfiles <- AddFiles(globals$inData$
+                        FVS_GroupAddFilesAndKeywords[grow,"ADDFILES"])
+            for (addf in names(addfiles))
+                newgrp$cmps[[length(newgrp$cmps)+1]] <-
+                mkfvsCmp(kwds=as.character(addfiles[addf]),uuid=uuidgen(),atag="k",exten="base",
+                      kwdName=paste0("AddFile: ",addf),
+                        title=paste0("AddFile: ",addf))
           }
           globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
         }
@@ -2369,7 +2237,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     updateReps(globals)
     msgVal = msgVal+1
     progress$set(detail="Loading contents listbox",value = msgVal)
-    mkSimCnts(globals$fvsRun)
+    mkSimCnts(globals$fvsRun,justGrps=isolate(input$simContType=="Just groups"))
     updateSelectInput(session=session, inputId="simCont", 
       choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
     output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
@@ -2470,6 +2338,11 @@ getProjectList <- function(includeLocked=FALSE)
 }
 
 
+myListTables <- function(db)
+{
+  dbGetQuery(db,"select name from sqlite_master where type = 'table';")[,1]
+}
+    
 mkNameUnique <- function(name,setOfNames=NULL)
 {
   origname=name
@@ -2502,13 +2375,11 @@ mkFileNameUnique <- function(fn)
 
 getTableName <- function(dbcon,basename)
 {
-  tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-  itab1 <- match(tolower(basename),tolower(tbs)) 
-  if (is.na(itab1)) itab2 <- grep (tolower(basename),tolower(tbs)) 
-  if (length(itab1) == 1){ 
-    return(tbs[itab1])
-  }else if (length(itab2) == 1){
-    return(tbs[itab2])  
-  }else return(NULL)
+  tbs <- myListTables(dbcon)
+  ltbs <- tolower(tbs)
+  basename <- tolower(basename)
+  itab <- match(basename,ltbs) 
+  if (is.na(itab)) itab <- grep(basename,ltbs,fixed=TRUE)[1]
+  if (is.na(itab)) return(NULL) else return(tbs[itab])  
 }
 

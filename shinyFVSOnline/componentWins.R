@@ -11,7 +11,7 @@ keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
       mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       mkFreeformEltList(globals,prms,title,globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
-          "Enter one or more expressions the define <i>compute</i> variables. ",
+          "Enter one or more expressions that define <i>compute</i> variables. ",
           "Example:<br><b>NormStk = 25000*((BADBH+1.)**(-1.588))<br></b>",
           "will define <i>normal stocking</i> (trees/acre) according to Haig's ",
           "(1932) definition.")))
