@@ -308,9 +308,9 @@ cat ("tbs related to the run",tbs,"\n")
         while (TRUE)
         {
           trycnt=trycnt+1
-          setProgress(message = "Getting exclusive lock", 
+          setProgress(message = "Getting exclusive lock",
                       detail  = paste0("Number of attempts=",trycnt," of 1000"))
-          if (trycnt > 1000) 
+          if (trycnt > 1000)
           {
             dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
             myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
@@ -500,13 +500,59 @@ cat ("tbs6=",tbs,"\n")
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
-        tbs = sort(tbs)
         sel = intersect(tbs, c("FVS_Summary2","FVS_Summary2_East")) #not both!
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
-        updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
+        # rearrange the table list so be organized by levels (i.e., tree level, stand level)
+        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East","View_DWN")
+        globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
+                       "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
+                       "FVS_PotFire","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
+                       "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
+                       "FVS_Regen_Tally","FVS_Regen_Ingrowth","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+                       "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
+                       "FVS_Summary_East")
+        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
+        globals$dClsLvl <- list("StdStk","StdStk_East","FVS_Mortality","FVS_DM_Sz_Sum")
+        globals$htClsLvl <- list("FVS_CanProfile")
+        globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
+                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East")
+        globals$tbsFinal <- list("FVS_Cases")
+        tbsFinal <- globals$tbsFinal
+        if (any(tbs %in% globals$simLvl)) {
+          tbsFinal <- c(tbsFinal,"-----Simulation-level tables-----")
+          simLvlIdx <- subset(match(globals$simLvl,tbs),match(globals$simLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[simLvlIdx]))
+        }
+        if (any(tbs %in% globals$stdLvl)) {
+          tbsFinal = c(tbsFinal,"-----Stand-level tables-----")
+          stdLvlIdx <- subset(match(globals$stdLvl,tbs),match(globals$stdLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[stdLvlIdx]))
+        }
+        if (any(tbs %in% globals$specLvl)) {
+          tbsFinal = c(tbsFinal,"-----Species-level tables-----")
+          specLvlIdx <- subset(match(globals$specLvl,tbs),match(globals$specLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[specLvlIdx]))
+        }
+        if (any(tbs %in% globals$dClsLvl)) {
+          tbsFinal = c(tbsFinal,"-----Diamter-class tables-----")
+          dClsLvlIdx <- subset(match(globals$dClsLvl,tbs),match(globals$dClsLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[dClsLvlIdx]))
+        }
+        if (any(tbs %in% globals$htClsLvl)) {
+          tbsFinal = c(tbsFinal,"-----Height-class tables-----")
+          htClsLvlIdx <- subset(match(globals$htClsLvl,tbs),match(globals$htClsLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[htClsLvlIdx]))
+        }
+        if (any(tbs %in% globals$treeLvl)) {
+          tbsFinal = c(tbsFinal,"-----Tree-level tables-----")
+          treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
+        }
+        globals$tbsFinal <- tbsFinal
+        updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=sel)
-        setProgress(value = NULL) 
+        setProgress(value = NULL)
       }, min=1, max=6)
     } else
     {
@@ -517,11 +563,65 @@ cat ("tbs6=",tbs,"\n")
   # selectdbtables
   observe({
 cat("selectdbtables\n")    
-    if (is.null(input$selectdbtables))
+    if (is.null(input$selectdbtables) ||(length(input$selectdbtables)==1 
+                          && length(grep("-----",input$selectdbtables))))
     {
       updateSelectInput(session, "selectdbvars", choices=list())               
     } else  {
       tables = input$selectdbtables 
+      if(length(grep("-----",tables))) tables <- setdiff(tables,tables[grep("-----",tables)])
+      # Logic to restrict combining tables from different levels (e.g., tree with stand-level).
+      # Throw up warning, then have first table selection in level that threw error remain selected
+      while(length(tables)>1){
+        if(length(tables)==2 && tables %in% "FVS_Cases") break
+        '%notin%' = Negate('%in%')
+        if (any(tables %in% globals$simLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("Simulation-level tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        if (any(tables %in% globals$stdLvl) && any(tables %notin% globals$stdLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("Stand-level tables can only be combined with other stand-level tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        if (any(tables %in% globals$specLvl) && any(tables %notin% globals$specLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+               message = paste0("Species-level tables can only be combined with other species-level tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # DBH-class tables cannot be combined with any other table
+        if (any(tables %in% globals$dClsLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("DBH-class tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # HT-class tables cannot be combined with any other table
+        if (any(tables %in% globals$htClsLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("HT-class tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # tree-level tables cannot be combined with any other table
+        if (any(tables %in% globals$treeLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("Tree-level tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        break
+      }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)
