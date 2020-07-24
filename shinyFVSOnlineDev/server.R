@@ -285,7 +285,7 @@ cat ("View Outputs & Load\n")
     }
   })
 
-  ## runs output run selection
+    ## runs output run selection
   observe({
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
@@ -504,14 +504,15 @@ cat ("tbs6=",tbs,"\n")
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
-        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East","View_DWN")
+        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East",
+                               "CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
                        "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
                        "FVS_PotFire","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
                        "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
                        "FVS_Regen_Tally","FVS_Regen_Ingrowth","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
                        "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
-                       "FVS_Summary_East")
+                       "FVS_Summary_East","View_DWN")
         globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
         globals$dClsLvl <- list("StdStk","StdStk_East","FVS_Mortality","FVS_DM_Sz_Sum")
         globals$htClsLvl <- list("FVS_CanProfile")
@@ -520,7 +521,7 @@ cat ("tbs6=",tbs,"\n")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
-          tbsFinal <- c(tbsFinal,"-----Simulation-level tables-----")
+          tbsFinal <- c(tbsFinal,"-----Composite tables-----")
           simLvlIdx <- subset(match(globals$simLvl,tbs),match(globals$simLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[simLvlIdx]))
         }
@@ -549,6 +550,7 @@ cat ("tbs6=",tbs,"\n")
           treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
         }
+        browser()
         globals$tbsFinal <- tbsFinal
         updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=sel)
@@ -572,12 +574,14 @@ cat("selectdbtables\n")
       if(length(grep("-----",tables))) tables <- setdiff(tables,tables[grep("-----",tables)])
       # Logic to restrict combining tables from different levels (e.g., tree with stand-level).
       # Throw up warning, then have first table selection in level that threw error remain selected
+      # browser()
       while(length(tables)>1){
         if(length(tables)==2 && tables %in% "FVS_Cases") break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
-              message = paste0("Simulation-level tables cannot be combined with any other tables"))
+              message = paste0("This composite table combination in not allowed"))
           tables <- tables[1]
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
