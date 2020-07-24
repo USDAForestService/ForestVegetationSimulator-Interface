@@ -578,6 +578,7 @@ cat("selectdbtables\n")
       while(length(tables)>1){
         if(length(tables)==2 && tables %in% "FVS_Cases") break
         if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
