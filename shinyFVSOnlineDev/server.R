@@ -550,7 +550,6 @@ cat ("tbs6=",tbs,"\n")
           treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
         }
-        browser()
         globals$tbsFinal <- tbsFinal
         updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=sel)
@@ -574,7 +573,6 @@ cat("selectdbtables\n")
       if(length(grep("-----",tables))) tables <- setdiff(tables,tables[grep("-----",tables)])
       # Logic to restrict combining tables from different levels (e.g., tree with stand-level).
       # Throw up warning, then have first table selection in level that threw error remain selected
-      # browser()
       while(length(tables)>1){
         if(length(tables)==2 && tables %in% "FVS_Cases") break
         if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
