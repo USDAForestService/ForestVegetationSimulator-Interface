@@ -5480,10 +5480,11 @@ cat("curDir=",curDir," input dir=",getwd(),"\n")
 cat ("cmd=",cmd,"\n")
       schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else 
                                                    try(system(cmd,intern=TRUE))
-      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2) 
+      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
       {
         setwd(curDir) 
-        progress$close()     
+        progress$close()  
+        if (schema[1] =="Unknown Jet version.") output$step1ActionMsg = renderText("Unknown Jet version. Possible corrupt database.") else
         output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
@@ -5718,7 +5719,8 @@ cat ("qry=",qry,"\n")
         sidTb <- data.frame(trim(sidTb[[1]]))
         names(sidTb) <- toupper(idf)
         sidTbAll=try(dbReadTable(dbo,tab2fix))
-        oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
+        if (idf == "standplot_id") oldSID <- grep("StandPlot_ID",names(sidTbAll),ignore.case=TRUE) else
+          oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
         sidTbAll <- sidTbAll[,-oldSID]
         sidTbAll <- append(sidTbAll,sidTb, after=0)
         if (class(sidTbAll)=="try-error") next
