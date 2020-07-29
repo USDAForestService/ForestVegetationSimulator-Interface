@@ -5329,6 +5329,12 @@ cat("delete project button.")
         mhtml = xlsx2html(tab,cols=c(1,4))
         if (!is.null(mhtml)) html = paste0(html,mhtml)
       }
+      if ("GuideLinks" %in% sheets)
+      { 
+        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="GuideLinks")
+        row = charmatch(toupper(tab),toupper(tabs[,1]))
+        if(!is.null(html))html = paste0(html,tabs[row,2])
+      }
     }
     HTML(html)
   }
