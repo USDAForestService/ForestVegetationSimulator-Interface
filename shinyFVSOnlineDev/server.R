@@ -2779,7 +2779,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           choices=mkpair(globals$mgmtsel), selected = 0)
         updateSelectInput(session=session, inputId="addMgmtCmps", 
           choices=list())
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },                                                     
       "Modifiers"  = 
       {
@@ -2789,7 +2789,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           choices=mkpair(globals$mmodsel), selected = 0)
         updateSelectInput(session=session, inputId="addModCmps", 
           choices=list())
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Event Monitor"= 
       {
@@ -2802,7 +2802,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         }
         updateSelectInput(session=session, inputId="addEvCmps",
           selected = 0,choices=globals$moutsel[["Event Monitor (EM) Compute Variables"]])
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Economic"= 
       {
@@ -2815,7 +2815,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
             label="Extensions", choices=globals$extnsel, selected = 0)
          updateSelectInput(session=session, inputId="addKeyWds", 
             label="Keywords", choices=list())
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Editor"   = 
       {
@@ -3149,6 +3149,11 @@ cat("make condElts, input$condList=",input$condList,"\n")
         }
         ui
       })
+  })
+  
+  observe({ 
+    if(input$rightPan == "Components") return()
+        closeCmp()
   })
 
   observe({  
