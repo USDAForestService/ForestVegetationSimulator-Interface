@@ -5660,14 +5660,16 @@ cat("loaded table=",tab,"\n")
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
             if (class(grps)=="try-error") next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-            if (all(is.na(match(addgrps,grps)))) 
+            if (any(is.na(match(addgrps,grps)))) 
             {
               Tb=try(dbReadTable(dbo,tab2fix))
               if (class(Tb)=="try-error") next
               idx=match("groups",tolower(names(Tb)))
               if (!is.na(idx) && nrow(Tb)) 
               {
-                Tb[,idx]=paste0(addgrps," ",Tb[,idx])
+                idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) grep("Plots",addgrps) else grep("Stands",addgrps)
+                ridxs <- grep(grps[grep("NA",as.list(match(addgrps,grps)))],Tb[,idx])
+                Tb[ridxs,idx]=paste0(addgrps[idf]," ",Tb[ridxs,idx])
                 if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
                     grpmsg=c(grpmsg,tab2fix)
               }
