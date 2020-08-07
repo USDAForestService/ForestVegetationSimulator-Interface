@@ -5660,7 +5660,7 @@ cat("loaded table=",tab,"\n")
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
             if (class(grps)=="try-error") next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-            if (any(is.na(match(addgrps,grps)))) 
+            if (any(is.na(match(addgrps,grps))) && !length(match(grps,addgrps)))  
             {
               Tb=try(dbReadTable(dbo,tab2fix))
               if (class(Tb)=="try-error") next
