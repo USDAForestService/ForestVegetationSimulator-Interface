@@ -160,7 +160,7 @@ mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
       dsp <- append(dsp," ",after=0)
     } else choices = fpvs
   }
-  names(dsp) = fors
+  if(length(fors))names(dsp) = fors
   spGrp=NULL
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
@@ -187,7 +187,7 @@ if (!is.null(fpvs))
     dsp <- append(dsp," ",after=0)
   } else choices = fpvs
 }
-names(dsp) = fors
+if(length(fors))names(dsp) = fors
 spGrp=NULL
 myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
@@ -227,7 +227,7 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
       names(dsp) = sps
     }
   }else
-  names(dsp) = sps
+  if(length(fors))names(dsp) = sps
   if (!is.null(fpvs)) spGrp=NULL
   if (!is.null(fpvs) && (addAll)) spGrp <- 2
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
