@@ -536,7 +536,7 @@ cat ("tbs6=",tbs,"\n")
           tbsFinal <- c(tbsFinal,sort(tbs[specLvlIdx]))
         }
         if (any(tbs %in% globals$dClsLvl)) {
-          tbsFinal = c(tbsFinal,"-----Diamter-class tables-----")
+          tbsFinal = c(tbsFinal,"-----Diameter-class tables-----")
           dClsLvlIdx <- subset(match(globals$dClsLvl,tbs),match(globals$dClsLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[dClsLvlIdx]))
         }
