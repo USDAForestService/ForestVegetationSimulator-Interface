@@ -5548,7 +5548,6 @@ cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      progress$close()     
     } else if (fext == "xlsx") 
     {
       progress$set(message = "Get data sheets", value = 3)
