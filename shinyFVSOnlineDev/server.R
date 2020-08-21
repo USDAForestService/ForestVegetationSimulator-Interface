@@ -4009,7 +4009,6 @@ is.null(input$kcpTitle),"\n")
         mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
         updateSelectInput(session=session, inputId="simCont",
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        closeCmp()
       })
     }
   })
@@ -4063,7 +4062,6 @@ cat ("kcpSaveInRun\n")
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
         output$contChange <- renderText(HTML("<b>*Run*</b>"))
-        closeCmp()
         globals$schedBoxPkey <- character(0)
       })
     }
