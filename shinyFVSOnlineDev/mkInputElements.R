@@ -227,7 +227,7 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
       names(dsp) = sps
     }
   }else
-  if(length(fors))names(dsp) = sps
+  names(dsp) = sps
   if (!is.null(fpvs)) spGrp=NULL
   if (!is.null(fpvs) && (addAll)) spGrp <- 2
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
