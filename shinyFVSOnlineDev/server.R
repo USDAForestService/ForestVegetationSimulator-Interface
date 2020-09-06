@@ -5582,6 +5582,7 @@ cat ("cmd done.\n")
 cat ("sheet = ",sheet," i=",i,"\n")
         progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
+        sdat[[3]] <- gsub("_x000D_", "", sdat[[3]])
         im = grep(sheet,normNames,ignore.case=TRUE)
         if (!is.na(im)) sheet = normNames[im]
         NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,
