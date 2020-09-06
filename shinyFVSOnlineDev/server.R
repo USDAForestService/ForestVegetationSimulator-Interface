@@ -5151,7 +5151,13 @@ cat ("Refresh interface file=",frm,"\n")
 cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
         if (file.exists(fvsWorkBackup)) 
         {
+          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+          if (ocon) dbDisconnect(dbGlb$dbOcon)
+          if (icon) dbDisconnect(dbGlb$dbIcon)
           unzip (fvsWorkBackup)
+          if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname) 
           globals$reloadAppIsSet=1
           session$reload()
         }
