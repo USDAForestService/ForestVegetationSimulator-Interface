@@ -5514,6 +5514,7 @@ cat ("cmd=",cmd,"\n")
         scan(text=x,what="character",quiet=TRUE)[3]))
       schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
+      schema = gsub(" Integereger"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Memo"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Text.*)"," Text",schema,ignore.case=TRUE)
@@ -5539,7 +5540,7 @@ cat ("cmd=",cmd,"\n")
         progress$set(message = paste0("Export table ",tab), value = 3)
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
         cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
-                       "mdb-export -I sqlite ",fname," ",tab," >> sqlite3.import")
+                       "mdb-export -I sqlite ",fname,' "',tab,'" >> sqlite3.import')
         cat ("cmd=",cmd,"\n")
         result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
         cat ("commit;\n",file="sqlite3.import",append=TRUE)
@@ -5689,7 +5690,7 @@ cat ("checking duplicate stand or standplot ids\n")
       for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-       if (tolower(tabs[idx])=="fvs_standinit_plot") next  
+        if (tolower(tabs[idx])=="fvs_standinit_plot") next  
         if (tolower(tabs[idx])=="fvs_standinit_cond") next
         if (tolower(tabs[idx])=="fvs_treeinit_plot") next
         if (tolower(tabs[idx])=="fvs_treeinit_cond") next
