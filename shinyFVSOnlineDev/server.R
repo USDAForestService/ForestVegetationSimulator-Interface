@@ -5575,7 +5575,7 @@ cat ("cmd done.\n")
       treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
       treeNT = if (class(treeNT) == "try-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
       plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
-      plotNT = if (class(treeNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
+      plotNT = if (class(plotNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
       i = 3
       for (sheet in sheets)
       {
@@ -5585,7 +5585,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
         sdat[[3]] <- gsub("_x000D_", "", sdat[[3]])
         im = grep(sheet,normNames,ignore.case=TRUE)
-        if (!is.na(im)) sheet = normNames[im]
+        if (length(im)) sheet = normNames[im]
         NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,
                           "FVS_PlotInit"=plotNT,NULL) 
         if (!is.null(NT))
@@ -5690,14 +5690,11 @@ cat ("checking duplicate stand or standplot ids\n")
       for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-        if (tolower(tabs[idx])=="fvs_standinit_plot") next  
-        if (tolower(tabs[idx])=="fvs_standinit_cond") next
-        if (tolower(tabs[idx])=="fvs_treeinit_plot") next
-        if (tolower(tabs[idx])=="fvs_treeinit_cond") next
-        if (tolower(tabs[idx])=="fvs_plotinit_plot") next  
+        if (tolower(tabs[idx]) %in% c("fvs_standinit_plot","fvs_standinit_cond",
+           "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-        qry = paste0("select ",idf," from '",tab2fix,"'")
+        qry = paste0("select ",idf," from '",tab2fix,"'") 
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
         if (class(sidTb)=="try-error") next
@@ -5717,16 +5714,13 @@ cat ("qry=",qry,"\n")
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
         sidmsg=c(sidmsg,tab2fix)
       }
-       # remove any leading or trailing spaces in stand id's which blow up the SQL queries at run time
-        fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs),grep ("treeinit",ltabs))
-        for (idx in fixTabs)
+      # remove any leading or trailing spaces in stand id's which blow up the SQL queries at run time
+      fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs),grep ("treeinit",ltabs))
+      for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-        if (tolower(tabs[idx])=="fvs_standinit_plot") next  
-        if (tolower(tabs[idx])=="fvs_standinit_cond") next
-        if (tolower(tabs[idx])=="fvs_treeinit_plot") next
-        if (tolower(tabs[idx])=="fvs_treeinit_cond") next
-        if (tolower(tabs[idx])=="fvs_plotinit_plot") next
+        if (tolower(tabs[idx]) %in% c("fvs_standinit_plot","fvs_standinit_cond",
+           "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
         qry = paste0("select ",idf," from '",tab2fix,"'")
@@ -5743,7 +5737,7 @@ cat ("qry=",qry,"\n")
         sidTbAll <- append(sidTbAll,sidTb, after=0)
         if (class(sidTbAll)=="try-error") next
         dbWriteTable(dbo,tab2fix,data.frame(sidTbAll),overwrite=TRUE)
-        }
+      }
 cat ("sidmsg=",sidmsg,"\n")
     }
     progress$set(message = "Getting row counts", value = 6)
