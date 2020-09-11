@@ -718,9 +718,9 @@ shinyUI(fixedPage(
                   "Yes"),
                 tags$button(type = "button", class = "btn btn-primary", 
                   'data-dismiss' = "modal", "Cancel"))),        
-              h4(),h4("Manage current project backup files"),
+              h4(),h4("Make new project backup file"),
               actionButton("mkZipBackup","Make a project backup zip file"),
-              h4(),
+              h4(),h4("Manage current project backup files"),
               selectInput("pickBackup", "Select backup to process", multiple=FALSE,
                  choices = list(), selected="", selectize=FALSE),
               actionButton("delZipBackup","Delete backup"),
@@ -768,15 +768,26 @@ shinyUI(fixedPage(
                              choices=list("Production version"="Prod",
                              "Development version"="Dev"),selected="Prod"),
                   actionButton("interfaceRefresh","Refresh interface software") 
-                ),           
+                ),
                 column(width=if (isLocal()) 12 else 7,offset=0,
-                  h4("Copy data and software from a source project to target project(s)"),
+                  if (isLocal() && .Platform$OS.type != "windows") h4("Copy data and software from a source project to target project(s)"),
+                  if (isLocal() && .Platform$OS.type == "windows") h4("Copy data from a source project to target project(s)"),
                   selectInput("sourcePrj", "Source project (Name, Release date)", 
                     multiple=FALSE, choices = list(), selected="", selectize=FALSE)                                                                                  ,
                   h6(),       
                   selectInput("targetPrj", "Target project(s) (Name, Release date)", 
                      multiple=TRUE,choices = list(), selected="", selectize=FALSE),
                   h6(),
+                  if (isLocal() && .Platform$OS.type == "windows"){
+                  checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
+                    list("Input database (FVS_Data.db)"="inDBS",
+                      "Spatial data (SpatialData.RData)"="inSpace",
+                      "Keyword component (.kcp) library"="kcps",
+                      "Custom query library"="custQ",
+                      "Graph settings library"="graphSet"),
+                      selected=c("inDBS"))
+                    }
+                  else{
                   checkboxGroupInput("cpyElts",label=NULL,width="100%",inline=FALSE,choices=
                     list("All interface software"="software",
                       "FVS variants"="FVSPrgms",
@@ -785,13 +796,14 @@ shinyUI(fixedPage(
                       "Keyword component (.kcp) library"="kcps",
                       "Custom query library"="custQ",
                       "Graph settings library"="graphSet"),
-                      selected=c("software","FVSPrgms")),
-                      actionButton("cpyNow","Copy now"),
+                      selected=c("software","FVSPrgms"))
+                    },
+                  actionButton("cpyNow","Copy now"),
                   h6(),
                   tags$style(type="text/css","#copyActionMsg{color:darkred;}"), 
                   uiOutput("copyActionMsg"))
                 )
-            )  #END tabPanel                                           
+            )  #END tabPanel                                        
           ) #END tabsetPanel
         ) ) #END column and fixed row   
       ), ## END Tools

@@ -46,7 +46,8 @@ mkGlobals <<- setRefClass("globals",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
     lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
-    specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list"))
+    specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
+    localWindows="logical"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -172,7 +173,11 @@ cat("mkpair, length(alist)=",length(alist),"\n")
 
 getBkgRunList = function ()
 {
-  pidfiles=dir(pattern="pidStatus$")
+  if(!globals$localWindows)pidfiles=dir(pattern="pidStatus$")
+  if(globals$localWindows){
+    pidfiles=dir(path=prjDir,pattern="pidStatus$")
+    if (length(pidfiles))pidfiles=paste0(prjDir,"/",pidfiles)
+  }
   if (length(pidfiles) == 0) return (list())
   theList = unlist(lapply(pidfiles,function (x)
     scan(file=x,what="character",sep="\n",quiet=TRUE)))
@@ -183,7 +188,8 @@ getBkgRunList = function ()
 
 killIfRunning = function (uuid)
 {
-  fn = paste0(uuid,".pidStatus")
+  if(!globals$localWindows)fn = paste0(uuid,".pidStatus")
+  if(globals$localWindows)fn = paste0(prjDir,"/",uuid,".pidStatus")
 cat ("killIfRunning, fn=",fn,"\n")
   if (file.exists(fn))
   {
@@ -200,16 +206,23 @@ cat ("kill cmd =",cmd,"\n")
    
 removeFVSRunFiles = function (uuid,all=FALSE)
 {
+  if(globals$localWindows)uuid = paste0(prjDir,"/",uuid)
   if (file.exists(uuid)) 
   {
     unlink(paste0(uuid,"/",dir(uuid)), recursive = TRUE, force = TRUE)
     unlink(uuid)
   }
-  fls = dir(pattern=uuid)
-  if (!all) fls = setdiff(fls,paste0(uuid,".RData"))
-  unlink(fls, recursive = TRUE, force = TRUE)
+  if(!globals$localWindows){
+    fls = dir(pattern=uuid)
+    if (!all) fls = setdiff(fls,paste0(uuid,".RData"))
+    unlink(fls, recursive = TRUE, force = TRUE)
+  }
+  if(globals$localWindows){
+    fls=dir(prjDir,pattern=basename(uuid))
+    if (!all) fls = setdiff(fls,paste0(basename(uuid),".RData"))
+    unlink(paste0(prjDir,"/",fls), recursive = TRUE, force = TRUE)
+  }
 }
-
 
 findCmp = function (fvsRun,cmp)
 {
@@ -271,7 +284,8 @@ cat ("qry=",qry,"\n")
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
-  fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
+  if(!globals$localWindows)fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
+  if(globals$localWindows)fc = file(description=paste0(prjDir,"/",fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
   cat ("!!uuid: ",fvsRun$uuid,"\n",file=fc)
   cat ("!!built:",format(Sys.time(), 
@@ -1132,6 +1146,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
             }
             kwdlist<- gsub("[\r]", "", kwdlist)
+            if(globals$localWindows && kwdlist[grep("FVS_Data.db",kwdlist)]=="FVS_Data.db") 
+              kwdlist[grep("FVS_Data.db",kwdlist)] <- paste0(prjDir,"/",kwdlist[grep("FVS_Data.db",kwdlist)])            
             cmp$kwds <- paste(kwdlist,collapse="\n")
           }
           cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
@@ -2299,12 +2315,22 @@ getProjectList <- function(includeLocked=FALSE)
 {
   if (isLocal())
   {  
-    selChoices = unlist(lapply (dir(".."), function (x,inc) {         
+    if(!globals$localWindows){
+      selChoices = unlist(lapply (dir(".."), function (x,inc) {
       if (!inc) if (file.exists(
         paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
       fn = paste0("../",x,"/projectId.txt") 
       if (file.exists(paste0("../",x,"/projectId.txt"))) x
+    },includeLocked))
+    }
+    if(globals$localWindows){
+      proj = "C:/FVS/"
+      selChoices = unlist(lapply (dir("C:/FVS"), function (x,inc) {    
+      if (!inc) if (!is.na(charmatch(basename(prjDir),x))) return(NULL)
+      fn = paste0(proj,x,"/projectId.txt")
+      if (file.exists(fn)) x
     },includeLocked))  
+    }
     if (length(selChoices)) 
     {
       names(selChoices) = selChoices
@@ -2360,7 +2386,9 @@ mkFileNameUnique <- function(fn)
 { 
   trim <- function (x) gsub("^\\s+|\\s+$","",x)
   fn = trim(fn)
-  if (!file.exists(fn)) return(fn)
+  if(!globals$localWindows)fex <- file.exists(fn)
+  if(globals$localWindows)fex <- file.exists(paste0(prjDir,"/",fn))
+  if (!fex) return(fn)
   ext = tools::file_ext(fn)
   name = tools::file_path_sans_ext(fn)
   name = trim(unlist(strsplit(name,"(",fixed=TRUE))[1])
