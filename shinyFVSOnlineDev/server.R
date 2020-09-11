@@ -7387,7 +7387,7 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
 cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
-      if (plk) {updateProjectSelections();return()}
+      if (plk && !globals$localWindows) {updateProjectSelections();return()}
       if (dir.exists(newPrj))
       { 
         if (isLocal()) 
