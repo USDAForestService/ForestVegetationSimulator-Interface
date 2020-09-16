@@ -7350,8 +7350,6 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
         filesToCopy=c(filesToCopy,paste0(curdir,
        c("/SpatialData.RData.default","/SpatialData.RData",
          "/FVS_Data.db.default","/FVS_Data.db")))
-        test <- list.dirs(curdir)[-1]
-        if(!is.na(match(test,filesToCopy)))filesToCopy = filesToCopy[-(match(test,filesToCopy))]
       }
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -7376,7 +7374,8 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
-      setwd(curdir)
+      if(!globals$localWindows)setwd(curdir)
+      if(globals$localWindows)setwd("C:/Users/Public/Documents/FVS")
     })
   })    
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
