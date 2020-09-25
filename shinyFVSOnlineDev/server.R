@@ -2877,9 +2877,11 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       {
         customCmps = NULL
         if(length(globals$currentEditCmp$kwds) > 0) closeCmp()
-        if (length(globals$customCmps) == 0 && file.exists("FVS_kcps.RData")) 
+        if(!globals$localWindows) kcprdat = "FVS_kcps.RData"
+        if(globals$localWindows) kcprdat = paste0(prjDir,"/FVS_kcps.RData")
+        if (length(globals$customCmps) == 0 && file.exists(kcprdat)) 
         {
-          load("FVS_kcps.RData")
+          load(kcprdat)
           globals$customCmps = customCmps
         }
         if (!is.null(customCmps)) updateSelectInput(session=session,
@@ -4112,7 +4114,7 @@ is.null(input$kcpTitle),"\n")
           globals$customCmps = customCmps
           }
         if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
-        if(globals$localWindows)save(file=paste0(prjDir,"FVS_kcps.RData"),customCmps)
+        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
            selected=newTit)
@@ -4190,12 +4192,12 @@ cat ("kcpSaveInRun\n")
         {
           customCmps = globals$customCmps
           if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
-          if(globals$localWindows)save(file=paste0(prjDir,"FVS_kcps.RData"),customCmps)
+          if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
           updateSelectInput(session=session, inputId="kcpSel", choices=names(customCmps))
         } else {
           customCmps=NULL
           if(!globals$localWindows)unlink("FVS_kcps.RData")
-          if(globals$localWindows)unlink(paste0(prjDir,"FVS_kcps.RData"))
+          if(globals$localWindows)unlink(paste0(prjDir,"/FVS_kcps.RData"))
           updateSelectInput(session=session, inputId="kcpSel", choices=list())
           updateTextInput(session=session, inputId="kcpTitle", value="")
           updateTextInput(session=session, inputId="kcpEdit", value="")
@@ -4247,7 +4249,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
         if(!globals$localWindows)save(file="FVS_kcps.RData",globals$customCmps)
-        if(globals$localWindows)save(file=paste0(prjDir,"FVS_kcps.RData"),globals$customCmps)
+        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),globals$customCmps)
       }
     })
   })
