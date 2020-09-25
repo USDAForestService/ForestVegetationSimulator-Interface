@@ -2835,7 +2835,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           choices=mkpair(globals$mgmtsel), selected = 0)
         updateSelectInput(session=session, inputId="addMgmtCmps", 
           choices=list())
-        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },                                                     
       "Modifiers"  = 
       {
@@ -2863,6 +2863,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       "Economic"= 
       {
         renderComponent("ecn")
+        output$editcmdBuild <- renderUI (NULL)
       },
       "Keywords"   = 
       {
@@ -2890,7 +2891,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
                               globals$currentEditCmp$kwds)
           output$cmdBuild <-renderUI (eltList)
-          output$fvsFuncRender <- renderUI (NULL)
+          output$editcmdBuild <- output$fvsFuncRender <- renderUI (NULL)
           output$cmdBuildDesc <- renderUI ("Description: This Editor menu allows you to 
           utilize the advanced features of the freeform text format for creating custom 
           component sets by directly adding & editing keyword records and Event Monitor 
@@ -3207,11 +3208,6 @@ cat("make condElts, input$condList=",input$condList,"\n")
         }
         ui
       })
-  })
-  
-  observe({ 
-    if(input$rightPan == "Components") return()
-        closeCmp()
   })
 
   observe({  
