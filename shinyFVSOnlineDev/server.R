@@ -5370,8 +5370,8 @@ cat("delete project button.")
       fr = "fvsOnlineHelpRender.html"
       fn = "fvsOnlineHelp.html"
       xlsxfile="databaseDescription.xlsx"
-      info=file.info(c(fr,fn,xlsxfile) && !globals$localWindows)
-      if (which.max(info[,4]) != 1)
+      info=file.info(c(fr,fn,xlsxfile))
+      if (which.max(info[,4]) != 1  && !globals$localWindows)
       {
         help = readChar(fn, info[2,1]) 
         progress$set(message = "Loading Help File. This will be pre-loaded the 
