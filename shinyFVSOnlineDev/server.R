@@ -5370,7 +5370,7 @@ cat("delete project button.")
       fr = "fvsOnlineHelpRender.html"
       fn = "fvsOnlineHelp.html"
       xlsxfile="databaseDescription.xlsx"
-      info=file.info(c(fr,fn,xlsxfile))
+      info=file.info(c(fr,fn,xlsxfile) && !globals$localWindows)
       if (which.max(info[,4]) != 1)
       {
         help = readChar(fn, info[2,1]) 
