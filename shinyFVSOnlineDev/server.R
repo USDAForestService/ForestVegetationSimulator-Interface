@@ -3615,14 +3615,16 @@ cat ("keyword file was not created.\n")
           progress$close()     
           return()
         }
+        if(globals$localWindows){
+          currdir <- getwd()
+          setwd(prjDir)
+        }
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
         {
-          if(!globals$localWindows)runScript = paste0(globals$fvsRun$uuid,".rscript")
-          if(globals$localWindows)runScript = paste0(prjDir,"/",globals$fvsRun$uuid,".rscript")
+          runScript = paste0(globals$fvsRun$uuid,".rscript")
           rs = file(runScript,open="wt")
-          if(!globals$localWindows)cat (paste0('setwd("',getwd(),'")\n'),file=rs)
-          if(globals$localWindows)cat (paste0('setwd("',prjDir,'")\n'),file=rs)
+          cat (paste0('setwd("',getwd(),'")\n'),file=rs)
           cat ('options(echo=TRUE)\nlibrary(methods)\nlibrary(RSQLite)\n',file=rs)
           cat ('pid = Sys.getpid()\n',file=rs)
           cmd = paste0('unlink("',globals$fvsRun$uuid,'.db")')
@@ -3643,8 +3645,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
             cat (cmd,"\n",file=rs)
             cat ("runOps = ",deparse(globals$fvsRun$uiCustomRunOps),"\n",file=rs)        
           }
-          if(!globals$localWindows)foo = foo = paste0(globals$fvsRun$uuid,".key")
-          if(globals$localWindows)foo = paste0(prjDir,"/",globals$fvsRun$uuid,".key")
+          foo = foo = paste0(globals$fvsRun$uuid,".key")
           cmd = paste0('fvsSetCmdLine("--keywordfile=',foo,'")')
           cat (cmd,"\n",file=rs)
           runCmd = if (globals$fvsRun$runScript == "fvsRun") "fvsRun()" else
@@ -3714,8 +3715,7 @@ cat ("run script load cmd=",cmd,"\n")
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
-        if(!globals$localWindows)foo = paste0(globals$fvsRun$uuid,".key")
-        if(globals$localWindows)foo = paste0(prjDir,"/",globals$fvsRun$uuid,".key")
+        foo = paste0(globals$fvsRun$uuid,".key")
         cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
 cat ("load run cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd))) 
@@ -3775,6 +3775,7 @@ cat ("rtn,class=",class(rtn),"\n")
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(paste(errScan,"<br>"))))
+        if(globals$localWindows)setwd(currdir)
         if (length(dir(globals$fvsRun$uuid)) == 0) 
           unlink(globals$fvsRun$uuid,recursive = TRUE, force = TRUE)
         progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
