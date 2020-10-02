@@ -3780,7 +3780,6 @@ cat ("rtn,class=",class(rtn),"\n")
           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
              "height:150px; font-family:monospace; font-size:90%;}")),
           HTML(paste(errScan,"<br>"))))
-        if(globals$localWindows)setwd(currdir)
         if (length(dir(globals$fvsRun$uuid)) == 0) 
           unlink(globals$fvsRun$uuid,recursive = TRUE, force = TRUE)
         progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
@@ -3796,6 +3795,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
         if(globals$localWindows) unlink("FVS_Data.db")
         unlink(paste0(globals$fvsRun$uuid,".db"))
+        if(globals$localWindows)setwd(currdir)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
         modn = names(allSum)
