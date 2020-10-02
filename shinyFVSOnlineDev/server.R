@@ -1606,11 +1606,15 @@ cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
     }
-    if (input$plotType != "box") for (v in c("MgmtID","StandID","Year")) 
-    {                                                                                         
+    chk = if ("RunTitle" %in% c(input$xaxis, vf, hf, pb, input$yaxis)) 
+          c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
+    if (input$plotType != "box") for (v in chk) 
+    { 
       if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
-          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
+          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))
+          
+          
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
@@ -2374,6 +2378,7 @@ cat("setting uiRunPlot to NULL\n")
         }
         globals$saveOnExit = TRUE
         globals$reloadAppIsSet=1
+        unlink("projectIsLocked.txt")
         session$reload()
       } 
       globals$fvsRun = saveFvsRun
