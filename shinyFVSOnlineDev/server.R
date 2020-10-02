@@ -5222,16 +5222,32 @@ cat ("Refresh interface file=",frm,"\n")
     if(input$mkZipBackup > 0)
     {
       zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
-      if(!globals$localWindows)flst=dir()
-      if(globals$localWindows)flst=dir(prjDir)
-      del = grep("^ProjectBackup",flst)
-      if (length(del)) flst = flst[-del]
       if(!globals$localWindows){
+        flst=dir()
+        del = grep("^ProjectBackup",flst)
+        if (length(del)) flst = flst[-del]
         del = grep ("^FVSbin",flst)
         if (length(del)) flst = flst[-del]
         shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-      fvsPgms = paste0("FVSbin/",fvsPgms)
-      flst = c(flst,fvsPgms)
+        fvsPgms = paste0("FVSbin/",fvsPgms)
+        flst = c(flst,fvsPgms)
+      }
+      if(globals$localWindows){
+        flst=dir(prjDir)
+        del = grep("FVSbin",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep("^R",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep("^www",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".R$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".html$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".xlsx$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".zip$",flst)
+        if (length(del)) flst = flst[-del]
       }
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
@@ -7319,16 +7335,39 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
         newTitle <- mkFileNameUnique(newTitle)
         newTitle
       } else uuidgen()
-      dir.create(fn)
-      if (dir.exists(fn)) setwd(fn) else
-      {
+      if (!dir.exists(fn)){
+        dir.create(fn)
+        setwd(fn) 
+      } else {
         setwd(curdir)
         updateTextInput(inputId="PrjNewTitle",session=session,value="")
+        progress$set(message = "Project title already exists",value = 12)
+        Sys.sleep(6)
         progress$close()
         return()
       }
       progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
+      if(globals$localWindows){
+        temp <- c()
+        idx <- 1
+        add = grep("FVS_Data.db.default",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+          idx <- idx +1
+        }
+        add = grep("FVS_Data.db.empty",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+          idx <- idx +1
+        }
+        add = grep("SpatialData.RData.default",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+        }
+        filesToCopy <- filesToCopy[temp]
+      }
+      if(!globals$localWindows){
 cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -7339,17 +7378,10 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(pattern=".RData$",filesToCopy)
       progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
-      if(!globals$localWindows){
-        filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData",
-         "/SpatialData.RData.default","/SpatialData.RData",
-         "/FVS_Data.db.default","/FVS_Data.db",       
-         "/treeforms.RData")))
-      }
-      if(globals$localWindows){
-        filesToCopy=c(filesToCopy,paste0(curdir,
-       c("/SpatialData.RData.default","/SpatialData.RData",
-         "/FVS_Data.db.default","/FVS_Data.db")))
-      }
+      filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData",
+       "/SpatialData.RData.default","/SpatialData.RData",
+       "/FVS_Data.db.default","/FVS_Data.db",       
+       "/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
@@ -7360,14 +7392,17 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".zip$",filesToCopy,fixed=TRUE)
       if (length(del)) filesToCopy = filesToCopy[-del]
+      }
       lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
-      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
-      ntit=paste0("title= ",newTitle)
-      idrow = grep("title=",prjid)
-      if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
-      if(!globals$localWindows)write(file="projectId.txt",prjid)
-      if(globals$localWindows)write(file=paste0(getwd(),"/projectId.txt"),prjid)
+      if(!globals$localWindows){
+        prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+        if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
+        ntit=paste0("title= ",newTitle)
+        idrow = grep("title=",prjid)
+        if (length(idrow)==0)prjid=c(prjid,ntit) else prjid[idrow]=ntit  
+        write(file="projectId.txt",prjid)
+      }
+      if(globals$localWindows)write(file=paste0(getwd(),"/projectId.txt"),paste0("title= ",newTitle))
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       progress$set(message = "Saving new project",value = 9)
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
@@ -7376,7 +7411,8 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if(!globals$localWindows)setwd(curdir)
       if(globals$localWindows)setwd("C:/Users/Public/Documents/FVS")
     })
-  })    
+  }) 
+  
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
     isolate({
