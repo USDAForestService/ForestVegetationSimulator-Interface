@@ -87,12 +87,35 @@ cat ("Project is locked.\n")
     if(globals$localWindows)runsRdat <- paste0(prjDir,"/FVS_Runs.RData")
     if (!file.exists(runsRdat))
     {
+      workDir =if(!globals$localWindows) getwd() else prjDir
+      rdatsAll <- grep(pattern=".RData$",dir(workDir))
+      del = grep(grep("FVS_kcps",dir(workDir)),rdatsAll)
+      if (length(del)) rdatsAll = rdatsAll[-del]
+      del = grep(grep("SpatialData",dir(workDir)),rdatsAll)
+      if (length(del)) rdatsAll = rdatsAll[-del]
+      del = grep(grep("treeforms",dir(workDir)),rdatsAll)
+      if (length(del)) rdatsAll = rdatsAll[-del]
+      del = grep(grep("prms",dir(workDir)),rdatsAll)
+      if (length(del)) rdatsAll = rdatsAll[-del]
+      rdatsAll <- dir(workDir)[rdatsAll]
+      if(length(rdatsAll)){
+        for(i in 1:length(rdatsAll)){
+          
+          if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted or does not exist
+          if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted or does not exist
+          if(class(ret)!="try error"){
+            globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
+            attr(globals$FVS_Runs[i],"time") = as.integer(Sys.time())
+          }
+        }
+      }else {
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
       saveFvsRun = globals$fvsRun
       if(!globals$localWindows)save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
       if(globals$localWindows)save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+      }
       FVS_Runs = globals$FVS_Runs
       if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
       if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
