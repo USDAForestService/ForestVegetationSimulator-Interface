@@ -4649,9 +4649,11 @@ cat("Residual length of svs=",length(svs),"\n")
   observe({
     if (length(input$SVSImgList1))
     {
-cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n") 
-      if (!file.exists(input$SVSImgList1)) return()
-      renderSVSImage('SVSImg1',input$SVSImgList1,
+cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
+      if(!globals$localWindows)fn=input$SVSImgList1
+      if(globals$localWindows)fn=paste0(prjDir,"/",input$SVSImgList1)
+      if (!file.exists(fn)) return()
+      renderSVSImage('SVSImg1',fn,
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
         plotColor=input$svsPlotColor1)
@@ -4661,14 +4663,15 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
     if (length(input$SVSImgList2))
     {
 cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
-      if (!file.exists(input$SVSImgList2)) return()
-      renderSVSImage('SVSImg2',input$SVSImgList2,
+      if(!globals$localWindows)fn=input$SVSImgList2
+      if(globals$localWindows)fn=paste0(prjDir,"/",input$SVSImgList2)
+      if (!file.exists(fn)) return()
+      renderSVSImage('SVSImg2',fn,
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
         plotColor=input$svsPlotColor2)
     }
   })
-
   ## Maps processing
   observe({
     if (input$topPan == "Maps")
