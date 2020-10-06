@@ -89,36 +89,64 @@ cat ("Project is locked.\n")
     {
       workDir =if(!globals$localWindows) getwd() else prjDir
       rdatsAll <- grep(pattern=".RData$",dir(workDir))
-      del = grep(grep("FVS_kcps",dir(workDir)),rdatsAll)
-      if (length(del)) rdatsAll = rdatsAll[-del]
-      del = grep(grep("SpatialData",dir(workDir)),rdatsAll)
-      if (length(del)) rdatsAll = rdatsAll[-del]
-      del = grep(grep("treeforms",dir(workDir)),rdatsAll)
-      if (length(del)) rdatsAll = rdatsAll[-del]
-      del = grep(grep("prms",dir(workDir)),rdatsAll)
-      if (length(del)) rdatsAll = rdatsAll[-del]
-      rdatsAll <- dir(workDir)[rdatsAll]
-      if(length(rdatsAll)){
-        for(i in 1:length(rdatsAll)){
-          
-          if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted or does not exist
-          if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted or does not exist
-          if(class(ret)!="try error"){
-            globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
-            attr(globals$FVS_Runs[i],"time") = as.integer(Sys.time())
+      if(length(rdatsAll)){# begin check for uuid.RData files by first removing the other 5 possible *.RData files
+        del = if (length(grep("FVS_kcps",dir(workDir))) > 0) grep(grep("FVS_kcps",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (!is.na(match("SpatialData.RData",dir(workDir)))) grep(grep("SpatialData.RData",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("GraphSettings",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("treeform",dir(workDir))) > 0) grep(grep("treeform",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("prms",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        rdatsAll <- dir(workDir)[rdatsAll]
+        if(length(rdatsAll)){# there are uuid.RData files, no FVS_Runs.RData file and no other possible *.RData files 
+          for(i in 1:length(rdatsAll)){
+            if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted
+            if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
+            if(class(ret)!="try error"){# get UUID(s) and Run Title(s)
+              globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
+              attr(globals$FVS_Runs[i],"time") = as.integer(Sys.time())
+            }
+          }
+          FVS_Runs = globals$FVS_Runs
+          if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
+          if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+        }
+        else {
+          # there are no uuid.RData files, no FVS_Runs.RData file, but there are 1-5 other possible *.RData files 
+          resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+          globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+          attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+          saveFvsRun = globals$fvsRun
+          FVS_Runs = globals$FVS_Runs
+          if(!globals$localWindows){
+            save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+            save (file="FVS_Runs.RData",FVS_Runs)
+          }
+          if(globals$localWindows){
+            save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+            save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
           }
         }
-      }else {
-      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-      saveFvsRun = globals$fvsRun
-      if(!globals$localWindows)save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-      if(globals$localWindows)save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+        } 
+      else {
+        # there are no *.RData files of any kind in the project 
+        resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+        attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+        saveFvsRun = globals$fvsRun
+        FVS_Runs = globals$FVS_Runs
+        if(!globals$localWindows){
+          save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+          save (file="FVS_Runs.RData",FVS_Runs)
+        }
+        if(globals$localWindows){
+          save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+          save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+        }
       }
-      FVS_Runs = globals$FVS_Runs
-      if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
-      if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
     }
     if (file.exists(runsRdat))
     {
@@ -131,8 +159,10 @@ cat ("Project is locked.\n")
       {
         rn = names(FVS_Runs)[i]
         run = FVS_Runs[[i]]
+        if(!globals$localWindows) file = paste0(rn,".RData")
+        if(globals$localWindows) file = paste0(prjDir,"/",rn,".RData")
         ok =  !is.null(rn) && !is.null(run) && nchar(rn) && nchar(run) && rn != run && 
-              !is.null(attributes(run)$time) && file.exists(paste0(rn,".RData"))
+              !is.null(attributes(run)$time) && file.exists(file)
         if (!ok) notok = c(notok,i)
       }
       if (!is.null(attr(FVS_Runs,"stdstkParms")))
@@ -150,9 +180,9 @@ cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," noto
         unlink(runsRdat)
         resetfvsRun(globals$fvsRun,globals$FVS_Runs)
         globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      } else if (length(notok)) FVS_Runs = FVS_Runs[-notok] 
-      globals$FVS_Runs = FVS_Runs
-      rm (FVS_Runs)      
+      } else if (length(notok))FVS_Runs = FVS_Runs[-notok] 
+        globals$FVS_Runs = FVS_Runs
+        rm (FVS_Runs) 
     } else {
 cat ("serious start up error\n") 
       return()
