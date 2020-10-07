@@ -2326,7 +2326,7 @@ getProjectList <- function(includeLocked=FALSE)
     if(globals$localWindows){
       proj = "C:/FVS/"
       selChoices = unlist(lapply (dir("C:/FVS"), function (x,inc) {    
-      if (!inc) if (!is.na(charmatch(basename(prjDir),x))) return(NULL)
+      if (!inc) if (!is.na(match(basename(prjDir),x))) return(NULL)
       fn = paste0(proj,x,"/projectId.txt")
       if (file.exists(fn)) x
     },includeLocked))  
