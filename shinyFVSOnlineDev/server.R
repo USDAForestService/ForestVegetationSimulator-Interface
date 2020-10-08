@@ -5290,6 +5290,7 @@ cat ("Refresh interface file=",frm,"\n")
         del = grep ("^FVSbin",flst)
         if (length(del)) flst = flst[-del]
         shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
+        fvsPgms = dir("FVSbin",pattern=shlibsufx)
         fvsPgms = paste0("FVSbin/",fvsPgms)
         flst = c(flst,fvsPgms)
       }
