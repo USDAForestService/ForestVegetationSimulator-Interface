@@ -4098,7 +4098,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    cat (file=rdm,append=TRUE,"UUID:",kn," Title:",globals$FVS_Runs[[kn]],"\n")
                    if(!globals$localWindows) fn = paste0(kn,".RData")
                    if(globals$localWindows) fn = paste0(prjDir,"/",kn,".RData")
-                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
+                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",basename(fn)))
                  }
                },
                if(!globals$localWindows){
