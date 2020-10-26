@@ -2136,12 +2136,6 @@ smalians<-function(r1,r2,len){
   return(round(vol,4))
 }
 
-the.includer.func<-function(EXPF,cum.EXPF){
-  if(cum.EXPF<=100) tree.inc <-EXPF
-  else if((cum.EXPF+EXPF)>100 & 100-cum.EXPF>0) tree.inc <- 100-cum.EXPF
-  else tree.inc <-0
-  return(tree.inc)}
-
 KozakTreeVol=function(Bark,SPP,DBH,HT,Planted,stump=NA,topHT=NA,topD=NA)
 {
   sgmts = 100
