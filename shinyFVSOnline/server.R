@@ -41,7 +41,7 @@ cat ("Server id=",serverID,"\n")
   # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  serverDate="20200713"
+  serverDate="20201010"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -68,8 +68,9 @@ cat ("Server id=",serverID,"\n")
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
-    
-    if (file.exists("projectIsLocked.txt")) 
+    globals$localWindows=if (isLocal() && .Platform$OS.type == "windows") TRUE else FALSE
+    if(!globals$localWindows)prjDir=" "
+    if (file.exists("projectIsLocked.txt") && !globals$localWindows)  
     {
 cat ("Project is locked.\n")
       output$appLocked<-renderUI(HTML(paste0('<h1 style="color:#FF0000">',
@@ -81,20 +82,75 @@ cat ("Project is locked.\n")
 
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
-    globals$fvsRun <- mkfvsRun()                                             
-    if (!file.exists("FVS_Runs.RData"))       
+    globals$fvsRun <- mkfvsRun()  
+    if(!globals$localWindows)runsRdat <- "FVS_Runs.RData"
+    if(globals$localWindows)runsRdat <- paste0(prjDir,"/FVS_Runs.RData")
+    if (!file.exists(runsRdat))
     {
-      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-      saveFvsRun = globals$fvsRun
-      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-      FVS_Runs = globals$FVS_Runs
-      save (file="FVS_Runs.RData",FVS_Runs)
+      workDir =if(!globals$localWindows) getwd() else prjDir
+      rdatsAll <- grep(pattern=".RData$",dir(workDir))
+      if(length(rdatsAll)){# begin check for uuid.RData files by first removing the other 5 possible *.RData files
+        del = if (length(grep("FVS_kcps",dir(workDir))) > 0) grep(grep("FVS_kcps",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (!is.na(match("SpatialData.RData",dir(workDir)))) grep(grep("SpatialData.RData",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("GraphSettings",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("treeform",dir(workDir))) > 0) grep(grep("treeform",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        del = if (length(grep("prms",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
+        if (del > 0) rdatsAll = rdatsAll[-del]
+        rdatsAll <- dir(workDir)[rdatsAll]
+        if(length(rdatsAll)){# there are uuid.RData files, no FVS_Runs.RData file and no other possible *.RData files 
+          for(i in 1:length(rdatsAll)){
+            if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted
+            if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
+            if(class(ret)!="try error"){# get UUID(s) and Run Title(s)
+              globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
+              attr(globals$FVS_Runs[i],"time") = as.integer(Sys.time())
+            }
+          }
+          FVS_Runs = globals$FVS_Runs
+          if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
+          if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+        }
+        else {
+          # there are no uuid.RData files, no FVS_Runs.RData file, but there are 1-5 other possible *.RData files 
+          resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+          globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+          attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+          saveFvsRun = globals$fvsRun
+          FVS_Runs = globals$FVS_Runs
+          if(!globals$localWindows){
+            save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+            save (file="FVS_Runs.RData",FVS_Runs)
+          }
+          if(globals$localWindows){
+            save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+            save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+          }
+        }
+        } 
+      else {
+        # there are no *.RData files of any kind in the project 
+        resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+        attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
+        saveFvsRun = globals$fvsRun
+        FVS_Runs = globals$FVS_Runs
+        if(!globals$localWindows){
+          save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+          save (file="FVS_Runs.RData",FVS_Runs)
+        }
+        if(globals$localWindows){
+          save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+          save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+        }
+      }
     }
-    if (file.exists("FVS_Runs.RData"))
+    if (file.exists(runsRdat))
     {
-      load("FVS_Runs.RData")
+      load(runsRdat)
       # make sure there are .RData files for each of these and if not, then
       # delete them from the list of runs. This code does some testing in hopes
       # of clearing up some startup-after failure problems.
@@ -103,8 +159,10 @@ cat ("Project is locked.\n")
       {
         rn = names(FVS_Runs)[i]
         run = FVS_Runs[[i]]
+        if(!globals$localWindows) file = paste0(rn,".RData")
+        if(globals$localWindows) file = paste0(prjDir,"/",rn,".RData")
         ok =  !is.null(rn) && !is.null(run) && nchar(rn) && nchar(run) && rn != run && 
-              !is.null(attributes(run)$time) && file.exists(paste0(rn,".RData"))
+              !is.null(attributes(run)$time) && file.exists(file)
         if (!ok) notok = c(notok,i)
       }
       if (!is.null(attr(FVS_Runs,"stdstkParms")))
@@ -119,12 +177,12 @@ cat ("Project is locked.\n")
 cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," notok=",notok,"\n")
       if (length(FVS_Runs) == length(notok))
       {
-        unlink("FVS_Runs.RData")
+        unlink(runsRdat)
         resetfvsRun(globals$fvsRun,globals$FVS_Runs)
         globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      } else if (length(notok)) FVS_Runs = FVS_Runs[-notok] 
-      globals$FVS_Runs = FVS_Runs
-      rm (FVS_Runs)      
+      } else if (length(notok))FVS_Runs = FVS_Runs[-notok] 
+        globals$FVS_Runs = FVS_Runs
+        rm (FVS_Runs) 
     } else {
 cat ("serious start up error\n") 
       return()
@@ -161,15 +219,22 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     if (exists("fvsOutData")) rm (fvsOutData) 
     fvsOutData <- mkfvsOutData(plotSpecs=list(res=144,height=4,width=6))
     dbDrv <- dbDriver("SQLite")
-    dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")    
-    if (!file.exists("FVS_Data.db"))
+    if (!globals$localWindows)dbGlb$dbOcon <- dbConnect(dbDrv,"FVSOut.db")      
+    if (globals$localWindows)dbGlb$dbOcon <- dbConnect(dbDrv,paste0(prjDir,"/FVSOut.db"))
+    if (!file.exists("FVS_Data.db") && !globals$localWindows)
     {
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
       file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
     }
+    if (!file.exists(paste0(prjDir,"/FVS_Data.db")) && globals$localWindows)
+    {
+      file.copy(paste0(prjDir,"/FVS_Data.db.default"),paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
+      file.copy(paste0(prjDir,"/SpatialData.RData.default"),paste0(prjDir,"/SpatialData.RData"),overwrite=TRUE)
+    }
     globals$changeind <- 0
     output$contChange <- renderUI("Run")    
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if (!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if (globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
     setProgress(value = NULL)          
   }, min=1, max=6)
@@ -205,14 +270,24 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       FVS_Runs = globals$FVS_Runs
       attr(FVS_Runs,"stdstkParms") = isolate(list("sdskwdbh"=input$sdskwdbh,
                                                   "sdskldbh"=input$sdskldbh))  
-      save (file="FVS_Runs.RData",FVS_Runs)
-      if (file.exists("projectId.txt"))
+      if (!globals$localWindows){
+        save (file="FVS_Runs.RData",FVS_Runs)
+        prjIdTxt <- "projectId.txt"
+        prjLockTxt <- "projectIsLocked.txt"
+      }
+      if (globals$localWindows){
+        save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+         prjIdTxt <- paste0(getwd(),"/projectId.txt")
+         prjLockTxt <- paste0(getwd(),"/projectIsLocked.txt")
+      }
+      if (file.exists(prjIdTxt))
       {
-        prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-        write(file="projectId.txt",prjid)
+        prjid = scan(prjIdTxt,what="",sep="\n",quiet=TRUE)
+        write(file=prjIdTxt,prjid)
       }
     }
-    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")     
+    
+    if (globals$deleteLockFile) unlink (prjLockTxt)     
     #note: the stopApp function returns to the R process that called runApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
@@ -267,6 +342,16 @@ cat ("View Outputs & Load\n")
       tbs <- myListTables(dbGlb$dbOcon)     
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
+        if(globals$localWindows){
+          case = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
+                 "where KeywordFile = '",paste0(prjDir,"/",globals$fvsRun$uuid),"';"))
+          if (length(case[[1]])>0){
+            for(i in 1:length(case[[1]])){
+              qry=paste0("Update FVS_Cases set KeywordFile = '",globals$fvsRun$uuid,"' where CaseID ='",case[[1]][i],"';")
+              dbExecute(dbGlb$dbOcon,qry)
+            }
+          }
+        }
         runsdf = dbGetQuery(dbGlb$dbOcon,
           paste0("Select RunTitle,KeywordFile from FVS_Cases group by KeywordFile ",
                  "having min(RunDateTime) order by RunDateTime desc;"))
@@ -285,7 +370,7 @@ cat ("View Outputs & Load\n")
     }
   })
 
-  ## runs output run selection
+    ## runs output run selection
   observe({
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
@@ -308,9 +393,9 @@ cat ("tbs related to the run",tbs,"\n")
         while (TRUE)
         {
           trycnt=trycnt+1
-          setProgress(message = "Getting exclusive lock", 
+          setProgress(message = "Getting exclusive lock",
                       detail  = paste0("Number of attempts=",trycnt," of 1000"))
-          if (trycnt > 1000) 
+          if (trycnt > 1000)
           {
             dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
             myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
@@ -500,13 +585,66 @@ cat ("tbs6=",tbs,"\n")
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
-        tbs = sort(tbs)
         sel = intersect(tbs, c("FVS_Summary2","FVS_Summary2_East")) #not both!
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
-        updateSelectInput(session, "selectdbtables", choices=as.list(tbs),
+        # rearrange the table list so be organized by levels (i.e., tree level, stand level)
+        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East",
+                               "CmpMetaData")
+        globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
+                       "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
+                       "FVS_PotFire","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
+                       "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
+                       "FVS_Regen_Tally","FVS_Regen_Ingrowth","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+                       "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
+                       "FVS_Summary_East","View_DWN")
+        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
+        globals$dClsLvl <- list("StdStk","StdStk_East","FVS_Mortality","FVS_DM_Sz_Sum")
+        globals$htClsLvl <- list("FVS_CanProfile")
+        globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
+                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East")
+        globals$tbsFinal <- list("FVS_Cases")
+        tbsFinal <- globals$tbsFinal
+        if (any(tbs %in% globals$simLvl)) {
+          tbsFinal <- c(tbsFinal,"-----Composite tables-----")
+          simLvlIdx <- subset(match(globals$simLvl,tbs),match(globals$simLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[simLvlIdx]))
+        }
+        if (any(tbs %in% globals$stdLvl)) {
+          tbsFinal = c(tbsFinal,"-----Stand-level tables-----")
+          stdLvlIdx <- subset(match(globals$stdLvl,tbs),match(globals$stdLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[stdLvlIdx]))
+        }
+        if (any(tbs %in% globals$specLvl)) {
+          tbsFinal = c(tbsFinal,"-----Species-level tables-----")
+          specLvlIdx <- subset(match(globals$specLvl,tbs),match(globals$specLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[specLvlIdx]))
+        }
+        if (any(tbs %in% globals$dClsLvl)) {
+          tbsFinal = c(tbsFinal,"-----Diameter-class tables-----")
+          dClsLvlIdx <- subset(match(globals$dClsLvl,tbs),match(globals$dClsLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[dClsLvlIdx]))
+        }
+        if (any(tbs %in% globals$htClsLvl)) {
+          tbsFinal = c(tbsFinal,"-----Height-class tables-----")
+          htClsLvlIdx <- subset(match(globals$htClsLvl,tbs),match(globals$htClsLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[htClsLvlIdx]))
+        }
+        if (any(tbs %in% globals$treeLvl)) {
+          tbsFinal = c(tbsFinal,"-----Tree-level tables-----")
+          treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
+          tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
+        }
+        globals$tbsFinal <- tbsFinal
+        updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=sel)
-        setProgress(value = NULL) 
+        if(globals$localWindows){
+          case = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
+                 "where KeywordFile = '",paste0(prjDir,"/",globals$fvsRun$uuid),"';"))
+          qry=paste0("Update FVS_Cases set KeywordFile = '",globals$fvsRun$uuid,"' where CaseID = '",case,"';")
+          dbExecute(dbGlb$dbOcon,qry)
+        }
+        setProgress(value = NULL)
       }, min=1, max=6)
     } else
     {
@@ -517,11 +655,67 @@ cat ("tbs6=",tbs,"\n")
   # selectdbtables
   observe({
 cat("selectdbtables\n")    
-    if (is.null(input$selectdbtables))
+    if (is.null(input$selectdbtables) ||(length(input$selectdbtables)==1 
+                          && length(grep("-----",input$selectdbtables))))
     {
       updateSelectInput(session, "selectdbvars", choices=list())               
     } else  {
       tables = input$selectdbtables 
+      if(length(grep("-----",tables))) tables <- setdiff(tables,tables[grep("-----",tables)])
+      # Logic to restrict combining tables from different levels (e.g., tree with stand-level).
+      # Throw up warning, then have first table selection in level that threw error remain selected
+      while(length(tables)>1){
+        if(length(tables)==2 && tables %in% "FVS_Cases") break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
+        '%notin%' = Negate('%in%')
+        if (any(tables %in% globals$simLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("This composite table combination in not allowed"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        if (any(tables %in% globals$stdLvl) && any(tables %notin% globals$stdLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("Stand-level tables can only be combined with other stand-level tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        if (any(tables %in% globals$specLvl) && any(tables %notin% globals$specLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+               message = paste0("Species-level tables can only be combined with other species-level tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # DBH-class tables cannot be combined with any other table
+        if (any(tables %in% globals$dClsLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("DBH-class tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # HT-class tables cannot be combined with any other table
+        if (any(tables %in% globals$htClsLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("HT-class tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        # tree-level tables cannot be combined with any other table
+        if (any(tables %in% globals$treeLvl)) {
+          session$sendCustomMessage(type = "infomessage",
+              message = paste0("Tree-level tables cannot be combined with any other tables"))
+          tables <- tables[1]
+          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
+                          selected=tables)
+        }
+        break
+      }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
         fvsOutData$dbLoadData)
       vars = unlist(vars)
@@ -1136,7 +1330,8 @@ cat ("Graphs pan hit\n")
       input$OPredo
       isolate({
 cat ("OPsettings hit, OPsettings=",input$OPsettings,"\n")
-        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (file.exists("GraphSettings.RData") && !globals$localWindows) load("GraphSettings.RData")
+        if (file.exists(paste0(prjDir,"/GraphSettings.RData")) && globals$localWindows) load(paste0(prjDir,"/GraphSettings.RData"))
         if (!exists("GraphSettings") || 
             length(GraphSettings[[input$OPsettings]])<1 ||
             input$OPsettings == "None")
@@ -1171,7 +1366,8 @@ cat ("msg=",msg,"\n")
       output$OPmessage=NULL
       isolate({
 cat ("OPsave hit, OPname=",input$OPname,"\n")
-        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (file.exists("GraphSettings.RData") && !globals$localWindows) load("GraphSettings.RData")
+        if (file.exists(paste0(prjDir,"/GraphSettings.RData")) && globals$localWindows) load(paste0(prjDir,"/GraphSettings.RData"))
         if (!exists("GraphSettings")) 
         {
           GraphSettings=list("None"=list())
@@ -1186,7 +1382,8 @@ cat ("OPsave hit, OPname=",input$OPname,"\n")
         attr(GraphSettings[[setName]],"setTime")=as.integer(Sys.time())
         GraphSettings <- GraphSettings[order(unlist(lapply(GraphSettings,
           function(x) attr(x,"setTime"))),decreasing = TRUE)]
-        save(GraphSettings,file="GraphSettings.RData")
+        if(!globals$localWindows)save(GraphSettings,file="GraphSettings.RData")
+        if(globals$localWindows)save(GraphSettings,file=paste0(prjDir,"/GraphSettings.RData"))
         updateSelectInput(session=session, inputId="OPsettings", choices=
           names(GraphSettings),selected=setName)
       })
@@ -1198,7 +1395,8 @@ cat ("OPsave hit, OPname=",input$OPname,"\n")
       isolate({
 cat("OPdel hit, input$OPname=",input$OPname,"\n")
         output$OPmessage=NULL
-        if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+        if (file.exists("GraphSettings.RData") && !globals$localWindows) load("GraphSettings.RData")
+        if (file.exists(paste0(prjDir,"/GraphSettings.RData")) && globals$localWindows) load(paste0(prjDir,"/GraphSettings.RData"))
         if (!exists("GraphSettings")) return() 
         if (input$OPname == "None") return()
         if (is.null(GraphSettings[[input$OPname]])) return()
@@ -1206,9 +1404,11 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
         if (length(GraphSettings)==0) 
         {
           updateSelectInput(session=session, inputId="OPsettings", choices=list())
-          unlink("GraphSettings.RData")
+          if(!globals$localWindows)unlink("GraphSettings.RData")
+          if(globals$localWindows)unlink(paste0(prjDir,"/GraphSettings.RData"))
         } else {
-          save(GraphSettings,file="GraphSettings.RData")
+          if(!globals$localWindows)save(GraphSettings,file="GraphSettings.RData")
+          if(globals$localWindows)save(GraphSettings,file=paste0(prjDir,"/GraphSettings.RData"))
           updateSelectInput(session=session, inputId="OPsettings", choices=
             names(GraphSettings),selected="None")
         }
@@ -1459,11 +1659,15 @@ cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
       return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
     }
-    if (input$plotType != "box") for (v in c("MgmtID","StandID","Year")) 
-    {                                                                                         
+    chk = if ("RunTitle" %in% c(input$xaxis, vf, hf, pb, input$yaxis)) 
+          c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
+    if (input$plotType != "box") for (v in chk) 
+    { 
       if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
-          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis))) 
+          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))
+          
+          
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
@@ -2046,7 +2250,8 @@ cat ("saveRun\n")
       updateSelectInput(session=session, inputId="runSel", 
                         choices=selChoices,selected=selChoices[[1]])
       FVS_Runs = globals$FVS_Runs
-      save (FVS_Runs,file="FVS_Runs.RData")
+      if(!globals$localWindows)save (FVS_Runs,file="FVS_Runs.RData")
+      if(globals$localWindows)save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
     } 
   })
 
@@ -2153,7 +2358,8 @@ cat ("saveRun\n")
       globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       FVS_Runs = globals$FVS_Runs     
-      save (file="FVS_Runs.RData",FVS_Runs)
+      if(!globals$localWindows)save (FVS_Runs,file="FVS_Runs.RData")
+      if(globals$localWindows)save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
       resetGlobals(globals,NULL,prms)
       updateTextInput(session=session, inputId="title", label="Run title", 
                       value=globals$fvsRun$title) 
@@ -2201,20 +2407,31 @@ cat("setting uiRunPlot to NULL\n")
       sel = match (input$runSel,names(globals$FVS_Runs)) 
       if (is.na(sel)) sel = 1
       fn=paste0(names(globals$FVS_Runs)[sel],".RData")
-      ret = try (load(file=fn))  # maybe the file has been corrupted or does not exist
+      if(!globals$localWindows)ret = try (load(file=fn))  # maybe the file has been corrupted or does not exist
+      if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",fn)))  # maybe the file has been corrupted or does not exist
       if (class(ret) == "try-error")
       {
         cat ("error loading",fn,"\n")
         unlink(fn)
         globals$FVS_Runs = globals$FVS_Runs[-sel]
         saveFvsRun=globals$fvsRun
-        if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
-        {
-          FVS_Runs = globals$FVS_Runs
-          save (file="FVS_Runs.RData",FVS_Runs)
+        if(!globals$localWindows){
+          if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
+          {
+            FVS_Runs = globals$FVS_Runs
+            save (file="FVS_Runs.RData",FVS_Runs)
+          }
+        }
+        if(globals$localWindows){
+          if (length(globals$FVS_Runs) == 0) unlink(paste0(prjDir,"/FVS_Runs.RData")) else
+          {
+            FVS_Runs = globals$FVS_Runs
+            save (file=paste0(prjDir,"/FVS_Runs.RData",FVS_Runs))
+          }
         }
         globals$saveOnExit = TRUE
         globals$reloadAppIsSet=1
+        unlink("projectIsLocked.txt")
         session$reload()
       } 
       globals$fvsRun = saveFvsRun
@@ -2686,7 +2903,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           choices=mkpair(globals$mmodsel), selected = 0)
         updateSelectInput(session=session, inputId="addModCmps", 
           choices=list())
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Event Monitor"= 
       {
@@ -2699,11 +2916,12 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         }
         updateSelectInput(session=session, inputId="addEvCmps",
           selected = 0,choices=globals$moutsel[["Event Monitor (EM) Compute Variables"]])
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Economic"= 
       {
         renderComponent("ecn")
+        output$editcmdBuild <- renderUI (NULL)
       },
       "Keywords"   = 
       {
@@ -2712,15 +2930,17 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
             label="Extensions", choices=globals$extnsel, selected = 0)
          updateSelectInput(session=session, inputId="addKeyWds", 
             label="Keywords", choices=list())
-        output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+        output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       },
       "Editor"   = 
       {
         customCmps = NULL
         if(length(globals$currentEditCmp$kwds) > 0) closeCmp()
-        if (length(globals$customCmps) == 0 && file.exists("FVS_kcps.RData")) 
+        if(!globals$localWindows) kcprdat = "FVS_kcps.RData"
+        if(globals$localWindows) kcprdat = paste0(prjDir,"/FVS_kcps.RData")
+        if (length(globals$customCmps) == 0 && file.exists(kcprdat)) 
         {
-          load("FVS_kcps.RData")
+          load(kcprdat)
           globals$customCmps = customCmps
         }
         if (!is.null(customCmps)) updateSelectInput(session=session,
@@ -2729,7 +2949,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
                               globals$currentEditCmp$kwds)
           output$cmdBuild <-renderUI (eltList)
-          output$fvsFuncRender <- renderUI (NULL)
+          output$editcmdBuild <- output$fvsFuncRender <- renderUI (NULL)
           output$cmdBuildDesc <- renderUI ("Description: This Editor menu allows you to 
           utilize the advanced features of the freeform text format for creating custom 
           component sets by directly adding & editing keyword records and Event Monitor 
@@ -3391,7 +3611,8 @@ cat("Nulling uiRunPlot at Save and Run\n")
         updateSelectInput(session=session, inputId="runSel", 
             choices=selChoices,selected=selChoices[[1]])
         FVS_Runs = globals$FVS_Runs
-        save (FVS_Runs,file="FVS_Runs.RData")
+        if(!globals$localWindows)save (FVS_Runs,file="FVS_Runs.RData")
+        if(globals$localWindows)save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
         killIfRunning(globals$fvsRun$uuid)
         # if rerunning a run that is currently selected in the "View Outputs",
         # then clear those tools.
@@ -3409,7 +3630,9 @@ cat("Nulling uiRunPlot at Save and Run\n")
           progress$close()
           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
         }
-        if (!file.exists(paste0(globals$fvsRun$uuid,".key")))
+        if(!globals$localWindows)fc = paste0(globals$fvsRun$uuid,".key")
+        if(globals$localWindows)fc = paste0(prjDir,"/",globals$fvsRun$uuid,".key")
+        if (!file.exists(fc))
         {
           if(msg=="Run data query returned no data to run."){
 cat ("Run data query returned no data to run.\n")  
@@ -3428,7 +3651,8 @@ cat ("keyword file was not created.\n")
           return()
           }
         }
-        dir.create(globals$fvsRun$uuid)
+        if(!globals$localWindows)dir.create(globals$fvsRun$uuid)
+        if(globals$localWindows)dir.create(paste0(prjDir,"/",globals$fvsRun$uuid))
         locrFVSDir = if (isLocal() && exists("rFVSDir") && 
                          !is.null(rFVSDir)) rFVSDir else "rFVS/R"
         if (!file.exists(locrFVSDir)) 
@@ -3448,6 +3672,10 @@ cat ("keyword file was not created.\n")
           Sys.sleep(5)
           progress$close()     
           return()
+        }
+        if(globals$localWindows){
+          currdir <- getwd()
+          setwd(prjDir)
         }
 cat ("runwaitback=",input$runwaitback,"\n")
         if (input$runwaitback!="Wait for run")
@@ -3475,7 +3703,8 @@ cat ("runwaitback=",input$runwaitback,"\n")
             cat (cmd,"\n",file=rs)
             cat ("runOps = ",deparse(globals$fvsRun$uiCustomRunOps),"\n",file=rs)        
           }
-          cmd = paste0('fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key")')
+          foo = foo = paste0(globals$fvsRun$uuid,".key")
+          cmd = paste0('fvsSetCmdLine("--keywordfile=',foo,'")')
           cat (cmd,"\n",file=rs)
           runCmd = if (globals$fvsRun$runScript == "fvsRun") "fvsRun()" else
                paste0(globals$fvsRun$runScript,"(runOps)")
@@ -3490,7 +3719,8 @@ cat ("runwaitback=",input$runwaitback,"\n")
                        '")\n',
                        '  rtn = ',runCmd,'\nfvsRun()\n}')
           cat (cmd,"\n",file=rs)
-          cat ('source("fvsRunUtilities.R")\n',file=rs)
+          if(!globals$localWindows)cat ('source("fvsRunUtilities.R")\n',file=rs)
+          if(globals$localWindows)cat ('source("C:/Users/Public/Documents/FVS/fvsRunUtilities.R")\n',file=rs)
           cmd = paste0('dbOcon = dbConnect(drv = dbDriver("SQLite"),"FVSOut.db")')
           cat (cmd,"\n",file=rs)
           cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n")')
@@ -3543,8 +3773,8 @@ cat ("run script load cmd=",cmd,"\n")
           rtn = try(clusterExport(fvschild,list("runOps"))) 
           if (class(rtn) == "try-error") return()
         }
-        cmd = paste0("clusterEvalQ(fvschild,",
-              'fvsSetCmdLine("--keywordfile=',globals$fvsRun$uuid,'.key"))')
+        foo = paste0(globals$fvsRun$uuid,".key")
+        cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
 cat ("load run cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd))) 
         if (class(rtn) == "try-error") return()
@@ -3592,7 +3822,9 @@ cat ("rtn,class=",class(rtn),"\n")
         try(clusterEvalQ(fvschild,fvsRun()))        
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(globals$fvsRun$stands)+4)
-        errScan = try(errorScan(paste0(globals$fvsRun$uuid,".out")))
+        if(!globals$localWindows) outf=paste0(globals$fvsRun$uuid,".out")
+        if(globals$localWindows) outf=paste0(prjDir,"/",globals$fvsRun$uuid,".out")
+        errScan = try(errorScan(outf))
         if (class(errScan) == "try-error") errScan = 
           "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
@@ -3614,7 +3846,9 @@ cat ("length(allSum)=",length(allSum),"\n")
              detail = "Merging output to master database",
              value = length(globals$fvsRun$stands)+6)
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
+        if(globals$localWindows) unlink("FVS_Data.db")
         unlink(paste0(globals$fvsRun$uuid,".db"))
+        if(globals$localWindows)setwd(currdir)
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
         modn = names(allSum)
@@ -3661,6 +3895,16 @@ cat ("length(allSum)=",length(allSum),"\n")
                 height=(height+1)*144), deleteFile=TRUE)
 cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
         globals$currentQuickPlot = globals$fvsRun$uuid
+        if(globals$localWindows){
+          case = dbGetQuery(dbGlb$dbOcon,paste0("select CaseID from FVS_Cases ",
+                 "where KeywordFile = '",paste0(prjDir,"/",globals$fvsRun$uuid),"';"))
+          if (length(case[[1]])>0){
+            for(i in 1:length(case[[1]])){
+              qry=paste0("Update FVS_Cases set KeywordFile = '",globals$fvsRun$uuid,"' where CaseID ='",case[[1]][i],"';")
+              dbExecute(dbGlb$dbOcon,qry)
+            }
+          }
+        }
         globals$changeind <- 0
         output$contChange <- renderUI("Run")
       }
@@ -3690,13 +3934,19 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
   })
   
   ## Download handlers
-  output$dlFVSDatadb <- downloadHandler(filename="FVS_Data.db",
-       content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
-  output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
-       content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
-  output$dlFVSOutxlsx <- downloadHandler(
-       filename=function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
-       content = function (tf = paste0(tempfile(),".xlsx"))
+  if(globals$localWindows){ 
+      output$dlFVSDatadb <- downloadHandler(filename="FVS_Data.db",
+           content = function (tf = tempfile()) file.copy(paste0(prjDir,"/FVS_Data.db"),tf))
+    } else output$dlFVSDatadb <- downloadHandler(filename="FVS_Data.db",
+           content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
+    if(globals$localWindows){ 
+      output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
+           content = function (tf = tempfile()) file.copy(paste0(prjDir,"/FVSOut.db"),tf))
+    } else output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
+           content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
+    output$dlFVSOutxlsx <- downloadHandler(
+         filename=function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
+         content = function (tf = paste0(tempfile(),".xlsx"))
        {
          # limit the number of rows exported to Excel to 1,048,576
          excelRowLimit=1048576
@@ -3756,11 +4006,14 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
   ## dlPrjBackup
   output$dlPrjBackup <- downloadHandler(filename=function ()
       isolate({
-        if (file.exists(input$pickBackup)) input$pickBackup else "NoBackup.txt"
+        if(!globals$localWindows)bckupPick <- input$pickBackup
+        if(globals$localWindows)bckupPick <- paste0(prjDir,"/",input$pickBackup)
+        if (file.exists(bckupPick)) bckupPick else "NoBackup.txt"
       }),  
       content=function (tf = tempfile())
       {
-        sfile = input$pickBackup
+        if(!globals$localWindows) sfile = input$pickBackup
+        if(globals$localWindows) sfile = paste0(prjDir,"/",input$pickBackup)
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
@@ -3769,7 +4022,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       paste0(globals$fvsRun$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())
       {
-        sfile = paste0(input$runSel,".out")
+        if(!globals$localWindows) sfile = paste0(input$runSel,".out")
+        if(globals$localWindows) sfile = paste0(prjDir,"/",input$runSel,".out")
         if (file.exists(sfile))
         {
           file.copy(sfile,tf)
@@ -3782,7 +4036,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
       content=function (tf = tempfile())
       {
-        sfile = paste0(input$runSel,".key")
+        if(!globals$localWindows) sfile = paste0(input$runSel,".key")
+        if(globals$localWindows) sfile = paste0(prjDir,"/",input$runSel,".key")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Keywords not yet created.\n")
       }, contentType="text")
@@ -3798,25 +4053,29 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
            {
              switch (ele,
                outdb = {
-                 from="FVSOut.db"
+                 if(!globals$localWindows) from="FVSOut.db"
+                 if(globals$localWindows) from=paste0(prjDir,"/FVSOut.db")
                  to=paste0(tempDir,"/FVSOut.db")
                  if (file.exists(from)) file.copy(from=from,to=to) else
                    cat (file=to,"Output database does not exist.\n")
                },
                key   = {
-                 from=paste0(input$runSel,".key")
+                 if(!globals$localWindows) from=paste0(input$runSel,".key")
+                 if(globals$localWindows) from=paste0(prjDir,"/",input$runSel,".key")
                  to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSkeywords.txt") 
                  if (file.exists(from)) file.copy(from=from,to=to) else
                    cat (file=to,"Keyword file not yet created.\n")                   
                },
                out   = {
-                 from=paste0(input$runSel,".out")
+                 if(!globals$localWindows) from=paste0(input$runSel,".out")
+                 if(globals$localWindows) from=paste0(prjDir,"/",input$runSel,".out")
                  to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt")
                  if (file.exists(from)) file.copy(from=from,to=to) else
                    cat (file=to,"Output not yet created.\n")
                },
                subdir= {
-                 from=input$runSel
+                 if(!globals$localWindows) from=input$runSel
+                 if(globals$localWindows) from=paste0(prjDir,"/",input$runSel)
                  if (dir.exists(from)) 
                  {
                    to = paste0(tempDir,"/",globals$fvsRun$title,"_SVS/")
@@ -3825,28 +4084,43 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    file.copy(from=paste0(from,"_index.svs"),to=to)
                  } else cat(file=paste0(tempDir,"/emptySVS.txt"),"No SVS files exist.\n")
                },              
-               FVS_Data = file.copy(from="FVS_Data.db",
+               FVS_Data = file.copy(from=if(globals$localWindows) paste0(prjDir,"/FVS_Data.db") else "FVS_Data.db" ,
                                     to=paste0(tempDir,"/FVS_Data.db")),
                FVS_Runs = {
-                 if (file.exists("FVS_Runs.RData")) 
-                   file.copy(from="FVS_Runs.RData",to=paste0(tempDir,"/FVS_Runs.RData"))
+                 if(!globals$localWindows) rdat="FVS_Runs.RData"
+                 if(globals$localWindows) rdat=paste0(prjDir,"/FVS_Runs.RData")
+                 if (file.exists(rdat)) 
+                   file.copy(from=rdat,to=paste0(tempDir,"/FVS_Runs.RData"))
                  rdm=paste0(tempDir,"/ReadMe.txt")
                  cat (file=rdm,append=TRUE,"Run UUIDs and titles as of:",date(),"\n")
                  for (kn in names(globals$FVS_Runs))
                  {
                    cat (file=rdm,append=TRUE,"UUID:",kn," Title:",globals$FVS_Runs[[kn]],"\n")
-                   fn = paste0(kn,".RData")
-                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",fn))
+                   if(!globals$localWindows) fn = paste0(kn,".RData")
+                   if(globals$localWindows) fn = paste0(prjDir,"/",kn,".RData")
+                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",basename(fn)))
                  }
                },
-               SpatialData = if (file.exists("SpatialData.RData")) 
-                 file.copy(from="SpatialData.RData",to=paste0(tempDir,"/SpatialData.RData")),
-               GraphSettings = if (file.exists("GraphSettings.RData")) 
-                 file.copy(from="GraphSettings.RData",to=paste0(tempDir,"/GraphSettings.RData")),
-               customSQL = if (file.exists("customQueries.RData")) 
-                 file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData")),
-               FVS_kcps = if (file.exists("FVS_kcps.RData"))
-                 file.copy(from="FVS_kcps.RData",to=paste0(tempDir,"/FVS_kcps.RData"))
+               if(!globals$localWindows){
+                 SpatialData = if (file.exists("SpatialData.RData")) 
+                   file.copy(from="SpatialData.RData",to=paste0(tempDir,"/SpatialData.RData"))
+                 GraphSettings = if (file.exists("GraphSettings.RData")) 
+                   file.copy(from="GraphSettings.RData",to=paste0(tempDir,"/GraphSettings.RData"))
+                 customSQL = if (file.exists("customQueries.RData")) 
+                   file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData"))
+                 FVS_kcps = if (file.exists("FVS_kcps.RData"))
+                   file.copy(from="FVS_kcps.RData",to=paste0(tempDir,"/FVS_kcps.RData"))
+                 }
+               else {
+                 SpatialData = if (file.exists(paste0(prjDir,"/SpatialData.RData"))) 
+                    file.copy(from=paste0(prjDir,"/SpatialData.RData"),to=paste0(tempDir,"/SpatialData.RData"))
+                 GraphSettings = if (file.exists(paste0(tempDir,"/GraphSettings.RData"))) 
+                    file.copy(from=paste0(tempDir,"/GraphSettings.RData"),to=paste0(tempDir,"/GraphSettings.RData"))
+                 customSQL = if (file.exists(paste0(prjDir,"/customQueries.RData"))) 
+                    file.copy(from=paste0(prjDir,"/customQueries.RData"),to=paste0(tempDir,"/customQueries.RData"))
+                 FVS_kcps = if (file.exists(paste0(prjDir,"/FVS_kcps.RData")))
+                   file.copy(from=paste0(prjDir,"/FVS_kcps.RData"),to=paste0(tempDir,"/FVS_kcps.RData"))
+               }
            )}
            curdir = getwd()
            setwd(tempDir)
@@ -3894,14 +4168,14 @@ is.null(input$kcpTitle),"\n")
           names(customCmps) <- names(globals$customCmps)
           globals$customCmps = customCmps
           }
-        save(file="FVS_kcps.RData",customCmps)
+        if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
+        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
            selected=newTit)
         mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
         updateSelectInput(session=session, inputId="simCont",
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        closeCmp()
       })
     }
   })
@@ -3955,7 +4229,6 @@ cat ("kcpSaveInRun\n")
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
         output$contChange <- renderText(HTML("<b>*Run*</b>"))
-        closeCmp()
         globals$schedBoxPkey <- character(0)
       })
     }
@@ -3973,11 +4246,13 @@ cat ("kcpSaveInRun\n")
         if (length(globals$customCmps)) 
         {
           customCmps = globals$customCmps
-          save(file="FVS_kcps.RData",customCmps)
+          if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
+          if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
           updateSelectInput(session=session, inputId="kcpSel", choices=names(customCmps))
         } else {
           customCmps=NULL
-          unlink("FVS_kcps.RData")
+          if(!globals$localWindows)unlink("FVS_kcps.RData")
+          if(globals$localWindows)unlink(paste0(prjDir,"/FVS_kcps.RData"))
           updateSelectInput(session=session, inputId="kcpSel", choices=list())
           updateTextInput(session=session, inputId="kcpTitle", value="")
           updateTextInput(session=session, inputId="kcpEdit", value="")
@@ -4028,7 +4303,8 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
                           paste(data,collapse="\n"))
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
-        save(file="FVS_kcps.RData",globals$customCmps)
+        if(!globals$localWindows)save(file="FVS_kcps.RData",globals$customCmps)
+        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),globals$customCmps)
       }
     })
   })
@@ -4090,7 +4366,8 @@ cat ("SVS3d hit\n")
       runChoices = list()
       for (has in names(allRuns))
       {
-        fn = paste0(allRuns[[has]],"_index.svs")
+        if(!globals$localWindows)fn = paste0(allRuns[[has]],"_index.svs")
+        if(globals$localWindows)fn = paste0(prjDir,"/",allRuns[[has]],"_index.svs")
         if (file.exists(fn)) runChoices[[has]] = allRuns[[has]]
       }
       updateSelectInput(session=session, inputId="SVSRunList1", 
@@ -4109,7 +4386,8 @@ cat ("SVS3d hit\n")
     if (length(input$SVSRunList1))
     {
       cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
-      fn = paste0(input$SVSRunList1,"_index.svs")
+      if(!globals$localWindows)fn = paste0(input$SVSRunList1,"_index.svs")
+      if(globals$localWindows)fn = paste0(prjDir,"/",input$SVSRunList1,"_index.svs")
       if (!file.exists(fn)) return()
       index = read.table(file=fn,as.is=TRUE)
       choices = as.list(index[,2])
@@ -4158,7 +4436,8 @@ cat ("SVS3d hit\n")
     if (length(input$SVSRunList2))
     {
       cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
-      fn = paste0(input$SVSRunList2,"_index.svs")
+      if(!globals$localWindows)fn = paste0(input$SVSRunList2,"_index.svs")
+      if(globals$localWindows)fn = paste0(prjDir,"/",input$SVSRunList2,"_index.svs")
       index = read.table(file=fn,as.is=TRUE)
       choices = as.list(index[,2])
       ind <- 0
@@ -4423,9 +4702,11 @@ cat("Residual length of svs=",length(svs),"\n")
   observe({
     if (length(input$SVSImgList1))
     {
-cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n") 
-      if (!file.exists(input$SVSImgList1)) return()
-      renderSVSImage('SVSImg1',input$SVSImgList1,
+cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
+      if(!globals$localWindows)fn=input$SVSImgList1
+      if(globals$localWindows)fn=paste0(prjDir,"/",input$SVSImgList1)
+      if (!file.exists(fn)) return()
+      renderSVSImage('SVSImg1',fn,
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
         plotColor=input$svsPlotColor1)
@@ -4435,14 +4716,15 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
     if (length(input$SVSImgList2))
     {
 cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
-      if (!file.exists(input$SVSImgList2)) return()
-      renderSVSImage('SVSImg2',input$SVSImgList2,
+      if(!globals$localWindows)fn=input$SVSImgList2
+      if(globals$localWindows)fn=paste0(prjDir,"/",input$SVSImgList2)
+      if (!file.exists(fn)) return()
+      renderSVSImage('SVSImg2',fn,
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
         plotColor=input$svsPlotColor2)
     }
   })
-
   ## Maps processing
   observe({
     if (input$topPan == "Maps")
@@ -4554,9 +4836,11 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
 cat ("length(uidsToGet)=",length(uidsToGet),"\n")
       if (!length(uidsToGet)) return()        
       uidsFound = NULL   
-      require(rgdal)     
+      require(rgdal) 
+      if(!globals$localWindows)spatdat = "SpatialData.RData"
+      if(globals$localWindows)spatdat = paste0(prjDir,"/SpatialData.RData")
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
-          file.exists("SpatialData.RData")) load("SpatialData.RData",envir=dbGlb)
+          file.exists(spatdat)) load(spatdat,envir=dbGlb)
       if (exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
         matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
@@ -4598,7 +4882,8 @@ cat ("left to get: length(uidsToGet)=",length(uidsToGet),
           if (globals$fvsRun$uuid == input$mapDsRunList)
               inInit = globals$fvsRun$refreshDB else 
           {
-            runDatafile=paste0(input$mapDsRunList,".RData")
+            if(!globals$localWindows)runDatafile=paste0(input$mapDsRunList,".RData")
+            if(globals$localWindows)runDatafile=paste0(prjDir,"/",input$mapDsRunList,".RData")
             if (file.exists(runDatafile)) 
             {
              load(runDatafile)
@@ -4784,7 +5069,8 @@ cat ("avalFVSp=",avalFVSp,"\n")
       }
       updateSelectInput(session=session, inputId="FVSprograms", 
         choices=pgmFlip,selected=haveFVSp)
-      backups = dir (pattern="ProjectBackup")
+      if(!globals$localWindows)backups = dir (pattern="ProjectBackup")
+      if(globals$localWindows)backups = dir (path=prjDir,pattern="ProjectBackup")
       if (length(backups)) 
       {
         backups = sort(backups,decreasing=TRUE)
@@ -4865,10 +5151,12 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
         killIfRunning(globals$fvsRun$uuid)
         removeFVSRunFiles(globals$fvsRun$uuid,all=TRUE)
         deleteRelatedDBRows(globals$fvsRun$uuid,dbGlb$dbOcon)
-        if (length(globals$FVS_Runs) == 0) unlink("FVS_Runs.RData") else
+        if(!globals$localWindows)runsdat="FVS_Runs.RData"
+        if(globals$localWindows)runsdat=paste0(prjDir,"/FVS_Runs.RData")
+        if (length(globals$FVS_Runs) == 0) unlink(runsdat) else
         {
           FVS_Runs = globals$FVS_Runs
-          save (file="FVS_Runs.RData",FVS_Runs)
+          save (file=runsdat,FVS_Runs)
         }
         if (file.exists("projectId.txt"))
         {
@@ -4896,8 +5184,9 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
     isolate({
 cat ("delete all outputs\n")
       dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon )    
-      unlink("FVSOut.db")
-      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid)
+      if(!globals$localWindows)unlink("FVSOut.db")
+      if(globals$localWindows)unlink(paste0(prjDir,"/FVSOut.db"))
+      for (uuid in names(globals$FVS_Runs))removeFVSRunFiles(uuid)
       dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")    
     })  
   })
@@ -4918,8 +5207,14 @@ cat ("delete all runs and outputs\n")
       rmfiles=dir(pattern="[.]pidStatus$")      
       for (tokill in rmfiles) killIfRunning(sub(".pidStatus","",tokill))
       dbGlb$dbOcon <- dbDisconnect(dbGlb$dbOcon)
-      unlink("FVSOut.db")
-      unlink("FVS_Runs.RData")
+      if(!globals$localWindows){
+        unlink("FVSOut.db")
+        unlink("FVS_Runs.RData")
+      }
+      if(globals$localWindows){
+        unlink(paste0(prjDir,"/FVSOut.db"))
+        unlink(paste0(prjDir,"/FVS_Runs.RData"))
+      }
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")
       globals$saveOnExit = FALSE
@@ -4932,19 +5227,19 @@ cat ("delete all runs and outputs\n")
   observe({
     if(length(input$interfaceRefresh) && input$interfaceRefresh > 0)
     {
-      if (exists("fvsOnlineDir") && file.exists(fvsOnlineDir) && 
+      if (exists("fvsOnlineDir") && file.exists(fvsOnlineDir) &&
           exists("FVSOnlineNeeded"))
       {
-cat ("interfaceRefresh, needed elements present\n")      
+cat ("interfaceRefresh, needed elements present\n")
         ffdir = fvsOnlineDir
-        if (isolate(input$interfaceRefreshSource == "Dev"))        
+        if (isolate(input$interfaceRefreshSource == "Dev"))
         {
           es = if (substr(ffdir,nchar(ffdir),nchar(ffdir))=="/") "/" else ""
           if (nchar(es)) ffdir = substr(ffdir,1,nchar(ffdir)-1)
           ffdir = paste0(ffdir,"Dev",es)
-        } 
+        }
 cat ("ffdir=",ffdir,"\n")
-        if (file.exists(ffdir)) 
+        if (file.exists(ffdir))
         {
           lapply(FVSOnlineNeeded,function(x,fd) {
               frm=paste0(fd,"/",x)
@@ -4957,18 +5252,20 @@ cat ("Refresh interface file=",frm,"\n")
       } else session$sendCustomMessage(type="infomessage",
              message="The interface can not be refreshed on this system.")
     }
-  }) 
+  })
 
   ## delZipBackup
   observe({
     if(input$delZipBackup > 0)
     {
-      fl = isolate(input$pickBackup)
+      if(!globals$localWindows)fl = isolate(input$pickBackup)
+      if(globals$localWindows)fl = isolate(paste0(prjDir,"/",input$pickBackup))
       if (is.null(fl)) return()
       if (file.exists(fl))
       {
         unlink(fl)
-        backups = dir (pattern="ProjectBackup")
+        if(!globals$localWindows)backups = dir (pattern="ProjectBackup")
+        if(globals$localWindows)backups = dir (path=prjDir,pattern="ProjectBackup")
         if (length(backups)) 
         {
           backups = sort(backups,decreasing=TRUE)
@@ -4986,15 +5283,34 @@ cat ("Refresh interface file=",frm,"\n")
     if(input$mkZipBackup > 0)
     {
       zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
-      flst=dir()
-      del = grep("^ProjectBackup",flst)
-      if (length(del)) flst = flst[-del]
-      del = grep ("^FVSbin",flst)
-      if (length(del)) flst = flst[-del]
-      shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-      fvsPgms = dir("FVSbin",pattern=shlibsufx)
-      fvsPgms = paste0("FVSbin/",fvsPgms)
-      flst = c(flst,fvsPgms)
+      if(!globals$localWindows){
+        flst=dir()
+        del = grep("^ProjectBackup",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep ("^FVSbin",flst)
+        if (length(del)) flst = flst[-del]
+        shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
+        fvsPgms = dir("FVSbin",pattern=shlibsufx)
+        fvsPgms = paste0("FVSbin/",fvsPgms)
+        flst = c(flst,fvsPgms)
+      }
+      if(globals$localWindows){
+        flst=dir(prjDir)
+        del = grep("FVSbin",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep("^R",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep("^www",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".R$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".html$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".xlsx$",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep(".zip$",flst)
+        if (length(del)) flst = flst[-del]
+      }
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
       icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
@@ -5005,7 +5321,12 @@ cat ("Refresh interface file=",frm,"\n")
       {
         x = flst[i]
         progress$set(message = paste0("Adding ",x," to ",zfile), value = i)
-        rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
+        if(!globals$localWindows)rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
+        if(globals$localWindows){
+          rtn=if (file.exists(paste0(prjDir,"/",zfile)))
+            try(zipr_append(paste0(prjDir,"/",zfile),paste0(prjDir,"/",x))) 
+            else try(zipr(paste0(prjDir,"/",zfile),paste0(prjDir,"/",x)))
+        } 
         if (class(rtn)=="try-error") 
         {
           progress$set(message = paste0("Failed to add ",x," to ",zfile), value = i+1)
@@ -5016,7 +5337,8 @@ cat ("Refresh interface file=",frm,"\n")
       if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)   
       Sys.sleep(.2)
       progress$close()
-      backups = dir (pattern="ProjectBackup")
+      if(!globals$localWindows)backups = dir (pattern="ProjectBackup")
+      if(globals$localWindows)backups = dir (path=prjDir,pattern="ProjectBackup")
       if (length(backups)) 
       {
         backups = sort(backups,decreasing=TRUE)
@@ -5041,11 +5363,19 @@ cat ("Refresh interface file=",frm,"\n")
         input$restorePrjBackupDlgBtn > 0) 
     {
       isolate({
-        fvsWorkBackup = input$pickBackup 
+        if(!globals$localWindows)fvsWorkBackup = input$pickBackup
+        if(globals$localWindows)fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
 cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
         if (file.exists(fvsWorkBackup)) 
         {
-          unzip (fvsWorkBackup)
+          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+          if (ocon) dbDisconnect(dbGlb$dbOcon)
+          if (icon) dbDisconnect(dbGlb$dbIcon)
+          if(!globals$localWindows)unzip (fvsWorkBackup)
+          if(globals$localWindows)unzip (fvsWorkBackup,exdir = prjDir)
+          if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname) 
           globals$reloadAppIsSet=1
           session$reload()
         }
@@ -5087,8 +5417,9 @@ cat("delete project button.")
           output$delPrjActionMsg <- renderUI(HTML("No project selected."))
         } else 
         {
-          delPrj=paste0("../",input$PrjDelSelect)                  
-          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")))
+          if(!globals$localWindows)delPrj=paste0("../",input$PrjDelSelect)  
+          if(globals$localWindows)delPrj=paste0("C:/FVS/",input$PrjDelSelect)
+          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")) && !globals$localWindows)             
           {
             output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
           } else 
@@ -5119,7 +5450,7 @@ cat("delete project button.")
       fn = "fvsOnlineHelp.html"
       xlsxfile="databaseDescription.xlsx"
       info=file.info(c(fr,fn,xlsxfile))
-      if (which.max(info[,4]) != 1)
+      if (which.max(info[,4]) != 1  && !globals$localWindows)
       {
         help = readChar(fn, info[2,1]) 
         progress$set(message = "Loading Help File. This will be pre-loaded the 
@@ -5221,6 +5552,12 @@ cat("delete project button.")
         mhtml = xlsx2html(tab,cols=c(1,4))
         if (!is.null(mhtml)) html = paste0(html,mhtml)
       }
+      if ("GuideLinks" %in% sheets)
+      { 
+        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="GuideLinks")
+        row = charmatch(toupper(tab),toupper(tabs[,1]))
+        if(!is.null(html))html = paste0(html,tabs[row,2])
+      }
     }
     HTML(html)
   }
@@ -5273,12 +5610,19 @@ cat ("Upload inventory data\n")
   observe({  
     if (input$installTrainDB == 0) return()
     dbDisconnect(dbGlb$dbIcon)
-    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+    if(!globals$localWindows){
+      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+      file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+    }
+    if(globals$localWindows){
+      file.copy(paste0(prjDir,"/FVS_Data.db.default"),paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
+      file.copy(paste0(prjDir,"/SpatialData.RData.default"),paste0(prjDir,"/SpatialData.RData"),overwrite=TRUE)
+    }
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
@@ -5286,11 +5630,18 @@ cat ("Upload inventory data\n")
   observe({  
     if (input$installTrainDB2 == 0) return()
     dbDisconnect(dbGlb$dbIcon)
-    file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
-    file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+        if(!globals$localWindows){
+      file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
+      file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
+    }
+    if(globals$localWindows){
+      file.copy(paste0(prjDir,"/FVS_Data.db.default"),paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
+      file.copy(paste0(prjDir,"/SpatialData.RData.default"),paste0(prjDir,"/SpatialData.RData"),overwrite=TRUE)
+    }
     output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
@@ -5298,11 +5649,20 @@ cat ("Upload inventory data\n")
   observe({  
     if (input$installEmptyDB == 0) return()
     dbDisconnect(dbGlb$dbIcon)
-    if (file.exists("FVS_Data.db")) unlink("FVS_Data.db")
-    file.copy("FVS_Data.db.empty","FVS_Data.db",overwrite=TRUE)
+    if(!globals$localWindows){
+      indat="FVS_Data.db"
+      emptdat="FVS_Data.db.empty"
+    }
+    if(globals$localWindows){
+      indat=paste0(prjDir,"/FVS_Data.db")
+      emptdat=paste0(prjDir,"/FVS_Data.db.empty")
+    }
+    if (file.exists(indat)) unlink(indat)
+    file.copy(emptdat,indat,overwrite=TRUE)
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- renderText(HTML("<b>Empty database installed</b>"))
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
     loadVarData(globals,prms,dbGlb$dbIcon)                                              
   }) 
@@ -5372,15 +5732,16 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n") 
       cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0("C:/FVS/mdbtools/mdb-schema ",fname)) else
+        shQuote(paste0("C:/Users/Public/Documents/mdbtools/mdb-schema ",fname)) else
         paste0(paste0("mdb-schema ",fname))
 cat ("cmd=",cmd,"\n")
       schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else 
                                                    try(system(cmd,intern=TRUE))
-      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2) 
+      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
       {
         setwd(curDir) 
-        progress$close()     
+        progress$close()  
+        if (schema[1] =="Unknown Jet version.") output$step1ActionMsg = renderText("Unknown Jet version. Possible corrupt database.") else
         output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
@@ -5395,6 +5756,7 @@ cat ("cmd=",cmd,"\n")
         scan(text=x,what="character",quiet=TRUE)[3]))
       schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
+      schema = gsub(" Integereger"," Integer",schema,ignore.case=TRUE)
       schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Memo"," Text",schema,ignore.case=TRUE)
       schema = gsub(" Text.*)"," Text",schema,ignore.case=TRUE)
@@ -5419,7 +5781,7 @@ cat ("cmd=",cmd,"\n")
       {
         progress$set(message = paste0("Export table ",tab), value = 3)
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
-        cmd = paste0 (if (.Platform$OS.type == "windows") "C:/FVS/mdbtools/" else "",
+        cmd = paste0 (if (.Platform$OS.type == "windows") "C:/Users/Public/Documents/mdbtools/" else "",
                        "mdb-export -I sqlite ",fname," ",tab," >> sqlite3.import")
         cat ("cmd=",cmd,"\n")
         result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
@@ -5428,12 +5790,11 @@ cat ("cmd=",cmd,"\n")
       cat (".quit\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Import data to Sqlite3", value = 4) 
       cmd = paste0(if (.Platform$OS.type == "windows")
-         "C:/FVS/SQLite/" else "","sqlite3 FVS_Data.db < sqlite3.import")
+         "C:/Users/Public/Documents/SQLite/" else "","sqlite3 FVS_Data.db < sqlite3.import")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      progress$close()     
     } else if (fext == "xlsx") 
     {
       progress$set(message = "Get data sheets", value = 3)
@@ -5456,16 +5817,17 @@ cat ("cmd done.\n")
       treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
       treeNT = if (class(treeNT) == "try-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
       plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
-      plotNT = if (class(treeNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
+      plotNT = if (class(plotNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
       i = 3
-      for (sheet in sheets)
+            for (sheet in sheets)
       {
         i = i+1
 cat ("sheet = ",sheet," i=",i,"\n")
         progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
+        sdat[[3]] <- gsub("_x000D_", "", sdat[[3]])
         im = grep(sheet,normNames,ignore.case=TRUE)
-        if (!is.na(im)) sheet = normNames[im]
+        if (length(im)) sheet = normNames[im]
         NT = switch(sheet,"FVS_StandInit"=standNT,"FVS_TreeInit"=treeNT,
                           "FVS_PlotInit"=plotNT,NULL) 
         if (!is.null(NT))
@@ -5545,14 +5907,16 @@ cat("loaded table=",tab,"\n")
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
             if (class(grps)=="try-error") next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-            if (all(is.na(match(addgrps,grps)))) 
+            if (any(is.na(match(addgrps,grps))) && !length(match(grps,addgrps)))  
             {
               Tb=try(dbReadTable(dbo,tab2fix))
               if (class(Tb)=="try-error") next
               idx=match("groups",tolower(names(Tb)))
               if (!is.na(idx) && nrow(Tb)) 
               {
-                Tb[,idx]=paste0(addgrps," ",Tb[,idx])
+                idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) grep("Plots",addgrps) else grep("Stands",addgrps)
+                ridxs <- grep(grps[grep("NA",as.list(match(addgrps,grps)))],Tb[,idx])
+                Tb[ridxs,idx]=paste0(addgrps[idf]," ",Tb[ridxs,idx])
                 if (class(try(dbWriteTable(dbo,tab2fix,Tb,overwrite=TRUE)))!="try-error") 
                     grpmsg=c(grpmsg,tab2fix)
               }
@@ -5568,14 +5932,11 @@ cat ("checking duplicate stand or standplot ids\n")
       for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-       if (tolower(tabs[idx])=="fvs_standinit_plot") next  
-        if (tolower(tabs[idx])=="fvs_standinit_cond") next
-        if (tolower(tabs[idx])=="fvs_treeinit_plot") next
-        if (tolower(tabs[idx])=="fvs_treeinit_cond") next
-        if (tolower(tabs[idx])=="fvs_plotinit_plot") next  
+        if (tolower(tabs[idx]) %in% c("fvs_standinit_plot","fvs_standinit_cond",
+           "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-        qry = paste0("select ",idf," from '",tab2fix,"'")
+        qry = paste0("select ",idf," from '",tab2fix,"'") 
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
         if (class(sidTb)=="try-error") next
@@ -5595,16 +5956,13 @@ cat ("qry=",qry,"\n")
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
         sidmsg=c(sidmsg,tab2fix)
       }
-       # remove any leading or trailing spaces in stand id's which blow up the SQL queries at run time
-        fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs),grep ("treeinit",ltabs))
-        for (idx in fixTabs)
+      # remove any leading or trailing spaces in stand id's which blow up the SQL queries at run time
+      fixTabs=c(grep ("standinit",ltabs,fixed=TRUE),grep ("plotinit",ltabs),grep ("treeinit",ltabs))
+      for (idx in fixTabs)
       {
 cat ("checking tabs[idx]=",tabs[idx],"\n")
-        if (tolower(tabs[idx])=="fvs_standinit_plot") next  
-        if (tolower(tabs[idx])=="fvs_standinit_cond") next
-        if (tolower(tabs[idx])=="fvs_treeinit_plot") next
-        if (tolower(tabs[idx])=="fvs_treeinit_cond") next
-        if (tolower(tabs[idx])=="fvs_plotinit_plot") next
+        if (tolower(tabs[idx]) %in% c("fvs_standinit_plot","fvs_standinit_cond",
+           "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
         qry = paste0("select ",idf," from '",tab2fix,"'")
@@ -5615,12 +5973,13 @@ cat ("qry=",qry,"\n")
         sidTb <- data.frame(trim(sidTb[[1]]))
         names(sidTb) <- toupper(idf)
         sidTbAll=try(dbReadTable(dbo,tab2fix))
-        oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
+        if (idf == "standplot_id") oldSID <- grep("StandPlot_ID",names(sidTbAll),ignore.case=TRUE) else
+          oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
         sidTbAll <- sidTbAll[,-oldSID]
         sidTbAll <- append(sidTbAll,sidTb, after=0)
         if (class(sidTbAll)=="try-error") next
         dbWriteTable(dbo,tab2fix,data.frame(sidTbAll),overwrite=TRUE)
-        }
+      }
 cat ("sidmsg=",sidmsg,"\n")
     }
     progress$set(message = "Getting row counts", value = 6)
@@ -5671,10 +6030,12 @@ cat ("msg=",msg,"\n")
     if (input$installNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
     dbDisconnect(dbGlb$dbIcon)
-    file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE)
+    if(!globals$localWindows)file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE)
+    if(globals$localWindows)file.copy(dbGlb$newFVSData,paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     tabs = myListTables(dbGlb$dbIcon)
     progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
     i = 0
@@ -6125,12 +6486,14 @@ cat ("insertCount=",insertCount,"\n")
   observe({  
     if (is.null(input$climateFVSUpload)) return()
     progress <- shiny::Progress$new(session,min=1,max=10)
-    progress$set(message = "Loading data set",value = 2)    
+    progress$set(message = "Loading data set",value = 2)
+    if(!globals$localWindows)climAtt="FVSClimAttrs.csv"
+    if(globals$localWindows)climAtt=paste0(prjDir,"/FVSClimAttrs.csv")
     if (input$climateFVSUpload$type == "application/zip")
-      try(unzip(input$climateFVSUpload$datapath, files = "FVSClimAttrs.csv")) else 
-      file.copy(input$climateFVSUpload$datapath,"FVSClimAttrs.csv",
+      try(unzip(input$climateFVSUpload$datapath, files = climAtt)) else 
+      file.copy(input$climateFVSUpload$datapath,climAtt,
         overwrite = TRUE)
-    if (!file.exists("FVSClimAttrs.csv")) 
+    if (!file.exists(climAtt)) 
     {
 cat ("no FVSClimAttrs.csv file\n")
       output$uploadClimActionMsg = renderUI(HTML("FVSClimAttrs.csv not found."))
@@ -6142,11 +6505,11 @@ cat ("no FVSClimAttrs.csv file\n")
     }
 cat ("processing FVSClimAttrs.csv\n")
     progress$set(message = "Loading data set (big files take a while)",value = 2) 
-    climd = read.csv("FVSClimAttrs.csv",nrows=1)
-    climd = read.csv("FVSClimAttrs.csv",colClasses=c(rep("character",2),
+    climd = read.csv(climAtt,nrows=1)
+    climd = read.csv(climAtt,colClasses=c(rep("character",2),
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
-    unlink("FVSClimAttrs.csv")
+    unlink(climAtt)
     climTab <- myListTables(dbGlb$dbIcon)
     if (!("FVS_ClimAttrs" %in% climTab))
     {
@@ -6164,8 +6527,10 @@ cat ("no current FVS_ClimAttrs\n")
       return()      
     }
 cat ("current FVS_ClimAttrs\n")
-    if (file.exists("FVSClimAttrs.db")) unlink("FVSClimAttrs.db")
-    dbclim <- dbConnect(dbDrv,"FVSClimAttrs.db")
+    if(!globals$localWindows)climDb="FVSClimAttrs.db"
+    if(globals$localWindows)climDb=paste0(prjDir,"/FVSClimAttrs.db")
+    if (file.exists(climDb)) unlink(climDb)
+    dbclim <- dbConnect(dbDrv,climDb)
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
     dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
     rm (climd)  
@@ -6181,8 +6546,7 @@ cat ("current FVS_ClimAttrs\n")
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    
-    dbExecute(dbGlb$dbIcon,'attach database "FVSClimAttrs.db" as new')
+    dbExecute(dbGlb$dbIcon,'attach database "',climDb,'" as new')
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
     oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
@@ -6242,7 +6606,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
       }
     }
     dbExecute(dbGlb$dbIcon,'detach database new')   
-    unlink("FVSClimAttrs.db")
+    unlink(climDb)
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
@@ -6828,7 +7192,8 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        SpatialData=prepSpatialData()
        if (!is.null(SpatialData)) 
        {
-         save (SpatialData,file="SpatialData.RData")
+         if(!globals$localWindows)save (SpatialData,file="SpatialData.RData")
+         if(globals$localWindows)save (SpatialData,file=paste0(prjDir,"/SpatialData.RData"))
          dbGlb$SpatialData = SpatialData
        }
      }
@@ -6839,11 +7204,13 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        NewSpatialData=prepSpatialData()
        if (!is.null(NewSpatialData)) 
        {
-         if (file.exists("SpatialData.RData")) load(file="SpatialData.RData")
+         if(!globals$localWindows)spatdat="SpatialData.RData"
+         if(globals$localWindows)spatdat=paste0(prjDir,"/SpatialData.RData")
+         if (file.exists(spatdat)) load(file=spatdat)
          if (!exists("SpatialData")) SpatialData=NewSpatialData else
            SpatialData = if (class(SpatialData)=="list") 
              append(after=0,NewSpatialData) else list(SpatialData,NewSpatialData)        
-         save (SpatialData,file="SpatialData.RData")
+         save (SpatialData,file=spatdat)
          dbGlb$SpatialData = SpatialData
        }
      }
@@ -6887,35 +7254,38 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     {
       cat ("Refresh/copy projects\n")
       selChoices = getProjectList(includeLocked=TRUE)
-      sel = charmatch(basename(getwd()),selChoices)
+      if(!globals$localWindows)sel = charmatch(basename(getwd()),selChoices)
+      if(globals$localWindows)sel = charmatch(basename(prjDir),selChoices)
       if (is.na(sel)) return()
       sel = sel[1]
       revdates <- NULL
-      for (i in 1:length(selChoices))
-      {
-        test <- scan(paste0("../",selChoices[i],"/server.R"),what="character",
-                     sep="\n",quiet=TRUE,nlines=100)
-        ind <- grep("serverDate=",test,fixed=TRUE)
-        sdate=""
-        if (length(ind))
+      if(!globals$localWindows){
+        for (i in 1:length(selChoices))
         {
-          sdate = trim(test[ind[length(ind)]])
-          if (substr(sdate,1,1) == "#")
+          test <- scan(paste0("../",selChoices[i],"/server.R"),what="character",
+                       sep="\n",quiet=TRUE,nlines=100)
+          ind <- grep("serverDate=",test,fixed=TRUE)
+          sdate=""
+          if (length(ind))
           {
-            ind <- grep("$Id:",test,fixed=TRUE)
-            if (length(ind)) ind=ind[1]
-            sdate=scan(text=gsub("-","",test[ind]),what="character",quiet=TRUE)
-            sdate=if (length(sdate)>4) sdate[5] else ""
-          } else {
-            sdate=scan(text=sdate,sep='"',what="character",quiet=TRUE)
-            sdate=if(length(sdate)>1) sdate[2] else ""
+            sdate = trim(test[ind[length(ind)]])
+            if (substr(sdate,1,1) == "#")
+            {
+              ind <- grep("$Id:",test,fixed=TRUE)
+              if (length(ind)) ind=ind[1]
+              sdate=scan(text=gsub("-","",test[ind]),what="character",quiet=TRUE)
+              sdate=if (length(sdate)>4) sdate[5] else ""
+            } else {
+              sdate=scan(text=sdate,sep='"',what="character",quiet=TRUE)
+              sdate=if(length(sdate)>1) sdate[2] else ""
+            }
           }
+          revdates=c(revdates,sdate)
         }
-        revdates=c(revdates,sdate)
       }
       validTargets = getProjectList()
       namidx = match(validTargets,selChoices)
-      names(selChoices) <- paste0(names(selChoices),", ",revdates)
+      names(selChoices) <- if(!globals$localWindows) paste0(names(selChoices),", ",revdates) else names(selChoices)
       names(validTargets) <- names(selChoices)[namidx]
       sel = if (is.na(sel))  0 else selChoices[sel]
       updateSelectInput(session=session, inputId="sourcePrj", 
@@ -6934,7 +7304,8 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         progress$set(message = "Copying files to target project",value = 1)
 cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
         files=NULL
-        srcprj=paste0("../",input$sourcePrj,"/")
+        if(!globals$localWindows)srcprj=paste0("../",input$sourcePrj,"/")
+        if(globals$localWindows)srcprj=paste0("C:/FVS/",input$sourcePrj,"/")
         progress$set(message = "Copying files to new project",value = 4)
         for (elt in input$cpyElts)
         {
@@ -6953,7 +7324,7 @@ cat ("cpyNow files=",files,"\n")
         files=paste0(srcprj,files)
         for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
           if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
-          paste0("../",trgPrj))
+          if(globals$localWindows) paste0("C:/FVS/",trgPrj) else paste0("../",trgPrj))
         progress$set(message = "Copying files to target project",value = 9)
         updateSelectInput(session=session,inputId="targetPrj",selected=0)
         output$copyActionMsg <- renderText(HTML("<b>Target project software and/or files updated</b>"))
@@ -6976,12 +7347,14 @@ cat ("cpyNow files=",files,"\n")
       {
         prj1 = charmatch("Project_1",selChoices)
         if (!is.na(prj1)) selChoices=selChoices[-prj1]
-        actprj <- grep(basename(getwd()),selChoices)
+        if(!globals$localWindows)actprj <- grep(basename(getwd()),selChoices)
+         if(globals$localWindows)actprj <- grep(basename(prjDir),selChoices)
         if(length(actprj))selChoices <- selChoices[-actprj]
       }
       updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                         selected=0)
-      backups = dir (pattern="ProjectBackup")
+      if(!globals$localWindows)backups = dir (pattern="ProjectBackup")
+      if(globals$localWindows)backups = dir (path=prjDir,pattern="ProjectBackup")
       if (length(backups)) 
       {
         backups = sort(backups,decreasing=TRUE)
@@ -7009,8 +7382,14 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Saving current run",value = 1)
       saveRun()
-      curdir = getwd()
-      setwd("../")
+      if(!globals$localWindows){
+        curdir = getwd()
+        setwd("../")
+      }
+      if(globals$localWindows){
+        curdir = prjDir
+        setwd("C:/FVS")
+      }
       newTitle = input$PrjNewTitle
       fn = if (isLocal()) 
       {       
@@ -7018,16 +7397,39 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
         newTitle <- mkFileNameUnique(newTitle)
         newTitle
       } else uuidgen()
-      dir.create(fn)
-      if (dir.exists(fn)) setwd(fn) else
-      {
+      if (!dir.exists(fn)){
+        dir.create(fn)
+        setwd(fn) 
+      } else {
         setwd(curdir)
         updateTextInput(inputId="PrjNewTitle",session=session,value="")
+        progress$set(message = "Project title already exists",value = 12)
+        Sys.sleep(6)
         progress$close()
         return()
       }
       progress$set(message = "Copying project files",value = 5)
       filesToCopy = paste0(curdir,"/",dir(curdir))
+      if(globals$localWindows){
+        temp <- c()
+        idx <- 1
+        add = grep("FVS_Data.db.default",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+          idx <- idx +1
+        }
+        add = grep("FVS_Data.db.empty",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+          idx <- idx +1
+        }
+        add = grep("SpatialData.RData.default",filesToCopy)
+        if(length(add)){
+          temp[idx] = add
+        }
+        filesToCopy <- filesToCopy[temp]
+      }
+      if(!globals$localWindows){
 cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       del = grep(".log$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
@@ -7039,9 +7441,9 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       progress$set(message = "Copying project files",value = 7)
       if (length(del)) filesToCopy = filesToCopy[-del]
       filesToCopy=c(filesToCopy,paste0(curdir,c("/prms.RData",
-         "/SpatialData.RData.default","/SpatialData.RData",
-         "/FVS_Data.db.default","/FVS_Data.db",       
-         "/treeforms.RData")))
+       "/SpatialData.RData.default","/SpatialData.RData",
+       "/FVS_Data.db.default","/FVS_Data.db",       
+       "/treeforms.RData")))
       del = grep(pattern=".key$",filesToCopy)
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".out$",filesToCopy)
@@ -7052,29 +7454,36 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if (length(del)) filesToCopy = filesToCopy[-del]
       del = grep(pattern=".zip$",filesToCopy,fixed=TRUE)
       if (length(del)) filesToCopy = filesToCopy[-del]
+      }
       lapply(filesToCopy,function (x) cat ("from=",x," rc=",file.copy(from=x,to=".",recursive=TRUE),"\n"))
-      prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
-      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
-      ntit=paste0("title= ",newTitle)
-      idrow = grep("title=",prjid)
-      if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit    
-      write(file="projectId.txt",prjid)
+      if(!globals$localWindows){
+        prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
+        if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
+        ntit=paste0("title= ",newTitle)
+        idrow = grep("title=",prjid)
+        if (length(idrow)==0)prjid=c(prjid,ntit) else prjid[idrow]=ntit  
+        write(file="projectId.txt",prjid)
+      }
+      if(globals$localWindows)write(file=paste0(getwd(),"/projectId.txt"),paste0("title= ",newTitle))
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       progress$set(message = "Saving new project",value = 9)
-      for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      if(!globals$localWindows)for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
-      setwd(curdir)
+      if(!globals$localWindows)setwd(curdir)
+      if(globals$localWindows)setwd("C:/Users/Public/Documents/FVS")
     })
-  })    
+  }) 
+  
   observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
   {
     isolate({
-      newPrj=paste0("../",input$PrjSelect)
+      if(!globals$localWindows)newPrj=paste0("../",input$PrjSelect)
+      if(globals$localWindows)newPrj=paste0("C:/FVS/",input$PrjSelect)
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
 cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
-      if (plk) {updateProjectSelections();return()}
+      if (plk && !globals$localWindows) {updateProjectSelections();return()}
       if (dir.exists(newPrj))
       { 
         if (isLocal()) 
@@ -7083,15 +7492,10 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           if(.Platform$OS.type == "windows"){
             if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
             if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-            PID <- strsplit(shell("C:/Users/Public/Documents/R/Rscript.bat", intern=TRUE)[7]," ")[[1]][3]
-            write(file="C:/Users/Public/Documents/R/RscriptPID.txt",PID)
-            write(file="C:/Users/Public/Documents/R/prjSwitch.txt",basename(input$PrjSelect))
+            write(file="projectId.txt",paste0("title= ",basename(newPrj)))
             globals$saveOnExit = TRUE
-            globals$deleteLockFile=TRUE
-            globals$reloadAppIsSet=0
-            unlink ("projectIsLocked.txt")     
-            session$sendCustomMessage(type = "closeWindow"," ")
-            shell("C:/FVS/FVS_Icon.VBS")
+            globals$reloadAppIsSet=1
+            session$reload()
           }else{
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
@@ -7145,7 +7549,8 @@ cat ("launch url:",url,"\n")
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
       saveFvsRun = globals$fvsRun
-      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+      if(!globals$localWindows)save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
+      if(globals$localWindows)save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs) 
       
       # remove excess images that may be created in Maps.
