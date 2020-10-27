@@ -34,8 +34,7 @@ pgmList= list(
 
 FVSOnlineNeeded = c(
 "AcadianGY.R",
-"AdirondackFunctionsV1.R",
-"AdirondackV1.R",
+"AdirondackGY.R",
 "autoOutKeys.R",
 "componentWins.R",
 "customRun_fvsRunAcadian.R",
