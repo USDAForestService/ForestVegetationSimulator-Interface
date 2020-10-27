@@ -1,12 +1,9 @@
 # $Id$
 
-
 #load Adirondack growth functions
-source("AdirondackFunctionsV1.R")
-source("AdirondackV1.R")
+source("AdirondackGY.R")
 
 # Note: This is very carefully coded.
-
 fvsRunAdirondack <- function(runOps)
 {
   # process the ops.
@@ -18,13 +15,11 @@ fvsRunAdirondack <- function(runOps)
              runOps$uiAdirondackMort 
   volLogic = if (is.null(runOps$uiAdirondackVolume)) "Base Model" else 
              runOps$uiAdirondackVolume
-  mkGraphs=FALSE
-  CutPoint=0
+  CutPoint = if (is.null(runOps$uiAdirondackCutPoint)) 0 else 
+             as.numeric(runOps$uiAdirondackCutPoint)
 
-  cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
-    mortModel," volLogic=",volLogic,"\n",file="AdirondackGY.log")            
-  
-  
+  cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=")            
+    
   #load some handy conversion factors
   CMtoIN  = fvsUnitConversion("CMtoIN")
   INtoCM  = fvsUnitConversion("INtoCM")
@@ -78,64 +73,17 @@ fvsRunAdirondack <- function(runOps)
     incr$tree$HTG  = incr$tree$HTG  * FTtoM
     incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
 
-    cat ("fvsRunAdirondack: calling AdirondackGY, year=",stdInfo["year"],"\n",
-         file="AdirondackGY.log",append=TRUE) 
+    cat ("fvsRunAdirondack: calling AdirondackGY, year=",stdInfo["year"],"\n") 
                        
+    stand = list(CSI=CSI)
+    ops   = list(verbose=TRUE,cyclen=cyclen,INGROWTH=INGROWTH,
+                 MinDBH=MinDBH,CutPoint=CutPoint,   # >0 uses threshold probability (>0-1).
+                 mortModel=mortModel)
     #compute the growth
-    incr = AdirondackGY(incr$tree,CSI,cyclen=cyclen,
-                     INGROWTH=INGROWTH,
-                     MinDBH=MinDBH, 
-                     CutPoint=0,   # >0 uses threshold probability (>0-1).
-                     mortModel=mortModel) 
-
-    cat ("return from AdirondackGY, mkGraphs=",mkGraphs,"\n",
-          file="AdirondackGY.log",append=TRUE) 
-                     
-    #plot growth and ingrowth
-
-    if (mkGraphs)
-    {
-      file=paste0("SId_",fvsGetStandIDs()["standid"],"_Year_",
-                   stdInfo["year"],".png")
-      main=paste0("SId=",fvsGetStandIDs()["standid"],"; Year=",
-                  stdInfo["year"],"; Cyclen=",cyclen)
-      png (filename=file,height=6,width=6,units="in",pointsize=10,res=300)
-        par(mfcol=c(3,2),mar=c(4,4,3,1))
-        barplot(by(incr$tree$EXPF,FUN=base::sum,
-             INDICES=list(incr$tree$PLOT,incr$tree$SP)),
-             main=main,ylab="Stocking (t/ha)",xlab="Species",cex.names=.7)
-        box("figure")
-        if (!is.null(incr$tree$dEXPF))
-        {
-          barplot(by(incr$tree$dEXPF,FUN=base::sum,
-               INDICES=list(incr$tree$PLOT,incr$tree$SP)),
-               main=main,ylab="Mortality (t/ha)",xlab="Species",cex.names=.7)
-          box("figure")
-        }
-        plot(y=incr$tree$HT,x=incr$tree$DBH,xlab="DBH (cm)",ylab="Ht (m)",
-             col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        plot(y=incr$tree$dHT,x=incr$tree$HT,xlab="Ht (m)",ylab="dHt (m)",
-             col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        plot(y=incr$tree$dDBH,ylab="dDBH (cm)",xlab="DBH (cm)",
-             x=incr$tree$DBH,col=as.numeric(as.factor(incr$tree$SP)),main=main)
-        box("figure")
-        if (is.null(incr$ingrow))
-        {
-          plot.new()
-          text(.5,.5,"No ingrowth")
-        } else 
-        {
-          barplot(by(incr$ingrow$EXPF,FUN=base::sum,
-               INDICES=list(incr$ingrow$PLOT,incr$ingrow$SP)),
-               main=paste0(main,"\nMinDBH=",MinDBH," NumPlots=",
-                           max(incr$ingrow$PLOT)),
-               ylab="Ingrowth (t/ha)",xlab="Species",cex.names=.7)
-        }
-        box("figure")
-      dev.off()
-    }
+    save(incr,stand,ops,file="test.RData")
+    incr = AdirondackGYOneStand(incr$tree,stand,ops)
+    cat ("return from AdirondackGY, names(incr)=",names(incr)," nrows=",
+          unlist(lapply(incr,nrow)),"\n")                     
                 
     tofvs = data.frame(id=incr$tree$id,
             dg=incr$tree$dDBH*CMtoIN,
@@ -167,15 +115,13 @@ fvsRunAdirondack <- function(runOps)
         atstop6 = TRUE
         fvsAddTrees(toadd)
       } else cat ("fvsRunAdirondack: Not enough room for new trees. Stand=",
-                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n",
-                  file="AdirondackGY.log",append=TRUE)
+                  fvsGetStandIDs()["standid"],"; Year=",stdInfo["year"],"\n")
     }  
 
     # modifying volume?
     if (volLogic == "Kozak")
     {
-      cat ("fvsRunAdirondack: Applying Kozak volume logic\n",
-            file="AdirondackGY.log",append=TRUE)            
+      cat ("fvsRunAdirondack: Applying Kozak volume logic\n")            
 
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
       vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))                             
@@ -215,7 +161,6 @@ uiAdirondack <- function(fvsRun)
 cat ("in uiAdirondack uiAdirondackVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume)) "NULL" else 
               fvsRun$uiCustomRunOps$uiAdirondackVolume,"\n")
-
   if (is.null(fvsRun$uiCustomRunOps$uiAdirondackIngrowth))
               fvsRun$uiCustomRunOps$uiAdirondackIngrowth = "No"
   if (is.null(fvsRun$uiCustomRunOps$uiAdirondackMinDBH))
@@ -224,18 +169,22 @@ cat ("in uiAdirondack uiAdirondackVolume=",
               fvsRun$uiCustomRunOps$uiAdirondackMort     = "Adirondack"
   if (is.null(fvsRun$uiCustomRunOps$uiAdirondackVolume))
               fvsRun$uiCustomRunOps$uiAdirondackVolume   = "Base Model"
+  if (is.null(fvsRun$uiCustomRunOps$uiAdirondackCutPoint))
+              fvsRun$uiCustomRunOps$uiAdirondackCutPoint   = "0.0"
   list(
     radioButtons("uiAdirondackIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackIngrowth),
-    textInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
+    myInlineTextInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAdirondackMinDBH),
     radioButtons("uiAdirondackMort", "Mortality model:", 
       c("Adirondack","Base Model"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackMort),
     radioButtons("uiAdirondackVolume", "Merchantable volume logic:", 
       c("Kozak","Base Model"),inline=TRUE,
-      selected=fvsRun$uiCustomRunOps$uiAdirondackVolume)
+      selected=fvsRun$uiCustomRunOps$uiAdirondackVolume),
+    myInlineTextInput("uiAdirondackCutPoint","CutPoint", 
+               fvsRun$uiCustomRunOps$uiAdirondackCutPoint)
   )
 }
  
