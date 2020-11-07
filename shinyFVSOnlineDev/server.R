@@ -4293,18 +4293,15 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
                           selected=names(globals$customCmps)[1])
       }
-      # if (is.null(input$kcpTitle) || nchar(input$kcpTitle) == 0)
-      # {
       updateTextInput(session=session, inputId="kcpTitle", value=
                         paste("From:",input$kcpUpload$name))
-      # }
       if(addnl){
         updateTextInput(session=session, inputId="kcpEdit", value=
                           paste(data,collapse="\n"))
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
-        if(!globals$localWindows)save(file="FVS_kcps.RData",globals$customCmps)
-        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),globals$customCmps)
+        if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
+        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
       }
     })
   })
