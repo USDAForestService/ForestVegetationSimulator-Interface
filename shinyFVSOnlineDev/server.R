@@ -1,8 +1,8 @@
 # $Id$
 
-library(shiny)                                 
-library(rhandsontable)                                            
-library(ggplot2)  
+library(shiny)                        
+library(rhandsontable)                                          
+library(ggplot2)
 library(parallel)
 library(RSQLite)
 library(plyr)
@@ -11,7 +11,7 @@ library(rgl)
 library(leaflet)
 library(zip)
 #library(rgdal) #loaded when it is needed
-library(openxlsx)              
+library(openxlsx)
 
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
@@ -41,7 +41,7 @@ cat ("Server id=",serverID,"\n")
   serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  # serverDate="20191101"
+  #$ serverDate="20201010"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -107,7 +107,7 @@ cat ("Project is locked.\n")
             if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
             if(class(ret)!="try error"){# get UUID(s) and Run Title(s)
               globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
-              attr(globals$FVS_Runs[i],"time") = as.integer(Sys.time())
+              attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
             }
           }
           FVS_Runs = globals$FVS_Runs
@@ -4042,8 +4042,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
           cat (file=tf,"Keywords not yet created.\n")
       }, contentType="text")
   
-  ## Download FVSData.zip  
-  output$dlFVSRunZip <- downloadHandler(filename="FVSData.zip",
+  ## Download fvsRun.zip 
+  output$dlFVSRunZip <- downloadHandler(filename="fvsRun.zip",
      content = function (tf = tempfile())
          {
            tempDir = paste0(dirname(tf),"/tozip")
@@ -4354,6 +4354,14 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     }
   })
   
+  ## Download KCP
+  output$kcpDownload <- downloadHandler(filename=function ()
+      paste0(input$kcpSel,".kcp"),
+      content=function (tf = tempfile())
+      {
+        write(input$kcpEdit,tf)
+      }, contentType="text")
+
   observe({
     if (input$topPan == "SVS3d")
     {
@@ -5213,7 +5221,8 @@ cat ("delete all runs and outputs\n")
         unlink(paste0(prjDir,"/FVS_Runs.RData"))
       }
       for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
-      dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")
+      if(!globals$localWindows)dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),"FVSOut.db")
+      if(globals$localWindows)dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),paste0(prjDir,"/FVSOut.db"))
       globals$saveOnExit = FALSE
       globals$reloadAppIsSet=1
       session$reload()
@@ -5292,7 +5301,8 @@ cat ("Refresh interface file=",frm,"\n")
         flst = c(flst,fvsPgms)
       }
       if(globals$localWindows){
-        flst=dir(prjDir)
+        setwd(prjDir)
+        flst=dir()
         del = grep("FVSbin",flst)
         if (length(del)) flst = flst[-del]
         del = grep("^R",flst)
@@ -5307,6 +5317,14 @@ cat ("Refresh interface file=",frm,"\n")
         if (length(del)) flst = flst[-del]
         del = grep(".zip$",flst)
         if (length(del)) flst = flst[-del]
+        isolate({
+          if(input$prjBckCnts=="projFVS")flst <- c(flst,paste0("C:/Users/Public/Documents/FVS/",
+                                                             dir("C:/Users/Public/Documents/FVS")))
+        del = grep("FVSbin",flst)
+        if (length(del)) flst = flst[-del]
+        del = grep("^R",flst)
+        if (length(del)) flst = flst[-del]
+        })
       }
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
@@ -5318,12 +5336,7 @@ cat ("Refresh interface file=",frm,"\n")
       {
         x = flst[i]
         progress$set(message = paste0("Adding ",x," to ",zfile), value = i)
-        if(!globals$localWindows)rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
-        if(globals$localWindows){
-          rtn=if (file.exists(paste0(prjDir,"/",zfile)))
-            try(zipr_append(paste0(prjDir,"/",zfile),paste0(prjDir,"/",x))) 
-            else try(zipr(paste0(prjDir,"/",zfile),paste0(prjDir,"/",x)))
-        } 
+        rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
         if (class(rtn)=="try-error") 
         {
           progress$set(message = paste0("Failed to add ",x," to ",zfile), value = i+1)
@@ -5343,18 +5356,55 @@ cat ("Refresh interface file=",frm,"\n")
       } else backups=list()
       updateSelectInput(session=session, inputId="pickBackup", 
         choices = backups, selected="")
+      if(globals$localWindows)setwd("C:/Users/Public/Documents/FVS")
     }
   })    
   
-  ## restorePrjBackup 
+ ## Upload Project Backup--upZipBackup
+  observe({
+    if(!isLocal())return()
+    if (is.null(input$upZipBackup)) return()
+    prjBackupUpload = input$upZipBackup$name
+cat ("prjBackupUpload=",prjBackupUpload,"\n")
+    ind <- grep("ProjectBackup_",prjBackupUpload)
+    fext <- tools::file_ext(basename(input$upZipBackup$name))
+    if (!length(ind) && fext !="zip") 
+    {
+      output$delPrjActionMsg  = renderText("<b>Uploaded file is not a valid project backup zip file</b>")
+      unlink(input$upZipBackup$datapath)
+      return()
+    }
+    fdir = dirname(input$upZipBackup$datapath)
+    file.copy(input$upZipBackup$datapath,prjDir)
+    save <- getwd()
+    setwd(prjDir)
+    file.rename("0.zip",prjBackupUpload)
+    setwd(save)
+    backups = dir (path=prjDir,pattern="ProjectBackup")
+    if (length(backups)){
+        backups = sort(backups,decreasing=TRUE)
+        names(backups) = backups 
+    } else backups=list()
+      updateSelectInput(session=session, inputId="pickBackup", 
+        choices = backups, selected="")
+      output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
+  })
+  
+   ## restorePrjBackup 
   observe({
     if(length(input$restorePrjBackup) && input$restorePrjBackup > 0)
     {
+    if(globals$localWindows){
       session$sendCustomMessage(type = "dialogContentUpdate",
-        message = list(id = "restorePrjBackupDlg",
-                  message = "Are you sure?"))
+            message = list(id = "restorePrjBackupDlg",
+                      message = "This won't overwrite current project files; however,if this backup includes 
+                      the FVS software, restoring it will overwrite the current version of FVS. Are you sure?"))
+    }else session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "restorePrjBackupDlg",
+                      message = "Are you sure?"))
     }
   })
+  
   observe({  
     if (length(input$restorePrjBackupDlgBtn) && 
         input$restorePrjBackupDlgBtn > 0) 
@@ -5370,16 +5420,78 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
           if (ocon) dbDisconnect(dbGlb$dbOcon)
           if (icon) dbDisconnect(dbGlb$dbIcon)
           if(!globals$localWindows)unzip (fvsWorkBackup)
-          if(globals$localWindows)unzip (fvsWorkBackup,exdir = prjDir)
+          if(globals$localWindows){
+            td <- tempdir()
+            unzip (fvsWorkBackup,exdir=td)
+            prjConts <- dir(td)
+            FVSconts <- character()
+            del = grep("FVSbin",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep("^R",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep("^www",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep(".R$",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep(".html$",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep(".xlsx$",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep(".zip$",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep("treeforms.RData",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep("prms.RData",prjConts)
+            if (length(del)) {
+              FVSconts = c(FVSconts,prjConts[del])
+              prjConts = prjConts[-del]
+            }
+            del = grep("FVS_Runs.RData",prjConts)
+            if (length(del)) {
+              prjConts = prjConts[-del]
+            }
+            del = grep("file",prjConts)
+            if (length(del)) {
+              prjConts = prjConts[-del]
+            }
+            load(paste0(td,"/FVS_Runs.RData"))
+            globals$FVS_Runs = c(globals$FVS_Runs,FVS_Runs)
+            if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),"C:/Users/Public/Documents/FVS",overwrite=TRUE)
+            if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
+            unlink(td)
+          }
           if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
-          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname) 
+          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
           globals$reloadAppIsSet=1
           session$reload()
         }
       })
     }
   })
-   
   
   ## PrjDelete 
   observe({
@@ -7213,6 +7325,111 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      }
    })
 
+   observe({
+    if(input$topPan == "Import Runs")
+    {
+      output$uploadRunMsg <- NULL
+      output$addRunMsg <- NULL
+    }
+  })
+   
+   ## Upload Runs
+  observe({
+    if (is.null(input$uploadRunsRdat)) return()
+    output$uploadRunMsg <- NULL
+    output$addRunMsg <- NULL
+    fvsRunsRData = input$uploadRunsRdat$name
+cat ("fvsRunsRData=",fvsRunsRData,"\n")
+    if (fvsRunsRData !="fvsRun.zip") 
+    {
+      output$uploadRunMsg  = renderText("Uploaded file is not a valid fvsRun.zip file.")
+      unlink(input$uploadRunsRdat$datapath)
+      return()
+    }
+    fdir = dirname(input$uploadRunsRdat$datapath)
+    unzip(input$uploadRunsRdat$datapath, junkpaths = TRUE, exdir = fdir)
+    unlink(input$uploadRunsRdat$datapath)
+    fname = dir(dirname(input$uploadRunsRdat$datapath))
+    if (length(fname) == 0) {
+      output$actionMsg = renderText(".zip was empty.")
+      progress$close()
+      return()
+    } 
+    if(length(grep(".RData$",fname)))fname <- fname[grep(".RData$",fname)]
+    if(length(grep("FVS_Runs.RData",fname)))fname <- fname[-grep("FVS_Runs.RData",fname)]
+    fext = tools::file_ext(fname)
+    if (!length(fname)) 
+    {
+      output$uploadRunMsg = renderText("fvsRun.zip did not contain any valid run files.")
+      lapply (dir(dirname(input$uploadRunsRdat$datapath),full.names=TRUE),unlink)
+      progress$close()
+      return()
+    }
+    runTitles <- list()
+    runUuids <- list()
+    for(h in 1:length(fname)){
+      load(paste0(fdir,"/",fname[h]))
+      runTitles[h] <- saveFvsRun$title
+      runUuids[h] <- saveFvsRun$uuid
+    }
+    globals$selRuns <- as.character(runTitles)
+    globals$selUuids <- as.character(runUuids)
+    updateSelectInput(session=session, inputId="runsList",
+                  choices  = runTitles)
+  })
+
+    observe({
+      if(input$prjRenameToggle==1){
+        output$renameRunText = renderUI(textInput("renameRun", "Renamed run title:", width="28.5%"))
+    }
+      else output$renameRunText = NULL
+    })
+  
+  # Add run
+  observeEvent(input$addRun,{
+    if(!length(input$runsList))return()
+    if(input$prjRenameToggle==1 && input$renameRun==""){
+      output$addRunMsg  = renderText("Rename run title is blank.")
+      return()
+    }
+    if(!globals$localWindows) file = "FVS_Runs.RData"
+    if(globals$localWindows) file = paste0(prjDir,"/FVS_Runs.RData")
+    truedat <- load(file)
+    isolate({
+      if (!is.na(match(input$runsList,FVS_Runs)) && input$prjRenameToggle==2)
+      {
+        output$addRunMsg  = renderText(paste0(input$runsList," already exists in current project. Rename selected run before adding."))
+        return()
+      }
+    })
+    fname = dir(dirname(input$uploadRunsRdat$datapath))
+    fdir = dirname(input$uploadRunsRdat$datapath)
+    idx <- grep(input$runsList,globals$selRuns)
+    load(paste0(fdir,"/",fname[grep(globals$selUuids[idx],fname)]))
+    globals$FVS_Runs[[saveFvsRun$uuid]] = if(input$prjRenameToggle==1) input$renameRun else saveFvsRun$title
+    attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
+    file.copy(from=paste0(fdir,"/",fname[grep(globals$selUuids[idx],fname)]),to=if(globals$localWindows) prjDir else ".")
+    load(paste0(prjDir,"/",fname[grep(globals$selUuids[idx],fname)]))
+    temp1 <- input$runsList
+    if(input$prjRenameToggle==1){
+      saveFvsRun$title <- input$renameRun
+      temp2 <- input$renameRun
+    }
+    if(!globals$localWindows)save (file=paste0(saveFvsRun$uuid,".RData",saveFvsRun))
+    if(globals$localWindows)save (file=paste0(prjDir,"/",saveFvsRun$uuid,".RData"),saveFvsRun)
+    output$addRunMsg  = if(input$prjRenameToggle==2) renderText(paste0(temp1,
+                           " added to the project run list")) else renderText(paste0(temp2,
+                           " added to the project run list"))
+    selChoices = names(globals$FVS_Runs) 
+    names(selChoices) = globals$FVS_Runs
+    updateSelectInput(session=session, inputId="runSel", 
+                      choices=selChoices,selected=selChoices[[1]])
+    if(input$renameRun!="")updateTextInput(session=session, inputId="renameRun",value="")
+    FVS_Runs <- globals$FVS_Runs
+    if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
+    if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+  })
+  
   #runScript selection
   observe({
     if (length(input$runScript)) customRunOps()
@@ -7345,7 +7562,7 @@ cat ("cpyNow files=",files,"\n")
         prj1 = charmatch("Project_1",selChoices)
         if (!is.na(prj1)) selChoices=selChoices[-prj1]
         if(!globals$localWindows)actprj <- grep(basename(getwd()),selChoices)
-         if(globals$localWindows)actprj <- grep(basename(prjDir),selChoices)
+        if(globals$localWindows)actprj <- grep(basename(prjDir),selChoices)
         if(length(actprj))selChoices <- selChoices[-actprj]
       }
       updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
@@ -7464,7 +7681,7 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
       if(globals$localWindows)write(file=paste0(getwd(),"/projectId.txt"),paste0("title= ",newTitle))
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       progress$set(message = "Saving new project",value = 9)
-      if(!globals$localWindows)for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
+      if(!globals$localWindows) for (uuid in names(globals$FVS_Runs)) removeFVSRunFiles(uuid,all=TRUE)
       updateProjectSelections()
       progress$close()
       if(!globals$localWindows)setwd(curdir)
