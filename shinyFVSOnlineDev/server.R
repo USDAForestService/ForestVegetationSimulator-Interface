@@ -1281,7 +1281,22 @@ cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
   observe({
     if (is.null(input$browsevars)) return()
 cat("filterRows and/or pivot\n")
-    fvsOutData$browseSelVars <- input$browsevars
+    if(fvsOutData$browseVars[1]==input$browsevars[1]){
+        fvsOutData$browseSelVars <- fvsOutData$browseVars[-1]
+        updateCheckboxGroupInput(session, "browsevars", choices=as.list(fvsOutData$browseVars), 
+                                 selected=fvsOutData$browseVars,inline=TRUE)
+        globals$selAllVars = TRUE
+      if(length(input$browsevars)==(length(fvsOutData$browseVars)-1) && globals$selAllVars){
+        fvsOutData$browseSelVars <- input$browsevars[-1]
+        updateCheckboxGroupInput(session, "browsevars", choices=as.list(fvsOutData$browseVars), 
+                                 selected=fvsOutData$browseSelVars,inline=TRUE)
+        globals$selAllVars = FALSE
+      }
+    }else if (fvsOutData$browseVars[1]!=input$browsevars[1] && globals$selAllVars){
+      fvsOutData$browseSelVars <- character()
+      updateCheckboxGroupInput(session, "browsevars", choices=as.list(fvsOutData$browseVars),
+                                 selected=fvsOutData$browseSelVars,inline=TRUE)
+    }else fvsOutData$browseSelVars <- input$browsevars
     dat = if (length(input$stdtitle) || length(input$stdgroups) ||   
               length(input$stdid)    || length(input$mgmid)     || 
               length(input$year)     || length(input$species)   || 
@@ -5320,10 +5335,6 @@ cat ("Refresh interface file=",frm,"\n")
         isolate({
           if(input$prjBckCnts=="projFVS")flst <- c(flst,paste0("C:/Users/Public/Documents/FVS/",
                                                              dir("C:/Users/Public/Documents/FVS")))
-        del = grep("FVSbin",flst)
-        if (length(del)) flst = flst[-del]
-        del = grep("^R",flst)
-        if (length(del)) flst = flst[-del]
         })
       }
       # close the input and output databases if they are openned
@@ -5397,8 +5408,8 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     if(globals$localWindows){
       session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
-                      message = "This won't overwrite current project files; however,if this backup includes 
-                      the FVS software, restoring it will overwrite the current version of FVS. Are you sure?"))
+                      message = "This will combine current project files with those being restored. However,if this backup 
+                      includes the FVS software, restoring it will overwrite the current version of FVS. Are you sure?"))
     }else session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
                       message = "Are you sure?"))
