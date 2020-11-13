@@ -47,7 +47,8 @@ mkGlobals <<- setRefClass("globals",
     lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
-    localWindows="logical"))
+    localWindows="logical",selRuns = "character", selUuids = "character",
+    selAllVars="logical"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
