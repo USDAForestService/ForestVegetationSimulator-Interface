@@ -337,6 +337,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
     {
+      globals$selAllVars=FALSE
 cat ("View Outputs & Load\n")
       initTableGraphTools()
       tbs <- myListTables(dbGlb$dbOcon)     
@@ -1251,6 +1252,7 @@ cat ("cmd=",cmd,"\n")
         keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
         selVars = selVars[keep]
         if (length(vars) < 7) selVars = vars[-(grep("CaseID",vars))]
+        vars <- c("Select All",vars)
         updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                  selected=selVars,inline=TRUE)                               
         fvsOutData$dbData        <- mdat
@@ -1265,6 +1267,10 @@ cat ("cmd=",cmd,"\n")
   renderTable <- function (dat)
   {
 cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
+    if (!is.null(dat) && ncol(dat)==0){
+      renderRHandsontable(NULL)
+      return() 
+    }
     if (!is.null(dat) && nrow(dat) > 0)
     {                                 
       dat = lapply(dat,function (x) 
@@ -5303,8 +5309,8 @@ cat ("Refresh interface file=",frm,"\n")
   observe({
     if(input$mkZipBackup > 0)
     {
-      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
       if(!globals$localWindows){
+        zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
         flst=dir()
         del = grep("^ProjectBackup",flst)
         if (length(del)) flst = flst[-del]
@@ -5333,8 +5339,11 @@ cat ("Refresh interface file=",frm,"\n")
         del = grep(".zip$",flst)
         if (length(del)) flst = flst[-del]
         isolate({
-          if(input$prjBckCnts=="projFVS")flst <- c(flst,paste0("C:/Users/Public/Documents/FVS/",
-                                                             dir("C:/Users/Public/Documents/FVS")))
+          if(input$prjBckCnts=="projFVS"){
+            flst <- c(flst,paste0("C:/Users/Public/Documents/FVS/",
+                                   dir("C:/Users/Public/Documents/FVS")))
+            zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_PS.zip")
+          }else zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_P.zip")
         })
       }
       # close the input and output databases if they are openned
@@ -5401,25 +5410,40 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
       output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
   })
   
-   ## restorePrjBackup 
-  observe({
-    if(length(input$restorePrjBackup) && input$restorePrjBackup > 0)
-    {
-    if(globals$localWindows){
+  ## restorePrjBackup 
+   observeEvent(input$restorePrjBackup,{
+    if(length(grep("_PS.zip",input$pickBackup)) || !length(grep("_P.zip",input$pickBackup))){
+      output$btnA <-renderUI({
+        HTML("Project files only")
+      })
+      output$btnB <-renderUI({
+        HTML("Project files and FVS software")
+      })
       session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
-                      message = "This will combine current project files with those being restored. However,if this backup 
-                      includes the FVS software, restoring it will overwrite the current version of FVS. Are you sure?"))
-    }else session$sendCustomMessage(type = "dialogContentUpdate",
+                      message = "WARNING: restoring this project backup will overwrite 
+                      any existing project files in this current project. If you don't 
+                      want to lose exiting project files, consider restoring to a new empty
+                      project instead. This backup also contains FVS software that will
+                      overwrite your currently installed version with the software in the
+                      backup, if selected.  What contents would you like to restore?"))
+    } else {
+      output$btnA <-renderUI({
+        HTML("Yes")
+      })
+      output$btnB <-renderUI({
+        HTML("No")
+      })
+      session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
-                      message = "Are you sure?"))
+                      message = "WARNING: restoring this project backup will overwrite 
+                      any existing project files in this current project. If you don't 
+                      want to lose exiting project files, consider restoring to a new
+                      empty project instead. Are you sure?"))
     }
   })
   
-  observe({  
-    if (length(input$restorePrjBackupDlgBtn) && 
-        input$restorePrjBackupDlgBtn > 0) 
-    {
+  observeEvent(input$restorePrjBackupDlgBtnA,{  
       isolate({
         if(!globals$localWindows)fvsWorkBackup = input$pickBackup
         if(globals$localWindows)fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
@@ -5489,9 +5513,12 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
             if (length(del)) {
               prjConts = prjConts[-del]
             }
-            load(paste0(td,"/FVS_Runs.RData"))
-            globals$FVS_Runs = c(globals$FVS_Runs,FVS_Runs)
-            if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),"C:/Users/Public/Documents/FVS",overwrite=TRUE)
+            currPrjFiles <- dir(prjDir)
+            del = grep(".zip$",currPrjFiles)
+            if (length(del)) {
+              currPrjFiles = currPrjFiles[-del]
+            }
+            unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
             if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
             unlink(td)
           }
@@ -5501,7 +5528,92 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
           session$reload()
         }
       })
-    }
+  })
+  
+    observeEvent(input$restorePrjBackupDlgBtnB,{  
+      isolate({
+        if(!globals$localWindows)return()
+        if(length(grep("_P.zip",input$pickBackup)))return()
+        fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
+cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
+        if (file.exists(fvsWorkBackup)) 
+        {
+          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+          if (ocon) dbDisconnect(dbGlb$dbOcon)
+          if (icon) dbDisconnect(dbGlb$dbIcon)
+          td <- tempdir()
+          unzip (fvsWorkBackup,exdir=td)
+          prjConts <- dir(td)
+          FVSconts <- character()
+          del = grep("FVSbin",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep("^R",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep("^www",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep(".R$",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep(".html$",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep(".xlsx$",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep(".zip$",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep("treeforms.RData",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep("prms.RData",prjConts)
+          if (length(del)) {
+            FVSconts = c(FVSconts,prjConts[del])
+            prjConts = prjConts[-del]
+          }
+          del = grep("FVS_Runs.RData",prjConts)
+          if (length(del)) {
+            prjConts = prjConts[-del]
+          }
+          del = grep("file",prjConts)
+          if (length(del)) {
+            prjConts = prjConts[-del]
+          }
+          currPrjFiles <- dir(prjDir)
+          del = grep(".zip$",currPrjFiles)
+          if (length(del)) {
+            currPrjFiles = currPrjFiles[-del]
+          }
+          unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
+          if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),"C:/Users/Public/Documents/FVS",overwrite=TRUE)
+          if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
+          unlink(td)
+          if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
+          globals$reloadAppIsSet=1
+          session$reload()
+        }
+      })
   })
   
   ## PrjDelete 
@@ -5520,14 +5632,21 @@ cat ("PrjDelete, input$PrjDelSelect=",input$PrjDelSelect,"\n")
           prjList=getProjectList()
           nm = names(prjList)[charmatch(input$PrjDelSelect,prjList)]
           output$delPrjActionMsg <- NULL
-          session$sendCustomMessage(type = "dialogContentUpdate",
+          if(globals$localWindows){
+            ind <- 0
+            ind <- grep("ProjectBackup_",dir(paste0("C:/FVS/",input$PrjDelSelect)))
+            if(ind > 0)session$sendCustomMessage(type = "dialogContentUpdate",
+            message = list(id = "PrjDeleteDlg", message = 
+              paste0(nm," contains project backups within it that you may want to download first. 
+                     Are you sure you still want to delete this project?")))
+          } else session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "PrjDeleteDlg", message = 
               paste0('Are you sure you want to delete this project "',nm,'"?')))
         }
       })
     }
   })
-  observe({
+ observe({
     if (input$PrjDeleteDlgBtn > 0) 
     {
 cat("delete project button.") 

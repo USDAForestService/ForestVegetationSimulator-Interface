@@ -742,22 +742,23 @@ shinyUI(fixedPage(
                 tags$button(type = "button", class = "btn btn-primary", 
                   'data-dismiss' = "modal", "Cancel"))),  
               h4(),h4("Make new project backup file"),
-              if(isLocal())radioButtons("prjBckCnts",NULL,choices=list("Project files only"="projOnly",
-                             "Project files and FVS software"="projFVS"),selected="projOnly"),
+              if(isLocal())radioButtons("prjBckCnts",NULL,width="50%",choices=list("Project files only 
+                             (*_P.zip)"="projOnly", "Project files and FVS software (*_PS.zip)"="projFVS"),selected="projOnly"),
               actionButton("mkZipBackup","Make a project backup zip file"),
               h4("Manage current project backup files"),
               selectInput("pickBackup", "Select backup to process", multiple=FALSE,
                  choices = list(), selected="", selectize=FALSE),
               actionButton("delZipBackup","Delete backup"),
               downloadButton("dlPrjBackup","Download backup"),
+              tags$style(type="text/css","#restorePrjBackupDlg{color:darkred;font-size:150%;width:100%;}"),
               list(
                 modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
                   "Restore from backup"),
                 modalDialog(id="restorePrjBackupDlg", footer=list(
-                  modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
-                    "Yes"),
-                  tags$button(type = "button", class = "btn btn-primary", 
-                    'data-dismiss' = "modal", "Cancel")))
+                  modalTriggerButton("restorePrjBackupDlgBtnA", "#restorePrjBackupDlg", 
+                    htmlOutput("btnA", inline=TRUE)),
+                modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
+                    htmlOutput("btnB", inline=TRUE)),NULL))
               ),
               if(isLocal())h4(),
               if(isLocal())h4("Upload existing project backup file into current project"),
