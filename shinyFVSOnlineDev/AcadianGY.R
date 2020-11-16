@@ -2814,7 +2814,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
     " MinDBH=",MinDBH," SBW=",SBW," useDBH_RDmodifier=",useDBH_RDmodifier,
     " useHT_RDmodifier=",useHT_RDmodifier,"\n           useMORT_RDmodifier=",
     useMORT_RDmodifier," usedHTCap=",usedHTCap,"\n")                                               
-  if (exists("AcadianVersionTag") && verbose) 
+  if (verbose && exists("AcadianVersionTag")) 
     cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
   temp = SPP.func(tree$SP)  
