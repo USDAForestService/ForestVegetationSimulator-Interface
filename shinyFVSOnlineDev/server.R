@@ -245,8 +245,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     globals$changeind <- 0
     output$contChange <- renderUI("Run")    
     if (!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    if (globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
-    loadVarData(globals,prms,dbGlb$dbIcon)                                              
+    if (globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))                                           
     setProgress(value = NULL)          
   }, min=1, max=6)
   
