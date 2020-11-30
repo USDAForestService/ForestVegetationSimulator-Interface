@@ -19,7 +19,7 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
   {
     f = f+1
     pkey = paste0("f",f)
-    fps = getPstring(pkeys,pkey,globals$activeVariants[1])
+    fps = getPstring(pkeys,pkey,globals$activeVariants[1])                
     if (is.null(fps)) break
     elt = unlist(strsplit(fps," "))
     if (length(elt) > 1)
@@ -41,8 +41,8 @@ mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
     if (cndflag) pkey = paste0("cnd.",pkey)
     else if (funcflag) pkey = paste0("func.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
- "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,
- "\nchoices=",choices,"\n") 
+ "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,"\n")
+
     elt = switch(elt,
       listButton     = mkSelectInput (pkey, pmt, choices, fpvs),
       longListButton = mkSelectInput (pkey, pmt, choices, fpvs),
@@ -55,6 +55,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       intNumberBox   = mkTextInput (pkey, pmt, choices, fpvs), 
       textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
       longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs),
+      mkVarList      = myInlineListButton (pkey, pmt, mkVarList(globals), selected=fpvs, deltll=2),
       forestSelection = mkSelForest(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
       habPaSelection = mkSelhabPa(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
       fileBrowse     = {
@@ -142,64 +143,32 @@ mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
 {
   forkeys <- prms[[paste0("HabPa_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
-  addAll = grep ("^blank",choices)
-  if (length(addAll))
-  { 
-    choices = choices[-addAll]
-    if (length(choices)==0) choices=NULL
-    addAll = FALSE
-  } else addAll = TRUE
-  fors = if (addAll) list("All species") else list ()
-  for (f in forkeys) fors <- append(fors,attr(f,"pstring"))
-  dsp = if (addAll) as.list(c("All",unlist(forkeys))) else forkeys
-  if (!is.null(fpvs)) 
-  {
-    if (fpvs == -1) 
-    {
-      sps <- append(sps," ",after=0)
-      dsp <- append(dsp," ",after=0)
-    } else choices = fpvs
-  }
-  if(length(fors))names(dsp) = fors
-  spGrp=NULL
-  myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
+  fors <- unlist(forkeys)
+  names(fors) <- lapply(forkeys,function (x) attr(x,"pstring"))
+  fors[1]="blank"
+  myInlineListButton (pkey, pmt, fors, selected = if (is.null(fpvs)) choices else fpvs, NULL)
 }
 
 mkSelForest <- function (pkey,prms,pmt,fpvs,choices,variant)
 {
-forkeys <- prms[[paste0("Forests_",variant)]]
-choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
-addAll = grep ("^blank",choices)
-if (length(addAll))
-{ 
-choices = choices[-addAll]
-if (length(choices)==0) choices=NULL
-addAll = FALSE
-} else addAll = TRUE
-fors = if (addAll) list("All species") else list ()
-for (f in forkeys) fors <- append(fors,attr(f,"pstring"))
-dsp = if (addAll) as.list(c("All",unlist(forkeys))) else forkeys
-if (!is.null(fpvs)) 
-{
-  if (fpvs == -1) 
-  {
-    sps <- append(sps," ",after=0)
-    dsp <- append(dsp," ",after=0)
-  } else choices = fpvs
+  forkeys <- prms[[paste0("Forests_",variant)]]
+  choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
+  fors <- unlist(forkeys)
+  names(fors) <- lapply(forkeys,function (x) attr(x,"pstring"))
+  fors[1]="blank"
+  myInlineListButton (pkey, pmt, fors, selected =  if (is.null(fpvs)) choices else fpvs, NULL)
 }
-if(length(fors))names(dsp) = fors
-spGrp=NULL
-myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
-}
-
+  
     
 mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
-{ spGrp <- as.numeric()
+{ 
+  spGrp <- as.numeric()
   spkeys <- prms[[paste0("species_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
   addAll = grep ("^deleteAll",choices)
   if (length(addAll))
-  { spGrp <- 1
+  { 
+    spGrp <- 1
     choices = choices[-addAll]
     if (length(choices)==0) choices=NULL
     addAll = FALSE
@@ -439,96 +408,237 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
      inputs,"</select></div>"))
 }
 
+mkVarList <- function (globals)
+{
+  varList = c(
+     " "=" ",
+     "Age: Age at beginning of an FVS cycle"="Age", 
+     "Aspect: Aspect in degrees"="Aspect", 
+     "BaDBH: Before thin quadractic mean DBH"="BaDBH", 
+     "BBA: Before thin basal area"="BBA", 
+     "BBdFt: Before thin board foot (western variants) sawtimber (eastern variants) volume"="BBdFt", 
+     "BCanCov: Before thin percent canopy cover (StrClass keyword required)"="BCanCov", 
+     "BCCF: Before thin CCF"="BCCF", 
+     "BDBHwtBA: Before thin average DBH weighted by stand basal area"="BDBHwtBA", 
+     "BMaxHS: Before thin height of tallest tree in uppermost stratum (StrClass keyword required)"="BMaxHS", 
+     "BMCuFt: Before thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="BMCuFt", 
+     "BMinHS: Before thin height of shortest tree in uppermost stratum (StrClass keyword required)"="BMinHS", 
+     "BNumSS: Before thin number of valid strata (StrClass keyword required)"="BNumSS", 
+     "BRDen: Before thin relative density (Curtis 1982)"="BRDen", 
+     "BRDen2: Before thin relative density, SILVAH (Marquis and Ernst 1992)"="BRDen2", 
+     "BSClass: Before thin stand structural classification (StrClass keyword required)"="BSClass", 
+     "BSDI: Before thin stand density index"="BSDI", 
+     "BSDI2: Before thin stand density index (based on Zeide 1983)"="BSDI2", 
+     "BSDIMax: Before thin maximum stand density index"="BSDIMax", 
+     "BStrDbh: Before thin dbh of the stand uppermost stratum (StrClass keyword required)"="BStrDbh", 
+     "BTCuFt: Before thin total (western variants) or merchantable (pulpwood + sawtimber, eastern variants) cubic foot volume"="BTCuFt", 
+     "BTopHt: Before thin top height"="BTopHt", 
+     "BTPA: Before thin trees/acre"="BTPA", 
+     "CEndYear: Year at end of cycle"="CEndYear", 
+     "County: Stand location, 2-digit FIA county code"="County", 
+     "Cycle: Cycle number"="Cycle", 
+     "Elev: Stand elevation"="Elev", 
+     "EvPhase: Event Montitor phase: 1=before cutting, 2=after"="EvPhase", 
+     "ForTyp: FIA Forest Type code"="ForTyp", 
+     "HabType: Stand habitat type code"="HabType", 
+     "InvYear: Inventory year"="InvYear", 
+     "Lat: The latitude of the stand"="Lat", 
+     "Long: The longitude of the stand"="Long", 
+     "MAI: Mean annual increment"="MAI",                                                                                         
+     "No: The constant 0"="No", 
+     "NumTrees: Number tree records"="NumTrees", 
+     "PropStk: Proportion of stand considered stockable"="PropStk", 
+     "Rann: Uniform random number"="Rann", 
+     "SampWt: Stand sampling weight"="SampWt", 
+     "SilvahFT: Forest type as defined in SILVAH"="SilvahFT", 
+     "Site: Site index"="Site", 
+     "SizCls: Size class code"="SizCls", 
+     "Slope: Stand slope percent"="Slope", 
+     "SMR: Stand mistletoe rating"="SMR", 
+     "State: Stand location, 2-digit FIA state code"="State", 
+     "StkCls: Stocking class code"="StkCls", 
+     "Year: Year at the beginning of an FVS cycle"="Year", 
+     "Yes: The constant 1"="Yes", 
+     "AADBH: After thin average DBH"="AADBH", 
+     "ABA: After thin basal area"="ABA", 
+     "ABdFt: After thin board foot (western variants) sawtimber (eastern variants) volume"="ABdFt", 
+     "ACanCov: After thin percent canopy cover (StrClass keyword required)"="ACanCov", 
+     "ACCF: After thin CCF"="ACCF", 
+     "ADBHwtBA: After thin average DBH weighted by stand basal area"="ADBHwtBA", 
+     "AMaxHS: After thin height of tallest tree in uppermost stratum (StrClass keyword required)"="AMaxHS", 
+     "AMCuFt: After thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="AMCuFt", 
+     "AMinHS: After thin height of shortest tree in uppermost stratum (StrClass keyword required)"="AMinHS", 
+     "ANumSS: After thin number of valid strata (StrClass keyword required)"="ANumSS", 
+     "ARDEN: After thin relative density (Curtis 1982)"="ARDEN", 
+     "ARDen2: After thin relative density, SILVAH (Marquis and Ernst 1992)"="ARDen2", 
+     "ASClass: After thin stand structural classification (StrClass keyword required)"="ASClass", 
+     "ASDI: After thin stand density index"="ASDI", 
+     "ASDI2: After thin stand density index (based on Zeide 1983)"="ASDI2", 
+     "ASDIMax: After thin maximum stand density index"="ASDIMax", 
+     "AStrDbh: After thin dbh of the stand uppermost stratum (StrClass keyword required)"="AStrDbh", 
+     "ATCuFt: After thin total (western variants) or merchantable (pulpwood + sawtimber, eastern variants) cubic foot volume"="ATCuFt", 
+     "ATopHt: After thin top height"="ATopHt", 
+     "ATPA: After thin trees/acre"="ATPA", 
+     "Cut: Cutting flag: 0 if no cutting, 1 otherwise"="Cut", 
+     "RBdFt: Removed board feet volume"="RBdFt", 
+     "RMCuFt: Removed merch cubic feet volume"="RMCuFt", 
+     "RTCuFt: Removed total cubic feet volume"="RTCuFt", 
+     "RTPA: Removed trees/acre"="RTPA", 
+     "ACC: Accreation form last cycle"="ACC", 
+     "DBA: Basal area change"="DBA", 
+     "DBA%: Basal area change percent"="DBA%", 
+     "DCCF: CCF change"="DCCF", 
+     "DCCF%: CCF change percent"="DCCF%", 
+     "DTPA: Trees/acre change"="DTPA", 
+     "DTPA%: Trees/acre change percent"="DTPA%", 
+     "Mort: Mortality from last cycle"="Mort", 
+     "ORG%CC: ORGANON percent crown closure"="ORG%CC", 
+     "ORGAHT: ORGANON top height value based on ORGANON Big-6 species"="ORGAHT", 
+     "PAI: Periodic annual increment"="PAI")
+  if ("fire" %in% globals$activeExtens) varList=c(varList,c(
+     "Fire: 1 if there was a fire during the previous FVS cycle, 0 otherwise (FFE)"="Fire", 
+     "FireYear: Year of the previous fire (FFE)"="FireYear", 
+     "FisherIn: Fisher Resting Habitat Suitability Index, (FFE)"="FisherIn", 
+     "CrownIdx: The crowning index reported in the potential fire report of the FFE"="CrownIdx", 
+     "CrBaseHt: The crown base height reported in the potential fire report of the FFE"="CrBaseHt", 
+     "CrBulkDn: The crown bulk density reported in the potential fire report of the FFE"="CrBulkDn", 
+     "MinSoil: Percent mineral soil exposed (FFE)"="MinSoil", 
+     "TorchIdx: The torching index reported in the potential fire report of the FFE"="TorchIdx"))
+  if ("econ" %in% globals$activeExtens) varList=c(varList,c(
+     "DiscCost: Accumulated discounted costs at end of previous cycle"="DiscCost", 
+     "DiscRate: Discount rate"="DiscRate",                                                      
+     "DiscRevn: Accumulated discounted revenues at end of previous cycle"="DiscRevn", 
+     "EcBdFt: Merchantable sawtimber board foot volume valued"="EcBdFt", 
+     "EcCuFt: Merchantable (western varaints) or sawtimber (eastern variants) cubic foot volume valued"="EcCuFt", 
+     "ForstVal: Value of forest, land, and trees, at end of previous cycle"="ForstVal", 
+     "HarvCost: Harvest cost during the previous cycle"="HarvCost", 
+     "HarvRevn: Harvest revenue during the previous cycle"="HarvRevn", 
+     "IRR: Internal rate of return at end of previous cycle"="IRR", 
+     "PctCost: Precommercial harvest cost during the previous cycle"="PctCost", 
+     "PNV: Present net value at end of previous cycle"="PNV", 
+     "RprodVal: Value of trees, reprod value, at end of previous cycle"="RprodVal", 
+     "SEV: Soil expectation value at end of previous cycle"="SEV", 
+     "UndisCst: Accumulated undiscounted costs at end of previous cycle"="UndisCst",         
+     "UndisRvn: Accumulated undiscounted revenues at end of previous cycle"="UndisRvn"))
+  if ("wsbw" %in% globals$activeExtens) varList=c(varList,c(
+     "BW%Stnd: The stand defoliation level caused by WSBW, pervious cycle"="BW%Stnd'", 
+     "WSBWProb: Probability of a western spruce budworm outbreak"="WSBWProb"))
+  if ("dftm" %in% globals$activeExtens) varList=c(varList,c(
+     "DFTMProb: Probability of a tussock moth outbreak"="DFTMProb", 
+     "TM%DF: The average defoliation level on Douglas-fir (tussock moth)"="TM%DF", 
+     "TM%GF: The average defoliation level on grand fir (tussock moth)"="TM%GF", 
+     "TM%Stnd: The stand defoliation level caused by tussock moth, previous cycle"="TM%Stnd"))
+  if ("mpb" %in% globals$activeExtens) varList=c(varList,c(
+     "MPBProb: Probability of a mountain pine beetle outbreak"="MPBProb", 
+     "MPBTPAK: Trees killed per acre by mountain pine beetle, previous cycle"="MPBTPAK"))
+  as.list(varList)
+}
+
+mkFuncList <- function (globals)
+{
+  funcList = c(
+    " "=" ",
+    "ACCFSP: After thin CCF by species"="ACCFSP",
+    "Acorns: Estimated number of acorns per acre"="Acorns",
+    "BCCFSP: Before thin CCF by species"="BCCFSP",
+    "Bound: Returns the second argument if it is greater than the first argument and less than the third"="Bound",
+    "DBHDist: Returns the diameter of the tree corresponding to the nominal percentile in the distribution of one of 11 specific attributes"="DBHDist",
+    "Decade: Returns the argument the corresponds to the decade the simulation is in"="Decade",
+    "HTDist: Returns the height of the tree corresponding to the nominal percentile in the trees per acre distribution"="HTDist",
+    "LinInt: Returns a linear interpolation between points on a simple Y-over-X graph"="LinInt",                   
+    "MaxIndex: Returns the argument index corresponding to the largest value"="MaxIndex",                
+    "MinIndex: Returns the argument index corresponding to the smallest value"="MinIndex",
+    "Normal: Returns a random normal variate given a mean and std. dev"="Normal",
+    "SpMcDBH: Returns the trees, basal area, or one of 10 other attributes for trees of a given species, tree value class, or tree-size range"="SpMcDBH",
+    "StrStat: Returns the information in the structural statistics report under before or after thinning conditions"="StrStat",
+    "SumStat: Returns values from the Summary Statistics table"="SumStat",
+    "Time: Returns the argument the corresponds to a specific time frame the simulation is in"="Time")
+  if ("fire" %in% globals$activeExtens) 
+    funcList=c(funcList,c(                                                                                                                               
+    "CarbStat: Returns the carbon pools as output in the FFE carbon reports)"="CarbStat",
+    "DWDVal: Returns the volume and % cover for a range of down wood size classes)"="DWDVal",
+    "FuelLoad: Returns the tons/acre for a range of fuel size classes)"="FuelLoad",
+    "FuelMods: Returns the fuel models and associated weights used in the fire behavior calculations)"="FuelMods",
+    "HerbShrb: Returns the total herbs and shrubs in tons/acre)"="HerbShrb",
+    "PotFLen: Returns the flame lengths from the potential fire report of the FFE"="PotFLen",
+    "PotFMort: Returns the potential fire mortality for severe or moderate fires in terms of %BA or total cuft/acre)"="PotFMort",
+    "PotFType: Returns the potential fire type for severe or moderate fires)"="PotFType",
+    "PotReInt: Returns the potential fire reaction intensity for severe or moderate fires)"="PotReInt",
+    "PotSRate: Returns the potential fire spread rate for severe or moderate fires)"="PotSRate",
+    "SalvVol: Returns salvage volume removed by species and diameter class)"="SalvVol",
+    "Snags: Returns the number=basal area=or volume of snags for a given subset of the snag list)"="Snags",
+    "TreeBio: Returns tree biomass for dead and/or live standing and/or removed trees by species and size class (FFE is required)"="TreeBio"))
+  as.list(funcList)
+}
+
+mkMathList <- function ()
+{
+  list(
+    " "=" ",
+    "+ Simple addition"="+",
+    "- Subtraction or change sign"="-",
+    "* Multiplication"="*",
+    "/ Division"="/",
+    "** Exponentiate, X**Y is X raised to the power Y"="**",
+    "EQ Logical Equal"="EQ",
+    "NE Logical Not Equal"="NE",
+    "LT Logical Less than"="LT",
+    "LE Logical Less than or equal"="LE",
+    "GT Logical Greater than"="GT",
+    "GE Logical Greater than or equal"="GE",
+    "AND Logical AND"="AND",
+    "OR Logical OR"="OR",
+    "NOT Logical NOT"="NOT",
+    "ABS() Absolute value, ABS(-3) is 3."="ABS()",
+    "ALog() Natural logarithm (base e)"="ALog()",
+    "ALog10() Common logarithm (base 10)"="ALog10()",
+    "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
+    "ArcSin() Arc sine (argument in radians)"="ArcSin()",
+    "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
+    "Cos() Cosine (argument in radians)"="Cos()",
+    "Exp() e raised to power"="Exp()",
+    "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
+    "Int() Integer part of a number, Int(3.4) is 3"="Int()",
+    "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
+    "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
+    "Mod() Remainder of first argument divided by the second"="Mod()",
+    "Sin() Sine (argument in radians)"="Sin()",
+    "Sqrt() Square root"="Sqrt()",
+    "Tan() Tangent (argument in radians)"="Tan()")
+}
 
 mkFreeformEltList <- function (globals,prms,title,kwds)
 {
-  varsDef  = " "
-  varsName = " "
-  for (elt in prms[["evmon.variables"]])
-  {
-    atl = attr(elt,"atlist")
-    # the appliesTo list will have two tokens if the extension is part of the list
-    if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
-    varsDef <- c(varsDef,paste0(elt,": ",attr(elt,"pstring")))
-    attributes(elt) <- NULL
-    varsName <- c(varsName,elt)
-  }
-  indx = sort(varsName,index.return=TRUE)$ix
-  varsName = as.list(varsName[indx])
-  names(varsName) = varsDef[indx]
-  funcDef  = " "
-  funcName = " "
-  for (elt in prms[["evmon.functions"]])
-  {
-    atl = attr(elt,"atlist")
-    # the appliesTo list will have two tokens if the extension is part of the list
-    if (length(atl) > 1 && length(intersect(atl,globals$activeExtens)) == 0) next
-    funcDef <- c(funcDef,paste0(elt,": ",attr(elt,"pstring")))
-    attributes(elt) <- NULL
-    funcName <- c(funcName,elt)
-  }
-  indx = sort(funcName,index.return=TRUE)$ix
-  funcName = as.list(funcName[indx])
-  names(funcName) = funcDef[indx]
-  mathList = list(
-       " "=" ",
-       "+ Simple addition"="+",
-       "- Subtraction or change sign"="-",
-       "* Multiplication"="*",
-       "/ Division"="/",
-       "** Exponentiate, X**Y is X raised to the power Y"="**",
-       "EQ Logical Equal"="EQ",
-       "NE Logical Not Equal"="NE",
-       "LT Logical Less than"="LT",
-       "LE Logical Less than or equal"="LE",
-       "GT Logical Greater than"="GT",
-       "GE Logical Greater than or equal"="GE",
-       "AND Logical AND"="AND",
-       "OR Logical OR"="OR",
-       "NOT Logical NOT"="NOT",
-       "ABS() Absolute value, ABS(-3) is 3."="ABS()",
-       "ALog() Natural logarithm (base e)"="ALog()",
-       "ALog10() Common logarithm (base 10)"="ALog10()",
-       "ArcCos() Arc cosine (argument in radians)"="ArcCos()",
-       "ArcSin() Arc sine (argument in radians)"="ArcSin()",
-       "ArcTan() Arc tangent (argument in radians)"="ArcTan()",
-       "Cos() Cosine (argument in radians)"="Cos()",
-       "Exp() e raised to power"="Exp()",
-       "Frac() Fractional part of a number, Frac(3.4) is .4"="Frac()",
-       "Int() Integer part of a number, Int(3.4) is 3"="Int()",
-       "Max() Maximum value of the arguments, Max(5,3,-1,10,2) is 10"="Max()",
-       "Min() Minimum value of the arguments, Min(5,3,-1,10,2) is -1"="Min()",
-       "Mod() Remainder of first argument divided by the second"="Mod()",
-       "Sin() Sine (argument in radians)"="Sin()",
-       "Sqrt() Square root"="Sqrt()",
-       "Tan() Tangent (argument in radians)"="Tan()")
+  varList = mkVarList(globals)
+  funcList = mkFuncList(globals)
+  mathList = mkMathList()
   if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0)
   {
     eltList <- list(
      myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
-     myInlineListButton ("freeVarsKCP","Variables:",varsName,deltll=NULL),
+     myInlineListButton ("freeVarsKCP","Variables:",varList,deltll=NULL),
      mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
           choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncsKCP","FVS Functions:",funcName,deltll=NULL),
+     myInlineListButton ("freeFuncsKCP","FVS Functions:",funcList,deltll=NULL),
      uiOutput("fvsFuncRender"))
   } else {
     eltList <- list(
-    tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-    myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
-    tags$style(type="text/css", 
-      "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
-    tags$p(id="freeEditCols", 
-           HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
-    tags$style(type="text/css", 
-      "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-    tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
-    myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
-    myInlineListButton ("freeVars","Variables:",varsName, deltll=NULL),
-    mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
-          choices=NULL,globals$activeVariants[1]),
-    myInlineListButton ("freeFuncs","FVS Functions:",funcName,deltll=NULL),
-    uiOutput("fvsFuncRender"))
-  }
+     tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+     myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
+     tags$style(type="text/css", 
+       "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+     tags$p(id="freeEditCols", 
+            HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+     tags$style(type="text/css", 
+       "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+     tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
+     myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
+     myInlineListButton ("freeVars","Variables:",varList, deltll=NULL),
+     mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+           choices=NULL,globals$activeVariants[1]),
+     myInlineListButton ("freeFuncs","FVS Functions:",funcList,deltll=NULL),
+     uiOutput("fvsFuncRender"))
+  } 
   eltList
 }
 

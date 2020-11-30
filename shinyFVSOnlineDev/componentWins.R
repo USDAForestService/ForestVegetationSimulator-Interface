@@ -29,9 +29,6 @@ cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
   )  
 }
 
-UDComputes.Win <- keyword.base.Compute.Win
-UDComputes.Win.mkKeyWrd <- keyword.base.Compute.Win.mkKeyWrd
-
 keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
 {
   globals$currentCmdDefs <- c(freeEdit=" ")
@@ -153,6 +150,42 @@ keyword.dbs.SQLOut.Win.mkKeyWrd <- function(input,output)
   )  
 }
 
+
+Compute_PreDefined <- function(title, prms, fvsRun, globals) 
+{
+  globals$currentCmdDefs <- c(f1="0",f2="VAR1",f3="")
+  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+    for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
+      globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
+  ans <-list(
+    list(
+      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
+      h5("To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box."),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      myInlineTextInput("f2",
+       "Enter the name for your user-defined variable (< 8 characters)",
+       globals$currentCmdDefs["f2"]),
+      myInlineListButton ("f3", "Pick Event Monitor Varialbe", mkVarList(globals), 
+        selected=globals$currentCmdDefs["f3"], deltll=2)),
+    list(br(),p(paste(
+      "Computes stand variables using pre-defined EM variables.  You must enter the",
+      "name of your user-defined variable.  Computed variables may be viewed in the", 
+      "Activity Summary of the main output file or in any of the Compute post",
+      "processors.")),
+      p(paste(
+      "Note: The name of your user-defined variable may not be a word that is reserved",
+      "for use by FVS or the Event Monitor.")))) 
+  ans  
+}
+
+
+Compute_PreDefined.mkKeyWrd <- function(input,output)
+{
+  list(ex="base", 
+    kwds = paste0(sprintf("Compute   %10s\n%s=%s\nEnd\n",input$f1,input$f2,input$f3)),
+    reopn = c(f1=input$f1,f2=input$f2,f3=input$f3)
+  )  
+}
 
 
 ClearcutWin <- function(title, prms, fvsRun, globals) 
@@ -979,3 +1012,7 @@ ShelterwoodWin.mkKeyWrd <- function(input,output)
        reopn = c(f1=input$f1,swf2=input$swf2,swf3=input$swf3,swf4=input$swf4,swf5=input$swf5,f6=input$f6,f7=input$f7,
                  f8=input$f8,f9=input$f9,f10=input$f10,f11=input$f11,f12=input$f12,swf13=input$swf13))
 }
+
+
+
+
