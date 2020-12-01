@@ -481,7 +481,7 @@ shinyUI(fixedPage(
                fixedRow(
                  column(width=6,
                    myRadioGroup("barPlace","Bars",
-                      c("Side-by-side"="dodge","Stacked"="stack"))),
+                      c("Stacked"="stack","Side-by-side"="dodge"))),
                  column(width=6,
                    myRadioGroup("legendPlace","Legend",
                       c("R"="right","Bot"="bottom","L"="left",
