@@ -3,7 +3,7 @@
 rdparms <- function(pdir="parms") 
 {
   prms = list()
-  files = c("mdoutputs.prm", "basekeys.kwd", "voleqnum.kwd", "ardwrd3.kwd", 
+  files = c("mdoutputs.prm", "basekeys.kwd", "voleqnum.kwd", "ardwrd3.kwd", "wrd3.prm",
       "armwrd3.kwd", "phewrd3.kwd", "dbs.kwd", "climate.kwd", "fire.kwd", "cond.rul",
       "cover.kwd", "estab.kwd", "org.kwd", "forest.prm", "function.evm",
       "keycats.prm", "keylist.prm", "manage.prm", "mgmtcats.prm", "modifiers.prm",
