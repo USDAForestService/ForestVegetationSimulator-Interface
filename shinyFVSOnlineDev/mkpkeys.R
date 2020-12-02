@@ -8,7 +8,7 @@ rdparms <- function(pdir="parms")
       "cover.kwd", "estab.kwd", "org.kwd", "forest.prm", "function.evm",
       "keycats.prm", "keylist.prm", "manage.prm", "mgmtcats.prm", "modifiers.prm",
       "modelmodf.prm", "unevage.prm", "inttrtmt.prm", "fueltrt.prm", "mist.kwd",
-      "species.prm", "habpa_bm.prm", "unevage.prm", 
+      "species.prm", "habpa_bm.prm", 
       "habpa_ca.prm", "HabPa_oc.prm", "habpa_ci.prm", "habpa_ec.prm", "habpa_em.prm",
       "habpa_ie.prm", "habpa_kt.prm", "habpa_ls.prm", "habpa_ni.prm", "habpa_pn.prm",
       "habpa_op.prm", "habpa_sn.prm", "habpa_so.prm", "habpa_ut.prm", "habpa_wc.prm",
