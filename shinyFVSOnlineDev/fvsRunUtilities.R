@@ -1682,9 +1682,6 @@ mkMgmtCats <- function(globals)
     "Seedtree" = "SeedTreeWin",
     "Shelterwood" = "ShelterwoodWin"),
   "Regeneration Methods: Uneven-aged"=c(
-    "Any residual distribution",
-    "Sample point group selection",
-    "Single tree selection",
     "Thin to a Q-factor" = "uneven-aged_Q",
     "Group Selection, Distance-independent" = "uneven-aged_grp_select"),
   "Thinning & Pruning Operations"=c(
