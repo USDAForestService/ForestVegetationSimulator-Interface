@@ -652,6 +652,25 @@ cat ("tbs6=",tbs,"\n")
     }
   })
     
+  observe({
+    cat ("changeind=",globals$changeind,"\n")
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
+  
   # selectdbtables
   observe({
 cat("selectdbtables\n")    
@@ -724,6 +743,9 @@ cat("selectdbtables\n")
       fvsOutData$dbSelVars <- vars
       updateSelectInput(session=session, "selectdbvars",choices=as.list(vars), 
                         selected=vars)
+      output$tbSel <-renderUI({
+        HTML(input$selectdbtables)
+      })
     }
   })
 
