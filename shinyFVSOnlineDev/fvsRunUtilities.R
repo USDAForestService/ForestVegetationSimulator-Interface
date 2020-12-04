@@ -1825,7 +1825,6 @@ mkEvMonCats <- function(globals)
 {
   catsel=list(
     "Event Monitor (EM) Compute Variables" = c(
-      "Build Compute Table in Database" = "keyword.dbs.Compute",
       "Compute Pre-Defined Stand Variables" = "Compute_PreDefined",
       "Compute Stand Variables with SpMcDBH Function" = "Compute_SpMcDBH",
       "Compute Snag Variables with Snags Function" = "Compute_Snags",
