@@ -1375,12 +1375,21 @@ cat ("findStand, search=",search,"\n")
   } 
   globals$foundStand=0L
   return(NULL)
-}
+}           
 
-
-resetGlobals <- function(globals,fvsRun,prms)
+nextRunName <- function(globals)
 {
-cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
+  i=1
+  repeat 
+  {
+    rn=paste0("Run ",length(globals$FVS_Runs)+i) 
+    if (rn %in% unlist(globals$FVS_Runs)) i=i+1 else break
+  }
+  rn
+}
+  
+resetActiveFVS <- function(globals)
+{
   globals$activeFVS = list(
     FVSak = c("ak", "estb", "dbs", "mist", "fire", "econ", "cover" ), 
     FVSbm = c("bm", "fire", "econ", "strp", "dbs", "climate",  "cover", 
@@ -1424,41 +1433,44 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
   binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
   avalFVS <- dir(binDir,pattern=shlibsufx)
   avalFVS <- sub(shlibsufx,"",avalFVS)
-  if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS]
-      
+  if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
-  vars = c("Southeast AK - Coastal BC"="ak",
-           "Blue Mountains,Oregon"="bm",
-           "Inland CA,Southern Cascades"="ca",
-           "Central ID"="ci",
-           "Central Rockies GENGYM"="cr",
-           "GENGYM: Southwest Mixed Conifers"="sw",
-           "GENGYM: Southwest Ponderosa Pine"="sp",
-           "GENGYM: Black Hills Ponderosa Pine"="bp",
-           "GENGYM: Spruce-fir"="sf",
-           "GENGYM: Lodgepole pine"="lp",
-           "East Cascades,Washington"="ec",
-           "Eastern Montana"="em",
-           "Inland Empire"="ie",
-           "Klammath Mountains,Northern CA"="nc",
-           "Inland Empire,Northern ID - Western MT"="ni",
-           "ORGANON SWO - FVSca hybrid"="oc",
-           "ORGANON NWO/SMC - FVSpn hybrid"="op",
-           "South Central OR N CA"="so",
-           "Tetons,Wyoming"="tt",
-           "Utah"="ut",                        
-           "West Cascades"="wc",
-           "Pacific Northwest Coast"="pn",     
-           "Western Sierra Nevada,CA"="ws",
-           "Central States"="cs",
-           "Kootenai/Kaniksu/Tally LK,ID - MT"="kt",
-           "Lake States"="ls",
-           "Northeast"="ne",
-           "Southern"="sn")
-  names(vars)=paste0(vars,": ",names(vars))
+  vars = c("ak: Southeast AK - Coastal BC"="ak",
+           "bm: Blue Mountains,Oregon"="bm",
+           "ca: Inland CA,Southern Cascades"="ca",
+           "ci: Central ID"="ci",
+           "cr: Central Rockies GENGYM"="cr",
+           "sw: GENGYM: Southwest Mixed Conifers"="sw",
+           "sp: GENGYM: Southwest Ponderosa Pine"="sp",
+           "bp: GENGYM: Black Hills Ponderosa Pine"="bp",
+           "sf: GENGYM: Spruce-fir"="sf",
+           "lp: GENGYM: Lodgepole pine"="lp",
+           "ec: East Cascades,Washington"="ec",
+           "em: Eastern Montana"="em",
+           "ie: Inland Empire"="ie",
+           "nc: Klammath Mountains,Northern CA"="nc",
+           "oc: ORGANON SWO - FVSca hybrid"="oc",
+           "op: ORGANON NWO/SMC - FVSpn hybrid"="op",
+           "so: South Central OR N CA"="so",
+           "tt: Tetons,Wyoming"="tt",
+           "ut: Utah"="ut",                        
+           "wc: West Cascades"="wc",
+           "pn: Pacific Northwest Coast"="pn",     
+           "ws: Western Sierra Nevada,CA"="ws",
+           "cs: Central States"="cs",
+           "kt: Kootenai/Kaniksu/Tally LK,ID - MT"="kt",
+           "ls: Lake States"="ls",
+           "ne: Northeast"="ne",
+           "sn: Southern"="sn")
   keep=match(globals$activeVariants,vars)
   globals$activeVariants=vars[keep]
   globals$activeExtens=unique(unlist(lapply(globals$activeFVS,function(x) x[-1])))
+}
+
+resetGlobals <- function(globals,fvsRun,prms)
+{
+cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
+  resetActiveFVS(globals)
   globals$schedBoxYrLastUsed=character(0)
   globals$currentEditCmp=globals$NULLfvsCmp
   if (!is.null(fvsRun))                                        
@@ -1471,8 +1483,10 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
       {
         fvsRun$FVSpgm = names(globals$activeFVS)[indx]
         globals$activeFVS <- globals$activeFVS[indx]
-        globals$activeVariants <- globals$activeFVS[[1]][1]
+        globals$activeVariants <- subset(globals$activeVariants,
+                globals$activeVariants==globals$activeFVS[[1]][1])
         globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
+        globals$lastRunVar <- character(0)
       }                                       
     }
   }
@@ -1491,6 +1505,32 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$foundStand=0L 
   globals$changeind <- 0
 }
+
+
+updateVarSelection <- function ()
+{
+  resetActiveFVS(globals)
+  if (length(globals$fvsRun$FVSpgm) == 0) 
+  {
+    vlst <- globals$activeVariants
+    selected = if (length(globals$lastRunVar)) 
+      unlist(vlst[match(globals$lastRunVar,vlst)]) else selected=unlist(vlst)[1]
+  } else {
+    if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) 
+    {
+      vlst <- list()
+      selected = NULL
+    } else {
+      vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
+      vlst <- globals$selVarList[match(vlst,globals$selVarList)]
+      selected = unlist(vlst)[1]
+      globals$lastRunVar=if (is.null(selected)) character(0) else selected
+    }
+  }
+cat ("in updateVarSelection selected=",selected," vlst=",unlist(vlst),"\n")
+  updateSelectInput(session=session, inputId="inVars", choices=vlst,
+                    selected=selected)
+} 
 
 
 uuidgen <- function (n=1)
@@ -2531,14 +2571,24 @@ myListTables <- function(db)
     
 mkNameUnique <- function(name,setOfNames=NULL)
 {
-  origname=name
-  i=0
+  if (is.null(setOfNames)) return(name)
+  if (!name %in% setOfNames) return(name)
+  pl=regexpr(pattern="\\([0-9]*\\)$",name)
   repeat
   {
-    if (is.na(match(name,setOfNames))) return(name)
-    i = i+1
-    name = paste0(origname," (",i,")")
-  } 
+    if (pl != -1)
+    {
+      i=as.numeric(substring(name,pl+1,pl+attr(pl,"match.length")-2))
+      if (is.na(i)) i=1 else
+      {
+        i=i+1
+        name=gsub("^\\s+|\\s+$","",substr(name,1,pl-1))
+      }
+    } else i=1
+    name = paste0(name," (",i,")")
+    if (!name %in% setOfNames) break
+  }
+  return(name)
 }
                     
 mkFileNameUnique <- function(fn)

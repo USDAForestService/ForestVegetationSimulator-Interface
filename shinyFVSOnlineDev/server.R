@@ -2140,27 +2140,6 @@ cat ("in updateStandTableSelection, length(globals$fvsRun$stands)=",length(globa
 cat ("inTabs\n")
   })
   
-  updateVarSelection <- function ()
-  {
-
-    if (length(globals$fvsRun$FVSpgm) == 0) vlst <- globals$activeVariants 
-    else {
-      if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) vlst <- list() else
-      {
-        vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
-        vlst <- globals$selVarList[match(vlst,globals$selVarList)]
-      }
-    }
-    selected=0
-    if (length(globals$lastRunVar))
-    {
-      selected = unlist(vlst[match(globals$lastRunVar,vlst)])
-      if (is.na(selected)) selected=0
-    } else if (length(vlst)==1) selected=unlist(vlst)
-cat ("in updateVarSelection selected=",selected," vlst=",unlist(vlst),"\n") 
-    updateSelectInput(session=session, inputId="inVars", choices=vlst,
-                      selected=selected)
-  } 
   
   ## inVars has changed
   observe({
@@ -2304,7 +2283,7 @@ cat ("saveRun\n")
         rn=paste0("Run ",length(globals$FVS_Runs)+i) 
         if (rn %in% unlist(globals$FVS_Runs)) i=i+1 else break
       } 
-      globals$fvsRun$title <- rn
+      globals$fvsRun$title <- nextRunName(globals)
       resetGlobals(globals,NULL,prms)
       if (length(globals$GenGrp)) globals$GenGrp <- list()
       if (length(globals$GrpNum)) globals$GrpNum <- as.numeric()
@@ -2384,7 +2363,7 @@ cat ("saveRun\n")
     {
       if (length(globals$FVS_Runs) == 0) return()
       saveRun()
-      globals$fvsRun$title <- paste0("Run ",length(globals$FVS_Runs)+1)
+      globals$fvsRun$title <- nextRunName(globals)
       globals$fvsRun$uuid  <- uuidgen()
       globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
@@ -2480,22 +2459,21 @@ cat ("error loading",fn,"\n")
               cntr<-cntr+1
               spgname[cntr] <- trim(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],
               split=" "))[length(unlist(strsplit(strsplit(test, split = "\n")[[1]][1],split=" ")))])
-              if(!length(globals$GrpNum)){
-                globals$GrpNum[1] <- 1
-              }else
+              if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
               globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
               
               spgname[1] <- gsub(" ","", spgname[1])
               tmpk <- match(spgname[1], globals$GenGrp)
-              if (!is.na(tmpk)){
+              if (!is.na(tmpk)) {
                 globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-              }else globals$GenGrp[length(globals$GrpNum)]<-spgname
+              } else globals$GenGrp[length(globals$GrpNum)]<-spgname
             }
           }
         } 
       }
       resetGlobals(globals,globals$fvsRun,prms)
       tmp = globals$activeFVS[globals$fvsRun$FVSpgm]
+if (length(tmp) && is.null(tmp[[1]][1])) browser()
       globals$lastRunVar = if (length(tmp)) tmp[[1]][1] else character(0)
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
@@ -7939,7 +7917,7 @@ cat ("launch url:",url,"\n")
   {
     isolate({
       runName = trim(input$title)
-      if (nchar(runName) == 0) runName = paste0("Run ",length(globals$FVS_Runs)+1)
+      if (nchar(runName) == 0) runName <- nextRunName(globals)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
       if (length(me)==0) return()
@@ -7961,11 +7939,12 @@ cat ("launch url:",url,"\n")
       if(!globals$localWindows)save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
       if(globals$localWindows)save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+cat ("saveRun, input$inVars=",input$inVars,"\n") 
       globals$lastRunVar = if (!is.null(input$inVars)) input$inVars else character(0)     
       # remove excess images that may be created in Maps.
       delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
       if (length(delList)) lapply(delList,function(x) unlink(x))  
-cat ("leaving saveRun\n") 
+cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n") 
     }) 
   }
    
