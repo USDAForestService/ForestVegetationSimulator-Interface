@@ -1630,8 +1630,6 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
-#cat("mkKeyWrd, c=",c," state=",state,"\n")
-#cat("mkKeyWrd, out='",out,"'\n")
     if (state==0) # looking for first !
     {
       if (c != "!") out = paste0(out,c) else

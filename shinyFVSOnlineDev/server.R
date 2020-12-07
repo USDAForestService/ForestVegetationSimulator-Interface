@@ -1210,7 +1210,7 @@ cat ("cmd=",cmd,"\n")
         if (is.null(mdat$MgmtID)) 
         {
           cho = "None loaded"         
-          updateSelectInput(session,"mgmid",choices=as.list(cho),selected=NULL) 
+          updateSelectInput(session,"mgmid",choices=as.list(cho),selected=0) 
         } else {
           cho = levels(mdat$MgmtID)
           updateSelectInput(session, "mgmid",choices=as.list(cho),selected=cho)
@@ -2292,15 +2292,12 @@ cat ("saveRun\n")
                       value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
-      updateSelectInput(session=session, inputId="simCont", 
-          choices=list(), selected=NULL)
+      updateSelectInput(session=session, inputId="simCont",choices=list())
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
         length(globals$fvsRun$grps)," group(s)")))
-      updateSelectInput(session=session, inputId="addMgmtCats", 
-          choices=list(), selected=NULL)
-      updateSelectInput(session=session, inputId="addMgmtCmps", 
-          choices=list(), selected=NULL)
+      updateSelectInput(session=session, inputId="addMgmtCats",choices=list())
+      updateSelectInput(session=session, inputId="addMgmtCmps",choices=list())
       updateTextInput(session=session, inputId="startyr", 
                       value=globals$fvsRun$startyr)
       updateTextInput(session=session, inputId="endyr", 
@@ -2473,7 +2470,6 @@ cat ("error loading",fn,"\n")
       }
       resetGlobals(globals,globals$fvsRun,prms)
       tmp = globals$activeFVS[globals$fvsRun$FVSpgm]
-if (length(tmp) && is.null(tmp[[1]][1])) browser()
       globals$lastRunVar = if (length(tmp)) tmp[[1]][1] else character(0)
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
@@ -2504,13 +2500,9 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
-      updateSelectInput(session=session, inputId="addMgmtCats", choices=list())
-      updateSelectInput(session=session, inputId="addMgmtCmps", choices=list())
-      updateSelectInput(session=session, inputId="addModCats", choices=list())
-      updateSelectInput(session=session, inputId="addModCmps", choices=list())
-      updateSelectInput(session=session, inputId="addEvCmps", choices=list())
-      updateSelectInput(session=session, inputId="addKeyExt", choices=list())
-      updateSelectInput(session=session, inputId="addKeyWds", choices=list())
+      for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
+                   "addEvCmps","addKeyExt","addKeyWds"))
+         updateSelectInput(session=session, inputId=id,selected=0)
       updateTextInput(session=session, inputId="startyr",  
                       value=globals$fvsRun$startyr)
       updateTextInput(session=session, inputId="endyr",    
@@ -2610,7 +2602,7 @@ cat ("elt=",elt,"\n")
   observe({
     if (input$editSel == 0) return()      
     isolate ({
-      output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
       globals$currentEditCmp <- globals$NULLfvsCmp
       if (length(input$simCont) == 0) return()
       toed = input$simCont[1]
@@ -2650,14 +2642,12 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
            actionButton("cmdCancel","Cancel"),
            tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
            actionButton("cmdSaveInRun","Save in run")))
-      output$editcmdBuild <- renderUI(eltList)
-      if (input$rightPan != "Components") {
-        updateTabsetPanel(session=session,inputId="rightPan",selected="Components")
-        updateSelectInput(session=session,inputId="compTabSet", selected="Management")
-      }
-      if (input$rightPan == "Components" && input$compTabSet !="Management") {
-        updateSelectInput(session=session,inputId="compTabSet", selected="Management")
-      }
+      output$cmdBuild <- renderUI(eltList)
+      if (input$rightPan != "Components") updateTabsetPanel(session=session,
+        inputId="rightPan",selected="Components")
+      for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
+                   "addEvCmps","addKeyExt","addKeyWds"))
+         updateSelectInput(session=session, inputId=id,selected=0)
     })
   })
   
@@ -2902,7 +2892,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-      output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
+      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
     })                    
   })
 
@@ -2911,7 +2901,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
-    output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+    output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
     if (length(globals$fvsRun$FVSpgm) == 0) return(NULL)
     if (! globals$fvsRun$FVSpgm %in% names(globals$activeFVS)) return(NULL)
     switch (input$compTabSet,
@@ -2966,7 +2956,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
                               globals$currentEditCmp$kwds)
           output$cmdBuild <-renderUI(eltList)
-          output$editcmdBuild <- output$fvsFuncRender <- renderUI (NULL)
+          output$fvsFuncRender <- renderUI (NULL)
           output$cmdBuildDesc <- renderUI("Description: This Editor menu allows you to 
           utilize the advanced features of the freeform text format for creating custom
           component sets by directly adding & editing keyword records and Event Monitor
@@ -3083,14 +3073,14 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
     if (is.null(input$addMgmtCats)) return()
     updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0, 
       choices=globals$mgmtsel[[as.numeric(input$addMgmtCats)]])
-    output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addModCats
   observe({
     if (is.null(input$addModCats)) return()
     updateSelectInput(session=session, inputId="addModCmps", selected = 0, 
           choices=globals$mmodsel[[as.numeric(input$addModCats)]])
-    output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addKeyExt
   observe({
@@ -3099,7 +3089,7 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
           choices=NULL) else
       updateSelectInput(session=session, inputId="addKeyWds", selected = 0, 
           choices=globals$kwdsel[[input$addKeyExt]])
-    output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addMgmtCmps
   observe({
@@ -3126,7 +3116,7 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
   { 
 cat ("renderComponent, inCode=",inCode,"\n")
     isolate ({
-      output$editcmdBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+      output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       globals$currentEditCmp <- globals$NULLfvsCmp
       globals$currentCndPkey <- "0"
       switch (as.character(inCode),
@@ -3213,9 +3203,8 @@ cat ("funName=",funName,"\n")
            tags$style(type="text/css", "#cmdCancel {color:red;}"),
            actionButton("cmdCancel","Cancel"),
            tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
-           actionButton("cmdSaveInRun","Save in run")))
-#           actionButton("cmdSaveInRun","Save in run"),
-#           actionButton("cmdChgToFree","Change to freeform")))
+           actionButton("cmdSaveInRun","Save in run"),
+           actionButton("cmdChgToFree","Change to freeform")))
         output$cmdBuild <- renderUI (if (length(eltList)) eltList else NULL)
         des <- getPstring(pkeys,"description",globals$activeVariants[1])
         output$cmdBuildDesc <- renderUI (if (!is.null(des) && nchar(des) > 0)
@@ -3269,7 +3258,7 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
     # schedule by condition condition selection
     if (length(input$schedbox) == 0) return()
     if (length(input$condList) == 0) return()
-    if (length(globals$toggleind) && input$schedbox == 1)return()
+    if (length(globals$toggleind) && input$schedbox == 1) return()
 cat("make condElts, input$condList=",input$condList,"\n") 
     if (input$condList == "none") output$condToFreeForm <- output$condElts <- renderUI(NULL) else
     {
@@ -3292,7 +3281,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
           output$condElts <- renderUI(ui)
 #          output$condToFreeForm <- renderUI(list(
 #            h5(),tags$style(type="text/css", "#condChgToFree {color:black;background:pink;}"),
-#          actionButton("condChgToFree","Change condition to freeform")))
+#            actionButton("condChgToFree","Change condition to freeform")))
         }
       }
     }
@@ -3300,16 +3289,28 @@ cat("make condElts, input$condList=",input$condList,"\n")
   
   observe({
     if (length(input$condChgToFree) == 0  || input$condChgToFree==0) return()
+cat ("condToFreeForm=",input$condToFreeForm," globals$currentCndPkey=",
+ globals$currentCndPkey,"\n")
+#     output$cmdBuild <- output$condElts <- output$conditions <- output$schedbox <-renderUI(NULL)   
+#     rtn = mkCondKeyWrd(globals,prms,input)
+#     attr(rtn$kwds,"rawKeys") = "rawKeys"
+#     globals$currentCndPkey=rtn$kwds
+#     ui <- list(myInlineTextInput("cndTitle","Condition title", 
+#                value=input$cndTitle, size=40),
+#                tags$style(type="text/css", 
+#                     "#condDisp{font-family:monospace;font-size:90%;width:95%;}"), 
+#                tags$textarea(id="condDisp",kwds),
+#                actionButton("condEdit","Switch to full editor"))
+#     output$condToFreeForm <- renderUI(ui)
+# browser()                               
+     
 
-cat ("condToFreeForm=",input$condToFreeForm," length(globals$currentEditCmp$reopn)=",
-     length(globals$currentEditCmp),"\n")
-browser()    
   })
   observe({
     if (length(input$cmdChgToFree) == 0 || input$cmdChgToFree==0) return()
-cat ("cmdToFreeForm=",input$cmdToFreeForm," length(globals$currentEditCmp$reopn)=",
-     length(globals$currentEditCmp),"\n")
-browser()
+cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
+     globals$currentCmdPkey,"\n")
+#browser()
   })
 
   observe({  
@@ -3326,7 +3327,35 @@ browser()
     updateSelectInput(session=session, inputId="addModCmps", selected = 0)     
     updateSelectInput(session=session, inputId="addKeyWds", selected = 0)     
     updateSelectInput(session=session, inputId="addEvCmps",selected = 0)
-    output$editcmdBuild <-output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+  }
+  
+  mkCondKeyWrd <- function (globals,prms,input)
+  {
+    kwPname = globals$currentCndPkey
+    pkeys = prms[[kwPname]]
+    ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+    if (is.null(ansFrm)) ansFrm = 
+      getPstring(pkeys,"parmsForm",globals$activeVariants[1])
+    reopn = NULL
+    fn = 0
+    repeat
+    {
+      fn = fn+1
+      pkey = paste0("f",fn)
+      fps = getPstring(pkeys,pkey,globals$activeVariants[1])
+      if (is.null(fps)) break
+      instr = input[[paste0("cnd.",pkey)]]
+      reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+      names(reopn)[fn] = pkey
+    } 
+    instr = input[["waitYears"]]
+    reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+    names(reopn)[length(names(reopn))] = "waitYears"
+    kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
+    kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
+           "\nThen")
+    list(reopn=reopn,kwds=kwds)
   }
 
   observe({  
@@ -3355,32 +3384,10 @@ browser()
       }
       if (globals$currentCndPkey != "0")
       {
-        kwPname = globals$currentCndPkey
-        pkeys = prms[[kwPname]]
-        ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
-        if (is.null(ansFrm)) ansFrm = 
-          getPstring(pkeys,"parmsForm",globals$activeVariants[1])
-        reopn = NULL
-        fn = 0
-        repeat
-        {
-          fn = fn+1
-          pkey = paste0("f",fn)
-          fps = getPstring(pkeys,pkey,globals$activeVariants[1])
-          if (is.null(fps)) break
-          instr = input[[paste0("cnd.",pkey)]]
-          reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-          names(reopn)[fn] = pkey
-        } 
-        instr = input[["waitYears"]]
-        reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-        names(reopn)[length(names(reopn))] = "waitYears"
-        kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
-        kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
-               "\nThen")
-cat ("Save with if/then, kwds=",kwds," reopn=",reopn,"\n") 
+        rtn = mkCondKeyWrd(globals,prms,input)
         newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
-                  kwdName=kwPname,title=input$cndTitle,kwds=kwds,reopn=reopn)
+                   kwdName=globals$currentCndPkey,title=input$cndTitle,
+                   kwds=rtn$kwds,reopn=rtn$reopn)
       } else newcnd = NULL
       # make or edit a keyword. This section is used for both 
       # building a keyword and editing a keyword or a condition. 

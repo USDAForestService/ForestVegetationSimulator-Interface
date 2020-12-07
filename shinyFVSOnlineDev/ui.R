@@ -213,7 +213,6 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", 
                       "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                    tags$textarea(id="kcpEdit", rows=15),h6())),
-               uiOutput("editcmdBuild"),
                uiOutput("cmdBuild"),
                uiOutput("cmdBuildDesc"),h5()
               ),
@@ -539,11 +538,11 @@ shinyUI(fixedPage(
           fixedRow(
           column(width=8,offset=0,
             selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
-              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+               multiple=FALSE, selectize=FALSE, width="99%")),
           column(width=4,offset=0, 
             colourInput("svsPlotColor1","Plot color", value = "#C5FAC6"))),
           selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+             multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
         column(width=6,offset=0,
           checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
@@ -552,11 +551,11 @@ shinyUI(fixedPage(
           fixedRow(
           column(width=8,offset=0,
             selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
-              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+               multiple=FALSE, selectize=FALSE, width="99%")),
           column(width=4,offset=0, 
             colourInput("svsPlotColor2","Plot color", value = "#C5FAC6"))),
           selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+             multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
       tabPanel("Maps",
@@ -564,14 +563,14 @@ shinyUI(fixedPage(
         fixedRow(
         column(width=3,offset=0,
           selectInput(inputId="mapDsRunList",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+             multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsTable",label="Output Table", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+             multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=1,offset=0,HTML("<b>Variables</b>")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsVar",label=NULL, choices=NULL, 
-            selected=NULL, multiple=TRUE, selectize=FALSE, width="99%")),
+             multiple=TRUE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
            radioButtons("mapDsType","Display", choices=list("table","graph"))),            
         column(width=2,offset=0,
