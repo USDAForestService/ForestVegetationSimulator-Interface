@@ -2718,32 +2718,35 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
 
   insertStringIntoFocusedTextarea <- function(textarea,string)
   {
-    if (is.null(textarea) || is.null(string) || nchar(trim(string)) == 0) return()
     isolate({
-      if (length(input$selectionStart)) 
-      {              
-        start = input$selectionStart
-        end   = input$selectionEnd
-      } else { start=0;end=0 }
-      len = nchar(input[[textarea]])
+      if (is.null(textarea)) textarea="freeEdit"
+      if (!is.null(string) && nchar(trim(string)) > 0) 
+      {
+        if (length(input$selectionStart)) 
+        {              
+          start = input$selectionStart
+          end   = input$selectionEnd
+        } else { start=0;end=0 }
+        len = nchar(input[[textarea]])
 cat ("insertStringIntoFocusedTextarea textarea=",textarea," string=",string," start=",start," end=",end," len=",len,"\n")
-      if (nchar(string) == 0) return()
-      if (start == end && end == len) {         # prepend 
-        updateTextInput(session, textarea, value = paste0(input$freeEdit,string))
-      } else if (start == 0 && end == start) {  # append
-        updateTextInput(session, textarea, value = paste0(string,input$freeEdit))
-      } else if (end >= start) {                # insert/replace
-        str = input[[textarea]]
-        updateTextInput(session, textarea, value = 
-          paste0(substring(input[[textarea]],1,max(1,start)),string,
-                 substring(input[[textarea]],min(end+1,len))))
+        if (nchar(string) == 0) return()
+        if (start == end && end == len) {         # prepend 
+          updateTextInput(session, textarea, value = paste0(input[[textarea]],string))
+        } else if (start == 0 && end == start) {  # append
+          updateTextInput(session, textarea, value = paste0(string,input[[textarea]]))
+        } else if (end >= start) {                # insert/replace
+          str = input[[textarea]]
+          updateTextInput(session, textarea, value = 
+            paste0(substring(input[[textarea]],1,max(1,start)),string,
+                   substring(input[[textarea]],min(end+1,len))))
+        }
       }
       updateSelectInput(session=session, inputId="freeOps", selected=1)
       updateSelectInput(session=session, inputId="freeVars",selected=1)
       updateSelectInput(session=session, inputId="freeSpecies",selected=1)
       updateSelectInput(session=session, inputId="freeFuncs",selected=1)
       output$fvsFuncRender <- renderUI (NULL)
-      session$sendCustomMessage(type="refocus", textarea)
+      session$sendCustomMessage(type="refocus", textarea) 
     })
   }
  
@@ -2766,7 +2769,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
         updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
           selected=if (length(globals$pastelistShadow)) 
-              globals$pastelistShadow[[1]] else 0)
+              globals$pastelistShadow[[1]] else 0)         
       }
       globals$changeind <- 1
       output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
@@ -3058,7 +3061,6 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
       updateSelectInput(session=session, inputId="freeSpeciesKCP",selected=1)
       updateSelectInput(session=session, inputId="freeFuncsKCP",selected=1)
       output$fvsFuncRender <- renderUI (NULL)
-      session$sendCustomMessage(type="refocus", "kcpEdit")
     })
   }
   
@@ -3293,11 +3295,11 @@ cat ("cmdChgToFree processing condition\n")
          globals$currentCndPkey=kwds$kwds
          updateTextInput(session, "condTitle",value=paste0("Freeform: ",input$condTitle))
          list(myInlineTextInput("condTitle","Condition title", 
-                    value=paste0("Freeform: ",input$condTitle), size=40),
-                    tags$style(type="text/css", 
-                         "#condDisp{font-family:monospace;font-size:90%;height:1in;width:100%;cursor:auto;}"), 
-                    tags$script('$(document).ready(function(){ $("textarea").on("focus", function(e){ Shiny.setInputValue("focusedElement", e.target.id);}); }); '),
-                    tags$textarea(id="condDisp",kwds$kwds))
+              value=paste0("Freeform: ",input$condTitle), size=40),
+              tags$style(type="text/css", 
+                "#condDisp{font-family:monospace;font-size:90%;height:1in;width:100%;cursor:auto;}"), 
+              tags$script('$(document).ready(function(){ $("textarea").on("focus", function(e){ Shiny.setInputValue("focusedElement", e.target.id);}); }); '),
+              tags$textarea(id="condDisp",kwds$kwds))
        } else NULL
 cat ("cmdChgToFree processing component\n") 
        if (length(globals$winBuildFunction))
@@ -3314,7 +3316,7 @@ cat ("cmdChgToFree processing component\n")
        globals$currentCmdPkey = kwds$kwds
        globals$winBuildFunction = character(0)
        cmdUI <- mkFreeformEltList(globals,prms,paste0("Freeform: ",input$cmdTitle),
-                               kwds$kwds)
+                                  kwds$kwds)
        cmdUI <- append(cmdUI,list(
                 tags$style(type="text/css", "#cmdCancel {color:red;}"),
                 actionButton("cmdCancel","Cancel"),
@@ -3323,6 +3325,7 @@ cat ("cmdChgToFree processing component\n")
        output$condBuild <- renderUI(condUI)
        output$cmdBuild <- renderUI(cmdUI)
        output$cmdBuildDesc <- renderUI(NULL)
+       session$sendCustomMessage(type="refocus", "freeEdit")
     })
   })
 
@@ -3418,7 +3421,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         }
       } else mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])
       ans = list(ex=if (length(kwPname) > 1) kwPname[2] else "base",
-            kwds=kwds,reopn=reopn)
+            kwds=kwds,reopn=reopn)                                                  
     }                        
     ans
   }
