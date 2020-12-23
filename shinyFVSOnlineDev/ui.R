@@ -213,6 +213,7 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", 
                       "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                    tags$textarea(id="kcpEdit", rows=15),h6())),
+               uiOutput("condBuild"),
                uiOutput("cmdBuild"),
                uiOutput("cmdBuildDesc"),h5()
               ),

@@ -104,15 +104,16 @@ cat ("Project is locked.\n")
         if(length(rdatsAll)){# there are uuid.RData files, no FVS_Runs.RData file and no other possible *.RData files 
           for(i in 1:length(rdatsAll)){
             if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted
-            if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
-            if(class(ret)!="try error"){# get UUID(s) and Run Title(s)
+            if( globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
+            if(class(ret)!="try error" && exists("saveFvsRun"))
+            { # get UUID(s) and Run Title(s)if (exists(saveFvsRun))
               globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
               attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
             }
           }
           FVS_Runs = globals$FVS_Runs
-          if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
-          if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+          if(!globals$localWindows) save (file="FVS_Runs.RData",FVS_Runs)
+          if( globals$localWindows) save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
         }
         else {
           # there are no uuid.RData files, no FVS_Runs.RData file, but there are 1-5 other possible *.RData files 
@@ -209,7 +210,7 @@ cat ("tstring=",tstring,"\n")
     mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim)
     resetGlobals(globals,globals$fvsRun,prms)
     selChoices = names(globals$FVS_Runs)
-    names(selChoices) = globals$FVS_Runs
+    if (!is.null(selChoices)) names(selChoices) = globals$FVS_Runs
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=selChoices[[1]])
@@ -2602,7 +2603,7 @@ cat ("elt=",elt,"\n")
   observe({
     if (input$editSel == 0) return()      
     isolate ({
-      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+      output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
       globals$currentEditCmp <- globals$NULLfvsCmp
       if (length(input$simCont) == 0) return()
       toed = input$simCont[1]
@@ -2612,26 +2613,31 @@ cat ("elt=",elt,"\n")
       globals$currentEditCmp = cmp
 cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       eltList = NULL
-      if (length(cmp$kwdName) && nchar(cmp$kwdName))
-      { 
-        if (exists(cmp$kwdName)) #if a function exists, use it.
-        {
-          eltList <- eval(parse(text=paste0(cmp$kwdName,
-            "(globals$currentEditCmp$title,prms,globals$fvsRun,globals)")))
-          if (is.null(eltList)) return(NULL)
-          eltList <- eltList[[1]]
-        } else {
-          pk <- match (cmp$kwdName,names(prms))
-          if (!is.na(pk)) # FreeForm Edit, used if pk does not match a parms.
-          {        # Launch general purpose builder when pk matches a parms.        
-            pkeys <- prms[[pk]]
-            eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,cmp$atag=="c")     
-            eltList <- append(eltList,list(
-              myInlineTextInput("cmdTitle","Component title: ", 
-                        value=globals$currentEditCmp$title,size=40)),after=0)          
+
+      if (cmp$kwdName=="freeEdit") eltList <- 
+        mkFreeformEltList(globals,prms,cmp$title,cmp$kwds) else
+      {
+        if (length(cmp$kwdName) && nchar(cmp$kwdName))
+        { 
+          if (exists(cmp$kwdName)) #if a function exists, use it.
+          {
+            eltList <- eval(parse(text=paste0(cmp$kwdName,
+              "(globals$currentEditCmp$title,prms,globals$fvsRun,globals)")))
+            if (is.null(eltList)) return(NULL)
+            eltList <- eltList[[1]]
+          } else {
+            pk <- match (cmp$kwdName,names(prms))
+            if (!is.na(pk)) # FreeForm Edit, used if pk does not match a parms.
+            {        # Launch general purpose builder when pk matches a parms.        
+              pkeys <- prms[[pk]]
+              eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,cmp$atag=="c")     
+              eltList <- append(eltList,list(
+                myInlineTextInput("cmdTitle","Component title: ", 
+                          value=globals$currentEditCmp$title,size=40)),after=0)          
+            }
           }
         }
-      }
+      }   
       if (is.null(eltList)) eltList <- 
           mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
                             globals$currentEditCmp$kwds)
@@ -2647,42 +2653,30 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         inputId="rightPan",selected="Components")
       for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
                    "addEvCmps","addKeyExt","addKeyWds"))
-         updateSelectInput(session=session, inputId=id,selected=0)
+         updateSelectInput(session=session, inputId=id, selected=0)
     })
   })
-  
-
-  # install callback functionality for the freeEdit text area to get start and end
-  # selection poistions.
-  #TODO: suppress the call once it's done the first time
+  # install callback functionality for the textarea that has the focus 
+  # to get start and end selection poistions.
   observe({
-    if (length(input$freeEdit)) 
-    {
-#cat("call sendcustomMessage for freeEdit\n")          
-      session$sendCustomMessage(type="getStart", "freeEdit")
-    }
+    if (length(input$focusedElement) && 
+        input$focusedElement %in% c("freeEdit","condDisp"))
+      session$sendCustomMessage(type="getStartEnd", input$focusedElement)    
+  }) 
+  observe({
+    if (length(input$freeSpecies) && nchar(input$freeSpecies)) 
+      insertStringIntoFocusedTextarea(input$focusedElement,input$freeSpecies)
   })
   observe({
-    if (length(input$freeSpecies) && nchar(input$freeSpecies)) isolate({
-      if (length(input$freeEdit) == 0) return()
-      insertStrinIntoFreeEdit(input$freeSpecies)
-    })
+    if (length(input$freeVars) && nchar(input$freeVars)) 
+      insertStringIntoFocusedTextarea(input$focusedElement,input$freeVars)
   })
   observe({
-    if (length(input$freeVars) && nchar(input$freeVars)) isolate({
-      if (length(input$freeEdit) == 0) return()
-      insertStrinIntoFreeEdit(input$freeVars)
-    })
-  })
-  observe({
-    if (length(input$freeOps) && nchar(input$freeOps)) isolate({
-      if (length(input$freeEdit) == 0) return()
-      insertStrinIntoFreeEdit(input$freeOps)
-    })
+    if (length(input$freeOps) && nchar(input$freeOps))
+      insertStringIntoFocusedTextarea(input$focusedElement,input$freeOps)
   })  
   observe({
     if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
-      if (length(input$freeEdit) == 0) return()
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
       if (is.null(pkeys)) return()
       eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
@@ -2717,39 +2711,39 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }
-      string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])      
-      insertStrinIntoFreeEdit(string)
+      string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])   
+      insertStringIntoFocusedTextarea(input$focusedElement,string)
     })
   }) 
-  
-  insertStrinIntoFreeEdit <- function(string)
+
+  insertStringIntoFocusedTextarea <- function(textarea,string)
   {
-    if (is.null(string) || nchar(string) == 0 || string == " ") return()
+    if (is.null(textarea) || is.null(string) || nchar(trim(string)) == 0) return()
     isolate({
       if (length(input$selectionStart)) 
-      {
+      {              
         start = input$selectionStart
         end   = input$selectionEnd
-      } else { start=0;end=0 } 
-      len   = nchar(input$freeEdit)
-cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=",len,"\n")
+      } else { start=0;end=0 }
+      len = nchar(input[[textarea]])
+cat ("insertStringIntoFocusedTextarea textarea=",textarea," string=",string," start=",start," end=",end," len=",len,"\n")
       if (nchar(string) == 0) return()
       if (start == end && end == len) {         # prepend 
-        updateTextInput(session, "freeEdit", value = paste0(input$freeEdit,string))
+        updateTextInput(session, textarea, value = paste0(input$freeEdit,string))
       } else if (start == 0 && end == start) {  # append
-        updateTextInput(session, "freeEdit", value = paste0(string,input$freeEdit))
+        updateTextInput(session, textarea, value = paste0(string,input$freeEdit))
       } else if (end >= start) {                # insert/replace
-        str = input$freeEdit
-        updateTextInput(session, "freeEdit", value = 
-          paste0(substring(input$freeEdit,1,max(1,start)),string,
-                 substring(input$freeEdit,min(end+1,len))))
+        str = input[[textarea]]
+        updateTextInput(session, textarea, value = 
+          paste0(substring(input[[textarea]],1,max(1,start)),string,
+                 substring(input[[textarea]],min(end+1,len))))
       }
       updateSelectInput(session=session, inputId="freeOps", selected=1)
       updateSelectInput(session=session, inputId="freeVars",selected=1)
       updateSelectInput(session=session, inputId="freeSpecies",selected=1)
       updateSelectInput(session=session, inputId="freeFuncs",selected=1)
       output$fvsFuncRender <- renderUI (NULL)
-      session$sendCustomMessage(type="refocus", "freeEdit")
+      session$sendCustomMessage(type="refocus", textarea)
     })
   }
  
@@ -2775,7 +2769,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
               globals$pastelistShadow[[1]] else 0)
       }
       globals$changeind <- 1
-      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+      output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
       output$contChange <- renderText(HTML("<b>*Run*</b>"))
     })
   })
@@ -2892,7 +2886,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-      output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
+      output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
     })                    
   })
 
@@ -2901,7 +2895,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
-    output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+    output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
     if (length(globals$fvsRun$FVSpgm) == 0) return(NULL)
     if (! globals$fvsRun$FVSpgm %in% names(globals$activeFVS)) return(NULL)
     switch (input$compTabSet,
@@ -2955,17 +2949,18 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           selected=names(customCmps)[1]) 
           eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
                               globals$currentEditCmp$kwds)
+          output$condBuild <- renderUI(NULL)
           output$cmdBuild <-renderUI(eltList)
           output$fvsFuncRender <- renderUI (NULL)
-          output$cmdBuildDesc <- renderUI("Description: This Editor menu allows you to 
-          utilize the advanced features of the freeform text format for creating custom
-          component sets by directly adding & editing keyword records and Event Monitor
-          functions. You can upload an existing keyword component file (.kcp), or keyword
-          component archive (FVS_kcps.Rdata) and then save it into the Run Contents window
-          on the left (Save in run), and also save it in the component collection (Save in
-          component collection). You can also create your own component sets by appending
-          items from the Run Contents on the left (Append selected component from run)
-          and then saving them into your component collection (Save in component collection).")
+          output$cmdBuildDesc <- renderUI(paste("Description: This Editor menu allows you to", 
+          "utilize the advanced features of the freeform text format for creating custom",
+          "component sets by directly adding & editing keyword records and Event Monitor",
+          "functions. You can upload an existing keyword component file (.kcp), or keyword",
+          "component archive (FVS_kcps.Rdata) and then save it into the Run Contents window",
+          "on the left (Save in run), and also save it in the component collection (Save in",
+          "component collection). You can also create your own component sets by appending",
+          "items from the Run Contents on the left (Append selected component from run)", 
+          "and then saving them into your component collection (Save in component collection)."))
       },
       NULL)   
   })
@@ -2973,7 +2968,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
   observe({
     if (length(input$kcpEdit)) 
     {
-      session$sendCustomMessage(type="getStart", "kcpEdit")
+      session$sendCustomMessage(type="getStartEnd", "kcpEdit")
     }
   })
   observe({
@@ -3005,8 +3000,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
       output$fvsFuncRender <- renderUI(eltList)
     })
-  })
-  
+  })  
   observe({  #fvsFuncCancelKCP
     if (length(input$fvsFuncCancelKCP) && input$fvsFuncCancelKCP) 
     {
@@ -3047,7 +3041,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         end   = input$selectionEnd
       } else { start=0;end=0 } 
       len   = nchar(input$kcpEdit)
-cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=",len,"\n")
+cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len=",len,"\n")
       if (nchar(string) == 0) return()
       if (start == end && end == len) {         # prepend 
         updateTextInput(session, "kcpEdit", value = paste0(input$kcpEdit,string))
@@ -3073,14 +3067,14 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
     if (is.null(input$addMgmtCats)) return()
     updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0, 
       choices=globals$mgmtsel[[as.numeric(input$addMgmtCats)]])
-    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addModCats
   observe({
     if (is.null(input$addModCats)) return()
     updateSelectInput(session=session, inputId="addModCmps", selected = 0, 
           choices=globals$mmodsel[[as.numeric(input$addModCats)]])
-    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addKeyExt
   observe({
@@ -3089,7 +3083,7 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
           choices=NULL) else
       updateSelectInput(session=session, inputId="addKeyWds", selected = 0, 
           choices=globals$kwdsel[[input$addKeyExt]])
-    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addMgmtCmps
   observe({
@@ -3116,9 +3110,9 @@ cat ("insertStrinIntoFreeEdit string=",string," start=",start," end=",end," len=
   { 
 cat ("renderComponent, inCode=",inCode,"\n")
     isolate ({
-      output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+      output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
       globals$currentEditCmp <- globals$NULLfvsCmp
-      globals$currentCndPkey <- "0"
+      globals$currentCndPkey <- character(0)
       switch (as.character(inCode),
         "mgt" =
         {
@@ -3177,9 +3171,9 @@ cat ("funName=",funName,"\n")
              actionButton("cmdCancel","Cancel"),
              tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
              actionButton("cmdSaveInRun","Save in run")))
-#          if (length(grep("freeEdit",ans[[1]]))==0) ans[[1]] <- append(ans[[1]],
-#            list(tags$style(type="text/css","#cmdChgToFree {color:black;background:pink;}"),
-#                 actionButton("cmdChgToFree","Change to freeform")))
+          if (length(grep("freeEdit",ans[[1]]))==0) ans[[1]] <- append(ans[[1]],
+            list(tags$style(type="text/css","#cmdChgToFree {color:black;background:pink;}"),
+                 actionButton("cmdChgToFree","Change to freeform")))
           output$cmdBuild     <- renderUI (if (length(ans[[1]])) ans[[1]] else NULL)
           output$cmdBuildDesc <- renderUI (if (length(ans[[2]])) ans[[2]] else NULL)
       } else { 
@@ -3222,8 +3216,8 @@ cat("input$schedbox=",input$schedbox,"\n")
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Year or cycle number: ", 
         value = globals$schedBoxYrLastUsed) 
-      output$conditions <- output$condToFreeForm <- renderUI(NULL)
-      if (length(globals$toggleind)) globals$currentCndPkey <- "0"
+      output$conditions <- renderUI(NULL)
+      if (length(globals$toggleind)) globals$currentCndPkey <- character(0)
     } else if (input$schedbox == 2) 
     {
       updateTextInput(session, globals$schedBoxPkey, 
@@ -3245,7 +3239,7 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
           selected = default, multiple = FALSE, selectize = FALSE),
         uiOutput("condElts")))
     } else {
-      globals$currentCndPkey <- "0"
+      globals$currentCndPkey <- character(0)
       updateTextInput(session, globals$schedBoxPkey, 
         label = "Number of years after condition is found true ", value = "0") 
       output$conditions <- renderUI(
@@ -3260,57 +3254,76 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
     if (length(input$condList) == 0) return()
     if (length(globals$toggleind) && input$schedbox == 1) return()
 cat("make condElts, input$condList=",input$condList,"\n") 
-    if (input$condList == "none") output$condToFreeForm <- output$condElts <- renderUI(NULL) else
+    if (input$condList == "none") output$condElts <- renderUI(NULL) else
     {
       cnpkey <- paste0("condition.",input$condList)
       idx <- match(cnpkey,names(prms))
-      globals$currentCndPkey <- if (is.na(idx)) "0" else cnpkey 
-      ui = if (globals$currentCndPkey == "0") NULL else
+      globals$currentCndPkey <- if (is.na(idx)) character(0) else cnpkey 
+      ui = if (identical(globals$currentCndPkey,character(0))) NULL else
       {
         eltList <- mkeltList(prms[[globals$currentCndPkey]],prms,
                              globals,globals$fvsRun,cndflag=TRUE)
         if (length(eltList) == 0) NULL else eltList
       }
       if (!is.null(ui))
-      {
+      {                               
         title = getPstring(prms$conditions_list,input$condList)
         if (!is.null(title)) 
         {
-          ui <- append(ui,list(myInlineTextInput("cndTitle","Condition title", 
+          ui <- append(ui,list(myInlineTextInput("condTitle","Condition title", 
                       value=title, size=40)),after=1)
           output$condElts <- renderUI(ui)
-#          output$condToFreeForm <- renderUI(list(
-#            h5(),tags$style(type="text/css", "#condChgToFree {color:black;background:pink;}"),
-#            actionButton("condChgToFree","Change condition to freeform")))
         }
       }
     }
   })
   
-  observe({
-    if (length(input$condChgToFree) == 0  || input$condChgToFree==0) return()
-cat ("condToFreeForm=",input$condToFreeForm," globals$currentCndPkey=",
- globals$currentCndPkey,"\n")
-#     output$cmdBuild <- output$condElts <- output$conditions <- output$schedbox <-renderUI(NULL)   
-#     rtn = mkCondKeyWrd(globals,prms,input)
-#     attr(rtn$kwds,"rawKeys") = "rawKeys"
-#     globals$currentCndPkey=rtn$kwds
-#     ui <- list(myInlineTextInput("cndTitle","Condition title", 
-#                value=input$cndTitle, size=40),
-#                tags$style(type="text/css", 
-#                     "#condDisp{font-family:monospace;font-size:90%;width:95%;}"), 
-#                tags$textarea(id="condDisp",kwds),
-#                actionButton("condEdit","Switch to full editor"))
-#     output$condToFreeForm <- renderUI(ui)
-# browser()                               
-     
-
-  })
-  observe({
+  
+  observe({       
     if (length(input$cmdChgToFree) == 0 || input$cmdChgToFree==0) return()
-cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
-     globals$currentCmdPkey,"\n")
-#browser()
+    isolate({
+cat ("cmdChgToFree=",input$cmdChgToFree,"\n") 
+       # process the condition first...if there is one.
+       condUI <- if (length(globals$toggleind)>0 && length(globals$currentCndPkey) &&
+                     !is.null(input$schedbox) && input$schedbox == 2) 
+       {
+cat ("cmdChgToFree processing condition\n") 
+         kwds = mkCondKeyWrd(globals,prms,input)
+         attr(kwds$kwds,"keywords") = "condDisp"
+         globals$currentCndPkey=kwds$kwds
+         updateTextInput(session, "condTitle",value=paste0("Freeform: ",input$condTitle))
+         list(myInlineTextInput("condTitle","Condition title", 
+                    value=paste0("Freeform: ",input$condTitle), size=40),
+                    tags$style(type="text/css", 
+                         "#condDisp{font-family:monospace;font-size:90%;height:1in;width:100%;cursor:auto;}"), 
+                    tags$script('$(document).ready(function(){ $("textarea").on("focus", function(e){ Shiny.setInputValue("focusedElement", e.target.id);}); }); '),
+                    tags$textarea(id="condDisp",kwds$kwds))
+       } else NULL
+cat ("cmdChgToFree processing component\n") 
+       if (length(globals$winBuildFunction))
+       {
+         kwPname = globals$winBuildFunction
+         pkeys = character(0)
+       } else {
+         kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
+         pkeys = prms[[kwPname[1]]]
+       }
+       kwds = buildKeywords(character(0),pkeys,kwPname,globals)
+       attr(kwds$kwds,"keywords") = "freeEdit"
+       attr(kwds$kwds,"extension") = kwds$ex
+       globals$currentCmdPkey = kwds$kwds
+       globals$winBuildFunction = character(0)
+       cmdUI <- mkFreeformEltList(globals,prms,paste0("Freeform: ",input$cmdTitle),
+                               kwds$kwds)
+       cmdUI <- append(cmdUI,list(
+                tags$style(type="text/css", "#cmdCancel {color:red;}"),
+                actionButton("cmdCancel","Cancel"),
+                tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
+                actionButton("cmdSaveInRun","Save in run")))
+       output$condBuild <- renderUI(condUI)
+       output$cmdBuild <- renderUI(cmdUI)
+       output$cmdBuildDesc <- renderUI(NULL)
+    })
   })
 
   observe({  
@@ -3327,19 +3340,20 @@ cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
     updateSelectInput(session=session, inputId="addModCmps", selected = 0)     
     updateSelectInput(session=session, inputId="addKeyWds", selected = 0)     
     updateSelectInput(session=session, inputId="addEvCmps",selected = 0)
-    output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
+    output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   }
   
   mkCondKeyWrd <- function (globals,prms,input)
   {
     kwPname = globals$currentCndPkey
+cat ("mkCondKeyWrd, kwPname=",kwPname,"\n")
     pkeys = prms[[kwPname]]
     ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
     if (is.null(ansFrm)) ansFrm = 
       getPstring(pkeys,"parmsForm",globals$activeVariants[1])
     reopn = NULL
     fn = 0
-    repeat
+    repeat         
     {
       fn = fn+1
       pkey = paste0("f",fn)
@@ -3350,20 +3364,72 @@ cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
       names(reopn)[fn] = pkey
     } 
     instr = input[["waitYears"]]
-    reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+    reopn = c(reopn,as.character(if (is.null(instr)) character(0) else instr))
     names(reopn)[length(names(reopn))] = "waitYears"
     kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
     kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
            "\nThen")
     list(reopn=reopn,kwds=kwds)
   }
+  
+  buildKeywords <- function(oReopn,pkeys,kwPname,globals)
+  {
+cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
+    if (length(pkeys) == 0 && nchar(kwPname)) 
+    {
+      # try to find a function that can make the keywords
+      fn = paste0(kwPname,".mkKeyWrd")
+      ans = if (exists(fn)) eval(parse(text=paste0(fn,"(input,output)"))) else NULL
+    } else { 
+      # build from prms entry
+      ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
+      if (is.null(ansFrm)) 
+      { 
+        kw = kwPname[1]
+        kw = unlist(strsplit(kw,".",fixed=TRUE))
+        kw = kw[length(kw)]
+        ansFrm = paste0(substr(paste0(kw,"         "),1,10),
+                 "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
+      } 
+      reopn = NULL
+      fn = 0              
+      repeat
+      {                      
+        fn = fn+1
+        pkey = paste0("f",fn)
+        fps = getPstring(pkeys,pkey,globals$activeVariants[1])
+        if (is.null(fps)) break
+        instr =  if (length(globals$currentEditCmp$atag) && 
+                            globals$currentEditCmp$atag=="c") 
+                input[[paste0("cnd.",pkey)]] else input[[pkey]]            
+        reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+        names(reopn)[fn] = pkey
+      }       
+      kwds = if ("waitYears" %in% names(oReopn))
+      {
+        instr = input[["waitYears"]]
+        if (!is.null(instr))
+        { 
+          reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
+          names(reopn)[length(names(reopn))] = "waitYears"
+          kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
+          paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
+                 "\nThen")
+        }
+      } else mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])
+      ans = list(ex=if (length(kwPname) > 1) kwPname[2] else "base",
+            kwds=kwds,reopn=reopn)
+    }                        
+    ans
+  }
 
   observe({  
-    # command Save in run 
-    if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return()
+    # command Save in run                             
+    if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
     isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
-         globals$currentCndPkey == "0" && globals$currentCmdPkey == "0") return()
+          identical(globals$currentCndPkey,character(0))  && 
+          identical(globals$currentCmdPkey,character(0))) return()
       if (length(globals$currentEditCmp$reopn) && 
                  globals$currentEditCmp$reopn == "pasteOnSave")
       {
@@ -3379,16 +3445,23 @@ cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         }
         globals$currentEditCmp <- globals$NULLfvsCmp
-        closeCmp()
+        closeCmp()                      
         return()
-      }
-      if (globals$currentCndPkey != "0")
-      {
-        rtn = mkCondKeyWrd(globals,prms,input)
+      }     
+      if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
+      if (is.null(attr(globals$currentCndPkey,"keywords")))
+      { 
+        kwds = mkCondKeyWrd(globals,prms,input)
         newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
-                   kwdName=globals$currentCndPkey,title=input$cndTitle,
-                   kwds=rtn$kwds,reopn=rtn$reopn)
-      } else newcnd = NULL
+                 kwdName=globals$currentCndPkey,title=input$condTitle,
+                 kwds=kwds$kwds,reopn=kwds$reopn)
+      } else {
+        newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",
+                 exten="base",kwdName="freeEdit",title=input$condTitle,
+                 kwds=if (attr(globals$currentCndPkey,"keywords")=="condDisp") 
+                      input$condDisp else input$freeForm,
+                 reopn=character(0))
+      }
       # make or edit a keyword. This section is used for both 
       # building a keyword and editing a keyword or a condition. 
       # if this is true, then we are building a new component
@@ -3399,12 +3472,17 @@ cat ("cmdToFreeForm=",input$cmdToFreeForm," globals$currentCmdPkey=",
           kwPname = globals$winBuildFunction
           pkeys = character(0)
         } else {
-          kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-          pkeys = prms[[kwPname[1]]]
+          if (!is.null(attr(globals$currentCmdPkey,"keywords"))) 
+          {
+            kwPname = attr(globals$currentCmdPkey,"keywords") 
+            pkeys=NULL
+          } else {
+            kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
+            pkeys = prms[[kwPname[1]]]
+          }
         }
         oReopn  = character(0) 
-cat ("Building a component: kwPname=",kwPname,"\n")
-      } else { # we are editing the component
+      } else { # we are editing the component            
         kwPname = globals$currentEditCmp$kwdName
         oReopn  = globals$currentEditCmp$reopn
 cat ("Editing a component: kwPname=",kwPname," oReopn=",oReopn,"\n")
@@ -3415,101 +3493,49 @@ cat ("Editing as freeform\n")
           globals$currentEditCmp$kwds = input$freeEdit
           globals$currentEditCmp$reopn = character(0)
           globals$currentEditCmp$title = input$cmdTitle
-          mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+          mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],
+                    justGrps=input$simContType=="Just groups")
           updateSelectInput(session=session, inputId="simCont", 
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
           closeCmp()
           return()
         }  
       }
-      # building/editing a keyword from a custom window.    
-      if (length(pkeys) == 0 && nchar(kwPname)) 
-      {
-        # try to find a function that can make the keywords
-        fn = paste0(kwPname,".mkKeyWrd")
-        ans = if (exists(fn)) eval(parse(text=paste0(fn,"(input,output)"))) else NULL
-        if (is.null(ans)) return()
-        ex = ans$ex
-        kwds = ans$kwds
-        reopn = ans$reopn
-      } else { 
-        # build from prms entry
-        ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
-        if (is.null(ansFrm)) 
-        { 
-cat ("kwPname=",kwPname,"\n")
-          kw = kwPname[1]
-          kw = unlist(strsplit(kw,".",fixed=TRUE))
-          kw = kw[length(kw)]
-          ansFrm = paste0(substr(paste0(kw,"         "),1,10),
-                   "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
-        } 
-        reopn = NULL
-        fn = 0              
-        repeat
-        {
-          fn = fn+1
-          pkey = paste0("f",fn)
-          fps = getPstring(pkeys,pkey,globals$activeVariants[1])
-          if (is.null(fps)) break
-          instr =  if (length(globals$currentEditCmp$atag) && 
-                              globals$currentEditCmp$atag=="c") 
-                  input[[paste0("cnd.",pkey)]] else input[[pkey]]            
-          if (fps == "scheduleBox" && !is.null(input$schedbox) && 
-              input$schedbox == "1" && 
-              !identical(newcnd,globals$NULLfvsCmp)) newcnd = NULL
-          reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-          names(reopn)[fn] = pkey
-        }  
-        if ("waitYears" %in% names(oReopn))
-        {
-          instr = input[["waitYears"]]
-          if (!is.null(instr))
-          { 
-            reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
-            names(reopn)[length(names(reopn))] = "waitYears"
-            kwds = sprintf("%-10s%10s\n","If",if (is.null(instr)) " " else instr)
-            kwds = paste0(kwds,mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]),
-                   "\nThen")
-          }
-        } else kwds = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1]) 
-        gensps <- grep("SpGroup", kwds)
-        if(length(gensps)) { cntr <- 0
-        if(!length(globals$GrpNum)){
-          globals$GrpNum[1] <- 1
-        }else
+cat ("Building a component: kwPname=",kwPname,"\n")
+      ans = if (kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+          reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys,kwPname,globals)
+      gensps <- grep("SpGroup", ans$kwds)
+      if(length(gensps)) 
+      { 
+        cntr <- 0
+        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
         globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
         grlist <- list()
-        for (spg in 1:length(reopn))if(try(reopn[spg])!=" ")
+        for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" ")
         {
           cntr<-cntr+1
-          grlist[cntr]<-reopn[spg]
+          grlist[cntr]<-ans$reopn[spg]
         }
-
-# prevent duplicate SpGroup names due to editing & saving non-name changes
+        # prevent duplicate SpGroup names due to editing & saving non-name changes
         grlist[1] <- gsub(" ","", grlist[1])
         tmpk <- match(grlist[1], globals$GenGrp)
-          if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)){
+        if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)) 
           globals$GenGrp[length(globals$GrpNum)]<-grlist
-          }
-          if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
-            globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-            globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
-            globals$GenGrp[length(globals$GrpNum)]<-grlist
-          }
-          if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
-            globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-          }
-        } 
-      }
-cat ("Save, kwds=",kwds,"\n")      
+        if (is.na(tmpk) && length(globals$currentEditCmp$kwds))
+        {
+          globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+          globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
+          globals$GenGrp[length(globals$GrpNum)]<-grlist
+        }
+        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds))
+          globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+      } 
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
-        ex = if (length(kwPname) == 2) kwPname[2] else "base"
-cat ("building component kwPname=",kwPname,"\n")
-        newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=kwds,exten=ex,
+        newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
              variant=globals$activeVariants[1],kwdName=kwPname[1],
-             title=input$cmdTitle,reopn=if (is.null(reopn)) character(0) else reopn)
+             title=input$cmdTitle,
+             reopn=if (is.null(ans$reopn)) character(0) else ans$reopn)
         # find the attachment point. 
         sel = if (length(globals$schedBoxPkey) &&
               input$schedbox == 3) input$condList else input$simCont[[1]]
@@ -3517,7 +3543,7 @@ cat ("building component kwPname=",kwPname,"\n")
         std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
         cmp = NULL
         if (is.null(grp) && is.null(std)) 
-        {
+        {           
           for (grp in 1:length(globals$fvsRun$grps))
           {
             cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
@@ -3536,7 +3562,7 @@ cat ("building component kwPname=",kwPname,"\n")
           newcmp$atag = sel
           #adjust insert point.
           if (is.null(std)) for (i in (cmp+1):length(globals$fvsRun$grps[[grp]]$cmps))
-          {
+          {             
             if (i > length(globals$fvsRun$grps[[grp]]$cmps)) break
             if (globals$fvsRun$grps[[grp]]$cmps[[i]]$atag == sel) cmp = i
           } else for (i in (cmp+1):length(globals$fvsRun$stands[[std]]$cmps))
@@ -3547,8 +3573,8 @@ cat ("building component kwPname=",kwPname,"\n")
         }
         # save schedBoxYrLastUsed
         if (length(globals$schedBoxPkey) && input$schedbox == 1 &&
-            length(input[[globals$schedBoxPkey]])) globals$schedBoxYrLastUsed <- 
-              input[[globals$schedBoxPkey]]
+              length(input[[globals$schedBoxPkey]])) globals$schedBoxYrLastUsed <- 
+                input[[globals$schedBoxPkey]]
         # if there is a newcnd, then attach it first.
         if (!is.null(newcnd))
         {
@@ -3558,8 +3584,7 @@ cat ("building component kwPname=",kwPname,"\n")
             globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
                 append(globals$fvsRun$stands[[std]]$cmps, newcnd) else
                 append(globals$fvsRun$stands[[std]]$cmps, newcnd, after=cmp)
-          } else
-          { 
+          } else { 
             globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
                 append(globals$fvsRun$grps[[grp]]$cmps, newcnd) else
                 append(globals$fvsRun$grps[[grp]]$cmps, newcnd, after=cmp)
@@ -3572,17 +3597,17 @@ cat ("building component kwPname=",kwPname,"\n")
           globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
               append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
-        } else { 
+        } else {           
           globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-              append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
-              append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+          append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+          append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
         }
       } else {
-        globals$currentEditCmp$kwds=kwds
+        globals$currentEditCmp$kwds=ans$kwds
         globals$currentEditCmp$title=input$cmdTitle
-cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")       
-        globals$currentEditCmp$reopn=if (is.null(reopn)) character(0) else reopn
-        globals$currentEditCmp=globals$NULLfvsCmp
+cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")       
+         globals$currentEditCmp$reopn=if (is.null(ans$reopn)) character(0) else ans$reopn
+         globals$currentEditCmp=globals$NULLfvsCmp
       }      
       mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
@@ -3593,9 +3618,9 @@ cat ("saving, kwds=",kwds," title=",input$cmdTitle," reopn=",reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-
+                  
   observe({
-    cat ("changeind=",globals$changeind,"\n")
+cat ("changeind=",globals$changeind,"\n")
     if (globals$changeind == 0){
       output$contChange <- renderUI("Run")
       output$srtYr <-renderUI({
@@ -4743,7 +4768,7 @@ cat("Residual length of svs=",length(svs),"\n")
       tree = as.list(tree[c(2,3,4,5,6,7,8,10,11,20,21)])
       tree$sp = sp
       ll = matrix(c(tree$Xloc,tree$Yloc,0),nrow=1)
-      tree$Xloc = ll[1,1]
+      tree$Xloc = ll[1,1]     
       tree$Yloc = ll[1,2]
       drawn = svsTree(tree,treeform)
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn

@@ -195,7 +195,7 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
       dsp <- as.list(c(unlist(dsp),as.character(globals$GenGrp)))
       names(dsp) = sps
     }
-  }else
+  } else
   names(dsp) = sps
   if (!is.null(fpvs)) spGrp=NULL
   if (!is.null(fpvs) && (addAll)) spGrp <- 2
@@ -218,8 +218,7 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
-      myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr),
-      uiOutput("condToFreeForm"),
+      myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
     ))
   } else {    
     sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year " else
@@ -236,7 +235,8 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
         value = globals$currentEditCmp$reopn[pkey]))
     )
   }
-  rtn
+  output$condBuild <- renderUI(rtn)
+  NULL
 }
       
 
@@ -615,30 +615,33 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   mathList = mkMathList()
   if (input$compTabSet=="Editor" && length(globals$currentEditCmp$kwds)==0)
   {
-    eltList <- list(
-     myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
-     myInlineListButton ("freeVarsKCP","Variables:",varList,deltll=NULL),
-     mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
-          choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncsKCP","FVS Functions:",funcList,deltll=NULL),
-     uiOutput("fvsFuncRender"))
+    eltList <- list(           
+      myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
+      myInlineListButton ("freeVarsKCP","Variables:",varList,deltll=NULL),
+      mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
+           choices=NULL,globals$activeVariants[1]),
+      myInlineListButton ("freeFuncsKCP","FVS Functions:",funcList,deltll=NULL),
+      uiOutput("fvsFuncRender"))
   } else {
     eltList <- list(
-     tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-     myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
-     tags$style(type="text/css", 
-       "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
-     tags$p(id="freeEditCols", 
-            HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
-     tags$style(type="text/css", 
-       "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-     tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
-     myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
-     myInlineListButton ("freeVars","Variables:",varList, deltll=NULL),
-     mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
-           choices=NULL,globals$activeVariants[1]),
-     myInlineListButton ("freeFuncs","FVS Functions:",funcList,deltll=NULL),
-     uiOutput("fvsFuncRender"))
+      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
+      myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
+      tags$style(type="text/css", 
+        "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$p(id="freeEditCols", 
+             HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+      tags$style(type="text/css", 
+        "#freeEdit{font-family:monospace;font-size:90%;width:100%;cursor:auto;}"), 
+      tags$script(paste0('$(document).ready(function(){ $("textarea").on("focus",',
+                         ' function(e){ Shiny.setInputValue("focusedElement", ',
+                         'e.target.id);}); }); ')),
+      tags$textarea(id="freeEdit", rows=10, paste0(kwds,collapse="\n")), 
+      myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
+      myInlineListButton ("freeVars","Variables:",varList, deltll=NULL),
+      mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
+            choices=NULL,globals$activeVariants[1]),
+      myInlineListButton ("freeFuncs","FVS Functions:",funcList,deltll=NULL),
+      uiOutput("fvsFuncRender"))
   } 
   eltList
 }

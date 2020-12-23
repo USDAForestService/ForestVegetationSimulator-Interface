@@ -1499,8 +1499,8 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$mmodsel <- list()
   globals$mevsel <- list()
   globals$schedBoxPkey <- character(0)  
-  globals$currentCmdPkey <- "0"
-  globals$currentCndPkey <- "0"
+  globals$currentCmdPkey <- character(0)  
+  globals$currentCndPkey <- character(0)  
   globals$winBuildFunction <- character(0)
   globals$foundStand=0L 
   globals$changeind <- 0
@@ -1585,7 +1585,6 @@ uuidgen <- function (n=1)
 
 getPstring = function (pkeys,pkey,atag = NULL)
 {
-#cat("getPstring, pkey=",pkey," atag=",atag,"\n")
   pkeys = pkeys[pkeys == pkey]
   if (length(pkeys) == 0) return (NULL)
   if (is.null(atag)) 
@@ -1596,7 +1595,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
       { 
         ps = attr(pk,"pstring")
         names(ps) = as.character(pk)
-#cat (" ps1 to return=",ps,"\n")
         return(ps)
       }
     }
@@ -1608,7 +1606,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
       { 
         ps = attr(pk,"pstring")
         names(ps) = as.character(pk)
-#cat (" ps2 to return=",ps,"\n")
         return(ps)
       }
     }
