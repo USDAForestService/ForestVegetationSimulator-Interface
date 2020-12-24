@@ -334,7 +334,7 @@ prms[["species_ni"]] = NULL
 
 attributes(prms[["Compute_PreDefined"]][[6]])$pstring="mkVarList Select the Pre-Defined EM variable:"
 
-save(file="prms.RData",prms)
+save(file="prms.RData",version=2,prms)
 
 
 

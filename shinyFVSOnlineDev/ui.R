@@ -743,8 +743,10 @@ shinyUI(fixedPage(
                 tags$button(type = "button", class = "btn btn-primary", 
                   'data-dismiss' = "modal", "Cancel"))),  
               h4(),h4("Make new project backup file"),
-              if(isLocal())radioButtons("prjBckCnts",NULL,width="50%",choices=list("Project files only 
-                             (*_P.zip)"="projOnly", "Project files and FVS software (*_PS.zip)"="projFVS"),selected="projOnly"),
+              if (isLocal()) radioButtons("prjBckCnts",NULL,width="50%",choices=
+                 list("Project files only (*_P.zip)"="projOnly",
+                      "Project files and FVS software (*_PS.zip)"="projFVS"),
+                      selected="projOnly"),
               actionButton("mkZipBackup","Make a project backup zip file"),
               h4("Manage current project backup files"),
               selectInput("pickBackup", "Select backup to process", multiple=FALSE,
@@ -761,9 +763,10 @@ shinyUI(fixedPage(
                 modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
                     htmlOutput("btnB", inline=TRUE)),NULL))
               ),
-              if(isLocal())h4(),
-              if(isLocal())h4("Upload existing project backup file into current project"),
-              if(isLocal())fileInput("upZipBackup",paste0("Upload project backup zip file"),width="30%"),
+              if(isLocal()) h4(),
+              if(isLocal()) h4("Upload existing project backup file into current project"),
+              if(isLocal()) fileInput("upZipBackup","Upload project backup zip file",
+                                      width="30%"),
               uiOutput("delPrjActionMsg"),
               h4("Delete entire project"),
               selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
@@ -774,7 +777,7 @@ shinyUI(fixedPage(
                                      "Yes"),
                    tags$button(type = "button", class = "btn btn-primary", 
                               'data-dismiss' = "modal", "No")))),
-              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"), 
+              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
             ), 
             tabPanel("Downloads", h6(),
               downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
