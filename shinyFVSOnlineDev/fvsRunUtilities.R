@@ -1464,7 +1464,8 @@ resetActiveFVS <- function(globals)
            "sn: Southern"="sn")
   keep=match(globals$activeVariants,vars)
   globals$activeVariants=vars[keep]
-  globals$activeExtens=unique(unlist(lapply(globals$activeFVS,function(x) x[-1])))
+  globals$activeExtens=c("base",unique(unlist(
+                         lapply(globals$activeFVS,function(x) x[-1]))))
 }
 
 resetGlobals <- function(globals,fvsRun,prms)
