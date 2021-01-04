@@ -597,7 +597,7 @@ cat ("tbs6=",tbs,"\n")
                        "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
                        "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
                        "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
-                       "FVS_Regen_Tally","FVS_Regen_Ingrowth","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+                       "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
                        "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
                        "FVS_Summary_East","View_DWN")
         globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
