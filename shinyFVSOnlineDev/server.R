@@ -1358,7 +1358,9 @@ cat ("Graphs pan hit\n")
       # update color pallet
       for (i in 1:length(cbbPalette))
         updateColourInput(session=session,inputId=paste0("color",i),value=cbbPalette[i])
-      if (file.exists("GraphSettings.RData")) load("GraphSettings.RData")
+      if(!globals$localWindows)grsets = "GraphSettings.RData"
+      if(globals$localWindows)grsets = paste0(prjDir,"/GraphSettings.RData")
+      if (file.exists(grsets)) load(grsets)
       if (!exists("GraphSettings")) GraphSettings=list("None"=list())
       updateSelectInput(session=session, inputId="OPsettings", choices=names(GraphSettings),
          selected="None")
@@ -2964,7 +2966,8 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
           "on the left (Save in run), and also save it in the component collection (Save in",
           "component collection). You can also create your own component sets by appending",
           "items from the Run Contents on the left (Append selected component from run)", 
-          "and then saving them into your component collection (Save in component collection)."))
+          "and then saving them into your component collection (Save in component collection).",
+          "Finally, you can download a text file of your component set (Download(KCP))."))
       },
       NULL)   
   })
