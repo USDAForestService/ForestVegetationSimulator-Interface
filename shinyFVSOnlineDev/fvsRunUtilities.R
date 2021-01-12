@@ -1513,7 +1513,7 @@ updateVarSelection <- function ()
   resetActiveFVS(globals)
   if (length(globals$fvsRun$FVSpgm) == 0) 
   {
-    vlst <- globals$activeVariants
+    vlst = if(length(globals$selVarList)) globals$selVarList else globals$activeVariants
     selected = if (length(globals$lastRunVar)) 
       unlist(vlst[match(globals$lastRunVar,vlst)]) else selected=unlist(vlst)[1]
   } else {
@@ -1524,7 +1524,8 @@ updateVarSelection <- function ()
     } else {
       vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
       vlst <- globals$selVarList[match(vlst,globals$selVarList)]
-      selected = unlist(vlst)[1]
+      if(is.null(vlst[[1]])) vlst <- globals$selVarList
+      if(!is.null(vlst[[1]])) selected = unlist(vlst)[1] else selected = unlist(globals$selVarList)[1] 
       globals$lastRunVar=if (is.null(selected)) character(0) else selected
     }
   }
@@ -2286,7 +2287,7 @@ cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     timescale <- if(length(globals$fvsRun$stands)) 1 else 0
     for (i in 1:length(globals$activeFVS))
     {
-      if (globals$activeFVS[[i]][1] == input$inVars) 
+      if (!is.null(globals$activeFVS[[i]][1]) && globals$activeFVS[[i]][1] == input$inVars) 
       {
         globals$fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
         break                
