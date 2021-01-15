@@ -1464,8 +1464,8 @@ resetActiveFVS <- function(globals)
            "sn: Southern"="sn")
   keep=match(globals$activeVariants,vars)
   globals$activeVariants=vars[keep]
-  globals$activeExtens=c("base",unique(unlist(
-                         lapply(globals$activeFVS,function(x) x[-1]))))
+  globals$activeExtens=character(0)
+cat ("in resetActiveFVS, globals$activeVariants=",globals$activeVariants,"\n")
 }
 
 resetGlobals <- function(globals,fvsRun,prms)
@@ -1525,9 +1525,17 @@ updateVarSelection <- function ()
       vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
       vlst <- globals$selVarList[match(vlst,globals$selVarList)]
       if(is.null(vlst[[1]])) vlst <- globals$selVarList
-      if(!is.null(vlst[[1]])) selected = unlist(vlst)[1] else selected = unlist(globals$selVarList)[1] 
+      selected = if(is.null(vlst[[1]])) unlist(globals$selVarList)[1] else unlist(vlst)[1]
       globals$lastRunVar=if (is.null(selected)) character(0) else selected
     }
+  }
+  if (is.null(selected)) 
+  {
+    globals$activeVariants = character(0) 
+    globals$activeExtens = "base"
+  } else {
+    globals$activeVariants = selected
+    globals$activeExtens = c("base",globals$activeFVS[[paste0("FVS",selected)]][-1])
   }
 cat ("in updateVarSelection selected=",selected," vlst=",unlist(vlst),"\n")
   updateSelectInput(session=session, inputId="inVars", choices=vlst,

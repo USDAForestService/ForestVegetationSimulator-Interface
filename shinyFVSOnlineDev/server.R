@@ -2148,8 +2148,11 @@ cat ("inTabs\n")
   ## inVars has changed
   observe({
     if (is.null(input$inVars)) return()
+    globals$activeVariants = input$inVars
+    globals$activeVariants = c("base",globals$activeFVS[[paste0("FVS",globals$activeVariants)]][-1])    
     reloadStandSelection()
-cat ("inVars\n")
+cat ("inVars globals$activeVariants=",globals$activeVariants,
+     " globals$activeVariants=",globals$activeVariants," \n")
   })
 
   reloadStandSelection <- function ()
@@ -6383,7 +6386,7 @@ cat ("index creation, qry=",qry,"\n")
           if (class(try)!="try-error") 
           {
             qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
-            cat ("index creation, qry=",qry,"\n")
+cat ("index creation, qry=",qry,"\n")
             try(dbExecute(dbGlb$dbIcon,qry))
           }
         }
@@ -6397,7 +6400,7 @@ cat ("index creation, qry=",qry,"\n")
           if (class(try)!="try-error") 
           {
             qry = paste0("create index ",tbinx," on ",tb," (Stand_ID);")
-            cat ("index creation, qry=",qry,"\n")
+cat ("index creation, qry=",qry,"\n")
             try(dbExecute(dbGlb$dbIcon,qry))
           }
         }
@@ -6412,7 +6415,7 @@ cat ("index creation, qry=",qry,"\n")
           if (class(try)!="try-error") 
           {
             qry = paste0("create index ",tbinx," on ",tb," (StandPlot_ID);")
-            cat ("index creation, qry=",qry,"\n")
+cat ("index creation, qry=",qry,"\n")
             try(dbExecute(dbGlb$dbIcon,qry))
           }
         }
