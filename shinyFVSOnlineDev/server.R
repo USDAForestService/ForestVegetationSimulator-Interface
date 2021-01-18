@@ -18,7 +18,11 @@ library(openxlsx)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
         
+veryImportantStartupSwtich = FALSE
+        
 shinyServer(function(input, output, session) {
+  
+  if (veryImportantStartupSwtich) return()
 
   if (!interactive()) 
   {
@@ -80,74 +84,32 @@ cat ("Project is locked.\n")
         '<button id="clearLock" type="button" class="btn btn-default action-button">Clear this message and proceed</button>',
         '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" class="btn btn-default action-button">Exit now</button><h3></h3>')))
     } else cat (file="projectIsLocked.txt",date(),"\n") 
-
     resetGlobals(globals,NULL,prms)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun()  
-    if(!globals$localWindows)runsRdat <- "FVS_Runs.RData"
-    if(globals$localWindows)runsRdat <- paste0(prjDir,"/FVS_Runs.RData")
+    runsRdat <- if(!globals$localWindows) "FVS_Runs.RData" else paste0(prjDir,"/FVS_Runs.RData")
     if (!file.exists(runsRdat))
     {
-      workDir =if(!globals$localWindows) getwd() else prjDir
-      rdatsAll <- grep(pattern=".RData$",dir(workDir))
-      if(length(rdatsAll)){# begin check for uuid.RData files by first removing the other 5 possible *.RData files
-        del = if (length(grep("FVS_kcps",dir(workDir))) > 0) grep(grep("FVS_kcps",dir(workDir)),rdatsAll) else 0
-        if (del > 0) rdatsAll = rdatsAll[-del]
-        del = if (!is.na(match("SpatialData.RData",dir(workDir)))) grep(grep("SpatialData.RData",dir(workDir)),rdatsAll) else 0
-        if (del > 0) rdatsAll = rdatsAll[-del]
-        del = if (length(grep("GraphSettings",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
-        if (del > 0) rdatsAll = rdatsAll[-del]
-        del = if (length(grep("treeform",dir(workDir))) > 0) grep(grep("treeform",dir(workDir)),rdatsAll) else 0
-        if (del > 0) rdatsAll = rdatsAll[-del]
-        del = if (length(grep("prms",dir(workDir))) > 0) grep(grep("prms",dir(workDir)),rdatsAll) else 0
-        if (del > 0) rdatsAll = rdatsAll[-del]
-        rdatsAll <- dir(workDir)[rdatsAll]
-        if(length(rdatsAll)){# there are uuid.RData files, no FVS_Runs.RData file and no other possible *.RData files 
-          for(i in 1:length(rdatsAll)){
-            if(!globals$localWindows)ret = try (load(file=rdatsAll[i]))  # maybe the file has been corrupted
-            if( globals$localWindows)ret = try (load(file=paste0(prjDir,"/",rdatsAll[i])))  # maybe the file has been corrupted
-            if(class(ret)!="try error" && exists("saveFvsRun"))
-            { # get UUID(s) and Run Title(s)if (exists(saveFvsRun))
-              globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
-              attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
-            }
-          }
-          FVS_Runs = globals$FVS_Runs
-          if(!globals$localWindows) save (file="FVS_Runs.RData",FVS_Runs)
-          if( globals$localWindows) save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
+      workDir = if(!globals$localWindows) getwd() else prjDir     
+      rdatsAll <- dir(workDir,pattern="RData$")
+      rdatsAll <- setdiff(rdatsAll,c("customQueries.RData", "FVS_kcps.RData", 
+                  "GraphSettings.RData", "prms.RData", "SpatialData.RData", 
+                  "treeforms.RData")) 
+      for(rdfile in rdatsAll)
+      {
+        ret = if(!globals$localWindows) try(load(file=rdfile)) else 
+              try (load(file=paste0(prjDir,"/",rdfile))) 
+        if(class(ret)!="try error" && exists("saveFvsRun") && 
+           class(saveFvsRun) == "fvsRun" && nchar(saveFvsRun$uuid) == 36)
+        { 
+          globals$FVS_Runs[[saveFvsRun$uuid]] = saveFvsRun$title
+          attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
         }
-        else {
-          # there are no uuid.RData files, no FVS_Runs.RData file, but there are 1-5 other possible *.RData files 
-          resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-          globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-          attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-          saveFvsRun = globals$fvsRun
-          FVS_Runs = globals$FVS_Runs
-          if(!globals$localWindows){
-            save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-            save (file="FVS_Runs.RData",FVS_Runs)
-          }
-          if(globals$localWindows){
-            save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
-            save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
-          }
-        }
-        } 
-      else {
-        # there are no *.RData files of any kind in the project 
-        resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-        globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-        attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
-        saveFvsRun = globals$fvsRun
+      }
+      if (length(globals$FVS_Runs))
+      {
         FVS_Runs = globals$FVS_Runs
-        if(!globals$localWindows){
-          save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-          save (file="FVS_Runs.RData",FVS_Runs)
-        }
-        if(globals$localWindows){
-          save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
-          save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
-        }
+        save (file=runsRdat,FVS_Runs)
       }
     }
     if (file.exists(runsRdat))
@@ -161,8 +123,7 @@ cat ("Project is locked.\n")
       {
         rn = names(FVS_Runs)[i]
         run = FVS_Runs[[i]]
-        if(!globals$localWindows) file = paste0(rn,".RData")
-        if(globals$localWindows) file = paste0(prjDir,"/",rn,".RData")
+        file = if(!globals$localWindows) paste0(rn,".RData") else paste0(prjDir,"/",rn,".RData")
         ok =  !is.null(rn) && !is.null(run) && nchar(rn) && nchar(run) && rn != run && 
               !is.null(attributes(run)$time) && file.exists(file)
         if (!ok) notok = c(notok,i)
@@ -180,15 +141,27 @@ cat ("length(FVS_Runs)=",length(FVS_Runs)," length(notok)=",length(notok)," noto
       if (length(FVS_Runs) == length(notok))
       {
         unlink(runsRdat)
+        globals$FVS_Runs = list()
         resetfvsRun(globals$fvsRun,globals$FVS_Runs)
         globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      } else if (length(notok))FVS_Runs = FVS_Runs[-notok] 
-        globals$FVS_Runs = FVS_Runs
-        rm (FVS_Runs) 
-    } else {
-cat ("serious start up error\n") 
-      return()
+        FVS_Runs=globals$FVS_Runs
+      } else if (length(notok)) FVS_Runs = FVS_Runs[-notok] 
+      globals$FVS_Runs = FVS_Runs
+      save(file=runsRdat,FVS_Runs)
+      rm (FVS_Runs) 
     }
+    if (!file.exists(runsRdat))
+    {
+      globals$FVS_Runs = list()
+      resetfvsRun(globals$fvsRun,globals$FVS_Runs)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
+      FVS_Runs=globals$FVS_Runs
+      save(file=runsRdat,FVS_Runs)
+      saveFvsRun = globals$fvsRun
+      if(!globals$localWindows) save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun) else
+                                save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+    }   
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
@@ -250,7 +223,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     if (globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))                                           
     setProgress(value = NULL)          
   }, min=1, max=6)
-  
+ 
   observe({
 cat ("protocol: ", session$clientData$url_protocol, "\n",
      "hostname: ", session$clientData$url_hostname, "\n",
@@ -2149,10 +2122,10 @@ cat ("inTabs\n")
   observe({
     if (is.null(input$inVars)) return()
     globals$activeVariants = input$inVars
-    globals$activeVariants = c("base",globals$activeFVS[[paste0("FVS",globals$activeVariants)]][-1])    
+    globals$activeExtens = c("base",globals$activeFVS[[paste0("FVS",globals$activeVariants)]][-1])    
     reloadStandSelection()
 cat ("inVars globals$activeVariants=",globals$activeVariants,
-     " globals$activeVariants=",globals$activeVariants," \n")
+     " globals$activeExtens=",globals$activeExtens," \n")
   })
 
   reloadStandSelection <- function ()
@@ -2275,8 +2248,8 @@ cat ("saveRun\n")
       updateSelectInput(session=session, inputId="runSel", 
                         choices=selChoices,selected=selChoices[[1]])
       FVS_Runs = globals$FVS_Runs
-      if(!globals$localWindows)save (FVS_Runs,file="FVS_Runs.RData")
-      if(globals$localWindows)save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
+      if(!globals$localWindows) save (FVS_Runs,file="FVS_Runs.RData")
+      if( globals$localWindows) save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
     } 
   })
 
@@ -2284,19 +2257,17 @@ cat ("saveRun\n")
   observe({
     if (input$newRun > 0)
     {
+      saveRun()
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      i=1
-      while(TRUE) {
-        rn=paste0("Run ",length(globals$FVS_Runs)+i) 
-        if (rn %in% unlist(globals$FVS_Runs)) i=i+1 else break
-      } 
       globals$fvsRun$title <- nextRunName(globals)
-      resetGlobals(globals,NULL,prms)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
+      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+      resetGlobals(globals,globals$fvsRun,prms)
       if (length(globals$GenGrp)) globals$GenGrp <- list()
       if (length(globals$GrpNum)) globals$GrpNum <- as.numeric()
       loadVarData(globals,dbGlb$dbIcon)
-      updateTextInput(session=session, inputId="title", label="Run title",
-                      value=globals$fvsRun$title)
+      updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont",choices=list())
@@ -2355,6 +2326,13 @@ cat ("saveRun\n")
           updateTabsetPanel(session=session, inputId="rightPan",selected="Stands")
         }
       })
+      selChoices = names(globals$FVS_Runs)
+      names(selChoices) = unlist(globals$FVS_Runs)
+      updateSelectInput(session=session, inputId="runSel", 
+                        choices=selChoices,selected=globals$fvsRun$uuid)
+      saveFvsRun = globals$fvsRun
+      if(!globals$localWindows) save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun) else
+                                save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$changeind <- 0
       output$contChange <- renderUI("Run")
     }
@@ -2367,20 +2345,25 @@ cat ("saveRun\n")
     {
       if (length(globals$FVS_Runs) == 0) return()
       saveRun()
-      globals$fvsRun$title <- nextRunName(globals)
+      globals$fvsRun$title <- mkNameUnique(globals$fvsRun$title,unlist(globals$FVS_Runs))
       globals$fvsRun$uuid  <- uuidgen()
       globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
-      FVS_Runs = globals$FVS_Runs     
-      if(!globals$localWindows)save (FVS_Runs,file="FVS_Runs.RData")
-      if(globals$localWindows)save (FVS_Runs,file=paste0(prjDir,"/FVS_Runs.RData"))
-      resetGlobals(globals,NULL,prms)
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun
+      attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
+      globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
       updateTextInput(session=session, inputId="title", label="Run title", 
                       value=globals$fvsRun$title) 
+      saveRun()
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management")
+      updateSelectInput(session=session, inputId="compTabSet", 
+                        selected="Management") 
+      selChoices = names(globals$FVS_Runs) 
+      names(selChoices) = globals$FVS_Runs
+      updateSelectInput(session=session, inputId="runSel", 
+                        choices=selChoices,selected=globals$fvsRun$uuid)
     }
   })    
 
@@ -2406,6 +2389,7 @@ cat ("updateAutoOut called\n")
   observe({
     if (input$reload > 0 || !is.null(input$runSel))
     {
+      if (length(globals$fvsRun$uuid) && input$runSel != globals$fvsRun$uuid) saveRun()
 cat ("reload or run selection, runSel=",input$runSel," lensim=",
 length(globals$fvsRun$simcnts)," globals$currentQuickPlot=",globals$currentQuickPlot,"\n")      
       if (length(globals$currentQuickPlot) &&
@@ -2477,7 +2461,7 @@ cat ("error loading",fn,"\n")
       }
       resetGlobals(globals,globals$fvsRun,prms)
       tmp = globals$activeFVS[globals$fvsRun$FVSpgm]
-      globals$lastRunVar = if (length(tmp)) tmp[[1]][1] else character(0)
+      if (length(tmp)) globals$lastRunVar = tmp[[1]][1]
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
@@ -7959,11 +7943,10 @@ cat ("launch url:",url,"\n")
   {
     isolate({
       runName = trim(input$title)
-      if (nchar(runName) == 0) runName <- nextRunName(globals)
+      if (nchar(input$title) == 0) runName <- nextRunName(globals)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
-      if (length(me)==0) return()
-      if (!is.na(me)) runNames=runNames[-me]
+      if (length(me)==0) return() else runNames=runNames[-me]
       runName=mkNameUnique(runName,runNames)        
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
@@ -7978,17 +7961,21 @@ cat ("launch url:",url,"\n")
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
       saveFvsRun = globals$fvsRun
-      if(!globals$localWindows)save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun)
-      if(globals$localWindows)save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
+      if(!globals$localWindows) save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun) else
+                                save(file=paste0(prjDir,"/",globals$fvsRun$uuid,".RData"),saveFvsRun)
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
 cat ("saveRun, input$inVars=",input$inVars,"\n") 
-      globals$lastRunVar = if (!is.null(input$inVars)) input$inVars else character(0)     
+      globals$lastRunVar = globals$activeVariants[1]   
       # remove excess images that may be created in Maps.
       delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
       if (length(delList)) lapply(delList,function(x) unlink(x))  
 cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n") 
     }) 
   }
+  
+  #last thing statement in the file!  This shouldn't be necessary, but having it
+  #seems to clear up a lot of problems!
+  veryImportantStartupSwtich = TRUE
    
 })
 

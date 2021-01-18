@@ -35,7 +35,7 @@ mkGlobals <<- setRefClass("globals",
     extnsel = "character", kwdsel = "list", mgmtsel = "list",
     mevsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
-    selVarList = "list", customCmps = "list", selStds = "character",
+    customCmps = "list", selStds = "character",
     schedBoxPkey = "character", currentCmdPkey = "character",GrpNum="numeric",
     currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
@@ -66,7 +66,6 @@ loadStandTableData <- function (globals, dbIcon)
 loadVarData <- function(globals,dbIcon)
 {
 cat ("in loadVarData\n") 
-  globals$selVarList = as.list(globals$activeVariants)  
   dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
   dbtabsU = toupper(dbtabs)
   intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
@@ -81,14 +80,10 @@ cat ("in loadVarData\n")
     {
       vars=sort(vars[,1])
       keep=na.omit(match(vars,globals$activeVariants))
-      if (length(keep)) 
-      {
-        selVars = globals$activeVariants[keep] 
-        globals$selVarList = as.list(selVars)
-      }
+      if (length(keep)) globals$activeVariants = globals$activeVariants[keep] 
     } 
   }    
-cat ("unlist(globals$selVarList)=",unlist(globals$selVarList),"\n")
+cat ("globals$activeVariants=",globals$activeVariants,"\n")
 
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
   if (!is.null(fvsKeys)) 
@@ -1380,10 +1375,11 @@ cat ("findStand, search=",search,"\n")
 nextRunName <- function(globals)
 {
   i=1
+  rs=unlist(globals$FVS_Runs)
   repeat 
   {
     rn=paste0("Run ",length(globals$FVS_Runs)+i) 
-    if (rn %in% unlist(globals$FVS_Runs)) i=i+1 else break
+    if (rn %in% rs) i=i+1 else break
   }
   rn
 }
@@ -1513,9 +1509,8 @@ updateVarSelection <- function ()
   resetActiveFVS(globals)
   if (length(globals$fvsRun$FVSpgm) == 0) 
   {
-    vlst = if(length(globals$selVarList)) globals$selVarList else globals$activeVariants
-    selected = if (length(globals$lastRunVar)) 
-      unlist(vlst[match(globals$lastRunVar,vlst)]) else selected=unlist(vlst)[1]
+    vlst = as.list(globals$activeVariants)
+    selected = if (length(globals$lastRunVar)) globals$lastRunVar else globals$activeVariants[1]
   } else {
     if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) 
     {
@@ -1523,10 +1518,10 @@ updateVarSelection <- function ()
       selected = NULL
     } else {
       vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
-      vlst <- globals$selVarList[match(vlst,globals$selVarList)]
-      if(is.null(vlst[[1]])) vlst <- globals$selVarList
-      selected = if(is.null(vlst[[1]])) unlist(globals$selVarList)[1] else unlist(vlst)[1]
-      globals$lastRunVar=if (is.null(selected)) character(0) else selected
+      vlst <- globals$activeVariants[match(vlst,globals$activeVariants)]
+      vlst <- if(is.null(vlst[[1]])) as.list(globals$activeVariants) else as.list(vlst)
+      selected = if(is.null(vlst[[1]])) unlist(globals$activeVariants)[1] else unlist(vlst)[1]
+      if (!is.null(selected)) globals$lastRunVar=selected
     }
   }
   if (is.null(selected)) 
@@ -1537,7 +1532,7 @@ updateVarSelection <- function ()
     globals$activeVariants = selected
     globals$activeExtens = c("base",globals$activeFVS[[paste0("FVS",selected)]][-1])
   }
-cat ("in updateVarSelection selected=",selected," vlst=",unlist(vlst),"\n")
+cat ("in updateVarSelection selected=",selected," globals$lastRunVar=",globals$lastRunVar," vlst=",unlist(vlst),"\n")
   updateSelectInput(session=session, inputId="inVars", choices=vlst,
                     selected=selected)
 } 
