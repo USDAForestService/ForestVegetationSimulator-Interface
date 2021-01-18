@@ -17,13 +17,9 @@ library(openxlsx)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
-        
-veryImportantStartupSwtich = FALSE
-        
+                
 shinyServer(function(input, output, session) {
   
-  if (veryImportantStartupSwtich) return()
-
   if (!interactive()) 
   {
     if (file.exists("FVSOnline.log")) 
@@ -7973,9 +7969,5 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
     }) 
   }
   
-  #last thing statement in the file!  This shouldn't be necessary, but having it
-  #seems to clear up a lot of problems!
-  veryImportantStartupSwtich = TRUE
-   
 })
 
