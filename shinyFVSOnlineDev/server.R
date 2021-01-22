@@ -4117,6 +4117,10 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
            tempDir = paste0(dirname(tf),"/tozip")
            if (dir.exists(tempDir)) lapply(paste0(tempDir,"/",dir(tempDir)),unlink) else
                dir.create(tempDir)
+           spatdat = if(!globals$localWindows) "SpatialData.RData" else paste0(prjDir,"/SpatialData.RData")
+           grsets = if(!globals$localWindows) "GraphSettings.RData" else paste0(prjDir,"/GraphSettings.RData")
+           custSQL = if(!globals$localWindows) "customQueries.RData" else paste0(prjDir,"/customQueries.RData")
+           KCPs = if(!globals$localWindows) "FVS_kcps.RData" else paste0(prjDir,"/FVS_kcps.RData")
            for (ele in input$dlZipSet)
            {
              switch (ele,
@@ -4169,33 +4173,21 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
                    if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",basename(fn)))
                  }
                },
-               if(!globals$localWindows){
-                 SpatialData = if (file.exists("SpatialData.RData")) 
-                   file.copy(from="SpatialData.RData",to=paste0(tempDir,"/SpatialData.RData"))
-                 GraphSettings = if (file.exists("GraphSettings.RData")) 
-                   file.copy(from="GraphSettings.RData",to=paste0(tempDir,"/GraphSettings.RData"))
-                 customSQL = if (file.exists("customQueries.RData")) 
-                   file.copy(from="customQueries.RData",to=paste0(tempDir,"/customQueries.RData"))
-                 FVS_kcps = if (file.exists("FVS_kcps.RData"))
-                   file.copy(from="FVS_kcps.RData",to=paste0(tempDir,"/FVS_kcps.RData"))
-                 }
-               else {
-                 SpatialData = if (file.exists(paste0(prjDir,"/SpatialData.RData"))) 
-                    file.copy(from=paste0(prjDir,"/SpatialData.RData"),to=paste0(tempDir,"/SpatialData.RData"))
-                 GraphSettings = if (file.exists(paste0(tempDir,"/GraphSettings.RData"))) 
-                    file.copy(from=paste0(tempDir,"/GraphSettings.RData"),to=paste0(tempDir,"/GraphSettings.RData"))
-                 customSQL = if (file.exists(paste0(prjDir,"/customQueries.RData"))) 
-                    file.copy(from=paste0(prjDir,"/customQueries.RData"),to=paste0(tempDir,"/customQueries.RData"))
-                 FVS_kcps = if (file.exists(paste0(prjDir,"/FVS_kcps.RData")))
-                   file.copy(from=paste0(prjDir,"/FVS_kcps.RData"),to=paste0(tempDir,"/FVS_kcps.RData"))
-               }
+               SpatialData = if (file.exists(spatdat))
+                 file.copy(from=spatdat,to=paste0(tempDir,"/SpatialData.RData")),
+               GraphSettings = if (file.exists(grsets))
+                 file.copy(from=grsets,to=paste0(tempDir,"/GraphSettings.RData")),
+               customSQL = if (file.exists(custSQL))
+                 file.copy(from=custSQL,to=paste0(tempDir,"/customQueries.RData")),
+               FVS_kcps = if (file.exists(KCPs))
+                 file.copy(from=KCPs,to=paste0(tempDir,"/FVS_kcps.RData"))
            )}
            curdir = getwd()
            setwd(tempDir)
            zipr(tf,dir())
            unlink(tempDir,recursive = TRUE)
            setwd(curdir)
-         }, contentType="application/zip") 
+         }, contentType="application/zip")  
   
   ## kcpSel
   observe({
@@ -7619,7 +7611,7 @@ cat ("fvsRunsRData=",fvsRunsRData,"\n")
     names(selChoices) = globals$FVS_Runs
     updateSelectInput(session=session, inputId="runSel", 
                       choices=selChoices,selected=selChoices[[1]])
-    if(input$renameRun!="")updateTextInput(session=session, inputId="renameRun",value="")
+    if(length(input$renameRun) && input$renameRun!="")updateTextInput(session=session, inputId="renameRun",value="")
     FVS_Runs <- globals$FVS_Runs
     if(!globals$localWindows)save (file="FVS_Runs.RData",FVS_Runs)
     if(globals$localWindows)save (file=paste0(prjDir,"/FVS_Runs.RData"),FVS_Runs)
