@@ -1271,6 +1271,12 @@ cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
       for (i in 1:ncol(dat)) 
         if (class(dat[[i]]) == "numeric") dat[[i]] = round(dat[[i]],3)
     }
+    if(length(grep("X_",names(dat)))){
+      idxs <- grep("X_",names(dat))
+      for(i in 1:length(grep("X_",names(dat)))){
+        names(dat)[idxs[i]] <- sub('.', '', names(dat)[idxs[i]])
+      }
+    }
     renderRHandsontable(if (is.null(dat) || nrow(dat)==0) NULL else 
               rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE,
               width="100%",height=700))
