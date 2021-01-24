@@ -2131,12 +2131,12 @@ cat ("inVars globals$activeVariants=",globals$activeVariants,
   })
 
   reloadStandSelection <- function ()
-  {
+  isolate({
 cat ("in reloadStandSelection\n")
     if (is.null(input$inTabs) || is.null(input$inVars)) return()
     sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) "StandPlot_ID" else "Stand_ID"      
     grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups from ",input$inTabs,
-              ' where lower(variant) like "%',input$inVars,'%"')))
+              ' where lower(variant) like "%',tolower(input$inVars),'%"')))
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
@@ -2167,7 +2167,7 @@ cat ("in reloadStandSelection\n")
               choices=list())
       output$stdSelMsg <- renderUI(NULL)
     }
-  }
+  })
 
   ## inGrps, inAnyAll, or inStdFindBut has changed
   observe({
@@ -2268,7 +2268,6 @@ cat ("saveRun\n")
       resetGlobals(globals,globals$fvsRun,prms)
       if (length(globals$GenGrp)) globals$GenGrp <- list()
       if (length(globals$GrpNum)) globals$GrpNum <- as.numeric()
-      loadVarData(globals,dbGlb$dbIcon)
       updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
@@ -2290,8 +2289,7 @@ cat ("saveRun\n")
       updateTextInput(session=session, inputId="inRwts",value="1") 
       output$runProgress <- renderUI(NULL)
       updateSelectInput(session=session, inputId="rightPan", 
-                        selected="Stands") 
-      updateVarSelection()
+                        selected="Stands")     
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management")
       updateSelectInput(session=session, inputId="runScript", 
@@ -2320,12 +2318,13 @@ cat ("saveRun\n")
         if (!is.null(input$inVars) && !is.null(input$inTabs))
         {
           loadStandTableData(globals, dbGlb$dbIcon)
-          updateVarSelection()
           updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
             selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
           updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
           updateSelectInput(session=session, inputId="inStds", NULL, NULL)
           updateTabsetPanel(session=session, inputId="rightPan",selected="Stands")
+          loadVarData(globals,dbGlb$dbIcon)
+          updateVarSelection()
         }
       })
       selChoices = names(globals$FVS_Runs)
@@ -2508,6 +2507,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      loadVarData(globals,dbGlb$dbIcon)
       updateVarSelection()
       output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
         length(globals$fvsRun$stands)," stand(s)<br>",
@@ -5587,96 +5587,96 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
       })
   })
   
-    observeEvent(input$restorePrjBackupDlgBtnB,{  
-      isolate({
-        if(!globals$localWindows)return()
-        if(length(grep("_P.zip",input$pickBackup)))return()
-        progress <- shiny::Progress$new(session,min=1,max=5)
-        progress$set(message = "Unzipping project backup",value = 1)
-        fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
+  observeEvent(input$restorePrjBackupDlgBtnB,{  
+    isolate({
+      if(!globals$localWindows)return()
+      if(length(grep("_P.zip",input$pickBackup)))return()
+      progress <- shiny::Progress$new(session,min=1,max=5)
+      progress$set(message = "Unzipping project backup",value = 1)
+      fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
 cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
-        if (file.exists(fvsWorkBackup)) 
-        {
-          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
-          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
-          if (ocon) dbDisconnect(dbGlb$dbOcon)
-          if (icon) dbDisconnect(dbGlb$dbIcon)
-          td <- tempdir()
-          unzip (fvsWorkBackup,exdir=td)
-          prjConts <- dir(td)
-          FVSconts <- character()
-          progress$set(message = "Checking backup contents",value = 3)
-          del = grep("FVSbin",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep("^R",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep("^www",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep(".R$",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep(".html$",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep(".xlsx$",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep(".zip$",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep("treeforms.RData",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep("prms.RData",prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-          del = grep("FVS_Runs.RData",prjConts)
-          if (length(del)) {
-            prjConts = prjConts[-del]
-          }
-          del = grep("file",prjConts)
-          if (length(del)) {
-            prjConts = prjConts[-del]
-          }
-          currPrjFiles <- dir(prjDir)
-          del = grep(".zip$",currPrjFiles)
-          if (length(del)) {
-            currPrjFiles = currPrjFiles[-del]
-          }
-          unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
-          progress$set(message = "Copying backup contents",value = 4)
-          if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),"C:/Users/Public/Documents/FVS",overwrite=TRUE)
-          if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
-          unlink(td)
-          if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
-          if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
-          globals$reloadAppIsSet=1
-          globals$saveOnExit=FALSE
-          progress$close()
-          session$reload()
+      if (file.exists(fvsWorkBackup)) 
+      {
+        ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+        icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+        if (ocon) dbDisconnect(dbGlb$dbOcon)
+        if (icon) dbDisconnect(dbGlb$dbIcon)
+        td <- tempdir()
+        unzip (fvsWorkBackup,exdir=td)
+        prjConts <- dir(td)
+        FVSconts <- character()
+        progress$set(message = "Checking backup contents",value = 3)
+        del = grep("FVSbin",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
         }
-      })
+        del = grep("^R",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep("^www",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep(".R$",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep(".html$",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep(".xlsx$",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep(".zip$",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep("treeforms.RData",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep("prms.RData",prjConts)
+        if (length(del)) {
+          FVSconts = c(FVSconts,prjConts[del])
+          prjConts = prjConts[-del]
+        }
+        del = grep("FVS_Runs.RData",prjConts)
+        if (length(del)) {
+          prjConts = prjConts[-del]
+        }
+        del = grep("file",prjConts)
+        if (length(del)) {
+          prjConts = prjConts[-del]
+        }
+        currPrjFiles <- dir(prjDir)
+        del = grep(".zip$",currPrjFiles)
+        if (length(del)) {
+          currPrjFiles = currPrjFiles[-del]
+        }
+        unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
+        progress$set(message = "Copying backup contents",value = 4)
+        if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),"C:/Users/Public/Documents/FVS",overwrite=TRUE)
+        if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
+        unlink(td)
+        if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+        if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
+        globals$reloadAppIsSet=1
+        globals$saveOnExit=FALSE
+        progress$close()
+        session$reload()
+      }
+    })
   })
   
   ## PrjDelete 

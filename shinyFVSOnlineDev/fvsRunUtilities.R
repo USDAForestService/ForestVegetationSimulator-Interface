@@ -64,8 +64,8 @@ loadStandTableData <- function (globals, dbIcon)
 } 
 
 loadVarData <- function(globals,dbIcon)
-{
-cat ("in loadVarData\n") 
+isolate({
+cat ("in loadVarData, is.null(input$inTabs)=",input$inTabs,"\n") 
   dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
   dbtabsU = toupper(dbtabs)
   intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
@@ -78,13 +78,14 @@ cat ("in loadVarData\n")
     vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',intab)))    
     if (class(vars) != "try-error")
     {
-      vars=sort(vars[,1])
+      vars=sort(unique(scan(text=gsub(","," ",vars[,1]),what="character",
+           strip.white=TRUE,sep=" ",quiet=TRUE)))
+      vars=vars[vars != ""]
       keep=na.omit(match(vars,globals$activeVariants))
       if (length(keep)) globals$activeVariants = globals$activeVariants[keep] 
     } 
-  }    
+  }
 cat ("globals$activeVariants=",globals$activeVariants,"\n")
-
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
   if (!is.null(fvsKeys)) 
   {
@@ -92,7 +93,7 @@ cat ("globals$activeVariants=",globals$activeVariants,"\n")
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
           toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
   } 
-}
+})
 
 reorderFVSRuns <- function(FVS_Runs)
 {
@@ -1506,7 +1507,6 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
 
 updateVarSelection <- function ()
 {
-  resetActiveFVS(globals)
   if (length(globals$fvsRun$FVSpgm) == 0) 
   {
     vlst = as.list(globals$activeVariants)
