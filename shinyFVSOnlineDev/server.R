@@ -3494,6 +3494,8 @@ cat ("Editing as freeform\n")
                     justGrps=input$simContType=="Just groups")
           updateSelectInput(session=session, inputId="simCont", 
              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+          globals$changeind <- 1
+          output$contChange <- renderText(HTML("<b>*Run*</b>"))
           closeCmp()
           return()
         }  
