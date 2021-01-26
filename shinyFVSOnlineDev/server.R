@@ -2315,8 +2315,8 @@ cat ("saveRun\n")
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
                         ), selected=list())   
     isolate ({
-        if (!is.null(input$inVars) && !is.null(input$inTabs))
-        {
+#        if (!is.null(input$inVars) && !is.null(input$inTabs))
+#        {
           loadStandTableData(globals, dbGlb$dbIcon)
           updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
             selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
@@ -2325,7 +2325,7 @@ cat ("saveRun\n")
           updateTabsetPanel(session=session, inputId="rightPan",selected="Stands")
           loadVarData(globals,dbGlb$dbIcon)
           updateVarSelection()
-        }
+#        }
       })
       selChoices = names(globals$FVS_Runs)
       names(selChoices) = unlist(globals$FVS_Runs)
@@ -2389,7 +2389,7 @@ cat ("updateAutoOut called\n")
   ## Reload or Run Selection   
   observe({
     if (input$reload > 0 || !is.null(input$runSel))
-    {
+    isolate({
       if (length(globals$fvsRun$uuid) && input$runSel != globals$fvsRun$uuid) saveRun()
 cat ("reload or run selection, runSel=",input$runSel," lensim=",
 length(globals$fvsRun$simcnts)," globals$currentQuickPlot=",globals$currentQuickPlot,"\n")      
@@ -2406,8 +2406,8 @@ cat("setting uiRunPlot to NULL\n")
       sel = match (input$runSel,names(globals$FVS_Runs)) 
       if (is.na(sel)) sel = 1
       fn=paste0(names(globals$FVS_Runs)[sel],".RData")
-      if(!globals$localWindows)ret = try (load(file=fn))  # maybe the file has been corrupted or does not exist
-      if(globals$localWindows)ret = try (load(file=paste0(prjDir,"/",fn)))  # maybe the file has been corrupted or does not exist
+      # maybe the file has been corrupted or does not exist
+      ret = if(!globals$localWindows) try (load(file=fn)) else try (load(file=paste0(prjDir,"/",fn)))  
       if (class(ret) == "try-error")
       {
 cat ("error loading",fn,"\n")
@@ -2471,21 +2471,19 @@ cat ("reloaded globals$fvsRun$runScript=",globals$fvsRun$runScript,"\n")
       if (length(globals$fvsRun$uiCustomRunOps)) lapply(names(globals$fvsRun$uiCustomRunOps), function (x,y)
 cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$uiCustomRunOps) else
 cat ("globals$fvsRun$uiCustomRunOps is empty\n")
-      isolate({
-        if ((globals$changeind==0 && !length(globals$currentQuickPlot)) && length(globals$fvsRun$simcnts)>0)
+      if ((globals$changeind==0 && !length(globals$currentQuickPlot)) && length(globals$fvsRun$simcnts)>0)
+      {
+        if (input$rightPan != "Components" && length(globals$fvsRun$simcnts)>0)
         {
-          if (input$rightPan != "Components" && length(globals$fvsRun$simcnts)>0)
-          {
-            updateTabsetPanel(session=session, inputId="rightPan", 
-               selected="Components")
-          }
-          if (input$rightPan != "Stands" && length(globals$fvsRun$simcnts)==0)
-          {
-            updateTabsetPanel(session=session, inputId="rightPan", 
-               selected="Stands")
-          }
+          updateTabsetPanel(session=session, inputId="rightPan", 
+             selected="Components")
         }
-      })
+        if (input$rightPan != "Stands" && length(globals$fvsRun$simcnts)==0)
+        {
+          updateTabsetPanel(session=session, inputId="rightPan", 
+             selected="Stands")
+        }
+      }
       progress$set(message = paste0("Setting values for run ", globals$fvsRun$title),
             value = 2)
       updateAutoOut(session, globals$fvsRun$autoOut)
@@ -2513,16 +2511,18 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
         length(globals$fvsRun$stands)," stand(s)<br>",
         length(globals$fvsRun$grps)," group(s)")))
       updateStandTableSelection()
+      loadVarData(globals,dbGlb$dbIcon)                                              
+      updateVarSelection()
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
       progress$set(message = "Setting custom run options ",value = 4)
-      isolate ({callCustom = globals$fvsRun$runScript == input$runScript})
+      callCustom = globals$fvsRun$runScript == input$runScript
       updateSelectInput(session=session, inputId="runScript", 
           selected=globals$fvsRun$runScript)
       if (callCustom) customRunOps()
       progress$close()
-    }
+    })
   })
   
   ##autoOut
@@ -5909,6 +5909,7 @@ cat ("Upload inventory data\n")
     output$stdSel <- output$navRows <- renderUI(NULL)
     dbGlb$rows <- NULL
     dbGlb$rowSelOn <- dbGlb$navsOn <- FALSE
+    resetActiveFVS(globals)
   }
   
   ## installTrainDB
@@ -5926,16 +5927,19 @@ cat ("Upload inventory data\n")
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
-    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
+    dbGlb$dbIcon <- if(!globals$localWindows) dbConnect(dbDrv,"FVS_Data.db") else 
+                                              dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
+    loadStandTableData(globals, dbGlb$dbIcon)
+    updateStandTableSelection()
     loadVarData(globals,dbGlb$dbIcon)                                              
+    updateVarSelection()
   }) 
   ## installTrainDB2
   observe({  
     if (input$installTrainDB2 == 0) return()
     dbDisconnect(dbGlb$dbIcon)
-        if(!globals$localWindows){
+    if(!globals$localWindows){
       file.copy("FVS_Data.db.default","FVS_Data.db",overwrite=TRUE)
       file.copy("SpatialData.RData.default","SpatialData.RData",overwrite=TRUE)
     }
@@ -5948,7 +5952,10 @@ cat ("Upload inventory data\n")
     if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
+    loadStandTableData(globals, dbGlb$dbIcon)
+    updateStandTableSelection()
     loadVarData(globals,dbGlb$dbIcon)                                              
+    updateVarSelection()
   }) 
   ## installEmptyDB
   observe({  
@@ -5969,7 +5976,10 @@ cat ("Upload inventory data\n")
     if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     initNewInputDB()
+    loadStandTableData(globals, dbGlb$dbIcon)
+    updateStandTableSelection()
     loadVarData(globals,dbGlb$dbIcon)                                              
+    updateVarSelection()
   }) 
   ## Upload new database
   observe({
@@ -6335,12 +6345,12 @@ cat ("msg=",msg,"\n")
     if (input$installNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
     dbDisconnect(dbGlb$dbIcon)
-    if(!globals$localWindows)file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE)
-    if(globals$localWindows)file.copy(dbGlb$newFVSData,paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
+    if(!globals$localWindows) file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) else 
+                              file.copy(dbGlb$newFVSData,paste0(prjDir,"/FVS_Data.db"),overwrite=TRUE)
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
-    if(!globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-    if(globals$localWindows)dbGlb$dbIcon <- dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
+    dbGlb$dbIcon <- if(!globals$localWindows) dbConnect(dbDrv,"FVS_Data.db") else
+                                              dbConnect(dbDrv,paste0(prjDir,"/FVS_Data.db"))
     tabs = myListTables(dbGlb$dbIcon)
     progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
     i = 0
@@ -6357,7 +6367,7 @@ cat ("msg=",msg,"\n")
 cat ("index creation, qry=",qry,"\n")
           try(dbExecute(dbGlb$dbIcon,qry))
         }
-      }else if (tolower(tb) == "fvs_standinit_cond" || tolower(tb) == "fvs_treeinit_cond")
+      } else if (tolower(tb) == "fvs_standinit_cond" || tolower(tb) == "fvs_treeinit_cond")
         {
         tbidx = grep(tb,c("FVS_StandInit_Cond","FVS_TreeInit_Cond"),ignore.case=TRUE)                 
         if (length(tbidx))
@@ -6448,6 +6458,7 @@ cat ("index creation, qry=",qry,"\n")
       }
     }
     progress$set(message = "Load variant data", value = i+1)
+    resetActiveFVS(globals)
     loadVarData(globals,dbGlb$dbIcon)
     output$step2ActionMsg = renderText(HTML(paste0("<br>Uploaded data installed.<br>",
       "<b>WARNING:</b> If existing runs in this project were created using input ",

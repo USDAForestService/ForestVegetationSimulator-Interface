@@ -60,12 +60,12 @@ loadStandTableData <- function (globals, dbIcon)
     "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)" = "FVS_PlotInit_Plot",
     "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"      = "FVS_StandInit_Cond")
   have=na.omit(match(toupper(tbls),toupper(globals$selStandTableList)))
-  if (length(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
+  if (length(have) && !is.null(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
 } 
 
 loadVarData <- function(globals,dbIcon)
 isolate({
-cat ("in loadVarData, is.null(input$inTabs)=",input$inTabs,"\n") 
+cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",globals$activeVariants,"\n") 
   dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
   dbtabsU = toupper(dbtabs)
   intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
@@ -78,14 +78,14 @@ cat ("in loadVarData, is.null(input$inTabs)=",input$inTabs,"\n")
     vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',intab)))    
     if (class(vars) != "try-error")
     {
-      vars=sort(unique(scan(text=gsub(","," ",vars[,1]),what="character",
-           strip.white=TRUE,sep=" ",quiet=TRUE)))
+      vars=sort(unique(tolower(scan(text=gsub(","," ",vars[,1]),what="character",
+           strip.white=TRUE,sep=" ",quiet=TRUE))))
       vars=vars[vars != ""]
       keep=na.omit(match(vars,globals$activeVariants))
-      if (length(keep)) globals$activeVariants = globals$activeVariants[keep] 
+      if (length(keep) && !is.na(keep)) globals$activeVariants = globals$activeVariants[keep] 
     } 
   }
-cat ("globals$activeVariants=",globals$activeVariants,"\n")
+cat ("in loadVarData, globals$activeVariants=",globals$activeVariants,"\n")
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
   if (!is.null(fvsKeys)) 
   {
@@ -1460,7 +1460,7 @@ resetActiveFVS <- function(globals)
            "ne: Northeast"="ne",
            "sn: Southern"="sn")
   keep=match(globals$activeVariants,vars)
-  globals$activeVariants=vars[keep]
+  globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
   globals$activeExtens=character(0)
 cat ("in resetActiveFVS, globals$activeVariants=",globals$activeVariants,"\n")
 }
@@ -1477,19 +1477,19 @@ cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
     if (length(fvsRun$FVSpgm) > 0)            
     {                                                            
       indx = match(fvsRun$FVSpgm,names(globals$activeFVS))
-      if (!is.na(indx))                         
+      if (length(indx) && !is.na(indx))                         
       {
         fvsRun$FVSpgm = names(globals$activeFVS)[indx]
         globals$activeFVS <- globals$activeFVS[indx]
         globals$activeVariants <- subset(globals$activeVariants,
                 globals$activeVariants==globals$activeFVS[[1]][1])
         globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
-        globals$lastRunVar <- character(0)
+        globals$lastRunVar <- globals$activeVariants
       }                                       
     }
   }
 cat ("globals$activeVariants=",globals$activeVariants,"\n")
-cat ("length activeFVS=",length(globals$activeFVS),"\n")
+cat ("activeFVS=",length(globals$activeFVS),"\n")
 if (length(globals$activeFVS)) cat ("names(globals$activeFVS)=",names(globals$activeFVS),"\n")
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$extnsel <- character(0)
@@ -1500,7 +1500,7 @@ cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$currentCmdPkey <- character(0)  
   globals$currentCndPkey <- character(0)  
   globals$winBuildFunction <- character(0)
-  globals$foundStand=0L 
+  globals$foundStand <- 0L 
   globals$changeind <- 0
 }
 
@@ -1529,7 +1529,7 @@ updateVarSelection <- function ()
     globals$activeVariants = character(0) 
     globals$activeExtens = "base"
   } else {
-    globals$activeVariants = selected
+    globals$activeVariants = unlist(vlst)
     globals$activeExtens = c("base",globals$activeFVS[[paste0("FVS",selected)]][-1])
   }
 cat ("in updateVarSelection selected=",selected," globals$lastRunVar=",globals$lastRunVar," vlst=",unlist(vlst),"\n")
