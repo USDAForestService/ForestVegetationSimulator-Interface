@@ -2603,9 +2603,9 @@ cat ("elt=",elt,"\n")
       cmp = findCmp(globals$fvsRun,toed)
       if (is.null(cmp)) return()
       globals$currentEditCmp = cmp
+      if (length(cmp$kwdName) == 0) cmp$kwdName="freeEdit"
 cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       eltList = NULL
-
       if (cmp$kwdName=="freeEdit") eltList <- 
         mkFreeformEltList(globals,prms,cmp$title,cmp$kwds) else
       {
@@ -4261,7 +4261,7 @@ cat ("kcpSaveInRun\n")
           updateTextInput(session=session, inputId="kcpTitle", value=newTit)
         } else newTit = paste0("Editor: ",trim(input$kcpTitle))
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
-             variant=globals$activeVariants[1],kwdName=character(0),
+             variant=globals$activeVariants[1],kwdName="FreeEdit",
              title=newTit,reopn=character(0))
         # find the attachment point. 
         sel = input$simCont[[1]]
@@ -4369,8 +4369,8 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
                           paste(data,collapse="\n"))
       } else {
         updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
-        if(!globals$localWindows)save(file="FVS_kcps.RData",customCmps)
-        if(globals$localWindows)save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
+        if(!globals$localWindows) save(file="FVS_kcps.RData",customCmps) else
+                                  save(file=paste0(prjDir,"/FVS_kcps.RData"),customCmps)
       }
     })
   })
@@ -6134,7 +6134,7 @@ cat ("cmd done.\n")
       plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
       plotNT = if (class(plotNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
       i = 3
-            for (sheet in sheets)
+      for (sheet in sheets)
       {
         i = i+1
 cat ("sheet = ",sheet," i=",i,"\n")
