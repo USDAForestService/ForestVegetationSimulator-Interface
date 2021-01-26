@@ -3414,7 +3414,8 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         }
       } else mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])
       ans = list(ex=if (length(kwPname) > 1) kwPname[2] else "base",
-            kwds=kwds,reopn=reopn)                                                  
+            kwds=kwds,reopn=reopn) 
+      if(kwPname=="ffe_rxburn")ans[[1]] <- "fire"
     }                        
     ans
   }
