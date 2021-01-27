@@ -1711,6 +1711,7 @@ cat ("mkKeyWrd, out=",out,"\n")
 
 mkMgmtCats <- function(globals)
 {
+  globals$activeExtens = c("base",globals$activeFVS[[1]])  
   catsel=list(
     "Planting & Natural Regeneration"=
     if ("estb" %in% globals$activeExtens) 
