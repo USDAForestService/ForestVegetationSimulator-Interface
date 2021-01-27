@@ -416,6 +416,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       "ardwrd3"="RDIn","armwrd3"="RDIn\nRRType             3",
       "phewrd3"="RDIn\nRRType             4","dbs"="DataBase",
       "econ"="Econ","climate"="Climate","organon"="Organon")
+
     if (length(std$grps)) for (grp in std$grps)
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
@@ -498,14 +499,11 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
             expression <- grep("=",kcpconts[j])
             ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
             thenkw <- toupper(kcpconts[j])=="THEN"
-            endkw <- grep("END", toupper(kcpconts[j]))
-            endkw <- length(endkw)
-            endifkw <- grep("ENDIF", toupper(kcpconts[j]))
-            endifkw <- length(endifkw)
+            endkw <- match("END", toupper(kcpconts[j]))
+            endifkw <- match("ENDIF", toupper(kcpconts[j]))
             commkw <- grep("COMMENT", toupper(kcpconts[j]))
             commkw <- length(commkw)
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
-            if(endkw && commentflag==1) commentflag <- 0
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -600,7 +598,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
@@ -677,7 +675,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, we're not already in an extension block, but it is a DBS-duplicate 
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
@@ -759,7 +757,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, it's not a DBS-duplicate, and we are already in an extension block
               else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                       && extflag > 0 && !endkw && !compkw){
+                       && extflag > 0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyword,
                 # and then insert ESTAB below that, etc.
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
@@ -861,7 +859,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, we are already in an extension block, but it is a DBS-duplicate 
               else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                       && extflag > 0 && !endkw && !compkw){
+                       && extflag > 0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyord,
                 # and then insert ESTAB below that, etc.
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
@@ -877,7 +875,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                   next
                 }
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
-                  if(dbflag==2){
+                  if(dbflag==2 || extflag==3 ){
                     dbflag <- 0
                     next
                   }
@@ -1022,7 +1020,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                 }
               }
               # if it's an END
-              else if (endkw){
+              else if (!is.na(endkw)){
                 if(computeflag==1){
                   computeflag <- 0
                 } 
@@ -1035,7 +1033,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                 else next
               }
               # if it's an ENDIF
-              else if (endifkw){
+              else if (!is.na(endifkw)){
                 if(condflag==1){
                   condflag <- 0
                 }
