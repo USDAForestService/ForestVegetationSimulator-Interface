@@ -48,7 +48,7 @@ mkGlobals <<- setRefClass("globals",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     localWindows="logical",selRuns = "character", selUuids = "character",
-    selAllVars="logical"))
+    selAllVars="logical",explorePass="numeric"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -256,8 +256,7 @@ cat ("qry=",qry,"\n")
     idxs=grep(sf,stds,fixed=TRUE)
     if (length(idxs)) wtofix[[sf]] = rwts[idxs]/sum(rwts[idxs])
   }
-
-  extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
+  extns = globals$activeFVS[fvsRun$FVSpgm][[1]]
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
