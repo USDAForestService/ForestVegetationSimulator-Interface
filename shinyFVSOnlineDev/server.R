@@ -1448,8 +1448,8 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
       cats = unlist(lapply(fvsOutData$dbData,is.factor))
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
-      cont = union("Year",setdiff(input$browsevars,cats)) 
-      if(cont[2]=="Select All")cont <- cont[-2]
+      cont = union("Year",setdiff(input$browsevars,cats))
+      if(length(cont) > 1 && cont[2]=="Select All") cont <- cont[-2]
       spiv  = if (length(input$pivVar) && 
                 input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
