@@ -1124,8 +1124,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
             }
             kwdlist<- gsub("[\r]", "", kwdlist)
-            if(globals$localWindows && kwdlist[grep("FVS_Data.db",kwdlist)]=="FVS_Data.db") 
-              kwdlist[grep("FVS_Data.db",kwdlist)] <- paste0(prjDir,"/",kwdlist[grep("FVS_Data.db",kwdlist)])            
+            if(globals$localWindows) kwdlist[grep("FVS_Data.db",kwdlist)] <- paste0(prjDir,"/FVS_Data.db")
             cmp$kwds <- paste(kwdlist,collapse="\n")
           }
           cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
