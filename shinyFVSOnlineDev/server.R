@@ -3418,6 +3418,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       ans = list(ex=if (length(kwPname) > 1) kwPname[2] else "base",
             kwds=kwds,reopn=reopn) 
       if(kwPname=="ffe_rxburn")ans[[1]] <- "fire"
+      if(kwPname=="salvage_options")ans[[1]] <- "fire"
     }                        
     ans
   }

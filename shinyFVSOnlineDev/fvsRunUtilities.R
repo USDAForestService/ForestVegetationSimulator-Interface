@@ -1758,7 +1758,7 @@ mkMgmtCats <- function(globals)
     "Prescribed burn" = "ffe_rxburn",
     "Pile burn surface fuel" = "pileBurn_options"),
   "Salvage Operations"=c(
-    "Cut dead trees" = "fire salvage_options")))
+    "Cut dead trees" = "salvage_options")))
   catsel = append(catsel,list(
   "Identify Groups"=c(
     "Species to target" = "CutGroup",
