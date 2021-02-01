@@ -1088,7 +1088,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        if (lastExt != exten)
+        if (lastExt != exten && !length(grep("PlantNatural",cmp$kwdName)))
         { 
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastExt = exten
@@ -1160,7 +1160,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base" && 
+        !length(grep("PlantNatural",cmp$kwdName))) cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {
@@ -1708,7 +1709,7 @@ cat ("mkKeyWrd, out=",out,"\n")
 
 mkMgmtCats <- function(globals)
 {
-  globals$activeExtens = c("base",globals$activeFVS[[1]])  
+  globals$activeExtens = c("base",globals$activeFVS[[1]]) 
   catsel=list(
     "Planting & Natural Regeneration"=
     if ("estb" %in% globals$activeExtens) 
