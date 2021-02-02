@@ -42,7 +42,7 @@ cat ("Server id=",serverID,"\n")
   serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  #$ serverDate="20201010"
+  # serverDate="20210108"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -3149,7 +3149,8 @@ cat ("renderComponent, inCode=",inCode,"\n")
         return(NULL)
       ) 
 cat ("globals$currentCmdPkey=",globals$currentCmdPkey," title=",title,"\n")
-      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)[1]
+      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
+      if(length(cmdp)>1)cmdp <- cmdp[2]
       # the cmdp can be a function name, or a ".Win" can be appended to form a 
       # function name.  If a function does not exist, then try finding a prms entry.
       if (exists(cmdp)) funName = cmdp 
@@ -3175,6 +3176,7 @@ cat ("funName=",funName,"\n")
           output$cmdBuildDesc <- renderUI (if (length(ans[[2]])) ans[[2]] else NULL)
       } else { 
         globals$winBuildFunction <- character(0)
+        # browser()
         indx = match(cmdp,names(prms))
         if (is.na(indx)) return()
         pkeys <- prms[[indx]]
@@ -3415,10 +3417,11 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
                  "\nThen")
         }
       } else mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])
-      ans = list(ex=if (length(kwPname) > 1) kwPname[2] else "base",
-            kwds=kwds,reopn=reopn) 
-      if(kwPname=="ffe_rxburn")ans[[1]] <- "fire"
-      if(kwPname=="salvage_options")ans[[1]] <- "fire"
+      ans = list(ex=if (length(kwPname) > 1) kwPname[1] else if (length(grep("keyword.",kwPname))) gsub("[.].*","",gsub("keyword.","",kwPname))
+        else "base", kwds=kwds,reopn=reopn)
+      if(ans[1]=="estbstrp"){
+        ans[1] <- if(length(grep("strp",globals$activeExtens))) "strp" else "estb"
+      }
     }                        
     ans
   }
@@ -3478,7 +3481,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
             pkeys=NULL
           } else {
             kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-            pkeys = prms[[kwPname[1]]]
+            pkeys = if (length(kwPname)>1) prms[[kwPname[2]]] else prms[[kwPname[1]]]
           }
         }
         oReopn  = character(0) 

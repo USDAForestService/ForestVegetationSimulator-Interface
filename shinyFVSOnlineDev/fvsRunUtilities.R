@@ -1758,7 +1758,7 @@ mkMgmtCats <- function(globals)
     "Prescribed burn" = "ffe_rxburn",
     "Pile burn surface fuel" = "pileBurn_options"),
   "Salvage Operations"=c(
-    "Cut dead trees" = "salvage_options")))
+    "Cut dead trees" = "fire salvage_options")))
   catsel = append(catsel,list(
   "Identify Groups"=c(
     "Species to target" = "CutGroup",
@@ -1809,7 +1809,7 @@ mkModMCats <- function(globals)
       "Set % of the stand area burned for potential fires" = "keyword.fire.PotFPAB",
       "Set season of potential fires" = "keyword.fire.PotFSeas"),
     "Modify Fuel Dynamics" = c(
-      "Set initial surface fuel loadings" = "fuelinitfuelsoft",
+      "Set initial surface fuel loadings" = "fire fuelinitfuelsoft",
       "Set surface fuels with a photoseries photo" = "keyword.fire.FuelFoto",
       "Set surface fuel decay rates" = "keyword.fire.FuelDcay",
       "Adjust surface fuel decay rates" = "keyword.fire.FuelMult",
