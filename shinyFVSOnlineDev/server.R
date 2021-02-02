@@ -1244,6 +1244,7 @@ cat ("cmd=",cmd,"\n")
         keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
         selVars = selVars[keep]
         if (length(vars) < 7) selVars = vars[-(grep("CaseID",vars))]
+        if(tb=="FVS_Regen_Ingrow") selVars = selVars[-(4:6)]
         vars <- c("Select All",vars)
         updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
                                  selected=selVars,inline=TRUE)                               
