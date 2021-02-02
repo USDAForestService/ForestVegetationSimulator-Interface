@@ -1889,7 +1889,7 @@ cat("mkextkwd\n")
     "WRD (Annosus Root Disease)" = "ardwrd3", 
     "WRD (Armillaria Root Disease)" = "armwrd3", 
     "WRD (Laminated Root Rot)" = "phewrd3")
-  globals$extnsel <- extnslist[match(globals$activeExtens,extnslist)]
+  globals$extnsel <- na.omit(extnslist[match(globals$activeExtens,extnslist)])
   kwds <- prms[["keyword_list"]]  
   globals$kwdsel <- vector("list",length(globals$extnsel))
   names(globals$kwdsel) = globals$extnsel
