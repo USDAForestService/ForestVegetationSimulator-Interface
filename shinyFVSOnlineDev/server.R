@@ -1231,26 +1231,11 @@ cat ("cmd=",cmd,"\n")
         globals$exploreChoices$dbhclass = cho        
         iprg = iprg+1
         setProgress(message = "Finishing", detail  = "", value = iprg)
-        selVars = unlist(lapply(c("StandID","MgmtID","Year","^DBH","^DG$",
-          "AGE","CCF","SDI","QMD","TopHt","BA$","TPA","Species","^Ht$",
-          "^HtG$","CuFt$","BdFt$","Total","HrvPA","RunTitle","Groups","^MY",
-          "^Stratum","^Removal","^Structure"),
-          function (x,vs) 
-            {
-              hits = unlist(grep(x,vs,ignore.case = TRUE))
-              hits = hits[hits>0]
-              vs[hits]
-            },vars))
-        keep = unlist(lapply(selVars,function(x,mdat) !all(is.na(mdat[,x])),mdat))
-        selVars = selVars[keep]
-        if (length(vars) < 7) selVars = vars[-(grep("CaseID",vars))]
-        if(tb=="FVS_Regen_Ingrow") selVars = selVars[-(4:6)]
         vars <- c("Select All",vars)
         updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
-                                 selected=selVars,inline=TRUE)                               
+                                 selected=vars,inline=TRUE)                               
         fvsOutData$dbData        <- mdat
-        fvsOutData$browseVars    <- vars
-        fvsOutData$browseSelVars <- selVars
+        fvsOutData$browseVars <- fvsOutData$browseSelVars <- vars
         setProgress(value = NULL)          
       }, min=1, max=12)
     } 
@@ -3150,8 +3135,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
         return(NULL)
       ) 
 cat ("globals$currentCmdPkey=",globals$currentCmdPkey," title=",title,"\n")
-      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-      if(length(cmdp)>1)cmdp <- cmdp[2]
+      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)[1]
       # the cmdp can be a function name, or a ".Win" can be appended to form a 
       # function name.  If a function does not exist, then try finding a prms entry.
       if (exists(cmdp)) funName = cmdp 
@@ -3177,22 +3161,16 @@ cat ("funName=",funName,"\n")
           output$cmdBuildDesc <- renderUI (if (length(ans[[2]])) ans[[2]] else NULL)
       } else { 
         globals$winBuildFunction <- character(0)
-        # browser()
         indx = match(cmdp,names(prms))
         if (is.na(indx)) return()
         pkeys <- prms[[indx]]
-        eltList <- try(mkeltList(pkeys,prms,globals,globals$fvsRun))
+        eltList <- try(mkeltList(pkeys,prms,globals,globals$fvsRun,FALSE,FALSE,title))
         if (class(eltList)=="try-error")
         {
           output$cmdBuildDesc = renderUI (HTML(paste0(
             '<br>Error:<br>Programming for "',title,'" is incorrect.<br>')))
           return()
         }
-        if (!is.null(title)) eltList <- 
-          append(eltList,list(
-            tags$style(type="text/css", "#cmdTitle{display: inline;}"),
-            myInlineTextInput("cmdTitle","Component title ", value=title,size=40)),
-            after=0)
         eltList <- append(eltList,list(
            tags$style(type="text/css", "#cmdCancel {color:red;}"),
            actionButton("cmdCancel","Cancel"),
@@ -5361,7 +5339,7 @@ cat ("Refresh interface file=",frm,"\n")
   })    
   
   
-  ## mkZipBackup
+ ## mkZipBackup
   observe({
     if(input$mkZipBackup > 0)
     {
@@ -5396,8 +5374,9 @@ cat ("Refresh interface file=",frm,"\n")
         if (length(del)) flst = flst[-del]
         isolate({
           if(input$prjBckCnts=="projFVS"){
+            FVSsoft <-  dir("C:/Users/Public/Documents/FVS")
             flst <- c(flst,paste0("C:/Users/Public/Documents/FVS/",
-                                   dir("C:/Users/Public/Documents/FVS")))
+                                  FVSsoft[-(grep("FVSOut.db",FVSsoft))]))
             zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_PS.zip")
           }else zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_P.zip")
         })
@@ -5464,11 +5443,15 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     if (length(backups)){
         backups = sort(backups,decreasing=TRUE)
         names(backups) = backups 
-    } else backups=list()
-      updateSelectInput(session=session, inputId="pickBackup", 
-        choices = backups, selected="")
-      output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
-      progress$close()
+        updateSelectInput(session=session, inputId="pickBackup", 
+          choices = backups, selected=backups[length(backups)])
+    } else {
+        backups=list()
+        updateSelectInput(session=session, inputId="pickBackup", 
+          choices = backups, selected="")
+    }
+    output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
+    progress$close()
   })
   
   ## restorePrjBackup 
@@ -5741,7 +5724,7 @@ cat("delete project button.")
               output$delPrjActionMsg <- renderUI(HTML("<b>Project directory not found.</b>"))
             } else {
               unlink(delPrj, recursive=TRUE)        
-              output$delPrjActionMsg <- renderUI(HTML("<b>Disabled Project deleted</b>"))
+              output$delPrjActionMsg <- renderUI(HTML("<b>Project deleted</b>"))
               updateProjectSelections()
             }
           }

@@ -1,7 +1,12 @@
 # $Id$
 
-mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE)
+mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE,comptitle)
 {
+          browser()
+  titIndx = try(match(input$addMgmtCmps,
+                      globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
+  if (class(titIndx)=="try-error") return(NULL)
+  comptitle = names(globals$mgmtsel[[as.numeric(input$addMgmtCats)]])[titIndx]
   waitYears <- NULL
   eltList <- if (cndflag) 
   {
@@ -62,7 +67,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 
       speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
-      scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
+      scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals,comptitle),
       noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
       NULL)
     if (!is.null(elt)) eltList <- append(eltList,list(elt))
@@ -201,9 +206,8 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
   if (!is.null(fpvs) && (addAll)) spGrp <- 2
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
-      
 
-mkScheduleBox <- function (pkey,prms,pmt,fvsRun,globals)
+mkScheduleBox <- function (pkey,prms,pmt,fvsRun,globals,title)
 {
   if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) 
   {
@@ -216,6 +220,7 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     if (length(globals$existingCmps)) mklist <- append(mklist,
        c("Attach to existing condition"="3"))
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
+      myInlineTextInput("cmdTitle","Component title ", value=title,size=40),h5(), 
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
       myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
