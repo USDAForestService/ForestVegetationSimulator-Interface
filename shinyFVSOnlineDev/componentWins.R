@@ -8,7 +8,7 @@ keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       mkFreeformEltList(globals,prms,title,globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
           "Enter one or more expressions that define <i>compute</i> variables. ",
@@ -37,8 +37,6 @@ keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-      myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
@@ -68,8 +66,6 @@ keyword.dbs.TreeSQL.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-      myInlineTextInput("cmdTitle","Component title",title,size=40),          
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
@@ -100,9 +96,7 @@ keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
-      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
@@ -133,9 +127,7 @@ keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
-      tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-      myInlineTextInput("cmdTitle","Component title",title,size=40),          
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"])),
@@ -159,9 +151,8 @@ Compute_PreDefined <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans <-list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       h5("To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box."),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       myInlineTextInput("f2",
        "Enter the name for your user-defined variable (< 8 characters)",
        globals$currentCmdDefs["f2"]),
@@ -200,8 +191,7 @@ cat ("in ClearcutWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")
   # change this global so that the correct prms entry can be found later
   ans <- list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       myInlineTextInput("f2", "Diameter of smallest tree cut: ", globals$currentCmdDefs["f2"]),
       myInlineTextInput("f3", "Number of legacy trees per acre: ", globals$currentCmdDefs["f3"]),
       radioButtons("ccf4", "How is the minimum diameter of legacy trees computed?", 
@@ -266,9 +256,8 @@ PlantNaturalFullWin <- function(title, prms, fvsRun, globals, full=TRUE)
 cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")    
   ans <- list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
       mkScheduleBox("pnDOD",prms,"Schedule the date of disturbance",
-        fvsRun,globals,title),
+        fvsRun,globals),
       div(style="background-color: rgb(255,240,240)",
         myInlineTextInput("pnYD", "Years following disturbance for site preparation: ", 
           globals$currentCmdDefs["pnYD"]),
@@ -407,8 +396,7 @@ cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
 
   ans <-list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       HTML(paste0("<b>","Specify residual density","</b>")),
       fixedRow(
         tags$head(tags$script(HTML('
@@ -543,8 +531,7 @@ cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
   
   ans <-list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       HTML(paste0("<b>","Specify residual density","</b>")),
       fixedRow(
         tags$head(tags$script(HTML('
@@ -680,8 +667,7 @@ SeedTreeWin <- function(title, prms, fvsRun, globals,session=session)
 cat ("in SeedTreeWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       div(style="background-color: rgb(240,240,255)",
           myInlineTextInput("stf2", "Smallest diameter cut in prep and seed cuts ", 
           globals$currentCmdDefs["stf2"])),
@@ -812,8 +798,7 @@ ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session)
   cat ("in ShelterwoodWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
-      myInlineTextInput("cmdTitle","Component title ", value=title, size=40),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals,title),
+      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
       div(style="background-color: rgb(240,240,255)",
           myInlineTextInput("swf2", "Smallest diameter cut in prep and shelterwood cuts ", globals$currentCmdDefs["swf2"])),
       div(style="background-color: rgb(255,240,240)",

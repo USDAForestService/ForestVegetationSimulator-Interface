@@ -1,12 +1,7 @@
 # $Id$
 
-mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE,comptitle)
+mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
 {
-          browser()
-  titIndx = try(match(input$addMgmtCmps,
-                      globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
-  if (class(titIndx)=="try-error") return(NULL)
-  comptitle = names(globals$mgmtsel[[as.numeric(input$addMgmtCats)]])[titIndx]
   waitYears <- NULL
   eltList <- if (cndflag) 
   {
@@ -67,7 +62,7 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 
       speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
-      scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals,comptitle),
+      scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
       noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
       NULL)
     if (!is.null(elt)) eltList <- append(eltList,list(elt))
@@ -77,9 +72,16 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
     if (length(eltList) == 1) eltList <- append(eltList, 
       list(h6("No settings for this condition.")))
   }
+  if(!is.null(comptitle))mkTitle(comptitle)
   eltList
 }
 
+mkTitle <- function(title){
+  rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=title,size=40)),h5())
+  if(length(globals$currentEditCmp$title)) rtn <- append(rtn,list(
+        h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
+  output$titleBuild <- renderUI(rtn)
+}
 
 mkTextInput <- function (pkey, pmt, choices, fpvs) 
 {
@@ -207,7 +209,7 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
 
-mkScheduleBox <- function (pkey,prms,pmt,fvsRun,globals,title)
+mkScheduleBox <- function (pkey,prms,pmt,fvsRun,globals)
 {
   if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) 
   {
@@ -220,7 +222,6 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     if (length(globals$existingCmps)) mklist <- append(mklist,
        c("Attach to existing condition"="3"))
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
-      myInlineTextInput("cmdTitle","Component title ", value=title,size=40),h5(), 
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
       myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
@@ -630,7 +631,6 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
   } else {
     eltList <- list(
       tags$style(type="label/css", "#cmdTitle{display: inline;}"),
-      myInlineTextInput("cmdTitle","Component title",title,size=40,NULL),          
       tags$style(type="text/css", 
         "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$p(id="freeEditCols", 
