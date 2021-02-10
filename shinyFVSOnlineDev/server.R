@@ -2895,7 +2895,6 @@ cat("paste, class(topaste)=",class(topaste),"\n")
     })                    
   })
 
-
   ## Command Set.
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
@@ -3159,7 +3158,8 @@ cat ("renderComponent, inCode=",inCode,"\n")
         return(NULL)
       ) 
 cat ("globals$currentCmdPkey=",globals$currentCmdPkey," title=",title,"\n")
-      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)[1]
+      cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
+      if(length(cmdp)>1)cmdp <- cmdp[2]
       # the cmdp can be a function name, or a ".Win" can be appended to form a 
       # function name.  If a function does not exist, then try finding a prms entry.
       if (exists(cmdp)) funName = cmdp 
@@ -3317,7 +3317,7 @@ cat ("cmdChgToFree processing component\n")
          pkeys = character(0)
        } else {
          kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-         pkeys = prms[[kwPname[1]]]
+         pkeys = if (length(kwPname)>1) prms[[kwPname[2]]] else prms[[kwPname[1]]]
        }
        kwds = buildKeywords(character(0),pkeys,kwPname,globals)
        attr(kwds$kwds,"keywords") = "freeEdit"
