@@ -1902,10 +1902,10 @@ cat("mkextkwd\n")
     sk <- match(keypn,names(prms))
     if (is.na(sk)) next
     if (ex == "estbstrp") ex = if("estb" %in% globals$extnsel) "estb" else "strp" 
-    entry <- paste(keypn,ex)
+    entry <- paste(ex,keypn)
     names(entry) <- paste0(kwd,": ",attr(kwd,"pstring"))
     globals$kwdsel[[ex]] <- append(globals$kwdsel[[ex]],entry)
-  } 
+  }
 }
 
 

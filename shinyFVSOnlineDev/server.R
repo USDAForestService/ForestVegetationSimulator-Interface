@@ -3113,7 +3113,7 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
   })
                 
   renderComponent <- function(inCode="default")
-  { 
+  {
 cat ("renderComponent, inCode=",inCode,"\n")
     isolate ({
       output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -3158,8 +3158,9 @@ cat ("renderComponent, inCode=",inCode,"\n")
         return(NULL)
       ) 
 cat ("globals$currentCmdPkey=",globals$currentCmdPkey," title=",title,"\n")
+# browser()
       cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-      if(length(cmdp)>1)cmdp <- cmdp[2]
+      if(length(cmdp)>1 && cmdp[1]!="Econ_reports")cmdp <- cmdp[2] else cmdp <- cmdp[1]
       # the cmdp can be a function name, or a ".Win" can be appended to form a 
       # function name.  If a function does not exist, then try finding a prms entry.
       if (exists(cmdp)) funName = cmdp 

@@ -77,7 +77,10 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
 }
 
 mkTitle <- function(title){
-  rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=title,size=40)),h5())
+  if(length(globals$currentEditCmp$atag) && globals$currentEditCmp$atag=="c"){
+  rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Condition title ", value=title,size=40)),h5())
+  } else 
+    rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=title,size=40)),h5())
   if(length(globals$currentEditCmp$title)) rtn <- append(rtn,list(
         h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
   output$titleBuild <- renderUI(rtn)
