@@ -2641,11 +2641,21 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
            tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
            actionButton("cmdSaveInRun","Save in run")))
       output$cmdBuild <- renderUI(eltList)
-      if (input$rightPan != "Components") updateTabsetPanel(session=session,
+      output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
+      if (input$rightPan != "Components") {
+        updateTabsetPanel(session=session,
         inputId="rightPan",selected="Components")
-      for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
-                   "addEvCmps","addKeyExt","addKeyWds"))
-         updateSelectInput(session=session, inputId=id, selected=0)
+        updateSelectInput(session=session,
+        inputId="compTabSet", selected="Management")
+      }
+      if (input$rightPan == "Components" && input$compTabSet !="Management") {
+        updateSelectInput(session=session,
+        inputId="compTabSet", selected="Management")
+      output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
+      }
+      # for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
+      #              "addEvCmps","addKeyExt","addKeyWds"))
+      #    updateSelectInput(session=session, inputId=id, selected=0)
     })
   })
   # install callback functionality for the textarea that has the focus 
@@ -2890,7 +2900,9 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
-    output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+    if(!length(globals$currentEditCmp$kwds) || input$compTabSet !="Management"){
+      output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+    } 
     if (length(globals$fvsRun$FVSpgm) == 0) return(NULL)
     if (! globals$fvsRun$FVSpgm %in% names(globals$activeFVS)) return(NULL)
     switch (input$compTabSet,
