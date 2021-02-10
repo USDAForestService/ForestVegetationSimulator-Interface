@@ -3153,14 +3153,13 @@ cat ("renderComponent, inCode=",inCode,"\n")
         "ecn" =
         {
           title = "Economic analysis"
-          globals$currentCmdPkey = "Econ_reports econ"
+          globals$currentCmdPkey = "econ Econ_reports"
         },
         return(NULL)
       ) 
 cat ("globals$currentCmdPkey=",globals$currentCmdPkey," title=",title,"\n")
-# browser()
       cmdp = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
-      if(length(cmdp)>1 && cmdp[1]!="Econ_reports")cmdp <- cmdp[2] else cmdp <- cmdp[1]
+      if(length(cmdp)>1)cmdp <- cmdp[2] else cmdp <- cmdp[1]
       # the cmdp can be a function name, or a ".Win" can be appended to form a 
       # function name.  If a function does not exist, then try finding a prms entry.
       if (exists(cmdp)) funName = cmdp 
@@ -3495,6 +3494,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
           } else {
             kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
             pkeys = if (length(kwPname)>1) prms[[kwPname[2]]] else prms[[kwPname[1]]]
+            if (length(kwPname)>1) kwPname <- kwPname[2]
           }
         }
         oReopn  = character(0) 
