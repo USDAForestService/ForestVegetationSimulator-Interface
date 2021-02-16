@@ -1088,7 +1088,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        if (lastExt != exten && !length(grep("PlantNatural",cmp$kwdName)))
+        naughty <- c("PlantNatural","Econ_reports")
+        if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
         { 
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastExt = exten
@@ -1741,11 +1742,15 @@ mkMgmtCats <- function(globals)
     "Cut dwarf mistletoe infected trees" = "keyword.base.ThinMist",
     "Clean or release by cutting" = "Release",
     "Clean or release by girdling/chemical treatment" = "Girdling"),
-  "Tree Removal Preference"=c(
-    "Exclude or include a species from harvest" = "keyword.base.SpLeave",
+  "Tree Removal Preference"=
+    if ("mist" %in% globals$activeExtens) 
+    c("Exclude or include a species from harvest" = "keyword.base.SpLeave",
     "Removal pref by tree value classes" = "keyword.base.TCondMLT",
     "Removal pref by species" = "keyword.base.SpecPref",
-    "Removal pref by mistletoe rating" = "mist keyword.mist.MistPref"),
+    "Removal pref by mistletoe rating" = "mist keyword.mist.MistPref") else
+    c("Exclude or include a species from harvest" = "keyword.base.SpLeave",
+    "Removal pref by tree value classes" = "keyword.base.TCondMLT",
+    "Removal pref by species" = "keyword.base.SpecPref"),
   "Biomass Removal and Retention"=c(
     "Basic: Manage logging slash" = "yardloss_options",
     "Advanced: Full set of yarding options" = "keyword.base.YardLoss"))
@@ -1755,7 +1760,7 @@ mkMgmtCats <- function(globals)
     "Thin a species across a dbh range" = "fueltrt_thindbh",
     "Thin with fuel piled and burned" = "thin_pileburn_new",
     "Mastication" = "mastication",
-    "Prescribed burn" = "ffe_rxburn",
+    "Prescribed burn" = "fire ffe_rxburn",
     "Pile burn surface fuel" = "pileBurn_options"),
   "Salvage Operations"=c(
     "Cut dead trees" = "fire salvage_options")))

@@ -3179,7 +3179,7 @@ cat ("funName=",funName,"\n")
              tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
              actionButton("cmdSaveInRun","Save in run")))
           if (length(grep("freeEdit",ans[[1]]))==0) ans[[1]] <- append(ans[[1]],
-            list(tags$style(type="text/css","#cmdChgToFree {color:black;background:pink;}"),
+            list(tags$style(type="text/css","#cmdChgToFree {color:black}"),
                  actionButton("cmdChgToFree","Change to freeform")))
           rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=title,size=40)),h5())
           output$titleBuild <- renderUI(rtn)
@@ -3208,7 +3208,7 @@ cat ("funName=",funName,"\n")
         output$cmdBuildDesc <- renderUI (if (!is.null(des) && nchar(des) > 0)
           HTML(paste0("<br>Description:<br>",gsub("\n","<br>",des))) else NULL)
       }
-    })          
+    })
   }
 
   # schedule box toggled.
@@ -3397,7 +3397,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
       if (is.null(ansFrm)) 
       { 
-        kw = kwPname[1]
+        kw = if (length(kwPname) > 1) kwPname[2] else kwPname[1]
         kw = unlist(strsplit(kw,".",fixed=TRUE))
         kw = kw[length(kw)]
         ansFrm = paste0(substr(paste0(kw,"         "),1,10),
@@ -3431,15 +3431,18 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       } else mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])
       ans = list(ex=if (length(kwPname) > 1) kwPname[1] else if (length(grep("keyword.",kwPname))) gsub("[.].*","",gsub("keyword.","",kwPname))
         else "base", kwds=kwds,reopn=reopn)
-      if(ans[1]=="estbstrp"){
-        ans[1] <- if(length(grep("strp",globals$activeExtens))) "strp" else "estb"
+      if (length(kwPname) > 1 && length(grep("keyword.",kwPname))){
+        kwd <- gsub("[.].*","",gsub("keyword.","",kwPname))
+        if(kwd[2]=="estbstrp"){
+          ans[1] <- if(length(grep("strp",globals$activeExtens))) "strp" else "estb"
+        }
       }
     }                        
     ans
   }
 
   observe({  
-    # command Save in run                             
+    # Save in run                             
     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
     isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
@@ -3494,7 +3497,6 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
           } else {
             kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
             pkeys = if (length(kwPname)>1) prms[[kwPname[2]]] else prms[[kwPname[1]]]
-            if (length(kwPname)>1) kwPname <- kwPname[2]
           }
         }
         oReopn  = character(0) 
@@ -3521,7 +3523,7 @@ cat ("Editing as freeform\n")
       }
 cat ("Building a component: kwPname=",kwPname,"\n")
       ans = if (kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
-          reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys,kwPname,globals)
+          reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
       { 
@@ -3551,7 +3553,7 @@ cat ("Building a component: kwPname=",kwPname,"\n")
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
-             variant=globals$activeVariants[1],kwdName=kwPname[1],
+             variant=globals$activeVariants[1],kwdName= if (length(kwPname)>1) kwPname[2] else kwPname[1],
              title=input$cmdTitle,
              reopn=if (is.null(ans$reopn)) character(0) else ans$reopn)
         # find the attachment point. 
