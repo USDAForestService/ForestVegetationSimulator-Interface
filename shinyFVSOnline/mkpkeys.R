@@ -2,13 +2,19 @@
 
 rdparms <- function(pdir="parms") 
 {
-#  options(warn=2)
   prms = list()
-  files = dir(pdir)
+  files = c("mdoutputs.prm", "basekeys.kwd", "voleqnum.kwd", "ardwrd3.kwd", "wrd3.prm",
+      "armwrd3.kwd", "phewrd3.kwd", "dbs.kwd", "climate.kwd", "fire.kwd", "cond.rul",
+      "cover.kwd", "estab.kwd", "org.kwd", "forest.prm", "function.evm",
+      "keycats.prm", "keylist.prm", "manage.prm", "mgmtcats.prm", "modifiers.prm",
+      "modelmodf.prm", "unevage.prm", "inttrtmt.prm", "fueltrt.prm", "mist.kwd",
+      "species.prm", "habpa_bm.prm", 
+      "habpa_ca.prm", "HabPa_oc.prm", "habpa_ci.prm", "habpa_ec.prm", "habpa_em.prm",
+      "habpa_ie.prm", "habpa_kt.prm", "habpa_ls.prm", "habpa_ni.prm", "habpa_pn.prm",
+      "habpa_op.prm", "habpa_sn.prm", "habpa_so.prm", "habpa_ut.prm", "habpa_wc.prm",
+      "econ.kwd")
   for (fn in files)
   {
-    if (fn %in% c("mods.txt","mkprm","ppekeys.kwd","tutorial.prm",
-        "commands.prm")) next
     file = paste0(pdir,"/",fn)
     cat ("processing file=",file,"\n")    
     raw  = scan(file=file,sep="\n",what="character",
@@ -318,7 +324,17 @@ mkpkeys = function (mstext)
  
 prms = rdparms(pdir="~/open-suppose/trunk/parms")
 prms = lapply(prms,mkpkeys)
-save(file="prms.RData",prms)
+
+# temp code to remove some sections that are not needed.
+prms[["evmon.functions"]] = NULL
+prms[["selectModelOutputs"]] = NULL
+prms[["selectModelModifiers"]] = NULL
+prms[["UDComputes"]] = NULL
+prms[["species_ni"]] = NULL
+
+attributes(prms[["Compute_PreDefined"]][[6]])$pstring="mkVarList Select the Pre-Defined EM variable:"
+
+save(file="prms.RData",version=2,prms)
 
 
 

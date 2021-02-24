@@ -23,6 +23,8 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                runOps$uiAcadianMinDBH)
   mortModel= if (is.null(runOps$uiAcadianMort)) "Acadian" else 
                runOps$uiAcadianMort
+  CutPoint = if (is.null(runOps$uiAcadianCutPoint)) 0.95 else 
+               as.numeric(runOps$uiAcadianCutPoin)
   volLogic = if (is.null(runOps$uiAcadianVolume)) "Base Model" else 
                runOps$uiAcadianVolume
   wThinMod = if (is.null(runOps$uiAcadianTHIN)) FALSE else 
@@ -37,9 +39,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                if (runOps$uiAcadianSBW == "No") NULL else 
                  c(CDEF=CDEF,SBW.YR=SBW.YR,SBW.DUR=SBW.DUR)
   if (!is.null(SBW) && any(is.na(SBW))) SBW=NULL
-
-  CutPoint=0
-  
+ 
   #load some handy conversion factors
   CMtoIN  = fvsUnitConversion("CMtoIN")
   INtoCM  = fvsUnitConversion("INtoCM")
@@ -115,7 +115,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     orgtree$EXPF = orgtree$EXPF * HAtoACR
                        
     stand = list(CSI=CSI)
-    ops   = list(INGROWTH=INGROWTH,MinDBH=MinDBH, 
+    ops   = list(verbose=TRUE,INGROWTH=INGROWTH,MinDBH=MinDBH, 
                  CutPoint=0.5,   # >0 uses threshold probability (>0-1).
                  mortType="continuous", #mortType="discrete", 
                  SBW=SBW,THINMOD=THINMOD,verbose=TRUE,
@@ -132,13 +132,6 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     if (is.factor(tree$PLOT)) tree$PLOT = levels(tree$PLOT)[as.numeric(tree$PLOT)]
     # restore the order of the trees
     tree = tree[order(tree$TREE),]
-
-    ### this code saves the input so AcadianGY can be run outside of FVSOnline
-    #savefile=paste0("acadianInput","_",stdIds["standid"],"_",stdInfo["year"],
-    #                 ".RData")
-    #cat ("savefile=",savefile,"\n")
-    #save(orgtree,incr,stand,ops,file=savefile)
-    ### 
 
     cat ("fvsRunAcadian: is.null(tree$dEXPF)=",is.null(tree$dEXPF),"\n")                    
     cat ("fvsRunAcadian: cyclen=",cyclen,"sum1 EXPF=",sum(tree$EXPF),
@@ -226,13 +219,15 @@ uiAcadian <- function(fvsRun)
 cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume)) "NULL" else 
               fvsRun$uiCustomRunOps$uiAcadianVolume,"\n")
-            
+           
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianIngrowth))
               fvsRun$uiCustomRunOps$uiAcadianIngrowth = "No"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMinDBH))
               fvsRun$uiCustomRunOps$uiAcadianMinDBH   = "3.0"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianMort))
               fvsRun$uiCustomRunOps$uiAcadianMort     = "Acadian"
+  if (is.null(fvsRun$uiCustomRunOps$uiAcadianCutPoint))
+              fvsRun$uiCustomRunOps$uiAcadianCutPoint  = "0.95"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianVolume))
               fvsRun$uiCustomRunOps$uiAcadianVolume   = "Acadian"
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianTHIN))
@@ -252,6 +247,8 @@ cat ("in uiAcadian uiAcadianVolume=",
                fvsRun$uiCustomRunOps$uiAcadianMinDBH),
     myRadioGroup("uiAcadianMort", "Mortality model:", 
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianMort),
+    myInlineTextInput("uiAcadianCutPoint","CutPoint", 
+               fvsRun$uiCustomRunOps$uiAcadianCutPoint),
     myRadioGroup("uiAcadianVolume", "Merchantable volume logic:", 
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
     myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:", 

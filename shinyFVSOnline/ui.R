@@ -101,7 +101,7 @@ shinyUI(fixedPage(
             modalDialog(id="deleteRunDlg", footer=list(
               modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
                 tags$button(type = "button", class = "btn btn-primary", 
-                 'data-dismiss' = "modal", "Cancel"))),        
+                 'data-dismiss' = "modal", "Cancel"))),
             h6(),
             tags$style(type="text/css", "#title { width: 90%; }"),
             textInput("title", "Run title", ""), 
@@ -189,7 +189,7 @@ shinyUI(fixedPage(
                  tabPanel("Editor",
                    h5(),
                    fileInput("kcpUpload",
-                             "Upload an existing Keyword component file (.kcp), or Keyword component archive (FVS_kcps.Rdata)",
+                             "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
                              width="90%"),
                    selectInput("kcpSel","Existing component collection", NULL, 
                               NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
@@ -200,7 +200,10 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", "#kcpSaveCmps {color:green;}"),
                    actionButton("kcpSaveCmps","Save in component collection"),
                    tags$style(type="text/css", "#kcpDelete { color: red; }"),
-                   actionButton("kcpDelete","Delete"),h6(),
+                   actionButton("kcpDelete","Delete"),
+                   tags$style(type="text/css", "#kcpDownload { color: black; }"),
+                   downloadButton("kcpDownload","Download (KCP)"),
+                   h6(),
                    tags$style(type="text/css", "#kcpTitle { width: 60%; }"),
                    myInlineTextInput("kcpTitle", "Component Title: ", value = "", size="65%"),h6(),      
                    tags$style(type="text/css", 
@@ -210,7 +213,8 @@ shinyUI(fixedPage(
                    tags$style(type="text/css", 
                       "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
                    tags$textarea(id="kcpEdit", rows=15),h6())),
-               uiOutput("editcmdBuild"),
+               uiOutput("titleBuild"),
+               uiOutput("condBuild"),
                uiOutput("cmdBuild"),
                uiOutput("cmdBuildDesc"),h5()
               ),
@@ -335,6 +339,7 @@ shinyUI(fixedPage(
                   selectInput("dbhclass", "DBHClasses", size=6, 
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE))),
+                HTML(paste0("<b>",'Databse table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
               checkboxGroupInput("browsevars","Select variables",
                   choices = list("None"),selected = NULL,inline=TRUE)
             ),
@@ -478,7 +483,7 @@ shinyUI(fixedPage(
                fixedRow(
                  column(width=6,
                    myRadioGroup("barPlace","Bars",
-                      c("Side-by-side"="dodge","Stacked"="stack"))),
+                      c("Stacked"="stack","Side-by-side"="dodge"))),
                  column(width=6,
                    myRadioGroup("legendPlace","Legend",
                       c("R"="right","Bot"="bottom","L"="left",
@@ -535,11 +540,11 @@ shinyUI(fixedPage(
           fixedRow(
           column(width=8,offset=0,
             selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
-              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+               multiple=FALSE, selectize=FALSE, width="99%")),
           column(width=4,offset=0, 
             colourInput("svsPlotColor1","Plot color", value = "#C5FAC6"))),
           selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+             multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
         column(width=6,offset=0,
           checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
@@ -548,11 +553,11 @@ shinyUI(fixedPage(
           fixedRow(
           column(width=8,offset=0,
             selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
-              selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+               multiple=FALSE, selectize=FALSE, width="99%")),
           column(width=4,offset=0, 
             colourInput("svsPlotColor2","Plot color", value = "#C5FAC6"))),
           selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%"),
+             multiple=FALSE, selectize=FALSE, width="99%"),
           rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
       )),
       tabPanel("Maps",
@@ -560,14 +565,14 @@ shinyUI(fixedPage(
         fixedRow(
         column(width=3,offset=0,
           selectInput(inputId="mapDsRunList",label="Select Run", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+             multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsTable",label="Output Table", choices=NULL, 
-            selected=NULL, multiple=FALSE, selectize=FALSE, width="99%")),
+             multiple=FALSE, selectize=FALSE, width="99%")),
         column(width=1,offset=0,HTML("<b>Variables</b>")),
         column(width=2,offset=0,
           selectInput(inputId="mapDsVar",label=NULL, choices=NULL, 
-            selected=NULL, multiple=TRUE, selectize=FALSE, width="99%")),
+             multiple=TRUE, selectize=FALSE, width="99%")),
         column(width=2,offset=0,
            radioButtons("mapDsType","Display", choices=list("table","graph"))),            
         column(width=2,offset=0,
@@ -682,10 +687,30 @@ shinyUI(fixedPage(
                         width="90%"),
               tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
               uiOutput("uploadClimActionMsg")     
-            ) #END tabPanel
+            )#END tabPanel
           ) #END tabsetPanel
-        ) ) #END column and fixed row   
+        ) ) #END column and fixed row
       ),
+      tabPanel("Import Runs",
+              h6(),
+              fileInput("uploadRunsRdat",paste0("Step 1: Upload existing FVS runs 
+                                                (fvsRuns.zip) from other project."),width="90%"),
+              tags$style(type="text/css","#uploadRunMsg{color:darkred;}"), 
+              uiOutput("uploadRunMsg"),h6(),
+              p(strong("Step 2: Select which run to add to current project")),
+              selectInput("runsList", label=NULL, multiple=FALSE,choices = list(), 
+                          selected="", selectize=FALSE),h6(),
+              p(strong("Rename selected run?")),
+              radioButtons("prjRenameToggle",NULL,choices=list("Yes"="1",
+                             "No"="2"),selected=2,inline=TRUE),
+              uiOutput("renameRunText"),
+              actionButton("addRun","Add run"),h6(),
+              tags$style(type="text/css","#addRunMsg{color:darkred;}"), 
+              uiOutput("addRunMsg"),h6(),
+              p(strong("WARNING: If these runs were created using inventory ",
+              "data not already in this project, you will need to upload those data ",
+              "to run these new runs."))
+               ),
       tabPanel("Tools",           
         fixedRow(
         column(width=12,offset=0,
@@ -717,23 +742,34 @@ shinyUI(fixedPage(
                 modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
                   "Yes"),
                 tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),        
+                  'data-dismiss' = "modal", "Cancel"))),  
               h4(),h4("Make new project backup file"),
+              if (isLocal()) radioButtons("prjBckCnts",NULL,width="50%",choices=
+                 list("Project files only (*_P.zip)"="projOnly",
+                      "Project files and FVS software (*_PS.zip)"="projFVS"),
+                      selected="projOnly"),
               actionButton("mkZipBackup","Make a project backup zip file"),
-              h4(),h4("Manage current project backup files"),
+              h4("Manage current project backup files"),
               selectInput("pickBackup", "Select backup to process", multiple=FALSE,
                  choices = list(), selected="", selectize=FALSE),
               actionButton("delZipBackup","Delete backup"),
               downloadButton("dlPrjBackup","Download backup"),
+              tags$style(type="text/css","#restorePrjBackupDlg{color:darkred;font-size:150%;width:100%;}"),
               list(
                 modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
                   "Restore from backup"),
                 modalDialog(id="restorePrjBackupDlg", footer=list(
-                  modalTriggerButton("restorePrjBackupDlgBtn", "#restorePrjBackupDlg", 
-                    "Yes"),
-                  tags$button(type = "button", class = "btn btn-primary", 
-                    'data-dismiss' = "modal", "Cancel")))
-              ),h4("Delete entire project"),
+                  modalTriggerButton("restorePrjBackupDlgBtnA", "#restorePrjBackupDlg", 
+                    htmlOutput("btnA", inline=TRUE)),
+                modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
+                    htmlOutput("btnB", inline=TRUE)),NULL))
+              ),
+              if(isLocal()) h4(),
+              if(isLocal()) h4("Upload existing project backup file into current project"),
+              if(isLocal()) fileInput("upZipBackup","Upload project backup zip file",
+                                      width="30%"),
+              uiOutput("delPrjActionMsg"),
+              h4("Delete entire project"),
               selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
                           choices = list(), selected="", selectize=FALSE),
               list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
@@ -742,8 +778,7 @@ shinyUI(fixedPage(
                                      "Yes"),
                    tags$button(type = "button", class = "btn btn-primary", 
                               'data-dismiss' = "modal", "No")))),
-              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"), 
-              uiOutput("delPrjActionMsg")
+              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
             ), 
             tabPanel("Downloads", h6(),
               downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),

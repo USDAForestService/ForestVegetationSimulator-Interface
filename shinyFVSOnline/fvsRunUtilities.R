@@ -33,9 +33,9 @@ mkGlobals <<- setRefClass("globals",
   fields = list(activeFVS = "list", activeVariants = "character", 
     activeExtens = "character", schedBoxYrLastUsed = "character",
     extnsel = "character", kwdsel = "list", mgmtsel = "list",
-    moutsel = "list", mmodsel = "list", pastelist = "list",
+    mevsel = "list", mmodsel = "list", pastelist = "list",
     pastelistShadow = "list", inData = "list", FVS_Runs = "list",
-    selVarList = "list", customCmps = "list", selStds = "character",
+    customCmps = "list", selStds = "character",
     schedBoxPkey = "character", currentCmdPkey = "character",GrpNum="numeric",
     currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", currentCmdDefs="character",
@@ -47,7 +47,8 @@ mkGlobals <<- setRefClass("globals",
     lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
-    localWindows="logical"))
+    localWindows="logical",selRuns = "character", selUuids = "character",
+    selAllVars="logical",explorePass="numeric"))
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -59,56 +60,32 @@ loadStandTableData <- function (globals, dbIcon)
     "Inventory Subplots (FVS_PlotInit_Plot)(e.g.: FIA subplots)" = "FVS_PlotInit_Plot",
     "Conditions (FVS_StandInit_Cond)(e.g.: FIA conditions)"      = "FVS_StandInit_Cond")
   have=na.omit(match(toupper(tbls),toupper(globals$selStandTableList)))
-  if (length(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
+  if (length(have) && !is.null(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
 } 
 
-loadVarData <- function(globals,prms,dbIcon)
-{
-  globals$selVarList = list()
+loadVarData <- function(globals,dbIcon)
+isolate({
+cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",globals$activeVariants,"\n") 
   dbtabs = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='table';")[,1]
   dbtabsU = toupper(dbtabs)
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit")))){
-      stdInit <-  dbtabs[i]
-      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit)))
-      if (class(vars) != "try-error")
-      {
-        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-                                                       function (x) strsplit(x," "))))))
-        globals$selVarList <- lapply(sort(selVars),function (x,pk) 
-          paste(x,":",getPstring(pk,x)),prms$variants)
-        names(globals$selVarList) <- sort(selVars)
-      }
-    }
+  intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
+  if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit")
+  if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit_Cond")
+  if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit_Plot")
+  if (! intab %in% dbtabsU) intab = NULL
+  if (!is.null(intab))
+  {
+    vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',intab)))    
+    if (class(vars) != "try-error")
+    {
+      vars=sort(unique(tolower(scan(text=gsub(","," ",vars[,1]),what="character",
+           strip.white=TRUE,sep=" ",quiet=TRUE))))
+      vars=vars[vars != ""]
+      keep=na.omit(match(vars,globals$activeVariants))
+      if (length(keep) && !is.na(keep)) globals$activeVariants = globals$activeVariants[keep] 
+    } 
   }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Cond")))){
-      stdInit_cond <- dbtabs[i]
-      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_cond)))
-      if (class(vars) != "try-error")
-      {
-        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-                                                       function (x) strsplit(x," "))))))
-        globals$selVarList <- lapply(selVars,function (x,pk) 
-          paste(x,":",getPstring(pk,x)),prms$variants)
-        names(globals$selVarList) <- selVars
-      }
-    }
-  }
-  for (i in 1:length(dbtabs)){
-    if (!is.na(match(dbtabsU[i], toupper("FVS_StandInit_Plot")))){
-      stdInit_plot <- dbtabs[i]
-      vars = try(dbGetQuery(dbIcon,paste0('select distinct variant from ',stdInit_plot)))
-      if (class(vars) != "try-error")
-      {
-        selVars = na.omit(unique(tolower(unlist(lapply(vars[,1],
-                                                       function (x) strsplit(x," "))))))
-        globals$selVarList <- lapply(selVars,function (x,pk) 
-          paste(x,":",getPstring(pk,x)),prms$variants)
-        names(globals$selVarList) <- selVars
-      }
-    }
-  }
+cat ("in loadVarData, globals$activeVariants=",globals$activeVariants,"\n")
   fvsKeys = getTableName(dbIcon,"FVS_GroupAddFilesAndKeywords")
   if (!is.null(fvsKeys)) 
   {
@@ -116,7 +93,7 @@ loadVarData <- function(globals,prms,dbIcon)
     names(globals$inData$FVS_GroupAddFilesAndKeywords) <- 
           toupper(names(globals$inData$FVS_GroupAddFilesAndKeywords))
   } 
-}
+})
 
 reorderFVSRuns <- function(FVS_Runs)
 {
@@ -279,8 +256,7 @@ cat ("qry=",qry,"\n")
     idxs=grep(sf,stds,fixed=TRUE)
     if (length(idxs)) wtofix[[sf]] = rwts[idxs]/sum(rwts[idxs])
   }
-
-  extns = attr(prms$programs[prms$programs == fvsRun$FVSpgm][[1]],"atlist")
+  extns = globals$activeFVS[fvsRun$FVSpgm][[1]]
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
@@ -435,6 +411,12 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
     } 
     lastExt = "base"
     lastCnd = NULL
+    extensPrefixes = c("estb"="Estab","strp"="Estab","cover"="Cover",
+      "fire"="FMIn","mist"="Mistoe",
+      "ardwrd3"="RDIn","armwrd3"="RDIn\nRRType             3",
+      "phewrd3"="RDIn\nRRType             4","dbs"="DataBase",
+      "econ"="Econ","climate"="Climate","organon"="Organon")
+
     if (length(std$grps)) for (grp in std$grps)
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
@@ -517,14 +499,11 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
             expression <- grep("=",kcpconts[j])
             ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
             thenkw <- toupper(kcpconts[j])=="THEN"
-            endkw <- grep("END", toupper(kcpconts[j]))
-            endkw <- length(endkw)
-            endifkw <- grep("ENDIF", toupper(kcpconts[j]))
-            endifkw <- length(endifkw)
+            endkw <- match("END", toupper(kcpconts[j]))
+            endifkw <- match("ENDIF", toupper(kcpconts[j]))
             commkw <- grep("COMMENT", toupper(kcpconts[j]))
             commkw <- length(commkw)
             compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
-            if(endkw && commentflag==1) commentflag <- 0
             # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
             if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
               test <- strsplit(kcpconts[j]," ")[[1]]
@@ -619,7 +598,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
@@ -696,7 +675,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, we're not already in an extension block, but it is a DBS-duplicate 
               else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                      && extflag==0 && !endkw && !compkw){
+                      && extflag==0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
                   invoke <- as.character(invokekwds[1])
@@ -778,7 +757,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, it's not a DBS-duplicate, and we are already in an extension block
               else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                       && extflag > 0 && !endkw && !compkw){
+                       && extflag > 0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyword,
                 # and then insert ESTAB below that, etc.
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
@@ -880,7 +859,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
               # If it's an extension keyword, we are already in an extension block, but it is a DBS-duplicate 
               else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                       && extflag > 0 && !endkw && !compkw){
+                       && extflag > 0 && is.na(endkw) && !compkw){
                 # if it's a regen keyword and the flag doesn't equal 1, insert an END keyord,
                 # and then insert ESTAB below that, etc.
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
@@ -896,7 +875,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                   next
                 }
                 if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
-                  if(dbflag==2){
+                  if(dbflag==2 || extflag==3 ){
                     dbflag <- 0
                     next
                   }
@@ -1041,7 +1020,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                 }
               }
               # if it's an END
-              else if (endkw){
+              else if (!is.na(endkw)){
                 if(computeflag==1){
                   computeflag <- 0
                 } 
@@ -1054,7 +1033,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                 else next
               }
               # if it's an ENDIF
-              else if (endifkw){
+              else if (!is.na(endifkw)){
                 if(condflag==1){
                   condflag <- 0
                 }
@@ -1109,10 +1088,10 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        if (lastExt != exten)
+        naughty <- c("PlantNatural","Econ_reports")
+        if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
         { 
-          cat (getPstring(prms[["extensPrefixes"]],
-                          exten),"\n",file=fc,sep="")
+          cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastExt = exten
         }
         if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
@@ -1146,8 +1125,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
               }
             }
             kwdlist<- gsub("[\r]", "", kwdlist)
-            if(globals$localWindows && kwdlist[grep("FVS_Data.db",kwdlist)]=="FVS_Data.db") 
-              kwdlist[grep("FVS_Data.db",kwdlist)] <- paste0(prjDir,"/",kwdlist[grep("FVS_Data.db",kwdlist)])            
+            if(globals$localWindows) kwdlist[grep("FVS_Data.db",kwdlist)] <- paste0(prjDir,"/FVS_Data.db")
             cmp$kwds <- paste(kwdlist,collapse="\n")
           }
           cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
@@ -1172,9 +1150,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       } 
       if (lastExt != exten)
       {   
-        cat (getPstring(prms[["extensPrefixes"]],
-             exten),"\n",file=fc,sep="")
-        lastExt = exten
+          cat (extensPrefixes[exten],"\n",file=fc,sep="")
+          lastExt = exten
       }
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                      cmp$kwds,"\n",file=fc,sep="")    
@@ -1184,7 +1161,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base" && 
+        !length(grep("PlantNatural",cmp$kwdName))) cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {
@@ -1266,13 +1244,15 @@ mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
     } 
     fvsRun$startDisp = as.character(start)
 cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
-" sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
-paste0("length(list)=",length(list)) else sels,"\n")
+  " sels=",if (is.null(sels)) "NULL" else if (is.list(sels)) 
+  paste0("length(list)=",length(list)) else sels,"\n")
     if (length(fvsRun$stands)) for (i in start:end) 
     {
       ## these two lines are needed to deal with old runs that may not have these elements in the stand class
       if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
       if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
+      # insure "rep" is defined.
+      if (length(fvsRun$stands[[i]]$rep)==0) fvsRun$stands[[i]]$rep=0
       tmpcnts<-append(tmpcnts, 
         if (fvsRun$stands[[i]]$rep == 0) fvsRun$stands[[i]]$sid else
             sprintf("%s r%03i %g",fvsRun$stands[[i]]$sid,fvsRun$stands[[i]]$rep,
@@ -1389,76 +1369,171 @@ cat ("findStand, search=",search,"\n")
   } 
   globals$foundStand=0L
   return(NULL)
-}
+}           
 
+nextRunName <- function(globals)
+{
+  i=1
+  rs=unlist(globals$FVS_Runs)
+  repeat 
+  {
+    rn=paste0("Run ",length(globals$FVS_Runs)+i) 
+    if (rn %in% rs) i=i+1 else break
+  }
+  rn
+}
+  
+resetActiveFVS <- function(globals)
+{
+  globals$activeFVS = list(
+    FVSak = c("ak", "estb", "dbs", "mist", "fire", "econ", "cover" ), 
+    FVSbm = c("bm", "fire", "econ", "strp", "dbs", "climate",  "cover", 
+              "mist", "armwrd3", "phewrd3", "ardwrd3"), 
+    FVSca = c("ca",  "fire", "econ", "strp", "dbs", "mist", "climate", "cover"), 
+    FVSci = c("ci",  "fire", "econ", "estb", "dbs", "climate", "cover", "mist", 
+              "fire",  "armwrd3", "phewrd3", "ardwrd3"), 
+    FVScr = c("cr", "fire", "econ",  "strp", "dbs", "climate", "mist", "cover", 
+              "armwrd3", "phewrd3",  "ardwrd3"), 
+    FVScs = c("cs", "strp", "dbs", "fire", "econ"), 
+    FVSec = c("ec",  "strp", "dbs", "cover", "mist", "fire", 
+              "climate", "econ", "phewrd3",  "armwrd3", "ardwrd3"), 
+    FVSem = c("em", "estb", "dbs", "cover",  "mist", "fire", "climate", 
+              "econ", "phewrd3", "armwrd3", "ardwrd3" ), 
+    FVSie = c("ie", "estb", "dbs", "cover", "mist", "fire", "climate",  
+              "econ", "armwrd3", "phewrd3", "ardwrd3"), 
+    FVSkt = c("kt", "estb",  "dbs", "cover", "mist", "fire", "climate", 
+              "econ", "phewrd3",  "armwrd3", "ardwrd3"), 
+    FVSls = c("ls", "dbs", "strp", "fire",  "econ"), 
+    FVSnc = c("nc", "strp", "dbs", "cover", "mist", "fire",  "econ", 
+              "climate", "phewrd3", "armwrd3", "ardwrd3"), 
+    FVSne = c("ne",  "dbs", "strp", "fire", "econ"), 
+    FVSoc = c("oc", "fire", "econ",  "strp", "dbs", "mist", 
+              "climate", "cover", "organon"), 
+    FVSop = c("op",  "strp", "dbs", "mist", "fire", "econ", "climate", 
+              "cover", "armwrd3",  "phewrd3", "ardwrd3", "organon"), 
+    FVSpn = c("pn", "strp", "dbs",  "mist", "fire", "econ", "climate", 
+              "cover", "armwrd3", "phewrd3",  "ardwrd3"), 
+    FVSsn = c("sn", "dbs", "strp", "fire", "econ"), 
+    FVSso = c("so",  "strp", "dbs", "cover", "mist", "fire", "econ", 
+              "climate", "phewrd3",  "armwrd3", "ardwrd3"), 
+    FVStt = c("tt", "fire", "strp", "dbs",  "cover", "mist", "climate", 
+              "econ", "phewrd3", "armwrd3", "ardwrd3" ), 
+    FVSut = c("ut", "strp", "dbs", "cover", "mist", "fire", "climate",  
+              "econ", "phewrd3", "armwrd3", "ardwrd3"), 
+    FVSwc = c("wc", "strp",  "dbs", "mist", "fire", "climate", "econ", 
+              "cover", "phewrd3",  "armwrd3", "ardwrd3"), 
+    FVSws = c("ws", "strp", "dbs", "cover",  "mist", "fire", "climate", 
+              "econ", "phewrd3", "armwrd3", "ardwrd3" )) 
+  shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
+  binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
+  avalFVS <- dir(binDir,pattern=shlibsufx)
+  avalFVS <- sub(shlibsufx,"",avalFVS)
+  if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
+  globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
+  vars = c("ak: Southeast AK - Coastal BC"="ak",
+           "bm: Blue Mountains,Oregon"="bm",
+           "ca: Inland CA,Southern Cascades"="ca",
+           "ci: Central ID"="ci",
+           "cr: Central Rockies GENGYM"="cr",
+           "sw: GENGYM: Southwest Mixed Conifers"="sw",
+           "sp: GENGYM: Southwest Ponderosa Pine"="sp",
+           "bp: GENGYM: Black Hills Ponderosa Pine"="bp",
+           "sf: GENGYM: Spruce-fir"="sf",
+           "lp: GENGYM: Lodgepole pine"="lp",
+           "ec: East Cascades,Washington"="ec",
+           "em: Eastern Montana"="em",
+           "ie: Inland Empire"="ie",
+           "nc: Klammath Mountains,Northern CA"="nc",
+           "oc: ORGANON SWO - FVSca hybrid"="oc",
+           "op: ORGANON NWO/SMC - FVSpn hybrid"="op",
+           "so: South Central OR N CA"="so",
+           "tt: Tetons,Wyoming"="tt",
+           "ut: Utah"="ut",                        
+           "wc: West Cascades"="wc",
+           "pn: Pacific Northwest Coast"="pn",     
+           "ws: Western Sierra Nevada,CA"="ws",
+           "cs: Central States"="cs",
+           "kt: Kootenai/Kaniksu/Tally LK,ID - MT"="kt",
+           "ls: Lake States"="ls",
+           "ne: Northeast"="ne",
+           "sn: Southern"="sn")
+  keep=match(globals$activeVariants,vars)
+  globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
+  globals$activeExtens=character(0)
+cat ("in resetActiveFVS, globals$activeVariants=",globals$activeVariants,"\n")
+}
 
 resetGlobals <- function(globals,fvsRun,prms)
 {
 cat("resetGlobals, fvsRun NULL=",is.null(fvsRun),"\n")
-  if (is.null(fvsRun))
+  resetActiveFVS(globals)
+  globals$schedBoxYrLastUsed=character(0)
+  globals$currentEditCmp=globals$NULLfvsCmp
+  if (!is.null(fvsRun))                                        
   {
-    shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-    binDir = if (file.exists("FVSbin/")) "FVSbin/" else fvsBinDir
-    avalFVS <- dir(binDir,pattern=shlibsufx) 
-    avalFVSp <- sub(shlibsufx,"",avalFVS)
-    globals$activeExtens <- "base"
-    if (length(avalFVSp) == 0) avalFVSp = "FVSie"
-    pgmNames = unique(unlist(prms[["programs"]]))
-    pgmNames = intersect(pgmNames,names(pgmList))
-    avalFVSp = intersect(avalFVSp,pgmNames)
-    if (length(avalFVSp)) for (i in 1:length(avalFVSp))
-    {
-      if (avalFVSp[i] %in% names(globals$activeFVS)) next
-      ats = grep(avalFVSp[i],pgmNames,fixed=TRUE)
-      if (length(ats) == 0) next
-      ipgms = prms[["programs"]] == avalFVSp[i]
-      if (!any(ipgms)) next
-      ats = attr(prms[["programs"]][ipgms][[1]],"atlist",exact=TRUE)
-      if (!is.null(ats)) 
-      {
-        globals$activeExtens <- union(globals$activeExtens, ats[-1])
-        globals$activeVariants <- union(globals$activeVariants, ats[1])
-        globals$activeFVS[[length(globals$activeFVS)+1]] <- ats
-        names(globals$activeFVS)[length(globals$activeFVS)] <- 
-              avalFVSp[i]
-      }
-    }
-    globals$schedBoxYrLastUsed <- character(0)
-    globals$currentEditCmp <- globals$NULLfvsCmp
-  } else {
-    globals$schedBoxYrLastUsed <- fvsRun$startyr
-    if (length(fvsRun$FVSpgm) > 0)
-    {
+    globals$schedBoxYrLastUsed=fvsRun$startyr                  
+    if (length(fvsRun$FVSpgm) > 0)            
+    {                                                            
       indx = match(fvsRun$FVSpgm,names(globals$activeFVS))
-      #### this section is attempting to rename an active program to one 
-      #### without the "c" (ie, FVSiec would become FVSie).
-      if (is.na(indx) && nchar(globals$activeFVS)>5)
-        indx = match(substr(fvsRun$FVSpgm,1,5),names(globals$activeFVS))
-      if (!is.na(indx))
+      if (length(indx) && !is.na(indx))                         
       {
         fvsRun$FVSpgm = names(globals$activeFVS)[indx]
         globals$activeFVS <- globals$activeFVS[indx]
-        globals$activeVariants <- globals$activeFVS[[1]][1]
+        globals$activeVariants <- subset(globals$activeVariants,
+                globals$activeVariants==globals$activeFVS[[1]][1])
         globals$activeExtens <- c("base",globals$activeFVS[[1]][-1])
-      }
+        globals$lastRunVar <- globals$activeVariants
+      }                                       
     }
   }
 cat ("globals$activeVariants=",globals$activeVariants,"\n")
-cat ("length activeFVS=",length(globals$activeFVS),"\n")
+cat ("activeFVS=",length(globals$activeFVS),"\n")
 if (length(globals$activeFVS)) cat ("names(globals$activeFVS)=",names(globals$activeFVS),"\n")
 cat ("reset activeExtens= ");lapply(globals$activeExtens,cat," ");cat("\n")
   globals$extnsel <- character(0)
   globals$mgmtsel <- list()
   globals$mmodsel <- list()
-  globals$moutsel <- list()
+  globals$mevsel <- list()
   globals$schedBoxPkey <- character(0)  
-  globals$currentCmdPkey <- "0"
-  globals$currentCndPkey <- "0"
+  globals$currentCmdPkey <- character(0)  
+  globals$currentCndPkey <- character(0)  
   globals$winBuildFunction <- character(0)
-  globals$foundStand=0L 
-  globals$changeind <- 0
+  globals$foundStand <- 0L 
   globals$changeind <- 0
 }
+
+
+updateVarSelection <- function ()
+{
+  if (length(globals$fvsRun$FVSpgm) == 0) 
+  {
+    vlst = as.list(globals$activeVariants)
+    selected = if (length(globals$lastRunVar)) globals$lastRunVar else globals$activeVariants[1]
+  } else {
+    if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) 
+    {
+      vlst <- list()
+      selected = NULL
+    } else {
+      vlst <- globals$activeFVS[globals$fvsRun$FVSpgm][[1]][1]
+      vlst <- globals$activeVariants[match(vlst,globals$activeVariants)]
+      vlst <- if(is.null(vlst[[1]])) as.list(globals$activeVariants) else as.list(vlst)
+      selected = if(is.null(vlst[[1]])) unlist(globals$activeVariants)[1] else unlist(vlst)[1]
+      if (!is.null(selected)) globals$lastRunVar=selected
+    }
+  }
+  if (is.null(selected)) 
+  {
+    globals$activeVariants = character(0) 
+    globals$activeExtens = "base"
+  } else {
+    globals$activeVariants = unlist(vlst)
+    globals$activeExtens = c("base",globals$activeFVS[[paste0("FVS",selected)]][-1])
+  }
+cat ("in updateVarSelection selected=",selected," globals$lastRunVar=",globals$lastRunVar," vlst=",unlist(vlst),"\n")
+  updateSelectInput(session=session, inputId="inVars", choices=vlst,
+                    selected=selected)
+} 
 
 
 uuidgen <- function (n=1)
@@ -1481,7 +1556,7 @@ uuidgen <- function (n=1)
   {
     .uuid.seedpid <<- cp
     if (file.exists("/dev/random")) {
-      rn <- file ("/dev/random",open="rb")
+      rn <- file ("/dev/random",open="rb",raw=TRUE)
       set.seed(readBin(rn,"integer"))
       close(rn)
     } else 
@@ -1513,7 +1588,6 @@ uuidgen <- function (n=1)
 
 getPstring = function (pkeys,pkey,atag = NULL)
 {
-#cat("getPstring, pkey=",pkey," atag=",atag,"\n")
   pkeys = pkeys[pkeys == pkey]
   if (length(pkeys) == 0) return (NULL)
   if (is.null(atag)) 
@@ -1524,7 +1598,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
       { 
         ps = attr(pk,"pstring")
         names(ps) = as.character(pk)
-#cat (" ps1 to return=",ps,"\n")
         return(ps)
       }
     }
@@ -1536,7 +1609,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
       { 
         ps = attr(pk,"pstring")
         names(ps) = as.character(pk)
-#cat (" ps2 to return=",ps,"\n")
         return(ps)
       }
     }
@@ -1558,8 +1630,6 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   for (i in 1:nchar(ansFrm))
   {
     c = substr(ansFrm,i,i)
-#cat("mkKeyWrd, c=",c," state=",state,"\n")
-#cat("mkKeyWrd, out='",out,"'\n")
     if (state==0) # looking for first !
     {
       if (c != "!") out = paste0(out,c) else
@@ -1638,62 +1708,196 @@ cat ("mkKeyWrd, out=",out,"\n")
 }
   
 
-mkcatsel <- function(prms,name,globals)
+mkMgmtCats <- function(globals)
 {
-cat ("mkcatsel, name=",name," mgmtsel=",length(globals$mgmtsel),
- " moutsel=",length(globals$moutsel),
- " mmodsel=",length(globals$mmodsel),"\n") 
-  if (is.null(prm <- prms[[name]])) return (NULL)
-  catsel <- NULL
-  for (i in 1:length(prm))
-  {
-    sel <- NULL
-    lines <- scan(text=attr(prm[[i]],"pstring"),what="character",sep="\n",quiet=TRUE)
-    if (length(lines) < 2) next
-    for (j in 2:length(lines))
-    {
-      ssl <- NULL
-      sl <- unlist(strsplit(lines[j],";"))
-      # skip those that have no action elements
-      if (length(sl) < 2) next
-      p2 <- unlist(strsplit(sl[2]," "))
-      p2 <- unlist(lapply(p2,function (x) if (x=="") NULL else x))
-      ex <- unlist(strsplit(p2[1],"&"))
-      # skip those that require inactive extensions
-      if (length(intersect(ex,globals$activeExtens)) == 0) next
-      # skip those that are tagged to non-existent mstext 
-      mstext <- p2[length(p2)]
-      mstextNum <- match(mstext,names(prms))
-      if (is.na(mstextNum))
-      {
-        # if the mstext exists, then it is a function to be called
-        # but if it doesn't exist then we need to skip this entry
-        if (!exists(mstext)) next 
-      } 
-      ssl <- paste(mstext,paste(ex,collapse="&"))
-      names(ssl) <- sl[1]
-      if (!is.null(ssl)) sel <- append(sel,ssl)
-    }
-    if (!is.null(sel)) 
-    {
-      catsel <- append(catsel,list(sel))
-      names(catsel)[length(catsel)] = lines[1]
-    }
-  }
+  globals$activeExtens = c("base",globals$activeFVS[[1]]) 
+  catsel=list(
+    "Planting & Natural Regeneration"=
+    if ("estb" %in% globals$activeExtens) 
+      c("Plant/Natural with Full Estab Model" = "PlantNaturalFullWin") else
+      c("Plant/Natural with Partial Estab Model" = "PlantNaturalPartialWin"),
+  "Regeneration Methods: Even-aged"=c(
+    "Clearcut/Coppice" = "ClearcutWin",
+    "Seedtree" = "SeedTreeWin",
+    "Shelterwood" = "ShelterwoodWin"),
+  "Regeneration Methods: Uneven-aged"=c(
+    "Thin to a Q-factor" = "uneven-aged_Q",
+    "Group Selection, Distance-independent" = "uneven-aged_grp_select"),
+  "Thinning & Pruning Operations"=c(
+    "Thin from below" = "ThinFromBelowWin",
+    "Thin from above" = "ThinFromAboveWin",
+    "Thin throughout a diameter range" = "ThinThroughout",
+    "Thin points" = "ThinPoints",
+    "Thin individually \"marked\" trees" = "ThinInd",
+    "Thin from a specific height range" = "keyword.base.ThinHt",
+    "Thin from below w/ species retention" = "species_retention",
+    "Thin dwarf mistltoe infected trees" = "keyword.base.ThinMist",
+    "Thin to a residual percent canopy cover" = "keyword.base.ThinCC",
+    "Thin to a residual stand density index" = "keyword.base.ThinSDI",
+    "Thin to a residual relative density (Curtis' RD)" = "keyword.base.ThinRDen",
+    "Thin to a residual relative density (Silvah RD)" = "keyword.base.ThinRDSL",
+    "Mechanical thinning" = "MechThin",
+    "Prune" = "keyword.base.Prune"),
+  "Cleaning & Release Operations"=c(
+    "Cut dwarf mistletoe infected trees" = "keyword.base.ThinMist",
+    "Clean or release by cutting" = "Release",
+    "Clean or release by girdling/chemical treatment" = "Girdling"),
+  "Tree Removal Preference"=
+    if ("mist" %in% globals$activeExtens) 
+    c("Exclude or include a species from harvest" = "keyword.base.SpLeave",
+    "Removal pref by tree value classes" = "keyword.base.TCondMLT",
+    "Removal pref by species" = "keyword.base.SpecPref",
+    "Removal pref by mistletoe rating" = "mist keyword.mist.MistPref") else
+    c("Exclude or include a species from harvest" = "keyword.base.SpLeave",
+    "Removal pref by tree value classes" = "keyword.base.TCondMLT",
+    "Removal pref by species" = "keyword.base.SpecPref"),
+  "Biomass Removal and Retention"=c(
+    "Basic: Manage logging slash" = "yardloss_options",
+    "Advanced: Full set of yarding options" = "keyword.base.YardLoss"))
+  if ("fire" %in% globals$activeExtens) catsel = append(catsel,list(
+  "Fuel Treatments"=c(
+    "Thin from below" = "ffe_thin",
+    "Thin a species across a dbh range" = "fueltrt_thindbh",
+    "Thin with fuel piled and burned" = "thin_pileburn_new",
+    "Mastication" = "mastication",
+    "Prescribed burn" = "fire ffe_rxburn",
+    "Pile burn surface fuel" = "pileBurn_options"),
+  "Salvage Operations"=c(
+    "Cut dead trees" = "fire salvage_options")))
+  catsel = append(catsel,list(
+  "Identify Groups"=c(
+    "Species to target" = "CutGroup",
+    "General species group" = "GenGroup",
+    "Create a group of points" = "keyword.base.PointGrp"),
+  "Fertilizer"=c(
+    "Fertilize" = "keyword.base.Fertiliz")))
+  catsel = append(catsel,list(
+  "Disease Management"=c(
+    "Thin dwarf mistltoe infected trees" = "keyword.base.ThinMist",
+    if ("armwrd3" %in% globals$activeExtens) c(
+    "Push stumps (Western Root Disease)" = "keyword.armwrd3.PStump",
+    "Borax stumps (Western Root Disease)" = "keyword.ardwrd3.Borate"))))
+  catsel
+} 
+
+mkModMCats <- function(globals)
+{
+  catsel=list(
+    "Volume Modifiers" = c(
+      "Adjust merchantability limits" = "merch_vol",
+      "Add Volume Defect" = "keyword.base.Defect"),
+    "Mortality Modifiers" = c(
+      "Adjust mortality rates" = "keyword.base.FixMort",
+      "Adjust maximum SDI" = "keyword.base.SDIMax",
+      "Adjust maximum basal area" = "keyword.base.BAMax",
+      "Set maximum tree size" = "keyword.base.TreeSzCp"),
+    "Diameter Growth Modifiers" = c(
+      "Pre-calibration, multiplier for large tree dbh growth" = "keyword.base.ReadCorD",
+      "Adjust large tree basal area increment" = "keyword.base.BAIMult",
+      "Fix diameter growth rates" = "keyword.base.FixDG",
+      "Adjust small tree diameter growth" = "keyword.base.RegDMult"),
+    "Height Growth Modifiers" = c(
+      "Pre-calibration, multiplier for small tree height growth" = "keyword.base.ReadCorR",
+      "Turn \"on\" or \"off\" use of local Height-DBH parameters" = "keyword.base.NoHtDReg",
+      "Adjust large tree height growth" = "keyword.base.HtgMult",
+      "Adjust small tree height model" = "keyword.base.RegHMult",
+      "Fix height growth rates" = "keyword.base.FixHtG"),
+    "Crown Modifiers" = c(
+      "Adjust crown ratio estimates" = "keyword.base.CrnMult",
+      "Adjust crown width equation" = "keyword.base.CWEqn",
+      "Fix crown width estimates" = "keyword.base.FixCW"))
+  if ("fire" %in% globals$activeExtens) catsel = append(catsel,list(
+    "Modify Potential Fire Conditions" = c(   
+      "Set fuel moistures for potential fires" = "keyword.fire.PotFMois",
+      "Set wind speed for potential fires" = "keyword.fire.PotFWind",
+      "Set temperature for potential fires" = "keyword.fire.PotFTemp",
+      "Set % of the stand area burned for potential fires" = "keyword.fire.PotFPAB",
+      "Set season of potential fires" = "keyword.fire.PotFSeas"),
+    "Modify Fuel Dynamics" = c(
+      "Set initial surface fuel loadings" = "fire fuelinitfuelsoft",
+      "Set surface fuels with a photoseries photo" = "keyword.fire.FuelFoto",
+      "Set surface fuel decay rates" = "keyword.fire.FuelDcay",
+      "Adjust surface fuel decay rates" = "keyword.fire.FuelMult",
+      "Specify the decay rate class for a species" = "keyword.fire.FuelPool",
+      "Set prop. of decayed fuel that becomes duff" = "keyword.fire.DuffProd"),         
+    "Modify Snag Dynamics" = c(
+      "Adjust snag fall rate" = "keyword.fire.SnagFall",
+      "Adjust snag decay rate" = "keyword.fire.SnagDCay",
+      "Set snag height loss" = "keyword.fire.SnagBrk",
+      "Set post-burn snag fall rates" = "keyword.fire.SnagPBN",
+      "Set prop. of snags considered soft" = "keyword.fire.SnagPSft"),
+    "Modify Fire Behavior" = c(
+      "Set fuel model(s)" = "keyword.fire.FuelModl",
+      "Set fuel moistures for simulated fires" = "keyword.fire.Moisture",
+      "Modify calculation of canopy fuels" = "keyword.fire.CanCalc",
+      "Set the flame length of simulated fires" = "keyword.fire.FlameAdj",
+      "Define or modify a fuel model" = "keyword.fire.DeFulMod",
+      "Specify drought years" = "keyword.fire.Drought",
+      "Select the \"new\" fuel model logic or modelled loads option" = "keyword.fire.FireCalc",
+      "Adjust the fuel models with the \"new\" fuel model logic" = "keyword.fire.FModList")))
+  catsel = append(catsel,list(  
+    "Modify Time Scale" = c(
+      "Create cycle boundary" = "keyword.base.CycleAt",
+      "Set time interval for a cycle" = "keyword.base.TimeInt",
+      "Set the number of cycles" = "keyword.base.NumCycle",
+      "Set inventory year" = "keyword.base.InvYear")))
+  if ("mist" %in% globals$activeExtens) catsel = append(catsel,list(   
+    "Modify Dwarf Mistletoe Impact Model" = c(
+      "Turn off DM impacts" = "keyword.mist.MistOff", 
+      "Add DM infections" = "keyword.mist.MistPInf",
+      "Modify DM spread and intensification" = "keyword.mist.MistMult",
+      "Modify DM diameter growth impacts" = "keyword.mist.MistGMod",
+      "Modify DM height growth impacts" = "keyword.mist.MistHMod",
+      "Modify DM mortality impacts" = "keyword.mist.MistMort")))
+  if (length(intersect(c("ardwrd3","armwrd3","phewrd3"),globals$activeExtens))) 
+    catsel = append(catsel,list("Modify Western Root Disease Model" = c(
+      "Modify Disease Host Species" = "keyword.ardwrd3.RRHosts",
+      "Initialize Root Disease" = "wrd_initialization",
+      "Modify Root Disease behavior" = "wrd_behavior",
+      "Modify Root Disease bark beetles" = "wrd_brk_btl")))
+  catsel = append(catsel,list(   
+    "Modify Sprouting" = c(
+      "Turn off Sprouting" = "keyword.estbstrp.NoSprout",
+      "Adjust Sprouting" = "keyword.estbstrp.Sprout"),
+    "Modify Percent Canopy Cover" = c( 
+      "Adjust Overlap Correction" = "keyword.base.CCAdj")))
+  catsel
+} 
+ 
+mkEvMonCats <- function(globals)
+{
+  catsel=list(
+    "Event Monitor (EM) Compute Variables" = c(
+      "Compute Pre-Defined Stand Variables" = "Compute_PreDefined",
+      "Compute Stand Variables with SpMcDBH Function" = "Compute_SpMcDBH",
+      "Compute Snag Variables with Snags Function" = "Compute_Snags",
+      "Compute Surface Fuel Loading with FuelLoad Function" = "Compute_FuelLoad",
+      "Compute WRENSS Variables" = "Compute_WRENSS",
+      "Compute Stand Variables in Editor" = "keyword.base.Compute"))
   catsel
 }
-
 
 mkextkwd <- function(prms,globals)
 {
 cat("mkextkwd\n")
-  extns <-  prms[["extensions"]]
-  extnslist <-  as.list(unlist(lapply(extns,function (x,extns) 
-                    getPstring(extns,x), extns)))
-  extn <- extnslist[globals$activeExtens]
+  extnslist <- c(
+    "Base FVS system" = "base", 
+    "Cover Model" = "cover", 
+    "Full Establishment Model" = "estb", 
+    "Partial Establishment Model" = "strp", 
+    "Database Extension" = "dbs", 
+    "Economic Analysis Extension" = "econ",
+    "Dwarf Mistletoe Impact Model" = "mist", 
+    "ORGANON in FVS" = "organon", 
+    "Fire and Fuels Extension" = "fire",
+    "Climate-FVS Extension" = "climate", 
+    "WRD (Annosus Root Disease)" = "ardwrd3", 
+    "WRD (Armillaria Root Disease)" = "armwrd3", 
+    "WRD (Laminated Root Rot)" = "phewrd3")
+  globals$extnsel <- na.omit(extnslist[match(globals$activeExtens,extnslist)])
   kwds <- prms[["keyword_list"]]  
-  globals$kwdsel <- vector("list",length(extn))
-  names(globals$kwdsel) = names(extn)
+  globals$kwdsel <- vector("list",length(globals$extnsel))
+  names(globals$kwdsel) = globals$extnsel
   for (kwd in kwds)
   {
     ex <- attr(kwd,"atlist")
@@ -1702,13 +1906,11 @@ cat("mkextkwd\n")
     keypn <- paste0("keyword.",ex,".",kwd)
     sk <- match(keypn,names(prms))
     if (is.na(sk)) next
-    if (ex == "estbstrp") ex = if(is.null(extn$estb)) "strp" else "estb"
-    entry <- paste(keypn,ex)
+    if (ex == "estbstrp") ex = if("estb" %in% globals$extnsel) "estb" else "strp" 
+    entry <- paste(ex,keypn)
     names(entry) <- paste0(kwd,": ",attr(kwd,"pstring"))
     globals$kwdsel[[ex]] <- append(globals$kwdsel[[ex]],entry)
-  }  
-  globals$extnsel <- names(extn)
-  names(globals$extnsel) <- extn
+  }
 }
 
 
@@ -2084,15 +2286,14 @@ addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
     }
     return(addkeys)
   }
+
   isolate({
 cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
-    timescale <- 0
-    if(length(globals$fvsRun$stands)) timescale <- 1
-    v <- scan(text=input$inVars,what=" ",sep=" ",quiet=TRUE)
+    timescale <- if(length(globals$fvsRun$stands)) 1 else 0
     for (i in 1:length(globals$activeFVS))
     {
-      if (globals$activeFVS[[i]][1] == v) 
+      if (!is.null(globals$activeFVS[[i]][1]) && globals$activeFVS[[i]][1] == input$inVars) 
       {
         globals$fvsRun$FVSpgm <- names(globals$activeFVS[i])[1]
         break                
@@ -2101,12 +2302,6 @@ cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     globals$fvsRun$refreshDB=input$inTabs
 cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
     resetGlobals(globals,globals$fvsRun,prms) 
-    extn <- extnslist[globals$activeExtens]
-    selVarListUse <- globals$selVarList[globals$activeVariants]    
-    vlst <- as.list (names(selVarListUse))
-    names(vlst) = selVarListUse
-    updateSelectInput(session=session, inputId="inVars", NULL, 
-                      vlst, vlst[[1]])
     if (length(globals$fvsRun$startyr)==0) globals$fvsRun$startyr <- format(Sys.time(), "%Y")
     curstartyr = as.numeric(globals$fvsRun$startyr)
     stdInit <- input$inTabs
@@ -2233,13 +2428,20 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
         newstd$grps <- globals$fvsRun$grps[sort(match(grps,have))]
         globals$fvsRun$stands <- append(globals$fvsRun$stands,newstd)
       }
-    } 
+    }
+    if (length(globals$activeVariants) == 1 && 
+               globals$activeVariants %in% c("sn","nc","oc","op")) 
+    {
+      cycleLength="5"
+      simLength="50"
+    } else {
+      cycleLength="10"
+      simLength="100"
+    }
+
     globals$fvsRun$endyr <- as.character(as.numeric(globals$fvsRun$startyr) +
-                      as.numeric(getPstring(prms$timing,"simLength",
-                                 globals$activeVariants[1])))
-    globals$fvsRun$cyclelen <- as.character(getPstring(
-                                 prms$timing,"cycleLength",
-                                 globals$activeVariants[1]))
+                                         as.numeric(simLength))
+    globals$fvsRun$cyclelen <- cycleLength
     if (timescale==0)
     {
       updateTextInput(session=session, inputId="startyr",  
@@ -2372,14 +2574,24 @@ myListTables <- function(db)
     
 mkNameUnique <- function(name,setOfNames=NULL)
 {
-  origname=name
-  i=0
+  if (is.null(setOfNames)) return(name)
+  if (!name %in% setOfNames) return(name)
+  pl=regexpr(pattern="\\([0-9]*\\)$",name)
   repeat
   {
-    if (is.na(match(name,setOfNames))) return(name)
-    i = i+1
-    name = paste0(origname," (",i,")")
-  } 
+    if (pl != -1)
+    {
+      i=as.numeric(substring(name,pl+1,pl+attr(pl,"match.length")-2))
+      if (is.na(i)) i=1 else
+      {
+        i=i+1
+        name=gsub("^\\s+|\\s+$","",substr(name,1,pl-1))
+      }
+    } else i=1
+    name = paste0(name," (",i,")")
+    if (!name %in% setOfNames) break
+  }
+  return(name)
 }
                     
 mkFileNameUnique <- function(fn)
