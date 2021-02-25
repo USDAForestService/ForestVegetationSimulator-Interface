@@ -259,7 +259,7 @@ cat ("qry=",qry,"\n")
   extns = globals$activeFVS[fvsRun$FVSpgm][[1]]
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
-  if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
+   if (!newSum && length(grep("Summary",names(fvsRun$simcnts))))  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if(!globals$localWindows)fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   if(globals$localWindows)fc = file(description=paste0(prjDir,"/",fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
