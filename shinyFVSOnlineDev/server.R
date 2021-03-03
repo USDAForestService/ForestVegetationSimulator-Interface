@@ -39,10 +39,10 @@ cat ("Server id=",serverID,"\n")
   # set serverDate to be the release date
 
   # use the floating date for the dev version
-  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  # serverDate="20210222"
+  serverDate="20210331"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -57,8 +57,8 @@ cat ("Server id=",serverID,"\n")
     isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
-    if(isLocal() && exists(prjDir) && is.null(prjDir)){
-      ession$sendCustomMessage(type = "infomessage",
+    if(isLocal() && is.null(prjDir)){
+      session$sendCustomMessage(type = "infomessage",
               message = paste0("FVS could not locate your project folder during startup"))
     }
     if (!isLocal() && file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
