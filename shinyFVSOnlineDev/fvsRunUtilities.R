@@ -259,7 +259,7 @@ cat ("qry=",qry,"\n")
   extns = globals$activeFVS[fvsRun$FVSpgm][[1]]
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
-   if (!newSum && length(grep("Summary",names(fvsRun$simcnts))))  defaultOut = sub ("Summary        2","Summary",defaultOut)
+  if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if(!globals$localWindows)fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   if(globals$localWindows)fc = file(description=paste0(prjDir,"/",fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
@@ -2526,10 +2526,10 @@ getProjectList <- function(includeLocked=FALSE)
     },includeLocked))
     }
     if(globals$localWindows){
-      proj = "C:/FVS/"
-      selChoices = unlist(lapply (dir("C:/FVS"), function (x,inc) {    
+      proj = prjInst
+      selChoices = unlist(lapply (dir(proj), function (x,inc) {    
       if (!inc) if (!is.na(match(basename(prjDir),x))) return(NULL)
-      fn = paste0(proj,x,"/projectId.txt")
+      fn = paste0(proj,"/",x,"/projectId.txt")
       if (file.exists(fn)) x
     },includeLocked))  
     }
