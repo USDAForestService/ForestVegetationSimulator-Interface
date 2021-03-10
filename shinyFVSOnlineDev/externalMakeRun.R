@@ -2,6 +2,8 @@ externalMakeRun <- function (title=NULL,standIDs=NULL,stdInit="FVS_StandInit",
                    variant=NULL, keywords=NULL, group=NULL)
 {
 #
+#  $Id$
+#
 #  title = a character string with the run title, if null, the system generates 
 #          the name, that is, it would be “Run 1”, … or “Run 2”, and so on for 
 #          all the runs already present (if none are present, then the default 
