@@ -17,7 +17,7 @@ library(openxlsx)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
-                
+         
 shinyServer(function(input, output, session) {
   
   if (!interactive()) 
@@ -55,7 +55,7 @@ cat ("Server id=",serverID,"\n")
     source("editDataUtilities.R",local=TRUE)
     
     isLocal <- function () Sys.getenv('SHINY_PORT') == ""
-
+    prjDir = getwd()
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
     if(isLocal() && is.null(prjDir)){
       session$sendCustomMessage(type = "infomessage",
@@ -2253,7 +2253,7 @@ cat ("saveRun\n")
     {
       saveRun()
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      globals$fvsRun$title <- nextRunName(globals)
+      globals$fvsRun$title <- nextRunName(globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
@@ -7981,7 +7981,7 @@ cat ("launch url:",url,"\n")
   {
     isolate({
       runName = trim(input$title)
-      if (nchar(input$title) == 0) runName <- nextRunName(globals)
+      if (nchar(input$title) == 0) runName <- nextRunName(globals$FVS_Runs)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
       if (length(me)==0) return() else runNames=runNames[-me]
