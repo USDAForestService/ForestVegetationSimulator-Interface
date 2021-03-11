@@ -55,7 +55,6 @@ cat ("Server id=",serverID,"\n")
     source("editDataUtilities.R",local=TRUE)
     
     isLocal <- function () Sys.getenv('SHINY_PORT') == ""
-    prjDir = getwd()
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
     if(isLocal() && is.null(prjDir)){
       session$sendCustomMessage(type = "infomessage",
