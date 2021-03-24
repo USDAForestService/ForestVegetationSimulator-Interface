@@ -1,0 +1,11 @@
+Package: rFVS
+Title: Interface functions for the Forest Vegetation Simulator
+Version: 2021.03.15
+Authors@R: person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
+                  role = c("aut", "cre"))
+Description: Provides a set of R functions that interface with th Forest Vegetation Simulator 
+ when it is run as a shared libray.
+Depends: R (>= 4.0.0)
+License: All code is in the public domain
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0
