@@ -19,13 +19,27 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
     if (dir.exists("FVSbin")) fvsBin="FVSbin" else stop("fvsBin must be set")
   }
   fvsBin <<- fvsBin
-
+  
+  addResourcePath("colourpicker-lib/js", 
+    system.file("www/shared/colourpicker/js", package="colourpicker"))
+  addResourcePath("colourpicker-lib/css", 
+    system.file("www/shared/colourpicker/css",package="colourpicker"))
+  addResourcePath("colourpicker-binding", 
+    system.file("srcjs",package="colourpicker"))
+  addResourcePath("FVSlogo.png", 
+    system.file("extdata","www/FVSlogo.png",package="fvsOL"))
+  addResourcePath("message-handler.js", 
+    system.file("extdata","www/message-handler.js",package="fvsOL"))
+  addResourcePath("www",getwd())
+  
   # set shiny.trace=TRUE for reactive tracing (lots of output)
   options(shiny.maxRequestSize=10000*1024^2,shiny.trace=shiny.trace,
           rgl.inShiny=TRUE)                          
         
   data (prms)
   data (treeforms)
+  
+  
   
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
@@ -1671,7 +1685,7 @@ cat ("renderPlot\n")
     output$plotMessage=NULL
     nullPlot <- function (msg="Select different data, variables, plot type, or facet settings.")
     {
-      outfile = "nullPlot.png"
+      outfile = "www/nullPlot.png"
       if (!file.exists(outfile))
       {
         png(outfile, width=3, height=2, res=72, units="in", pointsize=12)              
@@ -2126,7 +2140,7 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
       p = p + theme(legend.position="none")
       if (nlevels(nd$Legend)>30) output$plotMessage=renderText("Over 30 legend items, legend not drawn.")
     } else p = p + theme(legend.position=input$legendPlace)
-    outfile = "plot.png" 
+    outfile = "www/plot.png" 
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
     fvsOutData$plotSpecs$height = as.numeric(input$height)        
@@ -4004,12 +4018,12 @@ cat ("length(allSum)=",length(allSum),"\n")
               axis.text = element_text(color="black")) 
         width=if (toMany) 3 else 4
         height=2.5
-        png("quick.png", width=width, height=height, units="in", res=150)
+        png("www/quick.png", width=width, height=height, units="in", res=150)
         print(plt)
         dev.off()
         output$uiRunPlot <- renderUI(
                 plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
-        output$runPlot <- renderImage(list(src="quick.png", width=(width+1)*144, 
+        output$runPlot <- renderImage(list(src="www/quick.png", width=(width+1)*144, 
                 height=(height+1)*144), deleteFile=TRUE)
 cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
         globals$currentQuickPlot = globals$fvsRun$uuid
@@ -4918,6 +4932,8 @@ cat ("length(uidsToGet)=",length(uidsToGet),"\n")
       spatdat = "SpatialData.RData"
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
           file.exists(spatdat)) load(spatdat,envir=dbGlb)
+      pts = NULL
+      ptsLbs  = NULL
       if (exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
         matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
@@ -4926,9 +4942,7 @@ cat ("1 matchVar=",matchVar,"\n")
         # for the spatial data. If it is not null, then there is only one item, so use it.
         mapList = if (is.null(matchVar)) dbGlb$SpatialData else list(d=dbGlb$SpatialData)
         polys = NULL
-        pts = NULL
         polyLbs = NULL
-        ptsLbs  = NULL
         for (map in mapList)
         {
           if (!length(uidsToGet)) break 
@@ -5088,8 +5102,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
-            pfile=paste0("s",sid,".png")
-            HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
+            HTML(paste0('<img src="',pfile,
                         '" alt="',sid,'" style="width:229px;height:170px;">'))
           }
         progress$set(message = paste0("Preparing ",sid), value = length(labs))  
@@ -7703,7 +7716,7 @@ cat ("saveRun class(globals$fvsRun)=",class(globals$fvsRun),"\n")
 cat ("saveRun, input$inVars=",input$inVars,"\n") 
       globals$lastRunVar = globals$activeVariants[1]   
       # remove excess images that may be created in Maps.
-      delList = dir ("www",pattern="^s.*png$",full.names=TRUE)
+      delList = dir ("www",pattern="*png$",full.names=TRUE)
       if (length(delList)) lapply(delList,function(x) unlink(x))  
 cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n") 
     }) 
