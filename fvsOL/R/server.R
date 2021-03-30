@@ -30,7 +30,7 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
     system.file("extdata","www/FVSlogo.png",package="fvsOL"))
   addResourcePath("message-handler.js", 
     system.file("extdata","www/message-handler.js",package="fvsOL"))
-  addResourcePath("www",getwd())
+  addResourcePath("www",file.path(".","www"))
   
   # set shiny.trace=TRUE for reactive tracing (lots of output)
   options(shiny.maxRequestSize=10000*1024^2,shiny.trace=shiny.trace,
@@ -38,8 +38,6 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
         
   data (prms)
   data (treeforms)
-  
-  
   
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
@@ -230,9 +228,9 @@ cat ("Project is locked.\n")
         '<button id="clearLock" type="button" class="btn btn-default action-button">Clear this message and proceed</button>',
         '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" class="btn btn-default action-button">Exit now</button><h3></h3>')))
     } else cat (file="projectIsLocked.txt",date(),"\n") 
-    resetGlobals(globals,FALSE)
     setProgress(message = "Start up",value = 2)
     globals$fvsRun <- mkfvsRun$new(uuid=uuidgen())  
+    resetGlobals(globals,FALSE)
     runsRdat <- "FVS_Runs.RData"
 
     if (file.exists(runsRdat))
@@ -1688,7 +1686,7 @@ cat ("renderPlot\n")
       outfile = "www/nullPlot.png"
       if (!file.exists(outfile))
       {
-        png(outfile, width=3, height=2, res=72, units="in", pointsize=12)              
+        CairoPNG(outfile, width=3, height=2, res=72, units="in", pointsize=12)              
         plot.new()
         text(x=.5,y=.5,"Nothing to graph",col="red")
         dev.off()
@@ -2144,7 +2142,7 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     fvsOutData$plotSpecs$res    = as.numeric(if (is.null(input$res)) 150 else input$res)
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
     fvsOutData$plotSpecs$height = as.numeric(input$height)        
-    png(outfile, width=fvsOutData$plotSpecs$width, 
+    CairoPNG(outfile, width=fvsOutData$plotSpecs$width, 
                  height=fvsOutData$plotSpecs$height, units="in", 
                  res=fvsOutData$plotSpecs$res)              
     print(p)
@@ -4018,7 +4016,7 @@ cat ("length(allSum)=",length(allSum),"\n")
               axis.text = element_text(color="black")) 
         width=if (toMany) 3 else 4
         height=2.5
-        png("www/quick.png", width=width, height=height, units="in", res=150)
+        CairoPNG("www/quick.png", width=width, height=height, units="in", res=150)
         print(plt)
         dev.off()
         output$uiRunPlot <- renderUI(
@@ -5079,6 +5077,9 @@ cat ("rows to keep=",length(keep),"\n")
       }
       progress <- shiny::Progress$new(session,min=1,max=length(uidsFound))
       labs = list()
+      url = paste0(session$clientData$url_protocol,"//",
+                   session$clientData$url_hostname,
+                   session$clientData$url_pathname)
       for (sid in uidsFound)
       {
         tab = subset(dispData,StandID == sid)[,-1]
@@ -5088,10 +5089,10 @@ cat ("rows to keep=",length(keep),"\n")
             HTML(paste0('<p style="line-height:1">StandID=',sid,df2html(tab)))
           } else {
             pvar = input$mapDsVar[1]
-            tab = subset(dispData,StandID == sid)[,intersect(names(dispData),c("Year","Species",pvar))]          
+            tab = subset(dispData,StandID == sid)[,intersect(names(dispData),c("Year","Species",pvar))] 
             pfile=paste0("www/s",sid,".png")
 cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
-            png(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent")
+            CairoPNG(file=pfile,height=1.7,width=2.3,units="in",res=100,bg = "transparent")
             if (length(intersect(c("Species","Characteristic"),names(tab))) || 
                 length(table(tab$Year)) == 1) tab$Year = as.factor(tab$Year)
             p = ggplot(tab,aes_string(x="Year",y=pvar)) + geom_point() + theme(
@@ -5102,7 +5103,12 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
-            HTML(paste0('<img src="',pfile,
+            url = paste0(session$clientData$url_protocol,"//",
+                         session$clientData$url_hostname,
+                         session$clientData$url_pathname)
+            pfile=if (isLocal()) paste0("/www/s",sid,".png") else
+                                 paste0(url,"www/s",sid,".png")
+            HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
                         '" alt="',sid,'" style="width:229px;height:170px;">'))
           }
         progress$set(message = paste0("Preparing ",sid), value = length(labs))  
@@ -7668,7 +7674,7 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
               commandArgs(trailingOnly=FALSE)[1]     
             cmd = paste0(rscript,' --vanilla -e "require(fvsOL);fvsOL(prjDir=newPrj,fvsBin=fvsBin);quit()"')
             if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
-cat ("cmd=",cmd,"\n")
+cat ("cmd for launch project=",cmd,"\n")
             system (cmd,wait=FALSE)
           }                                                        
         } else {                                           
