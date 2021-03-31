@@ -1,5 +1,6 @@
 # $Id: ui.R 3389 2021-02-09 03:00:48Z mshettles521 $
 
+
 FVSOnlineUI <- fixedPage(
   tags$head(tags$style(HTML(".shiny-notification {height: 80px;width: 500px;
               position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
@@ -198,8 +199,8 @@ FVSOnlineUI <- fixedPage(
                          AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
                         "Include text outputs in the main output file (otherwise many are suppressed)"="autoDelOTab"  
                         ),width="100%",inline=FALSE),
-                   selectInput("tabDescSel","Describe tables",choices=tableList,
-                        selected=1,multiple=FALSE,selectize=FALSE),
+                   selectInput("tabDescSel","Describe tables",choices=list(),
+                        multiple=FALSE,selectize=FALSE),
                         h5(),uiOutput("tabDesc")
               ),
               tabPanel(title=htmlOutput("contChange"),
@@ -471,8 +472,8 @@ FVSOnlineUI <- fixedPage(
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
             column(width=6,                 
-              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",choices=tableList,
-                selected=1,multiple=FALSE,selectize=FALSE)))),
+              tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",
+                choices=list(),multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
       ) ) ),
       tabPanel("SVS3d",
@@ -636,10 +637,15 @@ FVSOnlineUI <- fixedPage(
           ) #END tabsetPanel
         ) ) #END column and fixed row
       ),
-      tabPanel("Import Runs",
+      tabPanel("Project Tools",           
+        fixedRow(
+        column(width=12,offset=0,
+          tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
+          tabsetPanel(id="toolsPan", 
+            tabPanel("Import Runs",
               h6(),
-              fileInput("uploadRunsRdat",paste0("Step 1: Upload existing FVS runs 
-                                                (fvsRuns.zip) from other project."),width="90%"),
+              fileInput("uploadRunsRdat",paste0("Step 1: Upload existing FVS runs ",
+                                                "(fvsRuns.zip) from other project."),width="90%"),
               tags$style(type="text/css","#uploadRunMsg{color:darkred;}"), 
               uiOutput("uploadRunMsg"),h6(),
               p(strong("Step 2: Select which run to add to current project")),
@@ -647,7 +653,7 @@ FVSOnlineUI <- fixedPage(
                           selected="", selectize=FALSE),h6(),
               p(strong("Rename selected run?")),
               radioButtons("prjRenameToggle",NULL,choices=list("Yes"="1",
-                             "No"="2"),selected=2,inline=TRUE),
+                    "No"="2"),selected=2,inline=TRUE),
               uiOutput("renameRunText"),
               actionButton("addRun","Add run"),h6(),
               tags$style(type="text/css","#addRunMsg{color:darkred;}"), 
@@ -655,12 +661,7 @@ FVSOnlineUI <- fixedPage(
               p(strong("WARNING: If these runs were created using inventory ",
               "data not already in this project, you will need to upload those data ",
               "to run these new runs."))
-               ),
-      tabPanel("Tools",           
-        fixedRow(
-        column(width=12,offset=0,
-          tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
-          tabsetPanel(id="toolsPan", 
+            ),
             tabPanel("Manage project",        
                 h4(),if (isLocal()) h4("Switch to another project") else
                                     h4("Start another project"), 
@@ -689,9 +690,9 @@ FVSOnlineUI <- fixedPage(
                 tags$button(type = "button", class = "btn btn-primary", 
                   'data-dismiss' = "modal", "Cancel"))),  
               h4(),h4("Make new project backup file"),
-              if (isLocal()) radioButtons("prjBckCnts",NULL,width="50%",choices=
-                 list("Project files only (*_P.zip)"="projOnly",
-                      "Project files and FVS software (*_PS.zip)"="projFVS"),
+              radioButtons("prjBckCnts",NULL,width="50%",choices=
+                 list("Project files only"="projOnly",
+                      "Project files and FVS software"="projFVS"),
                       selected="projOnly"),
               actionButton("mkZipBackup","Make a project backup zip file"),
               h4("Manage current project backup files"),
@@ -706,8 +707,10 @@ FVSOnlineUI <- fixedPage(
                 modalDialog(id="restorePrjBackupDlg", footer=list(
                   modalTriggerButton("restorePrjBackupDlgBtnA", "#restorePrjBackupDlg", 
                     htmlOutput("btnA", inline=TRUE)),
-                modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
-                    htmlOutput("btnB", inline=TRUE)),NULL))
+                  modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
+                    htmlOutput("btnB", inline=TRUE)),
+                  modalTriggerButton("restorePrjBackupDlgBtnC", "#restorePrjBackupDlg", 
+                    "Cancel")))
               ),
               if(isLocal()) h4(),
               if(isLocal()) h4("Upload existing project backup file into current project"),
@@ -719,8 +722,7 @@ FVSOnlineUI <- fixedPage(
                           choices = list(), selected="", selectize=FALSE),
               list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
                    modalDialog(id="PrjDeleteDlg", footer=list(
-                   modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg", 
-                                     "Yes"),
+                   modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg","Yes"),
                    tags$button(type = "button", class = "btn btn-primary", 
                               'data-dismiss' = "modal", "No")))),
               h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
@@ -734,24 +736,10 @@ FVSOnlineUI <- fixedPage(
                 zipList,selZip,inline=FALSE),  
               downloadButton("dlFVSRunZip","Download fvsRun.zip")
             ),          
-            tabPanel("Refresh/copy projects",
+            tabPanel("Copy projects",
               fixedRow(
-                if (isLocal()) list() else 
-                column(width=if (isLocal()) 12 else 5,offset=0,
-                  h4("Refresh current project from system sources"),
-                  selectInput("FVSprograms", "Pick FVS variants to add or refresh", multiple=TRUE,
-                    choices = list(), selected="", selectize=FALSE),
-                  h6(),
-                  actionButton("FVSRefresh","Refresh or add selected variants"),
-                  h6(),   
-                  radioButtons("interfaceRefreshSource","Select version of interface: ", 	
-                             choices=list("Production version"="Prod",
-                             "Development version"="Dev"),selected="Prod"),
-                  actionButton("interfaceRefresh","Refresh interface software") 
-                ),
-                column(width=if (isLocal()) 12 else 7,offset=0,
-                  if (isLocal() && .Platform$OS.type != "windows") h4("Copy data and software from a source project to target project(s)"),
-                  if (isLocal() && .Platform$OS.type == "windows") h4("Copy data from a source project to target project(s)"),
+                column(width=12,offset=0,
+                  h4("Copy data from a source project to target project(s)"),
                   selectInput("sourcePrj", "Source project (Name, Release date)", 
                     multiple=FALSE, choices = list(), selected="", selectize=FALSE)                                                                                  ,
                   h6(),       
@@ -778,6 +766,4 @@ FVSOnlineUI <- fixedPage(
         h5(),div(style = 'overflow-y:scroll;height:500px;',uiOutput("uiHelpText"))
       )
 ) ) ) ) 
-
-
 

@@ -19,6 +19,8 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
     if (dir.exists("FVSbin")) fvsBin="FVSbin" else stop("fvsBin must be set")
   }
   fvsBin <<- fvsBin
+                                      
+  cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
   addResourcePath("colourpicker-lib/js", 
     system.file("www/shared/colourpicker/js", package="colourpicker"))
@@ -34,19 +36,18 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
   
   # set shiny.trace=TRUE for reactive tracing (lots of output)
   options(shiny.maxRequestSize=10000*1024^2,shiny.trace=shiny.trace,
-          rgl.inShiny=TRUE)                          
+          rgl.inShiny=TRUE,rgl.useNULL=TRUE)                          
         
   data (prms)
   data (treeforms)
-  
+
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
-options(rgl.useNULL=TRUE)
 
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
-    invyr = "character", grps = "list", cmps = "list",uuid="character"))
+   invyr = "character", grps = "list", cmps = "list",uuid="character"))
                                        
 mkfvsGrp <- setRefClass("fvsGrp",
   fields = list(grp = "character", cmps = "list", uuid="character"))
@@ -165,15 +166,6 @@ zipList <- list(
   "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")  
 selZip <- unlist(zipList[1:4])  
 
-tableList <- list()
-
-if (file.exists("databaseDescription.xlsx"))
-{
-  if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
-    tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
-  tableList <- as.list(sort(c("",tabs)))
-}
-
 rsf <- "runScripts.R"
 if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, package = "fvsOL"))
 runScripts <- if (exists("customRunScripts") && length(customRunScripts)) 
@@ -188,30 +180,32 @@ customRunElements = list(
                                                         
 FVSOnlineServer <- function(input, output, session) 
 {  
+cat ("FVSOnline/OnLocal interface server start\n")
+
+  # set serverDate to be the release date using packageVersion
+  serverDate=as.character(packageVersion("fvsOL"))
+
+cat ("ServerDate=",serverDate,"\n")
+
   if (!interactive()) 
   {
     if (file.exists("FVSOnline.log")) 
     {
       unlink("FVSOnline.older.log")                       
       file.rename("FVSOnline.log","FVSOnline.older.log")
-    }
+    }     
     #make sure the sink stack is empty
     while (sink.number()) sink()         
     sink("FVSOnline.log")
   }
-
-cat ("FVSOnline/OnLocal interface server start.\n")
-serverID=" $Id: server.R 3417 2021-03-03 22:36:27Z mshettles521 $ "
-cat ("Server id=",serverID,"\n") 
-                                                                      
-  # set serverDate to be the release date using packageVersion
-
-  serverDate=packageVersion("fvsOL")
+                                                     
+cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
   
-  withProgress(session, {  
+  withProgress(session,
+  {  
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
- 
+                
     globals <- mkGlobals$new(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE,
                gFreeze=FALSE,fvsBin=fvsBin)
     dbGlb <- new.env()
@@ -232,6 +226,19 @@ cat ("Project is locked.\n")
     globals$fvsRun <- mkfvsRun$new(uuid=uuidgen())  
     resetGlobals(globals,FALSE)
     runsRdat <- "FVS_Runs.RData"
+
+    #update a couple of list buttons with the list of tables             
+    xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+    if (file.exists(xlsxFile))
+    {
+      if ("OutputTableDescriptions" %in% getSheetNames(xlsxFile))
+        tabs = read.xlsx(xlsxFile=xlsxFile,sheet="OutputTableDescriptions")[,1]
+      tableList <- as.list(sort(c("",tabs)))
+      updateSelectInput(session=session, inputId="tabDescSel2",choices=tableList,
+          select=tableList[[1]])
+      updateSelectInput(session=session, inputId="tabDescSel",,choices=tableList,
+          select=tableList[[1]])
+    } 
 
     if (file.exists(runsRdat))
     {
@@ -426,13 +433,15 @@ cat ("View Outputs & Load\n")
         fvsOutData$runs = runsdf$KeywordFile
         names(fvsOutData$runs) = runsdf$RunTitle
       }
-      tableList = list()
-      if (file.exists("databaseDescription.xlsx"))
+      tableList <- list()
+      dbd=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      if (file.exists(dbd))
       {
-        if ("OutputTableDescriptions" %in% getSheetNames("databaseDescription.xlsx"))
-          tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")[,1]
-        tableList = as.list(sort(c("",tabs)))
+        if ("OutputTableDescriptions" %in% getSheetNames(dbd))
+          tabs = read.xlsx(xlsxFile=dbd,sheet="OutputTableDescriptions")[,1]
+        tableList <- as.list(sort(c("",tabs)))
       }
+
       updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
       updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
@@ -5141,28 +5150,10 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
     }
   })
   
-
-  ## Tools, related to FVSRefresh
+  ## Tools, related to Copy
   observe({    
-    if (input$toolsPan == "Refresh/copy projects") 
+    if (input$toolsPan == "Copy projects") 
     {
-cat ("Tools,Refresh/copy projects\n") 
-      if (file.exists(globals$fvsBin) && exists("pgmList")) 
-      {
-        pgmFlip = as.list(names(pgmList))
-        names(pgmFlip) = paste0(names(pgmList),": ",unlist(pgmList))
-        shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-        haveFVS <- dir(globals$fvsBin,pattern=shlibsufx) 
-        haveFVSp <- sub(shlibsufx,"",haveFVS)
-        avalFVS <- dir(globals$fvsBin,pattern=shlibsufx)
-        avalFVSp <- sub(shlibsufx,"",avalFVS)
-cat ("avalFVSp=",avalFVSp,"\n")  
-      } else {
-        pgmFlip = list("Refresh not supported on this system.")
-        haveFVSp = NULL
-      }
-      updateSelectInput(session=session, inputId="FVSprograms", 
-        choices=pgmFlip,selected=haveFVSp)
       backups = dir (pattern="ProjectBackup")
       if (length(backups)) 
       {
@@ -5174,52 +5165,6 @@ cat ("avalFVSp=",avalFVSp,"\n")
     } 
   }) 
                                                                                               
-  ## FVSRefresh                                                                              
-  observe({  
-    if (length(input$FVSRefresh) && input$FVSRefresh == 0) return()                                                                                                     
-cat ("FVSRefresh\n")
-    isolate({
-      if (length(input$FVSprograms) == 0) return()
-      shlibsufx <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-      i = 0                                                                                          
-      if (exists("fvsBinDir") && !is.null(fvsBinDir) && file.exists(fvsBinDir))
-      {
-        for (pgm in input$FVSprograms)
-        {
-          frm = paste0(fvsBinDir,pgm,shlibsufx)
-          tto = paste0("FVSbin/",pgm,shlibsufx)
-cat ("copy frm=",frm," tto=",tto,"\n")
-          rtn <- try(file.copy(from=frm,to=tto,overwrite = TRUE))
-          if (class(rtn) != "try-error" && rtn) i = i+1
-        } 
-      } else if (exists("fvsBinURL") && !is.null(fvsBinURL)) 
-      {
-        for (pgm in input$FVSprograms)
-        {
-          pgmd=paste0(fvsBinURL,"/", pgm,".zip")
-          rtn <- try(download.file(pgmd,paste0(fvsBinDir,"/", pgm,".zip")))
-          if (class(rtn) != "try-error")
-          {
-            unzip(paste0(fvsBinDir,"/", pgm,".zip"), exdir=paste0(fvsBinDir))
-            if (file.exists(paste0(fvsBinDir,"/", pgm,shlibsufx))) i = i+1
-            unlink (paste0(fvsBinDir,"/", pgm,".zip"))
-          }
-        }
-      } else {
-        session$sendCustomMessage(type="infomessage",
-          message="FVS software cannot be refreshed in the local configuration. Check the FVS Software page for updates to FVS https://www.fs.fed.us/fvs/software/index.shtml.")
-        return()
-      }
-      session$sendCustomMessage(type="infomessage",
-              message=paste0(i," of ",length(input$FVSprograms),
-                              " selected FVS programs refreshed."))                                         
-      if (i) 
-      {
-        globals$reloadAppIsSet=1
-        session$reload()
-      }
-    })
-  })
 
   ## deleteRun  
   observe({
@@ -5309,37 +5254,6 @@ cat ("delete all runs and outputs\n")
     })  
   })
   
-  ## interfaceRefresh
-  observe({
-    if(length(input$interfaceRefresh) && input$interfaceRefresh > 0)
-    {
-      if (exists("fvsOnlineDir") && file.exists(fvsOnlineDir) &&
-          exists("FVSOnlineNeeded"))
-      {
-cat ("interfaceRefresh, needed elements present\n")
-        ffdir = fvsOnlineDir
-        if (isolate(input$interfaceRefreshSource == "Dev"))
-        {
-          es = if (substr(ffdir,nchar(ffdir),nchar(ffdir))=="/") "/" else ""
-          if (nchar(es)) ffdir = substr(ffdir,1,nchar(ffdir)-1)
-          ffdir = paste0(ffdir,"Dev",es)
-        }
-cat ("ffdir=",ffdir,"\n")
-        if (file.exists(ffdir))
-        {
-          lapply(FVSOnlineNeeded,function(x,fd) {
-              frm=paste0(fd,"/",x)
-cat ("Refresh interface file=",frm,"\n")
-              if (file.exists(frm)) file.copy(from=frm,to=x,overwrite=TRUE,recursive=TRUE)
-              },ffdir)
-          globals$reloadAppIsSet=1
-          session$reload()
-        }
-      } else session$sendCustomMessage(type="infomessage",
-             message="The interface can not be refreshed on this system.")
-    }
-  })
-
   ## delZipBackup
   observe({
     if(input$delZipBackup > 0)
@@ -5366,24 +5280,31 @@ cat ("Refresh interface file=",frm,"\n")
   observe({
     if(input$mkZipBackup > 0)
     {
-      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
       flst=dir()
       del = grep("^ProjectBackup",flst)
       if (length(del)) flst = flst[-del]
-      del = grep ("^FVSbin",flst)
+      del = grep("^www",flst)
       if (length(del)) flst = flst[-del]
-      shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-      fvsPgms = dir(fvsBin,pattern=shlibsufx)
-      fvsPgms = paste0(fvsBin,"/",fvsPgms)
-      flst = c(flst,fvsPgms)
-      if(isolate(input$prjBckCnts)=="projFVS")
+      del = grep("^projectIsLocked",flst) 
+      if (length(del)) flst = flst[-del]
+      delFVSbin = grep ("^FVSbin",flst)
+      if (length(delFVSbin)) flst = flst[-delFVSbin]
+      createdFVSbin=FALSE
+      if (isolate(input$prjBckCnts)=="projFVS")
       {
-        shlibsufx = if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-        fvsPgms = dir(fvsBin,pattern=shlibsufx)
-        fvsPgms = paste0(fvsBin,"/",fvsPgms)
+        if (globals$fvsBin != "FVSbin")
+        {
+          if (!dir.exists("FVSbin")) mkdir("FVSbin")
+          fvsPgms = list.files(fvsBin,pattern=paste0(.Platform$dynlib.ext,"$"),
+                               full.names=TRUE)
+          file.copy(fvsPgms,"FVSbin")
+          createdFVSbin=TRUE
+        }
+        fvsPgms = list.files("FVSbin",pattern=paste0(.Platform$dynlib.ext,"$"))
+        fvsPgms = paste0("FVSbin","/",fvsPgms)
         flst = c(flst,fvsPgms)
-        zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_PS.zip")
-      } else zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),"_P.zip")
+      } 
+      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
       icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
@@ -5401,6 +5322,7 @@ cat ("Refresh interface file=",frm,"\n")
           Sys.sleep(.2)
         }
       }
+      if (createdFVSbin) unlink("FVSbin")
       if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
       if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)   
       Sys.sleep(.2)
@@ -5418,7 +5340,7 @@ cat ("Refresh interface file=",frm,"\n")
   
  ## Upload Project Backup--upZipBackup
   observe({
-    if(!isLocal())return()
+    if (!isLocal()) return()
     if (is.null(input$upZipBackup)) return()
     prjBackupUpload = input$upZipBackup$name
 cat ("prjBackupUpload=",prjBackupUpload,"\n")
@@ -5435,32 +5357,30 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     }
     fdir = dirname(input$upZipBackup$datapath)
     progress$set(message = "Copying project backup to current project directory",value = 4)
-    file.copy(input$upZipBackup$datapath,prjDir)
-    save <- getwd()
-    setwd(prjDir)
-    file.rename("0.zip",prjBackupUpload)
-    setwd(save)
-    backups = dir (path=prjDir,pattern="ProjectBackup")
-    if (length(backups)){
-        backups = sort(backups,decreasing=TRUE)
-        names(backups) = backups 
-        updateSelectInput(session=session, inputId="pickBackup", 
+    file.copy(input$upZipBackup$datapath,prjBackupUpload)
+    backups = dir(pattern="ProjectBackup")
+    if (length(backups)) 
+    {
+      backups = sort(backups,decreasing=TRUE)
+      names(backups) = backups 
+      updateSelectInput(session=session, inputId="pickBackup", 
           choices = backups, selected=backups[length(backups)])
-    } else {
-        backups=list()
-        updateSelectInput(session=session, inputId="pickBackup", 
-          choices = backups, selected="")
-    }
+    } else updateSelectInput(session=session, inputId="pickBackup", 
+            choices = list(), selected="")
     output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
     progress$close()
   })
   
   ## restorePrjBackup 
-   observeEvent(input$restorePrjBackup,{
-    if(length(grep("_PS.zip",input$pickBackup)) || !length(grep("_P.zip",input$pickBackup)))
+  observeEvent(input$restorePrjBackup,
+  {
+    if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
+    cnts = zip_list(input$pickBackup)
+    if (length(cnts)==0) return()
+    if(length(grep("FVSbin",cnts$filename)) || length(grep("^FVS[a-z]*.so$",cnts$filename)))
     {
-      output$btnA <-renderUI(HTML("Project files only"))
-      output$btnB <-renderUI(HTML("Project files and FVS software"))
+      output$btnA <-renderUI(HTML("Project files and FVS software"))
+      output$btnB <-renderUI(HTML("Project files only"))
       session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
                       message = paste0("WARNING: restoring this project backup will overwrite",
@@ -5471,7 +5391,7 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
                       " backup, if selected.  What contents would you like to restore?")))
     } else {
       output$btnA <-renderUI(HTML("Yes"))
-      output$btnB <-renderUI(HTML("No"))
+      output$btnB <-renderUI(HTML("Yes"))
       session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "restorePrjBackupDlg",
                       message = paste0("WARNING: restoring this project backup will overwrite", 
@@ -5482,35 +5402,43 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
   })
   
   observeEvent(input$restorePrjBackupDlgBtnA,{  
-      isolate({
+    isolate({
+        if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
         progress <- shiny::Progress$new(session,min=1,max=5)
         progress$set(message = "Unzipping project backup",value = 2)
         fvsWorkBackup = input$pickBackup
-cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
+cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")    
         if (file.exists(fvsWorkBackup)) 
         {
+          progress$set(message = "Checking backup contents",value = 3)
           ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
           icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
           if (ocon) dbDisconnect(dbGlb$dbOcon)
           if (icon) dbDisconnect(dbGlb$dbIcon)
           td <- tempdir()
-          unzip (fvsWorkBackup,exdir=td)
-          prjConts <- dir(td)
-          FVSconts <- character()
-          progress$set(message = "Checking backup contents",value = 30)
-          for (todel in c("FVSbin","^R","^www","R$",".html$",".xlsx$",".zip$",
-                          "treeforms.RData","prms.RData","FVS_Runs.RData","file"))
+          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
+                    overwrite=TRUE,junkpaths=FALSE))
+          if (class(rtn)=="try-error") return()
+          zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
+          del=NULL
+          for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
+                           "prms.RData",".log$")) del = c(del,grep (todel,zipConts))
+          if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
+          zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
+          pgms=dir(td,pattern="^FVS[a-z]*.so$")
+          if (length(pgms)) 
           {
-            del = grep(todel,prjConts)
-            if (length(del)) {
-              FVSconts = c(FVSconts,prjConts[del])
-              prjConts = prjConts[-del]
-            }
+            frompgms=paste0(td,"/",pgms)
+            todir=paste0(td,"/FVSbin")
+            dir.create(todir)
+            topgms=paste0(todir,"/",pgms)
+            file.rename(from=frompgms,to=topgms)
+            dir.create("FVSbin")
           }
-          lapply(FVSconts,function(x) unlink(x,recursive = TRUE))
           progress$set(message = "Copying backup contents",value = 4)
-          if(length(prjConts)) file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
-          unlink(td)
+          zipConts <- dir(td,recursive=TRUE)    
+          lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          unlink(td,recursive=TRUE)
         } 
         if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
         if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
@@ -5523,47 +5451,48 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
                  
   observeEvent(input$restorePrjBackupDlgBtnB,{  
     isolate({
-      if(length(grep("_P.zip",input$pickBackup)))return()
-      progress <- shiny::Progress$new(session,min=1,max=5)
-      progress$set(message = "Unzipping project backup",value = 1)
-      fvsWorkBackup = paste0(prjDir,"/",input$pickBackup)
-cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")    
-      if (file.exists(fvsWorkBackup)) 
-      {
-        ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
-        icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
-        if (ocon) dbDisconnect(dbGlb$dbOcon)
-        if (icon) dbDisconnect(dbGlb$dbIcon)
-        td <- tempdir()
-        unzip (fvsWorkBackup,exdir=td)
-        prjConts <- dir(td)
-        FVSconts <- character()
-        progress$set(message = "Checking backup contents",value = 30)
-        for (todel in c("FVSbin","^R","^www","R$",".html$",".xlsx$",".zip$",
-                        "treeforms.RData","prms.RData","FVS_Runs.RData","file"))
+        if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
+        progress <- shiny::Progress$new(session,min=1,max=5)
+        progress$set(message = "Unzipping project backup",value = 2)
+        fvsWorkBackup = input$pickBackup
+cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")    
+        if (file.exists(fvsWorkBackup)) 
         {
-          del = grep(todel,prjConts)
-          if (length(del)) {
-            FVSconts = c(FVSconts,prjConts[del])
-            prjConts = prjConts[-del]
-          }
-        }
-        lapply(FVSconts,function(x) unlink(x,recursive = TRUE))
-        unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
-        progress$set(message = "Copying backup contents",value = 4)
-        if(length(FVSconts))file.copy(paste0(td,"/",FVSconts),fvsBin,overwrite=TRUE)
-        if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
-        unlink(td)
+          progress$set(message = "Checking backup contents",value = 3)
+          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+          if (ocon) dbDisconnect(dbGlb$dbOcon)
+          if (icon) dbDisconnect(dbGlb$dbIcon)
+          td <- tempdir()
+          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
+                    overwrite=TRUE,junkpaths=FALSE))
+          if (class(rtn)=="try-error") return()
+          zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
+          del=NULL
+          for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
+                          "^FVSbin","prms.RData",".log$")) del = c(del,grep (todel,zipConts))
+          if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
+          pgms=dir(td,pattern="^FVS[a-z]*.so$")
+          if (length(pgms)) lapply(paste0(td,"/",pgms),unlink,recursive=TRUE)
+          progress$set(message = "Copying backup contents",value = 4)
+          zipConts <- dir(td,recursive=TRUE)    
+          lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          unlink(td,recursive=TRUE)
+        } 
         if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
         if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
         globals$reloadAppIsSet=1
         globals$saveOnExit=FALSE
         progress$close()
         session$reload()
-      }
-    })
+      })
   })
   
+  observeEvent(input$restorePrjBackupDlgBtnC,
+     updateSelectInput(session=session, inputId="pickBackup", selected="")
+  )
+
+
   ## PrjDelete 
   observe({
     if(input$PrjDelete > 0)
@@ -5629,7 +5558,7 @@ cat("delete project button.")
       fn =  system.file("extdata", "fvsOnlineHelp.html", package = "fvsOL")
       xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
       info=file.info(c(fr,fn,xlsxfile))
-      if (which.max(info[,4]) != 1)
+      if (!file.exists(fr) || which.max(info[,4]) != 1) 
       {
         help = readChar(fn, info[2,1]) 
         progress$set(message = "Compiling the help file for this project", 
@@ -5637,10 +5566,10 @@ cat("delete project button.")
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
         if (class(tabs)!="try-error")
         {
-          tablist=xlsx2html(tab="OutputTableDescriptions",addLink=TRUE)
+          tablist=xlsx2html(tab="OutputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE)
           morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
           for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab),
+            xlsx2html(tab=tab,xlsxfile=xlsxfile),
           '<p><a href="#outputTables">Back to Output Table Descriptions</a>&nbsp;&nbsp;',
           '<a href="#contents">Back to Contents</a></p>')  
           if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
@@ -5651,10 +5580,10 @@ cat("delete project button.")
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
         if (class(tabs)!="try-error")                                                         
         {
-          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",addLink=TRUE),
+          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE),
                                   '<p><a href="#contents">Back to Contents</a></p>')
           for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab), 
+            xlsx2html(tab=tab,xlsxfile=xlsxfile), 
             '<p><a href="#inputTables">Back to Input Table Descriptions</a>&nbsp;&nbsp;',
             '<a href="#contents">Back to Contents</a></p>')            
           if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
@@ -5682,9 +5611,9 @@ cat("delete project button.")
   }
   
   
-  xlsx2html <- function(tab=NULL,xlsxfile="databaseDescription.xlsx",cols=NULL,
-                        addLink=FALSE)
+  xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE)
   {
+    if (is.null(xlsxfile) || !file.exists(xlsxfile)) return(NULL)
     cleanlines=function(line) 
     {
       line=gsub(pattern="\n",replacement="",x=line,fixed=TRUE)
@@ -5717,23 +5646,23 @@ cat("delete project button.")
     } else return (NULL)
   } 
   
-  mkTableDescription <- function (tab)
+  mkTableDescription <- function (tab,xlsxfile)
   {
     html = NULL
-    if (!is.null(tab) && nchar(tab)>0 && file.exists("databaseDescription.xlsx"))
+    if (!is.null(tab) && nchar(tab)>0 && !is.null(xlsxfile) && file.exists(xlsxfile))
     {
-      sheets = sort(getSheetNames("databaseDescription.xlsx"), decreasing=FALSE)
+      sheets = sort(getSheetNames(xlsxfile), decreasing=FALSE)
       if ("OutputTableDescriptions" %in% sheets)
       {
-        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="OutputTableDescriptions")
+        tabs = read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions")
         row = charmatch(toupper(tab),toupper(tabs[,1]))
         html = paste0("<b>",tab,"</b> ",tabs[row,2])
-        mhtml = xlsx2html(tab,cols=c(1,4))
+        mhtml = xlsx2html(tab,xlsxfile=xlsxfile,cols=c(1,4))
         if (!is.null(mhtml)) html = paste0(html,mhtml)
       }
       if ("GuideLinks" %in% sheets)
       { 
-        tabs = read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="GuideLinks")
+        tabs = read.xlsx(xlsxFile=xlsxfile,sheet="GuideLinks")
         row = charmatch(toupper(tab),toupper(tabs[,1]))
         if(!is.null(html))html = paste0(html,tabs[row,2])
       }
@@ -6850,8 +6779,9 @@ cat ("stand_ID query error.\n")
       }   
       updateSelectInput(session=session, inputId="editSelDBvars", 
         choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)
-      html=NULL
-      tabs = try(read.xlsx(xlsxFile="databaseDescription.xlsx",sheet="InputTableDescriptions"))
+      html=NULL      
+      xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      tabs = try(read.xlsx(xlsxFile=xlsxFile,sheet="InputTableDescriptions"))
       if (class(tabs) != "try-error")
       {
         row = charmatch(toupper(input$editSelDBtabs),toupper(tabs[,1]))
@@ -6859,7 +6789,7 @@ cat ("stand_ID query error.\n")
         {
           tab = tabs[row,1]
           html = paste0("<b>",tab,"</b> ",tabs[row,2])
-          mhtml = xlsx2html(tab)
+          mhtml = xlsx2html(tab,xlsxfile=xlsxfile)
           if (!is.null(mhtml)) html = paste0(html,mhtml)
         }
       }
@@ -7390,7 +7320,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    })
 
    observe({
-    if(input$topPan == "Import Runs")
+    if(input$toolsPan == "Import Runs")
     {
       output$uploadRunMsg <- NULL
       output$addRunMsg <- NULL
@@ -7523,7 +7453,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     
   ## Refresh/copy projects 
   observe({    
-    if (input$topPan == "Tools" && input$toolsPan == "Refresh/copy projects") 
+    if (input$topPan == "Project Tools" && input$toolsPan == "Copy projects") 
     {
       cat ("Refresh/copy projects\n")
       selChoices = getProjectList(includeLocked=TRUE)
@@ -7606,10 +7536,10 @@ cat ("cpyNow files=",files,"\n")
 
    ## Projects hit
   observe({    
-    if (input$topPan == "Tools" && input$toolsPan == "Manage project") 
+    if (input$topPan == "Project Tools" && input$toolsPan == "Manage project") 
     {
 cat ("Manage project hit\n")
-      updateProjectSelections()                 
+      updateProjectSelections()
     }
     
   })
@@ -7639,9 +7569,9 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit  
       write(file="projectId.txt",prjid)
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
+      setwd(curdir)
       updateProjectSelections()
       progress$close()
-      setwd(curdir)
     })
   }) 
   
@@ -7667,7 +7597,7 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             globals$reloadAppIsSet=1
             setwd(newPrj)
             session$reload()
-          }else{
+          } else {
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
             rscript = if (exists("RscriptLocation")) RscriptLocation else 
