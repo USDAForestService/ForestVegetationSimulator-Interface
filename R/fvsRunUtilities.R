@@ -1359,9 +1359,8 @@ resetActiveFVS <- function(globals)
               "cover", "phewrd3",  "armwrd3", "ardwrd3"), 
     FVSws = c("ws", "strp", "dbs", "cover",  "mist", "fire", "climate", 
               "econ", "phewrd3", "armwrd3", "ardwrd3" )) 
-  shlibsufx <- if (.Platform$OS.type == "windows") "[.]dll$" else "[.]so$"
-  avalFVS <- dir(globals$fvsBin,pattern=shlibsufx)
-  avalFVS <- sub(shlibsufx,"",avalFVS)
+  avalFVS <- dir(globals$fvsBin,pattern=.Platform$dynlib.ext)
+  avalFVS <- sub(.Platform$dynlib.ext,"",avalFVS)
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
   vars = c("ak: Southeast AK - Coastal BC"="ak",
