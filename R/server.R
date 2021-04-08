@@ -2164,7 +2164,7 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     if (input$copyplot > 0)
     {
 cat ("copyToClipboard copyplot\n")
-      session$sendCustomMessage(type="copyToClipboard", "outplot") 
+      session$sendCustomMessage(type="copyEltToClipboard", "outplot") 
     }
   )
   
