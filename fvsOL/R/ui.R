@@ -463,10 +463,11 @@ FVSOnlineUI <- fixedPage(
                     "Full stocking percentages for Stocking Chart (StkCht):",
                      "30%,55%,100%,110%", size=25))))
             )),
-            fixedRow(column(width=12, 
+            fixedRow(column(width=6, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          
-              textOutput("plotMessage"))),
-            fixedRow(column(width=12,plotOutput("outplot")))
+              textOutput("plotMessage")),
+                column(width=6,actionButton("copyplot","Copy plot to clipboard"))),
+            fixedRow(column(width=12,plotOutput(outputId="outplot")))
           )
         ) ),
         conditionalPanel("input.leftPan == 'Load'",
@@ -479,32 +480,38 @@ FVSOnlineUI <- fixedPage(
       tabPanel("SVS3d",
         h6(),
         fixedRow(
+          column(width=6,offset=0,         
+            fixedRow(
+              column(width=8,offset=0,
+                checkboxGroupInput("SVSdraw1",label=NULL,width="100%",inline=TRUE,choices=
+                  list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+                    "Down trees"="downTrees"),selected=c("subplots","rangePoles",
+                    "fireLine","downTrees")),
+                selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
+                   multiple=FALSE, selectize=FALSE, width="99%")),
+              column(width=4,offset=0, 
+                colourInput(inputId="svsPlotColor1",label="Plot color", showColour="both", 
+                            value = "#C5FAC6"),
+                actionButton(inputId="svsCopy1","Snapshot to clipboard"))),
+            selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
+              multiple=FALSE, selectize=FALSE, width="99%"),
+            rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),                                        
         column(width=6,offset=0,
-          checkboxGroupInput("SVSdraw1",label=NULL,width="100%",inline=TRUE,choices=
-            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
-              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
-          fixedRow(
-          column(width=8,offset=0,
-            selectInput(inputId="SVSRunList1",label="Select run", choices=NULL, 
-               multiple=FALSE, selectize=FALSE, width="99%")),
-          column(width=4,offset=0, 
-            colourInput(inputId="svsPlotColor1",label="Plot color", showColour="both", value = "#C5FAC6"))),
-          selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
-             multiple=FALSE, selectize=FALSE, width="99%"),
-          rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),
-        column(width=6,offset=0,
-          checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
-            list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
-              "Down trees"="downTrees"),selected=c("subplots","rangePoles","fireLine","downTrees")),
-          fixedRow(
-          column(width=8,offset=0,
-            selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
-               multiple=FALSE, selectize=FALSE, width="99%")),
-          column(width=4,offset=0, 
-            colourInput(inputId="svsPlotColor2",label="Plot color", showColour="both", value = "#C5FAC6"))),
-          selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
-             multiple=FALSE, selectize=FALSE, width="99%"),
-          rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))
+            fixedRow(
+              column(width=8,offset=0,
+                checkboxGroupInput("SVSdraw2",label=NULL,width="100%",inline=TRUE,choices=
+                  list("Subplots"="subplots","Range poles"="rangePoles","Fire"="fireLine",
+                    "Down trees"="downTrees"),selected=c("subplots","rangePoles",
+                    "fireLine","downTrees")),
+                selectInput(inputId="SVSRunList2",label="Select run", choices=NULL, 
+                   multiple=FALSE, selectize=FALSE, width="99%")),
+              column(width=4,offset=0, 
+                colourInput(inputId="svsPlotColor2",label="Plot color", showColour="both", 
+                            value = "#C5FAC6"),
+                actionButton(inputId="svsCopy2","Snapshot to clipboard"))),
+            selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
+              multiple=FALSE, selectize=FALSE, width="99%"),
+            rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
       )),
       tabPanel("Maps",
         h6(),

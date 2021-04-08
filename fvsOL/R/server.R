@@ -2152,15 +2152,22 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     fvsOutData$plotSpecs$width  = as.numeric(input$width)
     fvsOutData$plotSpecs$height = as.numeric(input$height)        
     CairoPNG(outfile, width=fvsOutData$plotSpecs$width, 
-                 height=fvsOutData$plotSpecs$height, units="in", 
-                 res=fvsOutData$plotSpecs$res)              
+                      height=fvsOutData$plotSpecs$height, units="in", 
+                      res=fvsOutData$plotSpecs$res)              
     print(p)
     dev.off()
     globals$gFreeze = FALSE
     list(src = outfile) 
   }, deleteFile = FALSE)
+
+  observe(  
+    if (input$copyplot > 0)
+    {
+cat ("copyToClipboard copyplot\n")
+      session$sendCustomMessage(type="copyToClipboard", "outplot") 
+    }
+  )
   
-     
   ## Stands tab 
   observe({    
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
@@ -4486,7 +4493,7 @@ cat ("SVS3d hit\n")
       output$SVSImg1 = renderRglwidget(NULL)
       output$SVSImg2 = renderRglwidget(NULL)
     }
-   })
+  })
   observe({
     if (length(input$SVSRunList1))
     {
@@ -4584,6 +4591,20 @@ cat ("SVS3d hit\n")
       output$SVSImg2 = renderRglwidget(NULL)
     }
   })
+  observe(  
+    if (input$svsCopy1 > 0)
+    {
+      session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg1") 
+    }
+  )
+  observe(  
+    if (input$svsCopy2 > 0)
+    {
+      session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg2") 
+    }
+  )
+  
+  
   
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
