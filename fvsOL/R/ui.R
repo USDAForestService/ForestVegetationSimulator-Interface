@@ -466,7 +466,7 @@ FVSOnlineUI <- fixedPage(
             fixedRow(column(width=6, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          
               textOutput("plotMessage")),
-                column(width=6,actionButton("copyplot","Copy plot to clipboard"))),
+                column(width=6,h6(),actionButton("copyplot","Copy plot to clipboard"))),
             fixedRow(column(width=12,plotOutput(outputId="outplot")))
           )
         ) ),
