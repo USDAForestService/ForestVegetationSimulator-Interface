@@ -32,9 +32,10 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
     system.file("extdata","www/FVSlogo.png",package="fvsOL"))
   addResourcePath("message-handler.js", 
     system.file("extdata","www/message-handler.js",package="fvsOL"))
+  if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
   
-  # set shiny.trace=TRUE for reactive tracing (lots of output)
+  # set shiny.trace=TRUE for reactive tracing 
   options(shiny.maxRequestSize=10000*1024^2,shiny.trace=shiny.trace,
           rgl.inShiny=TRUE,rgl.useNULL=TRUE)                          
         
@@ -2382,18 +2383,15 @@ cat ("saveRun\n")
                          AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
                         ), selected=list())   
-    isolate ({
-#        if (!is.null(input$inVars) && !is.null(input$inTabs))
-#        {
-          loadStandTableData(globals, dbGlb$dbIcon)
-          updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
-            selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
-          updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
-          updateSelectInput(session=session, inputId="inStds", NULL, NULL)
-          updateTabsetPanel(session=session, inputId="rightPan",selected="Stands")
-          loadVarData(globals,input,dbGlb$dbIcon)
-          updateVarSelection(globals,session,input)
-#        }
+      isolate ({
+        loadStandTableData(globals, dbGlb$dbIcon)
+        updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
+          selected=if (length(globals$selStandTableList)) globals$selStandTableList[[1]] else NULL)          
+        updateSelectInput(session=session, inputId="inGrps", NULL, NULL)
+        updateSelectInput(session=session, inputId="inStds", NULL, NULL)
+        updateTabsetPanel(session=session, inputId="rightPan",selected="Stands")
+        loadVarData(globals,input,dbGlb$dbIcon)
+        updateVarSelection(globals,session,input)
       })
       selChoices = names(globals$FVS_Runs)
       names(selChoices) = unlist(globals$FVS_Runs)
@@ -2474,8 +2472,8 @@ cat("setting uiRunPlot to NULL\n")
       if (is.na(sel)) sel = 1
       fn=paste0(names(globals$FVS_Runs)[sel],".RData")
       # maybe the file has been corrupted or does not exist
-      savedFvsRun = try (load(file=fn))
-      if (class(savedFvsRun) == "try-error")
+      tryld = try (load(file=fn))
+      if (class(tryld) == "try-error")
       {
 cat ("error loading",fn,"\n")
         unlink(fn)
@@ -2493,14 +2491,14 @@ cat ("error loading",fn,"\n")
       } 
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
-      {
+       {
         if (length(saveFvsRun$stands[[i]]$grps) > 0) for (j in 1:length(saveFvsRun$stands[[i]]$grps))
         { 
           if (length(saveFvsRun$stands[[i]]$grps[[j]]$cmps) > 0) for (k in 1:length(saveFvsRun$stands[[i]]$grps[[j]]$cmps))
           {
             test <- saveFvsRun$stands[[i]]$grps[[j]]$cmps[[k]]$kwds
             spgtest <- grep("^SpGroup",test)
-            cntr <- 0
+            cntr <- 0                                                                                   
             spgname <- list()
             if (length(spgtest)){
               cntr<-cntr+1
@@ -2519,8 +2517,9 @@ cat ("error loading",fn,"\n")
         } 
       }
       resetGlobals(globals,TRUE)
-      tmp = globals$activeFVS[globals$fvsRun$FVSpgm]
-      if (length(tmp)) globals$lastRunVar = tmp[[1]][1]
+      tmp = unlist(globals$activeFVS[globals$fvsRun$FVSpgm])
+      globals$lastRunVar = if (length(tmp) && !is.null(tmp)) tmp[1] else 
+        if (nchar(globals$fvsRun$FVSpgm)==5) substr(globals$fvsRun$FVSpgm,4,5) else character(0)         
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
@@ -5549,7 +5548,7 @@ cat("delete project button.")
           output$delPrjActionMsg <- renderUI(HTML("No project selected."))
         } else {
           delPrj=paste0("../",input$PrjDelSelect)  
-          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")) && .Platform == "unix")             
+          if (file.exists(paste0(delPrj,"/projectIsLocked.txt")))             
           {
             output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
           } else {
@@ -7651,6 +7650,10 @@ cat ("launch url:",url,"\n")
       if (nchar(input$title) == 0) runName <- nextRunName(globals$FVS_Runs)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
+      # sometimes the class fvsRun is assigned to package ".GlobalEnv" and it
+      # should be the for this package.
+      if (attr(class(globals$fvsRun),"package")==".GlobalEnv") 
+         attr(class(globals$fvsRun),"package") = packageName()
 cat ("saveRun, length(me)=",length(me)," class(globals$fvsRun)=",class(globals$fvsRun),"\n")
       if (length(me)==0 || is.na(me)) return() else runNames=runNames[-me]
       runName=mkNameUnique(runName,runNames)
@@ -7667,6 +7670,10 @@ cat ("saveRun, length(me)=",length(me)," class(globals$fvsRun)=",class(globals$f
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time") = as.integer(Sys.time())
 cat ("saveRun class(globals$fvsRun)=",class(globals$fvsRun),"\n")
+      # sometimes the class fvsRun is assigned to package ".GlobalEnv" and it
+      # should be the for this package.
+      if (attr(class(globals$fvsRun),"package")==".GlobalEnv") 
+         attr(class(globals$fvsRun),"package") = packageName()
       saveFvsRun = globals$fvsRun
       save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun) 
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
