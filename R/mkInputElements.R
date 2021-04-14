@@ -1,6 +1,7 @@
 # $Id: mkInputElements.R 3394 2021-02-10 17:36:22Z mshettles521 $
 
-mkeltList <- function (pkeys,prms,globals,fvsRun,cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
+mkeltList <- function (pkeys,prms,globals,input,output,
+                       cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
 {
   waitYears <- NULL
   eltList <- if (cndflag) 
@@ -56,13 +57,13 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
       textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
       longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs),
       mkVarList      = myInlineListButton (pkey, pmt, mkVarList(globals), selected=fpvs, deltll=2),
-      forestSelection = mkSelForest(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
-      habPaSelection = mkSelhabPa(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
+      forestSelection = mkSelForest(pkey,prms,pmt,fpvs,choices,globals),
+      habPaSelection = mkSelhabPa(pkey,prms,pmt,fpvs,choices,globals),
       fileBrowse     = {
               choices = gsub("xls$","db",choices)
               mkTextInput (pkey, pmt, choices, fpvs) }, 
-      speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals$activeVariants[1]),
-      scheduleBox = mkScheduleBox(pkey,prms,pmt,fvsRun,globals),
+      speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals),
+      scheduleBox = mkScheduleBox(pkey,prms,pmt,globals,input,output),
       noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
       NULL)
     if (!is.null(elt)) eltList <- append(eltList,list(elt))
@@ -72,11 +73,12 @@ cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
     if (length(eltList) == 1) eltList <- append(eltList, 
       list(h6("No settings for this condition.")))
   }
-  if(!is.null(comptitle))mkTitle(comptitle)
+  if( !is.null(comptitle)) mkTitle(globals,comptitle,output)
   eltList
 }
 
-mkTitle <- function(title){
+mkTitle <- function(globals,title,output)
+{
   if(length(globals$currentEditCmp$atag) && globals$currentEditCmp$atag=="c"){
   rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Condition title ", value=title,size=40)),h5())
   } else 
@@ -149,8 +151,9 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
      myInlineListButton (inputId, label, mklist, selected=sel,deltll=2))
 }
 
-mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
+mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,globals)
 {
+  variant <- globals$activeVariants[1]
   forkeys <- prms[[paste0("HabPa_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
   fors <- unlist(forkeys)
@@ -159,8 +162,9 @@ mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,variant)
   myInlineListButton (pkey, pmt, fors, selected = if (is.null(fpvs)) choices else fpvs, NULL)
 }
 
-mkSelForest <- function (pkey,prms,pmt,fpvs,choices,variant)
+mkSelForest <- function (pkey,prms,pmt,fpvs,choices,globals)
 {
+  variant <- globals$activeVariants[1]
   forkeys <- prms[[paste0("Forests_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
   fors <- unlist(forkeys)
@@ -170,8 +174,9 @@ mkSelForest <- function (pkey,prms,pmt,fpvs,choices,variant)
 }
   
     
-mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
+mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,globals)
 { 
+  variant <- globals$activeVariants[1]
   spGrp <- as.numeric()
   spkeys <- prms[[paste0("species_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
@@ -212,27 +217,27 @@ mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,variant)
   myInlineListButton (pkey, pmt, dsp, selected = choices, spGrp)
 }
 
-mkScheduleBox <- function (pkey,prms,pmt,fvsRun,globals)
+mkScheduleBox <- function (pkey,prms,pmt,globals,input,output)
 {
   if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) 
   {
 cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
     globals$schedBoxPkey <- pkey
     mklist <- list("Schedule by year"="1","Schedule by condition"="2")
-    globals$existingCmps <- mkExistingCndsList(fvsRun)
+    globals$existingCmps <- mkExistingCndsList(globals$fvsRun)
     if (length(globals$schedBoxYrLastUsed) == 0) globals$schedBoxYrLastUsed <- 
-        fvsRun$startyr
+        globals$fvsRun$startyr
     if (length(globals$existingCmps)) mklist <- append(mklist,
        c("Attach to existing condition"="3"))
     rtn <- list(h5(),div(style="background-color: rgb(240,255,240)",
       radioButtons("schedbox", pmt, mklist, inline=TRUE),
       uiOutput("conditions"),
-      myInlineTextInput(pkey, "Year or cycle number ", fvsRun$startyr)
+      myInlineTextInput(pkey, "Year or cycle number ", globals$fvsRun$startyr)
     ))
   } else {    
     sch <- if (globals$currentEditCmp$atag == "k") "Schedule by year " else
       {
-        cn = findCmp(fvsRun,globals$currentEditCmp$atag)
+        cn = findCmp(globals$fvsRun,globals$currentEditCmp$atag)
         paste0('Schedule by condition: "',cn$title,'"')
       }
     rtn <- list(
@@ -617,7 +622,7 @@ mkMathList <- function ()
     "Tan() Tangent (argument in radians)"="Tan()")
 }
 
-mkFreeformEltList <- function (globals,prms,title,kwds)
+mkFreeformEltList <- function (globals,input,prms,title,kwds)
 {
   varList = mkVarList(globals)
   funcList = mkFuncList(globals)
@@ -628,7 +633,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
       myInlineListButton ("freeOpsKCP","Math:",mathList,0,deltll=NULL),
       myInlineListButton ("freeVarsKCP","Variables:",varList,deltll=NULL),
       mkSelSpecies("freeSpeciesKCP",prms,"Species codes:",fpvs=-1,
-           choices=NULL,globals$activeVariants[1]),
+           choices=NULL,globals),
       myInlineListButton ("freeFuncsKCP","FVS Functions:",funcList,deltll=NULL),
       uiOutput("fvsFuncRender"))
   } else {
@@ -647,7 +652,7 @@ mkFreeformEltList <- function (globals,prms,title,kwds)
       myInlineListButton ("freeOps","Math:",mathList,0,deltll=NULL),
       myInlineListButton ("freeVars","Variables:",varList, deltll=NULL),
       mkSelSpecies("freeSpecies",prms,"Species codes:",fpvs=-1,
-            choices=NULL,globals$activeVariants[1]),
+            choices=NULL,globals),
       myInlineListButton ("freeFuncs","FVS Functions:",funcList,deltll=NULL),
       uiOutput("fvsFuncRender"))
   } 

@@ -1,14 +1,14 @@
 # $Id: componentWins.R 3389 2021-02-09 03:00:48Z mshettles521 $
 
-keyword.base.Compute.Win <- function(title, prms, fvsRun, globals)
-{
+keyword.base.Compute.Win <- function(title, prms, globals, input, output)
+{                           
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       mkFreeformEltList(globals,prms,title,globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
           "Enter one or more expressions that define <i>compute</i> variables. ",
@@ -29,7 +29,7 @@ cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
   )  
 }
 
-keyword.dbs.StandSQL.Win <- function(title, prms, fvsRun, globals)
+keyword.dbs.StandSQL.Win <- function(title, prms, globals, input, output)
 {
   globals$currentCmdDefs <- c(freeEdit=" ")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -58,7 +58,7 @@ keyword.dbs.StandSQL.Win.mkKeyWrd <- function(input,output)
 }
 
 
-keyword.dbs.TreeSQL.Win <- function(title, prms, fvsRun, globals)
+keyword.dbs.TreeSQL.Win <- function(title, prms, globals, input, output)
 {
   globals$currentCmdDefs <- c(freeEdit=" ")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -88,7 +88,7 @@ keyword.dbs.TreeSQL.Win.mkKeyWrd <- function(input,output)
 
 
 
-keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
+keyword.dbs.SQLIn.Win <- function(title, prms, globals, input, output)
 {
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -96,7 +96,7 @@ keyword.dbs.SQLIn.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
@@ -119,7 +119,7 @@ keyword.dbs.SQLIn.Win.mkKeyWrd <- function(input,output)
 }
 
 
-keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
+keyword.dbs.SQLOut.Win <- function(title, prms, globals, input, output)
 {
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -127,7 +127,7 @@ keyword.dbs.SQLOut.Win <- function(title, prms, fvsRun, globals)
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
     list (
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"])),
@@ -143,7 +143,7 @@ keyword.dbs.SQLOut.Win.mkKeyWrd <- function(input,output)
 }
 
 
-Compute_PreDefined <- function(title, prms, fvsRun, globals) 
+Compute_PreDefined <- function(title, prms, globals, input, output) 
 {
   globals$currentCmdDefs <- c(f1="0",f2="VAR1",f3="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
@@ -152,7 +152,7 @@ Compute_PreDefined <- function(title, prms, fvsRun, globals)
   ans <-list(
     list(
       h5("To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box."),
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       myInlineTextInput("f2",
        "Enter the name for your user-defined variable (< 8 characters)",
        globals$currentCmdDefs["f2"]),
@@ -179,7 +179,7 @@ Compute_PreDefined.mkKeyWrd <- function(input,output)
 }
 
 
-ClearcutWin <- function(title, prms, fvsRun, globals) 
+ClearcutWin <- function(title, prms, globals, input, output) 
 {
   pknum = match("management.Clearcut",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
@@ -191,7 +191,7 @@ cat ("in ClearcutWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")
   # change this global so that the correct prms entry can be found later
   ans <- list(
     list(
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       myInlineTextInput("f2", "Diameter of smallest tree cut: ", globals$currentCmdDefs["f2"]),
       myInlineTextInput("f3", "Number of legacy trees per acre: ", globals$currentCmdDefs["f3"]),
       radioButtons("ccf4", "How is the minimum diameter of legacy trees computed?", 
@@ -235,7 +235,7 @@ cat ("in ClearcutWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$f2,
   )  
 }
 
-PlantNaturalFullWin <- function(title, prms, fvsRun, globals, full=TRUE) 
+PlantNaturalFullWin <- function(title, prms, globals, input, output, full=TRUE) 
 {
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
@@ -257,7 +257,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
   ans <- list(
     list(
       mkScheduleBox("pnDOD",prms,"Schedule the date of disturbance",
-        fvsRun,globals),
+        globals,input,output),    
       div(style="background-color: rgb(255,240,240)",
         myInlineTextInput("pnYD", "Years following disturbance for site preparation: ", 
           globals$currentCmdDefs["pnYD"]),
@@ -291,7 +291,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
           globals$currentCmdDefs["pnYpn1"]),
         myRadioGroup("pnTr1", "Type of regeneration scheduled: ", 
           c("Plant"="1","Natural"="2"),selected=globals$currentCmdDefs["pnTr1"]),
-        mkSelSpecies("pnSp1",prms,"Species",globals$currentCmdDefs["pnSp1"],"deleteAll",globals$activeVariants[1]),
+        mkSelSpecies("pnSp1",prms,"Species",globals$currentCmdDefs["pnSp1"],"deleteAll",globals),
         fixedRow(
           column(width=5,       
             myInlineTextInput("pnTpa1","Trees/acre: ", value=globals$currentCmdDefs["pnTpa1"], size=10),
@@ -309,7 +309,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
           "Regen 2) Years following disturbance for regeneration: ", globals$currentCmdDefs["pnYpn2"]),
         myRadioGroup("pnTr2", "Type of regeneration scheduled: ", 
           c("Plant"="1","Natural"="2"),selected=globals$currentCmdDefs["pnTr2"]),
-        mkSelSpecies("pnSp2",prms,"Species",globals$currentCmdDefs["pnSp2"],"deleteAll",globals$activeVariants[1]),
+        mkSelSpecies("pnSp2",prms,"Species",globals$currentCmdDefs["pnSp2"],"deleteAll",globals),
         fixedRow(
           column(width=5,       
             myInlineTextInput("pnTpa2","Trees/acre: ", value=globals$currentCmdDefs["pnTpa2"], size=10),
@@ -327,7 +327,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
   )  
   ans  
 }
-
+                                                
 PlantNaturalFullWin.mkKeyWrd <- function(input,output,full=TRUE)
 { 
 cat ("in PlantNaturalFullWin.mkKeyWrd\n")
@@ -377,13 +377,13 @@ cat ("in PlantNaturalFullWin.mkKeyWrd\n")
 }
 
 
-PlantNaturalPartialWin <- function(title, prms, fvsRun, globals, full=FALSE)
-  PlantNaturalFullWin(title, prms, fvsRun, globals, full=full)
+PlantNaturalPartialWin <- function(title, prms, globals, input, output, full=FALSE)
+  PlantNaturalFullWin(title, prms, globals, input, output, full=full)
 
 PlantNaturalPartialWin.mkKeyWrd <- function(input,output,full=FALSE)
   PlantNaturalFullWin.mkKeyWrd(input,output,full=full)
 
-ThinFromBelowWin <- function(title, prms, fvsRun, globals,session=session) 
+ThinFromBelowWin <- function(title, prms, globals, input, output, session=session) 
 {
   pknum = match("management.Thin",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
@@ -396,7 +396,7 @@ cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
 
   ans <-list(
     list(
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       HTML(paste0("<b>","Specify residual density","</b>")),
       fixedRow(
         tags$head(tags$script(HTML('
@@ -517,9 +517,9 @@ ThinFromBelowWin.mkKeyWrd <- function(input,output)
   as.list(ans)
 }
 
-ThinFromAboveWin <- function(title, prms, fvsRun, globals,session=session) 
+ThinFromAboveWin <- function(title, prms, globals, input, output, session=session) 
 {
-  pknum = match("management.Thin",names(prms))
+  pknum = match("management.Thin",names(prms))        
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
   globals$currentCmdDefs <- c(f1=" ",taf2="1",taf3="0",taf4="0",taf5="0",taf6="0",taf7="0",
                               f4="0",f5="0",f6="999",f7="0",f8="999")
@@ -531,7 +531,7 @@ cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
   
   ans <-list(
     list(
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       HTML(paste0("<b>","Specify residual density","</b>")),
       fixedRow(
         tags$head(tags$script(HTML('
@@ -623,9 +623,11 @@ observe({
 
 ThinFromAboveWin.mkKeyWrd <- function(input,output)
 {
-  cat ("in ThinFromAboveWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$taf2,
-                                                f3=(switch(input$taf2,"1"=input$taf3,"2"=input$taf4,"3"=input$taf5,"4"=input$taf6,"5"=input$taf7)),
-                                                f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
+  cat ("in ThinFromAboveWin.mkKeyWrd, input=",
+      c(f1=input$f1,f2=input$taf2,
+        f3=(switch(input$taf2,"1"=input$taf3,"2"=input$taf4,"3"=input$taf5,
+                   "4"=input$taf6,"5"=input$taf7)),
+        f4=input$f4,f5=input$f5,f6=input$f6,f7=input$f7,f8=input$f8),"\n")
   ans<- list(ex="base",
              kwds = if (input$taf2 == "1") sprintf(
                paste0("ThinATA   %10s%10s%10s%10s%10s%10s%10s\n"),
@@ -655,7 +657,7 @@ ThinFromAboveWin.mkKeyWrd <- function(input,output)
 
 ##-----------------------------------Seed Tree-----------------------------------------------##
 
-SeedTreeWin <- function(title, prms, fvsRun, globals,session=session) 
+SeedTreeWin <- function(title, prms, globals, input, output, session=session) 
 {
   pknum = match("management.Seedtree",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
@@ -667,7 +669,7 @@ SeedTreeWin <- function(title, prms, fvsRun, globals,session=session)
 cat ("in SeedTreeWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       div(style="background-color: rgb(240,240,255)",
           myInlineTextInput("stf2", "Smallest diameter cut in prep and seed cuts ", 
           globals$currentCmdDefs["stf2"])),
@@ -786,7 +788,7 @@ SeedTreeWin.mkKeyWrd <- function(input,output)
 
 ##-----------------------------------Shelterwood----------------------------------------------##
 
-ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session) 
+ShelterwoodWin <- function(title, prms, globals, input, output, session=session) 
 {
   pknum = match("management.Shelterwood",names(prms))
   globals$currentCmdPkey = as.character(pknum) #point to the pkeys.
@@ -798,7 +800,7 @@ ShelterwoodWin <- function(title, prms, fvsRun, globals,session=session)
   cat ("in ShelterwoodWin code, globals$currentCmdDefs=",globals$currentCmdDefs,"\n")  
   ans <- list(
     list(
-      mkScheduleBox("f1",prms,NULL,fvsRun,globals),
+      mkScheduleBox("f1",prms,NULL,globals,input,output),
       div(style="background-color: rgb(240,240,255)",
           myInlineTextInput("swf2", "Smallest diameter cut in prep and shelterwood cuts ", globals$currentCmdDefs["swf2"])),
       div(style="background-color: rgb(255,240,240)",
