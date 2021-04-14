@@ -2665,11 +2665,13 @@ cat ("elt=",elt,"\n")
 cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       eltList = NULL
       if (cmp$kwdName=="freeEdit"){
-        eltList <- mkFreeformEltList(globals,prms,cmp$title,cmp$kwds)
+        eltList <- mkFreeformEltList(globals,input,prms,cmp$title,cmp$kwds)
         if(cmp$atag=="c"){
-        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Condition title ", value=globals$currentEditCmp$title,size=40)),h5())
+        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Condition title ", 
+                             value=globals$currentEditCmp$title,size=40)),h5())
         }else 
-        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=globals$currentEditCmp$title,size=40)),h5())
+        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
+                             value=globals$currentEditCmp$title,size=40)),h5())
         if(length(globals$currentEditCmp$title)) rtn <- append(rtn,list(
               h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
         output$titleBuild <- renderUI(rtn)
@@ -2680,10 +2682,11 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
           if (exists(cmp$kwdName)) #if a function exists, use it.
           {
             eltList <- eval(parse(text=paste0(cmp$kwdName,
-              "(globals$currentEditCmp$title,prms,globals$fvsRun,globals)")))
+              "(globals$currentEditCmp$title,prms,globals,input,output)")))
             if (is.null(eltList)) return(NULL)
             eltList <- eltList[[1]]
-            rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=globals$currentEditCmp$title,size=40)),h5())
+            rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
+                                 value=globals$currentEditCmp$title,size=40)),h5())
             if(length(globals$currentEditCmp$title)) rtn <- append(rtn,list(
                   h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
             output$titleBuild <- renderUI(rtn)
@@ -2692,17 +2695,19 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
             if (!is.na(pk)) # FreeForm Edit, used if pk does not match a parms.
             {        # Launch general purpose builder when pk matches a parms.        
               pkeys <- prms[[pk]]
-              eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,cmp$atag=="c",FALSE,globals$currentEditCmp$title)     
+              eltList <- mkeltList(pkeys,prms,globals,input,output,
+                         cmp$atag=="c",FALSE,globals$currentEditCmp$title)     
             }
           }
         }
       }   
       if (is.null(eltList)){
-        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", value=globals$currentEditCmp$title,size=40)),h5())
+        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
+                             value=globals$currentEditCmp$title,size=40)),h5())
         rtn <- append(rtn,list(
         h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
         output$titleBuild <- renderUI(rtn)
-        eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
+        eltList <- mkFreeformEltList(globals,input,prms,globals$currentEditCmp$title,
                             globals$currentEditCmp$kwds)
       }
       eltList <- append(eltList,list(
@@ -2751,7 +2756,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
     if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
       if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+      eltList <- mkeltList(pkeys,prms,globals,input,output,funcflag=TRUE)
       eltList <- append(eltList,list(
         actionButton("fvsFuncInsert","Insert function"),
         actionButton("fvsFuncCancel","Cancel function"),h6()))
@@ -3022,7 +3027,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         if (!is.null(customCmps)) updateSelectInput(session=session,
           inputId="kcpSel",choices=as.list(names(customCmps)), 
           selected=names(customCmps)[1]) 
-          eltList <- mkFreeformEltList(globals,prms,globals$currentEditCmp$title,
+          eltList <- mkFreeformEltList(globals,input,prms,globals$currentEditCmp$title,
                               globals$currentEditCmp$kwds)
           output$condBuild <- renderUI(NULL)
           output$cmdBuild <-renderUI(eltList)
@@ -3050,19 +3055,19 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
   observe({
     if (length(input$freeSpeciesKCP) && nchar(input$freeSpeciesKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
-      insertStrinIntokcpEdit(input$freeSpeciesKCP)
+      insertStrinIntokcpEdit(input,input$freeSpeciesKCP)
     })
   })
   observe({
     if (length(input$freeVarsKCP) && nchar(input$freeVarsKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
-      insertStrinIntokcpEdit(input$freeVarsKCP)
+      insertStrinIntokcpEdit(input,input$freeVarsKCP)
     })
   })
   observe({
     if (length(input$freeOpsKCP) && nchar(input$freeOpsKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
-      insertStrinIntokcpEdit(input$freeOpsKCP)
+      insertStrinIntokcpEdit(input,input$freeOpsKCP)
     })
   })  
   observe({
@@ -3070,7 +3075,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       if (length(input$kcpEdit) == 0) return()
       pkeys = prms[[paste0("evmon.function.",input$freeFuncsKCP)]] 
       if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+      eltList <- mkeltList(pkeys,prms,globals,input,output,funcflag=TRUE)
       eltList <- append(eltList,list(
         actionButton("fvsFuncInsertKCP","Insert function"),
         actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
@@ -3103,7 +3108,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         names(reopn)[fn] = pkey
       }
       string = mkKeyWrd(ansFrm,reopn,pkeys,globals$activeVariants[1])      
-      insertStrinIntokcpEdit(string)
+      insertStrinIntokcpEdit(input,string)
     })
   }) 
   
@@ -3240,7 +3245,7 @@ cat ("funName=",funName,"\n")
       { 
         globals$winBuildFunction <- funName
           ans = eval(parse(text=paste0(globals$winBuildFunction,
-            "(title,prms,globals$fvsRun,globals)")))
+            "(title,prms,globals,input,output)")))
           if (is.null(ans)) return(NULL)
           ans[[1]] <- append(ans[[1]],list(
              tags$style(type="text/css", "#cmdCancel {color:red;}"),
@@ -3259,7 +3264,7 @@ cat ("funName=",funName,"\n")
         indx = match(cmdp,names(prms))
         if (is.na(indx)) return()
         pkeys <- prms[[indx]]
-        eltList <- try(mkeltList(pkeys,prms,globals,globals$fvsRun,FALSE,FALSE,title))
+        eltList <- try(mkeltList(pkeys,prms,globals,input,output,FALSE,FALSE,title))
         if (class(eltList)=="try-error")
         {
           output$cmdBuildDesc = renderUI (HTML(paste0(
@@ -3335,7 +3340,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
       ui = if (identical(globals$currentCndPkey,character(0))) NULL else
       {
         eltList <- mkeltList(prms[[globals$currentCndPkey]],prms,
-                             globals,globals$fvsRun,cndflag=TRUE)
+                             globals,input,output,cndflag=TRUE)
         if (length(eltList) == 0) NULL else eltList
       }
       if (!is.null(ui))
@@ -3393,7 +3398,7 @@ cat ("cmdChgToFree processing component\n")
        attr(kwds$kwds,"extension") = kwds$ex
        globals$currentCmdPkey = kwds$kwds
        globals$winBuildFunction = character(0)
-       cmdUI <- mkFreeformEltList(globals,prms,paste0("Freeform: ",input$cmdTitle),
+       cmdUI <- mkFreeformEltList(globals,input,prms,paste0("Freeform: ",input$cmdTitle),
                                   kwds$kwds)
        cmdUI <- append(cmdUI,list(
                 tags$style(type="text/css", "#cmdCancel {color:red;}"),
