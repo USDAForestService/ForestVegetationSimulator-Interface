@@ -17,7 +17,7 @@ library(openxlsx)
 # set shiny.trace=T for reactive tracing (lots of output)
 options(shiny.maxRequestSize=10000*1024^2,shiny.trace = FALSE,
         rgl.inShiny=TRUE) 
-                
+         
 shinyServer(function(input, output, session) {
   
   if (!interactive()) 
@@ -39,10 +39,10 @@ cat ("Server id=",serverID,"\n")
   # set serverDate to be the release date
 
   # use the floating date for the dev version
-  # serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
+  serverDate=gsub("-","",scan(text=serverID,what="character",quiet=TRUE)[4])
   
   # use the next line for the production version
-  serverDate="20210222"
+  # serverDate="20210331"
 
   withProgress(session, {  
     setProgress(message = "Start up", 
@@ -55,8 +55,11 @@ cat ("Server id=",serverID,"\n")
     source("editDataUtilities.R",local=TRUE)
     
     isLocal <- function () Sys.getenv('SHINY_PORT') == ""
-
     if (file.exists("localSettings.R")) source("localSettings.R",local=TRUE) 
+    if(isLocal() && is.null(prjDir)){
+      session$sendCustomMessage(type = "infomessage",
+              message = paste0("FVS could not locate your project folder during startup"))
+    }
     if (!isLocal() && file.exists("../../FVSOnline/settings.R")) source("../../FVSOnline/settings.R",local=TRUE)
     # cbbPalette is used in the graphics
     cbbPalette <- c("#FF0000","#009E73","#0072B2","#E69F00","#CC79A7","#0000FF",
@@ -2249,7 +2252,7 @@ cat ("saveRun\n")
     {
       saveRun()
       resetfvsRun(globals$fvsRun,globals$FVS_Runs)
-      globals$fvsRun$title <- nextRunName(globals)
+      globals$fvsRun$title <- nextRunName(globals$FVS_Runs)
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
@@ -5726,7 +5729,7 @@ cat ("PrjDelete, input$PrjDelSelect=",input$PrjDelSelect,"\n")
           output$delPrjActionMsg <- NULL
           if(globals$localWindows){
             ind <- 0
-            ind <- grep("ProjectBackup_",dir(paste0("C:/FVS/",input$PrjDelSelect)))
+            ind <- grep("ProjectBackup_",dir(paste0(prjInst,"/",input$PrjDelSelect)))
             if(ind > 0)session$sendCustomMessage(type = "dialogContentUpdate",
             message = list(id = "PrjDeleteDlg", message = 
               paste0(nm," contains project backups within it that you may want to download first. 
@@ -5749,7 +5752,7 @@ cat("delete project button.")
         } else 
         {
           if(!globals$localWindows)delPrj=paste0("../",input$PrjDelSelect)  
-          if(globals$localWindows)delPrj=paste0("C:/FVS/",input$PrjDelSelect)
+          if(globals$localWindows)delPrj=paste0(prjInst,"/",input$PrjDelSelect)
           if (file.exists(paste0(delPrj,"/projectIsLocked.txt")) && !globals$localWindows)             
           {
             output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
@@ -7752,7 +7755,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
 cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
         files=NULL
         if(!globals$localWindows)srcprj=paste0("../",input$sourcePrj,"/")
-        if(globals$localWindows)srcprj=paste0("C:/FVS/",input$sourcePrj,"/")
+        if(globals$localWindows)srcprj=paste0(prjInst,"/",input$sourcePrj,"/")
         progress$set(message = "Copying files to new project",value = 4)
         for (elt in input$cpyElts)
         {
@@ -7771,7 +7774,7 @@ cat ("cpyNow files=",files,"\n")
         files=paste0(srcprj,files)
         for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
           if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
-          if(globals$localWindows) paste0("C:/FVS/",trgPrj) else paste0("../",trgPrj))
+          if(globals$localWindows) paste0(prjInst,"/",trgPrj) else paste0("../",trgPrj))
         progress$set(message = "Copying files to target project",value = 9)
         updateSelectInput(session=session,inputId="targetPrj",selected=0)
         output$copyActionMsg <- renderText(HTML("<b>Target project software and/or files updated</b>"))
@@ -7835,7 +7838,7 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       }
       if(globals$localWindows){
         curdir = prjDir
-        setwd("C:/FVS")
+        setwd(prjInst)
       }
       newTitle = input$PrjNewTitle
       fn = if (isLocal()) 
@@ -7926,7 +7929,7 @@ cat ("length(filesToCopy)=",length(filesToCopy),"\n")
   {
     isolate({
       if(!globals$localWindows)newPrj=paste0("../",input$PrjSelect)
-      if(globals$localWindows)newPrj=paste0("C:/FVS/",input$PrjSelect)
+      if(globals$localWindows)newPrj=paste0(prjInst,"/",input$PrjSelect)
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
 cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
@@ -7977,7 +7980,7 @@ cat ("launch url:",url,"\n")
   {
     isolate({
       runName = trim(input$title)
-      if (nchar(input$title) == 0) runName <- nextRunName(globals)
+      if (nchar(input$title) == 0) runName <- nextRunName(globals$FVS_Runs)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
       if (length(me)==0) return() else runNames=runNames[-me]

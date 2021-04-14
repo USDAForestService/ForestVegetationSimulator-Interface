@@ -1,17 +1,23 @@
 # $Id$
 
 # these two variables can be set to the source directories of fvsBin and rFVS
-
 if (isLocal() && .Platform$OS.type == "windows") {
   fvsBinDir=paste0(getwd(),"/FVSbin")
   rFVSDir  =paste0(getwd(),"/R")
+  prjInsLoc = file.exists("FVSProjects.txt")
+  if (!prjInsLoc){
+    prjDir=NULL
+    return()
+  }
+  prjInst = scan("FVSProjects.txt",what="",sep="\n",quiet=TRUE)
   pfexists = file.exists("projectId.txt")
-  if (!pfexists || (pfexists && file.size("projectId.txt") < 2))
-      cat("title= ",basename(getwd()),"\n",file="projectId.txt")
+  if (!pfexists){
+    return()
+  }
   prjid = scan("projectId.txt",what="",sep="\n",quiet=TRUE)
   prjDir=prjid[grep("^title",prjid)]
   prjDir=trim(unlist(strsplit(prjDir,split="=",fixed=TRUE))[2])
-  prjDir=paste0("C:/FVS/",prjDir)  
+  prjDir=paste0(prjInst,"/",prjDir)  
 }else {
 fvsBinDir=NULL
 rFVSDir  =NULL

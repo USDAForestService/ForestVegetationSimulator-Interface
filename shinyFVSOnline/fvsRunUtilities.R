@@ -259,7 +259,7 @@ cat ("qry=",qry,"\n")
   extns = globals$activeFVS[fvsRun$FVSpgm][[1]]
   source("autoOutKeys.R",local=TRUE)
   defaultOut = sub ("FVSOut",fvsRun$uuid,defaultOut)
-  if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
+  if (!newSum && length(grep("Summary",names(fvsRun$simcnts))))  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if(!globals$localWindows)fc = file(description=paste0(fvsRun$uuid,".key"),open="wt")
   if(globals$localWindows)fc = file(description=paste0(prjDir,"/",fvsRun$uuid,".key"),open="wt")
   cat ("!!title:",fvsRun$title,"\n",file=fc)
@@ -1371,13 +1371,13 @@ cat ("findStand, search=",search,"\n")
   return(NULL)
 }           
 
-nextRunName <- function(globals)
+nextRunName <- function(FVS_Runs)
 {
   i=1
-  rs=unlist(globals$FVS_Runs)
+  rs=unlist(FVS_Runs)
   repeat 
   {
-    rn=paste0("Run ",length(globals$FVS_Runs)+i) 
+    rn=paste0("Run ",length(FVS_Runs)+i) 
     if (rn %in% rs) i=i+1 else break
   }
   rn
@@ -2262,31 +2262,31 @@ ncmps <- function(fvsRun)
   sum(unlist(lapply(fvsRun$grps,  function(x) length(x$cmps))))
 }
 
+AddFiles <- function (addfiles)
+{
+  addkeys = list()
+  if (!is.null(addfiles) && !is.na(addfiles))
+  { 
+    fns=scan(text=addfiles,what="character",sep="\n",quiet=TRUE)
+    semicolon <- grep(";",fns)
+    if(length(semicolon)){
+      splits <- unlist(strsplit(fns[semicolon],";"))
+      fns <- fns[-semicolon]
+      fns <- append(fns,splits)
+    }
+    for (fn in fns)
+    {
+      addkeys[length(addkeys)+1]=paste0("Open        133.\n",fn,
+                     "\nAddFile     133.\nClose       133.\n")
+      names(addkeys)[length(addkeys)] = fn
+    }
+  }
+  return(addkeys)
+}
+
 
 addStandsToRun <- function (session,input,output,selType,globals,dbGlb)
 {
-  AddFiles <- function (addfiles)
-  {
-    addkeys = list()
-    if (!is.null(addfiles) && !is.na(addfiles))
-    { 
-      fns=scan(text=addfiles,what="character",sep="\n",quiet=TRUE)
-      semicolon <- grep(";",fns)
-      if(length(semicolon)){
-        splits <- unlist(strsplit(fns[semicolon],";"))
-        fns <- fns[-semicolon]
-        fns <- append(fns,splits)
-      }
-      for (fn in fns)
-      {
-        addkeys[length(addkeys)+1]=paste0("Open        133.\n",fn,
-                       "\nAddFile     133.\nClose       133.\n")
-        names(addkeys)[length(addkeys)] = fn
-      }
-    }
-    return(addkeys)
-  }
-
   isolate({
 cat ("in addStandsToRun, selType=",selType," input$inVars=",input$inVars,"\n")
     if (length(input$inStds)+length(input$inGrps) == 0) return()
@@ -2526,10 +2526,10 @@ getProjectList <- function(includeLocked=FALSE)
     },includeLocked))
     }
     if(globals$localWindows){
-      proj = "C:/FVS/"
-      selChoices = unlist(lapply (dir("C:/FVS"), function (x,inc) {    
+      proj = prjInst
+      selChoices = unlist(lapply (dir(proj), function (x,inc) {    
       if (!inc) if (!is.na(match(basename(prjDir),x))) return(NULL)
-      fn = paste0(proj,x,"/projectId.txt")
+      fn = paste0(proj,"/",x,"/projectId.txt")
       if (file.exists(fn)) x
     },includeLocked))  
     }
