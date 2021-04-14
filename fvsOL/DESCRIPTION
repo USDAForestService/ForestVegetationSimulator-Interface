@@ -1,6 +1,6 @@
 Package: fvsOL
 Title: Forest Vegetation Simulator 
-Version: 2021.03.15
+Version: 2021.04.14
 Authors@R: c(person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
                   role = c("aut")),
              person("Michael", "Shettles", email = "michael.a.shettles@usda.gov",

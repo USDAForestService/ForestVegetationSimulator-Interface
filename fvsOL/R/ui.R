@@ -11,7 +11,7 @@ FVSOnlineUI <- fixedPage(
     ".form-control {padding:2px 4px; height:auto;}",
     ".form-group {margin-bottom:4px}",
     ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
-    ))),  
+    ))),
   fixedRow(
     column(width=4,offset=0,
       HTML(paste0(

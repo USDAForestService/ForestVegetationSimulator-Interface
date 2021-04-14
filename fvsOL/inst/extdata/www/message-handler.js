@@ -18,6 +18,7 @@ Shiny.addCustomMessageHandler("refocus",
 );
 
 
+
 // This gets the cursor postion from eltid
 Shiny.addCustomMessageHandler("getStart",
   function(eltid) 
@@ -83,7 +84,6 @@ Shiny.addCustomMessageHandler("copyEltToClipboard",
 //    navigator.clipboard.write([item]);                                          
 //  }
 //);
-
 
 Shiny.addCustomMessageHandler("copyWebGLSnapshotToClipboard",
   function(eltid)                      
