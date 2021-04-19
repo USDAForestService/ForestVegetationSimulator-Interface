@@ -240,7 +240,6 @@ cat ("Project is locked.\n")
       updateSelectInput(session=session, inputId="tabDescSel",,choices=tableList,
           select=tableList[[1]])
     } 
-
     if (file.exists(runsRdat))
     {
       load(runsRdat)
@@ -1262,7 +1261,7 @@ cat ("cmd=",cmd,"\n")
         } else {
           cho = levels(mdat$StandID)
           sel = cho
-          if (length(cho) > 500) 
+          if (length(cho) > 5000) 
           {
             cho = paste0("None loaded (",length(cho)," stands)")
             sel = NULL
@@ -1753,15 +1752,15 @@ cat ("renderPlot\n")
     if (length(setdiff(needVars,names(dat)))) return(nullPlot())
 cat ("vf=",vf," hf=",hf," pb=",pb," xaxis=",input$xaxis," yaxis=",input$yaxis,"\n")
     if (is.null(input$xaxis) || is.null(input$yaxis)) return (nullPlot("Select both X- and Y-axes"))
-    if (!is.null(hf) && nlevels(dat[,hf]) > 8)
+    if (!is.null(hf) && nlevels(dat[,hf]) > 9)
     {
 cat ("hf test, nlevels(dat[,hf])=",nlevels(dat[,hf]),"\n")
-      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf]),"> 8")))
+      return (nullPlot(paste0("Number of horizontal facets= ",nlevels(dat[,hf]),"> 9")))
     }
-    if (!is.null(vf) && nlevels(dat[,vf]) > 8)
+    if (!is.null(vf) && nlevels(dat[,vf]) > 9)
     {
 cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
-      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 8")))
+      return (nullPlot(paste0("Number of vertical facets= ",nlevels(dat[,vf]),"> 9")))
     }
     chk = if ("RunTitle" %in% c(input$xaxis, vf, hf, pb, input$yaxis)) 
           c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
@@ -2495,6 +2494,9 @@ cat ("error loading",fn,"\n")
         unlink("projectIsLocked.txt")
         session$reload()
       } 
+      # make sure the saved object has the correct class. This will fix load errors from old projects
+      if (! identical(attributes(class(saveFvsRun)),attributes(class(globals$fvsRun))))
+        attributes(class(saveFvsRun)) = attributes(class(globals$fvsRun))
       globals$fvsRun = saveFvsRun
       if (length(saveFvsRun$stands)) for (i in 1:length(saveFvsRun$stands))
        {
@@ -7668,10 +7670,6 @@ cat ("launch url:",url,"\n")
       if (nchar(input$title) == 0) runName <- nextRunName(globals$FVS_Runs)
       runNames=unlist(globals$FVS_Runs)
       me=match(globals$fvsRun$uuid,names(runNames))
-      # sometimes the class fvsRun is assigned to package ".GlobalEnv" and it
-      # should be the for this package.
-      if (attr(class(globals$fvsRun),"package")==".GlobalEnv") 
-         attr(class(globals$fvsRun),"package") = packageName()
 cat ("saveRun, length(me)=",length(me)," class(globals$fvsRun)=",class(globals$fvsRun),"\n")
       if (length(me)==0 || is.na(me)) return() else runNames=runNames[-me]
       runName=mkNameUnique(runName,runNames)
