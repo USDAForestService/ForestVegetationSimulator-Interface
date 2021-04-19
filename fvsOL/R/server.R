@@ -2334,10 +2334,12 @@ cat ("saveRun\n")
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
+cat("New run, calling resetGlobals\n")
       resetGlobals(globals,TRUE)
       if (length(globals$GenGrp)) globals$GenGrp <- list()
-      if (length(globals$GrpNum)) globals$GrpNum <- as.numeric()
+      if (length(globals$GrpNum)) globals$GrpNum <- numeric(0)
       updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
+cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont",choices=list())
@@ -2414,12 +2416,11 @@ cat ("saveRun\n")
       globals$fvsRun$title <- mkNameUnique(globals$fvsRun$title,unlist(globals$FVS_Runs))
       globals$fvsRun$uuid  <- uuidgen()
       globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
-      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun
+      globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
       updateTextInput(session=session, inputId="title", label="Run title", 
                       value=globals$fvsRun$title) 
-      saveRun(input,session)
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="compTabSet", 
@@ -2430,6 +2431,10 @@ cat ("saveRun\n")
       names(selChoices) = globals$FVS_Runs
       updateSelectInput(session=session, inputId="runSel", 
                         choices=selChoices,selected=globals$fvsRun$uuid)
+      saveFvsRun = globals$fvsRun
+      save(file=paste0(globals$fvsRun$uuid,".RData"),saveFvsRun) 
+      globals$changeind <- 0
+      output$contChange <- renderUI("Run")
     }
   })    
 
@@ -2465,6 +2470,7 @@ cat("setting uiRunPlot to NULL\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0)        
       }
+      output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
       progress <- shiny::Progress$new(session,min=1,max=5)
       progress$set(message = "Loading selected run",value = 1)
       resetGlobals(globals,FALSE)
@@ -2519,7 +2525,8 @@ cat ("error loading",fn,"\n")
       resetGlobals(globals,TRUE)
       tmp = unlist(globals$activeFVS[globals$fvsRun$FVSpgm])
       globals$lastRunVar = if (length(tmp) && !is.null(tmp)) tmp[1] else 
-        if (nchar(globals$fvsRun$FVSpgm)==5) substr(globals$fvsRun$FVSpgm,4,5) else character(0)         
+        if (length(globals$fvsRun$FVSpgm) && nchar(globals$fvsRun$FVSpgm)==5) 
+          substr(globals$fvsRun$FVSpgm,4,5) else character(0)         
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
@@ -2545,6 +2552,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
             value = 2)
       updateAutoOut(session, globals$fvsRun$autoOut)
       updateTextInput(session=session, inputId="title", value=globals$fvsRun$title)
+cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
@@ -3145,6 +3153,7 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
   ## addMgmtCats
   observe({
     if (is.null(input$addMgmtCats)) return()
+    if (length(globals$mgmtsel)==0) globals$mgmtsel<-mkMgmtCats(globals)
     updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0, 
       choices=globals$mgmtsel[[as.numeric(input$addMgmtCats)]])
     output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -3152,6 +3161,7 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
   ## addModCats
   observe({
     if (is.null(input$addModCats)) return()
+    if (length(globals$mmodsel) == 0) globals$mmodsel <- mkModMCats(globals)
     updateSelectInput(session=session, inputId="addModCmps", selected = 0, 
           choices=globals$mmodsel[[as.numeric(input$addModCats)]])
     output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -3161,8 +3171,11 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
     if (is.null(input$addKeyExt))
       updateSelectInput(session=session, inputId="addKeyWds", selected = 0, 
           choices=NULL) else
-      updateSelectInput(session=session, inputId="addKeyWds", selected = 0, 
+      {
+        if (length(globals$mevsel) == 0) globals$mevsel <- mkEvMonCats(globals)
+        updateSelectInput(session=session, inputId="addKeyWds", selected = 0, 
           choices=globals$kwdsel[[input$addKeyExt]])
+      }
     output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   })
   ## addMgmtCmps
@@ -7665,6 +7678,7 @@ cat ("saveRun, length(me)=",length(me)," class(globals$fvsRun)=",class(globals$f
       if (runName != input$title) updateTextInput(session=session, inputId="title",
          value=runName)
       globals$fvsRun$title = runName
+cat ("in saveRun, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID," input$defMgmtID=",input$defMgmtID,"\n")
       globals$fvsRun$defMgmtID = input$defMgmtID
       globals$fvsRun$runScript = if (length(input$runScript)) input$runScript else "fvsRun"
       if (globals$fvsRun$runScript == "fvsRun") globals$fvsRun$uiCustomRunOps = list() else

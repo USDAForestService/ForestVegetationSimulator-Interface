@@ -1321,8 +1321,8 @@ nextRunName <- function(FVS_Runs)
 resetActiveFVS <- function(globals)
 {
   globals$activeFVS = list(
-    FVSak = c("ak", "estb", "dbs", "mist", "fire", "econ", "cover" ), 
-    FVSbm = c("bm", "fire", "econ", "strp", "dbs", "climate",  "cover", 
+    FVSak = c("ak", "estb", "dbs", "mist", "fire", "econ", "cover"), 
+    FVSbm = c("bm", "fire", "econ", "strp", "dbs", "climate", "cover", 
               "mist", "armwrd3", "phewrd3", "ardwrd3"), 
     FVSca = c("ca",  "fire", "econ", "strp", "dbs", "mist", "climate", "cover"), 
     FVSci = c("ci",  "fire", "econ", "estb", "dbs", "climate", "cover", "mist", 
@@ -1359,8 +1359,9 @@ resetActiveFVS <- function(globals)
               "cover", "phewrd3",  "armwrd3", "ardwrd3"), 
     FVSws = c("ws", "strp", "dbs", "cover",  "mist", "fire", "climate", 
               "econ", "phewrd3", "armwrd3", "ardwrd3" )) 
-  avalFVS <- dir(globals$fvsBin,pattern=.Platform$dynlib.ext)
-  avalFVS <- sub(.Platform$dynlib.ext,"",avalFVS)
+  avalFVS <- dir(globals$fvsBin,pattern=paste0("[.]",
+                 substr(.Platform$dynlib.ext,2,999),"$"))
+  avalFVS <- unique(sub(.Platform$dynlib.ext,"",avalFVS))
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
   vars = c("ak: Southeast AK - Coastal BC"="ak",
