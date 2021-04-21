@@ -9,9 +9,7 @@ externalMakeRun(
   title = NULL,
   standIDs = NULL,
   stdInit = "FVS_StandInit",
-  variant,
-  keywords = NULL,
-  group = NULL
+  variant
 )
 }
 \arguments{
@@ -33,22 +31,20 @@ want to use, the stands would be loaded from that table.}
 \item{variant}{a 2 character string specifying the variant (required).
 Ihe standID and the variant must match in the designated init table.}
 
-\item{keywords}{a named vector of character strings with the keywords 
-you want added to the group specified in the next argument 
-(see below): Here is an example:
-\code{keywords = c("title of first keyword set" = "Keyword line 1\\nKeyword line 2",
-                    "title of the second set" = "Keyword line 1\\nKeyword line 2")}
-All of the keywords will be set to be owned by the "base", that is, 
-if you include "extension" keywords, they must already have the 
-necessary extension start keyword (ie, for the FFE, its: FFIN) 
-and the necessary End. Conditions, starting with IF must include "EndIf", no
-checking is done. If the value of keywords is "NULL", then no keywords are added.}
+\item{autoOut}{a character vector of output table selections using these
+codes (if null, defaults are used):}
 
-\item{group}{a character string naming the group to which the keywords are attached. 
-If NULL, then the keywords are attached to each stand.}
+\item{startyr}{the start year of the simulation, if NULL, the current year
+is used. a 2 character string specifying the variant (required).}
+
+\item{endyr}{the end year of the simulation, if NULL one is computed using
+variant-specific settings.}
+
+\item{cycleat}{a vector of years where cycle boundaries are requested, none
+outside the startyr to endyr interval are used.}
 }
 \value{
-the uuid (identifier) of the new run
+the new run uuid, NULL if not created.
 }
 \description{
 Build an FVS run in a project and add it to the list of runs in the project. 

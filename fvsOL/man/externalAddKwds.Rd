@@ -13,17 +13,17 @@ current directory is the project directory.}
 \item{runUUID}{a character vector of 1 run uuid that is processed}
 
 \item{kwds}{a dataframe of 3 columns. The first column can be named "Groups"
-if the keywords are added to "Groups" or "Stands" if they are added to stands.
+if the keywords are added to groups or "Stands" if they are added to stands.
 The first column then identifies the groups or stands (case sensitive strings).
 The values in the first column may be duplicated, they are processed in order.
-The second column is the "title" of the component that is added.
+The second column is the "title" of the keyword component that is added.
 The third column are the corresponding keywords. Several lines can be separated
-by \n chars to indicated muliple keywords.}
+by \\n (newline) chars to indicated muliple keywords in a component.}
 }
 \value{
 The number of keyword components added to the run.
 }
 \description{
 Given a project directory a run uuid, a dataframe of 
-keywords is added to groups or stands.
+keywords is added to groups or stands in the run.
 }

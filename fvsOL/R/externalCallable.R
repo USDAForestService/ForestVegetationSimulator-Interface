@@ -17,23 +17,18 @@
 #'    want to use, the stands would be loaded from that table.
 #' @param variant a 2 character string specifying the variant (required).  
 #'    Ihe standID and the variant must match in the designated init table.
-#' @param keywords a named vector of character strings with the keywords 
-#'    you want added to the group specified in the next argument 
-#'    (see below): Here is an example:
-#'    \code{keywords = c("title of first keyword set" = "Keyword line 1\\nKeyword line 2",
-#'                        "title of the second set" = "Keyword line 1\\nKeyword line 2")}
-#'    All of the keywords will be set to be owned by the "base", that is, 
-#'    if you include "extension" keywords, they must already have the 
-#'    necessary extension start keyword (ie, for the FFE, its: FFIN) 
-#'    and the necessary End. Conditions, starting with IF must include "EndIf", no
-#'    checking is done. If the value of keywords is "NULL", then no keywords are added.
-#' @param group a character string naming the group to which the keywords are attached. 
-#'     If NULL, then the keywords are attached to each stand.
-#'
-#' @return the uuid (identifier) of the new run
+#' @param autoOut a character vector of output table selections using these
+#'    codes (if null, defaults are used): 
+#' @param startyr the start year of the simulation, if NULL, the current year
+#'    is used. a 2 character string specifying the variant (required).  
+#' @param endyr the end year of the simulation, if NULL one is computed using
+#'    variant-specific settings.
+#' @param cycleat a vector of years where cycle boundaries are requested, none
+#'    outside the startyr to endyr interval are used.
+#' @return the new run uuid, NULL if not created.
 #' @export
-externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FVS_StandInit",
-                   variant, keywords=NULL, group=NULL)
+externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
+   stdInit="FVS_StandInit", variant)
 {
   if (missing(variant)) stop("variant required")
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
@@ -159,7 +154,7 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FV
   }  
   fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) + as.numeric(simLength))
   fvsRun$cyclelen <- cycleLength
-  FVS_Runs <- append(FVS_Runs,fvsRun$title)
+  FVS_Runs <- append(FVS_Runs,fvsRun)
   names (FVS_Runs)[length(FVS_Runs)] <- fvsRun$uuid
   attr(FVS_Runs[[length(FVS_Runs)]],"time")=as.integer(Sys.time())  
   FVS_Runs=reorderFVSRuns(FVS_Runs)
@@ -172,16 +167,19 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FV
 #' Duplicate a run and give the duplicate a new title
 #'
 #' Pass in a project directory and an existing runUUID, the duplicates title
-#' and the run is duplicated and given the new title. 
+#' and the run is duplicated and given the new title and default management ID.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID the uuid of the run that will be duplicated.
 #' @param dupTitle a character string with the duplicated run's title
 #'   if null, the system generates the name.
+#' @param dupMgmtID a character string with the duplicated run's management ID.
+#'   if null, the system generates the ID.
 #' @return the new run uuid, NULL if not created.
 #' @export
-externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL)
+externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
+   dupMgmtID=NULL)
 {
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
     stop("The specified project directory must exist.")
@@ -199,10 +197,11 @@ externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL)
   saveFvsRun$title=dupTitle
   uuid=uuidgen()
   saveFvsRun$uuid=uuid
+  saveFvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(FVS_Runs)) else dupMgmtID
   rFile=file.path(prjDir,paste0(uuid,".RData"))
   save(file=rFile,saveFvsRun)
-  FVS_Runs <- append(FVS_Runs,fvsRun$title)
-  names (FVS_Runs)[length(FVS_Runs)] <- fvsRun$uuid
+  FVS_Runs <- append(FVS_Runs,saveFvsRun$title)
+  names (FVS_Runs)[length(FVS_Runs)] <- saveFvsRun$uuid
   attr(FVS_Runs[[length(FVS_Runs)]],"time")=as.integer(Sys.time())  
   FVS_Runs=reorderFVSRuns(FVS_Runs)
   save(FVS_Runs,file=runsFile)
@@ -275,23 +274,22 @@ externalDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
   }
   return(externalGetRuns())
 }
-    
-   
+       
 #' Add keywords to a run
 #'
 #' Given a project directory a run uuid, a dataframe of 
-#' keywords is added to groups or stands.
+#' keywords is added to groups or stands in the run.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of 1 run uuid that is processed
 #' @param kwds a dataframe of 3 columns. The first column can be named "Groups"
-#'   if the keywords are added to "Groups" or "Stands" if they are added to stands.
+#'   if the keywords are added to groups or "Stands" if they are added to stands.
 #'   The first column then identifies the groups or stands (case sensitive strings).
 #'   The values in the first column may be duplicated, they are processed in order.
-#'   The second column is the "title" of the component that is added.
+#'   The second column is the "title" of the keyword component that is added.
 #'   The third column are the corresponding keywords. Several lines can be separated
-#'   by \n chars to indicated muliple keywords.
+#'   by \\n (newline) chars to indicated muliple keywords in a component.
 #' @return The number of keyword components added to the run.
 #' @export
 externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
@@ -299,6 +297,7 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
   if (missing(runUUID)) stop("runUUID required")
   if (missing(kwds) || class(kwds) != "data.frame") 
      stop("kwds is required and must be a data.frame")
+  prjDir = normalizePath(prjDir)
   rFile=file.path(prjDir,paste0(runUUID,".RData"))
   if (!file.exists(rFile)) stop("runUUID run data not found")
   load(rFile)
@@ -338,7 +337,6 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
   }
   if (nadd==0) return(0)
     
-  prjDir = normalizePath(prjDir)
   runsFile = file.path(prjDir,"FVS_Runs.RData")
   if (file.exists(runsFile))
   {
@@ -353,11 +351,179 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
   save(saveFvsRun,file=rFile)
   nadd
 }
-    
-       
-      
 
-    
+#' Set FVS output and timing options
+#'
+#' Given a project directory a run uuid, set the output selections
+#' and the timing keyword controls
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of the run uuid that is processed
+#' @param autoOut a vector of character strings corresponding to the automatic
+#'   output selections to be set (not the svs ones), where these values "turn on"
+#'   the corresponding selections and existing selections are not changed (if NULL
+#'   no changes are made: "Treelists", "Carbon", "Fire", "Dead", "CanProfile", 
+#'   "SnagDet",  "StrClass", "CalibStats", "Climate", "Econ", "DM_Sz_Sum", 
+#'   "RD_Sum",  "RD_Det", "RD_Beetle", "InvStats", "Regen", "KeepTextTables"
+#' @param svsOut a vector of two character strings where the first is the
+#'   plot shape ("round" or "square") and the second is the number of images
+#'   of firelines, for example: svsOut=c("square",2). If only one value is given
+#'   it must be the plot shape and the number of intervals is set to 4.
+#' @param startyr is the common starting year of the simulation, if NULL, 
+#'   no changes are made.
+#' @param endyr is the common ending year of the simulation, if NULL, 
+#'   no changes are made.
+#' @param cyclelen the "normal" cycle length, usually left to the variant-specific default.
+#' @param cycleat is a vector of years where cycles are scheduled, if NULL, 
+#'   no changes are made.
+#' @return the runUUID if changes are made, else NULL
+#' @export
+externalSetSomeOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
+   startyr=NULL,endyr=NULL,cyclelen=NULL,cycleat=NULL)
+{
+  changed=FALSE
+  if (missing(runUUID)) stop("runUUID required")
+  prjDir = normalizePath(prjDir)
+  rFile=file.path(prjDir,paste0(runUUID,".RData"))
+  if (!file.exists(rFile)) stop("runUUID run data not found")
+  load(rFile)
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
+  if (!is.null(autoOut))
+  {
+    autoSets = c(autoTreelists = "Treelists", autoCarbon = "Carbon",               
+      autoFire = "Fire",  autoDead = "Dead", autoCanProfile = "CanProfile", 
+      autoSnagDet = "SnagDet",  autoStrClass = "StrClass", 
+      autoCalibStats = "CalibStats", autoClimate = "Climate",  
+      autoEcon = "Econ", autoDM_Sz_Sum = "DM_Sz_Sum", autoRD_Sum = "RD_Sum",  
+      autoRD_Det = "RD_Det", autoRD_Beetle = "RD_Beetle", autoInvStats = "InvStats",  
+      autoRegen = "Regen", autoDelOTab = "KeepTextTables")
+    set=charmatch(tolower(autoOut),tolower(autoSets))
+    if (is.na(set)) warning(paste0("autoOut does not contains one or more of: ",
+                      paste0(autoSets,collapse=", "))) else
+    {                 
+      saveFvsRun$autoOut$autoOut=as.list(names(autoSets)[set])
+      changed=TRUE
+    }
+  }
+  if (!is.null(svsOut))
+  {
+    svsSets = list(shape=if (tolower(svsOut[1])=="round") "Round" else "Square")
+    nfire=if (length(svsOut)>1) suppressWarnings(as.integer(svsOut[2])) else NA
+    if (is.na(nfire)) nfire=4
+    saveFvsRun$autoOut$svsOut = c(svsSets,nfire=nfire)
+    changed=TRUE
+  }
+  if (!is.null(startyr)) {
+    saveFvsRun$startyr=as.character(startyr)
+    changed=TRUE
+  }
+  if (!is.null(endyr))   {
+    saveFvsRun$endyr  =as.character(endyr) 
+    changed=TRUE
+  }
+  if (!is.null(cyclelen)) {
+    saveFvsRun$cyclelen=as.character(cyclelen) 
+    changed=TRUE
+  }
+  if (!is.null(cycleat)) {
+    saveFvsRun$cycleat=as.character(cycleat) 
+    changed=TRUE
+  }
+  if (changed) 
+  {
+    save(saveFvsRun,file=rFile)
+    return(runUUID)
+  } 
+  NULL
+}  
+
+#' Get FVS keywords for the components in a run.
+#'
+#' Given a project directory a run uuid, get the keywords in the run.
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of the run uuid that is processed
+#' @return a list of two data.frames corresponding to components attached
+#'   to "Groups" and another to "Stands". Each data.frame has 4 columns as
+#'   follows: 1-the group name or stand ID, 2-the component title, 3-the 
+#'   component UUID, 4-the keywords.
+externalGetComponentKwds <- function(prjDir=getwd(),runUUID)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  prjDir = normalizePath(prjDir)
+  rFile=file.path(prjDir,paste0(cmprunUUID,".RData"))
+  if (!file.exists(rFile)) stop("runUUID run data not found")
+  load(rFile)
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  gdf = NULL
+  for (grp in saveFvsRun$grps)
+    for (cmp in grp$cmps) if (nchar(cmp$kwds))
+      gdf = rbind(gdf,
+            data.frame(Groups=grp$grp,Title=cmp$title,UUID=cmp$uuid,
+                       Keywords=cmp$kwds))
+  sdf = NULL
+  for (std in saveFvsRun$stands)
+    for (cmp in std$cmps) if (nchar(cmp$kwds))
+      sdf = rbind(sdf,
+            data.frame(Stands=std$grp,Title=cmp$title,UUID=cmp$uuid,
+                       Keywords=cmp$kwds))
+  return (list(Groups=gdf,Stands=sdf))
+}
+
+#' Delete FVS keyword components from a run.
+#'
+#' Given a project directory a run uuid, and a list of component UUIDs,
+#' this function deletes those components.
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of the run uuid that is processed
+#' @param compUUIDs a vector of character strings holding the UUIDs of
+#'   the components that will be deleted from the run.
+#' @return the number of deletions.
+externalDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  if (missing(compUUIDs)) stop("compUUIDs required")
+  prjDir = normalizePath(prjDir)
+  rFile=file.path(prjDir,paste0(cmprunUUID,".RData"))
+  if (!file.exists(rFile)) stop("runUUID run data not found")
+  load(rFile)
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  changed = 0
+  for (grp in saveFvsRun$grps)
+  {
+    todel=NULL
+    if (length(grp$cmps)) for (i in 1:length(grp$cmps)) 
+    {
+      uuid = grp$cmps[[i]]$uuid
+      if (uuid %in% compUUIDs) todel=c(todel,i)
+    }
+    if (length(todel))
+    {
+      grp$cmps = if (length(todel) == length(grp$cmps)) NULL else grp$cmps[-todel]
+      changed = changed+length(todel)
+    }
+  }
+  for (std in saveFvsRun$stands)
+  {
+    todel=NULL
+    if (length(std$cmps)) for (i in 1:length(std$cmps)) 
+    {
+      uuid = std$cmps[[i]]$uuid
+      if (uuid %in% compUUIDs) todel=c(todel,i)
+    }
+    if (length(todel))
+    {
+      std$cmps = if (length(todel) == length(std$cmps)) NULL else std$cmps[-todel]
+      changed = changed+length(todel)
+    }
+  }
+  if (changed) save(saveFvsRun,file=rFile)
+  return(changed)
+}
+
   
-      
-    

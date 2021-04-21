@@ -147,7 +147,7 @@ End
 
 autoRegen="
 Database
-REGREPTS
+RegRepts
 End
 "
 autoClimate = if ("climate" %in% extns) "

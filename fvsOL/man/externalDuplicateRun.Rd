@@ -4,7 +4,12 @@
 \alias{externalDuplicateRun}
 \title{Duplicate a run and give the duplicate a new title}
 \usage{
-externalDuplicateRun(prjDir = getwd(), runUUID = NULL, dupTitle = NULL)
+externalDuplicateRun(
+  prjDir = getwd(),
+  runUUID = NULL,
+  dupTitle = NULL,
+  dupMgmtID = NULL
+)
 }
 \arguments{
 \item{prjDir}{is the path name to the project directory, if null the 
@@ -14,11 +19,14 @@ current directory is the project directory.}
 
 \item{dupTitle}{a character string with the duplicated run's title
 if null, the system generates the name.}
+
+\item{dupMgmtID}{a character string with the duplicated run's management ID.
+if null, the system generates the ID.}
 }
 \value{
 the new run uuid, NULL if not created.
 }
 \description{
 Pass in a project directory and an existing runUUID, the duplicates title
-and the run is duplicated and given the new title.
+and the run is duplicated and given the new title and default management ID.
 }

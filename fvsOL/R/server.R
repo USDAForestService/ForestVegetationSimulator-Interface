@@ -170,6 +170,8 @@ zipList <- list(
   "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")  
 selZip <- unlist(zipList[1:4])  
 
+# if "runScripts.R" exists in the project directory, then use it, otherwise load
+# the version that is part of the package software.
 rsf <- "runScripts.R"
 if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, package = "fvsOL"))
 runScripts <- if (exists("customRunScripts") && length(customRunScripts)) 
@@ -2418,7 +2420,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       saveRun(input,session)
       globals$fvsRun$title <- mkNameUnique(globals$fvsRun$title,unlist(globals$FVS_Runs))
       globals$fvsRun$uuid  <- uuidgen()
-      globals$fvsRun$defMgmtID = sprintf("A%3.3d",length(globals$FVS_Runs)+1)
+      globals$fvsRun$defMgmtID <- nextMgmtID(length(globals$FVS_Runs))
       globals$FVS_Runs[[globals$fvsRun$uuid]] = globals$fvsRun$title
       attr(globals$FVS_Runs[[globals$fvsRun$uuid]],"time")=as.integer(Sys.time())
       globals$FVS_Runs = reorderFVSRuns(globals$FVS_Runs)
