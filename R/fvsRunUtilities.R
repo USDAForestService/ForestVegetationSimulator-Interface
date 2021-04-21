@@ -73,13 +73,12 @@ cat("resetfvsRun\n")
   fvsRun$selsim = list()
   fvsRun$FVSpgm = character(0)
   fvsRun$autoOut = list()
-  np1 = length(FVS_Runs)+1
-  fvsRun$title = paste0("Run ",np1)
+  fvsRun$title = paste0("Run ",length(FVS_Runs)+1)
   fvsRun$startyr = character(0)
   fvsRun$endyr = character(0)
   fvsRun$cyclelen = character(0)
   fvsRun$cycleat = character(0)
-  fvsRun$defMgmtID = sprintf("A%3.3d",np1)
+  fvsRun$defMgmtID = nextMgmtID(length(globals$FVS_Runs))
   fvsRun$runScript = "fvsRun"
   uiCustomRunOps = list()
   fvsRun$uuid = uuidgen()
@@ -464,9 +463,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                 # if it's an old KCP that has more than 1 additional parameter for FFE reporting keywords, it's actually FFE not DBS
                 if (toupper(strsplit(kcpconts[j]," ")[[1]][1])!="COMPUTE" && length(test) > 2) {
                   dbflag <- 2
-                } else 
-                  {
-                dbflag <- 1
+                } else {
+                  dbflag <- 1
                 }
               }
               # if the keyword has less parameters than the other keyword with the same name, it's a non-DBS keyword
@@ -1396,6 +1394,15 @@ resetActiveFVS <- function(globals)
   globals$activeExtens=character(0)
 cat ("in resetActiveFVS, globals$activeVariants=",globals$activeVariants,"\n")
 }
+
+nextMgmtID <- function(nruns=0)
+{
+  L = as.integer(nruns+1) %/% 1000
+  np1 = nruns-(L*1000)+1
+  L= if (L<25) LETTERS[L+1] else letters[L+1]
+  sprintf("%s%3.3d",L,np1)
+}
+  
 
 resetGlobals <- function(globals,runDef)
 {
