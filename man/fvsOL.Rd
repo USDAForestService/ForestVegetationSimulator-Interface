@@ -4,10 +4,13 @@
 \alias{fvsOL}
 \title{Run fvsOL (FVS OnLine/OnLocal).}
 \usage{
-fvsOL(prjDir = NULL, fvsBin = NULL, shiny.trace = FALSE)
+fvsOL(prjDir = NULL, runUUID = NULL, fvsBin = NULL, shiny.trace = FALSE)
 }
 \arguments{
 \item{prjDir}{the name of the directory containing an fvsOL project.}
+
+\item{runUUID}{the uuid of the run that should be opened when the system starts, 
+if NULL or not found in the list of runs, it is ignored.}
 
 \item{fvsBin}{the name of the directory containing the FVS load libraries for the platform}
 

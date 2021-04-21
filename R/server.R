@@ -7,11 +7,13 @@
 #' Run fvsOL (FVS OnLine/OnLocal). 
 #'
 #' @param prjDir the name of the directory containing an fvsOL project.
+#' @param runUUID the uuid of the run that should be opened when the system starts, 
+#'   if NULL or not found in the list of runs, it is ignored.
 #' @param fvsBin the name of the directory containing the FVS load libraries for the platform
 #' @param shiny.trace turns on tracing for shiny, see shiny documentation
 #' @return the shiny app.
 #' @export
-fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)                                          
+fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE)                                          
 {
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
   if (is.null(fvsBin) || !dir.exists(fvsBin)) 
@@ -19,7 +21,8 @@ fvsOL <- function (prjDir=NULL,fvsBin=NULL,shiny.trace=FALSE)
     if (dir.exists("FVSbin")) fvsBin="FVSbin" else stop("fvsBin must be set")
   }
   fvsBin <<- fvsBin
-                                      
+  runUUID <<- runUUID
+  
   cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
   addResourcePath("colourpicker-lib/js", 
@@ -313,8 +316,9 @@ cat ("tstring=",tstring,"\n")
     selChoices = names(globals$FVS_Runs)
     if (!is.null(selChoices)) names(selChoices) = globals$FVS_Runs
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
+    runUUID = if (!is.null(runUUID) && runUUID %in% selChoices) runUUID else selChoices[[1]]
     updateSelectInput(session=session, inputId="runSel", 
-        choices=selChoices,selected=selChoices[[1]])
+        choices=selChoices,selected=runUUID)
     updateTextInput(session=session, inputId="title", value=names(selChoices[1]))
     if (exists("fvsOutData")) rm (fvsOutData) 
 

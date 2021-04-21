@@ -9,7 +9,7 @@ externalMakeRun(
   title = NULL,
   standIDs = NULL,
   stdInit = "FVS_StandInit",
-  variant = NULL,
+  variant,
   keywords = NULL,
   group = NULL
 )
@@ -30,8 +30,8 @@ run title with be "Run 1" corresponding to the first run.}
 \item{stdInit}{a character string of the name of the standinit table you 
 want to use, the stands would be loaded from that table.}
 
-\item{variant}{a 2 character string specifying the variant. If NULL, and error. If not null, 
-then the standID and the variant must match in the designated init table.}
+\item{variant}{a 2 character string specifying the variant (required).
+Ihe standID and the variant must match in the designated init table.}
 
 \item{keywords}{a named vector of character strings with the keywords 
 you want added to the group specified in the next argument 
@@ -41,15 +41,14 @@ you want added to the group specified in the next argument
 All of the keywords will be set to be owned by the "base", that is, 
 if you include "extension" keywords, they must already have the 
 necessary extension start keyword (ie, for the FFE, its: FFIN) 
-and the necessary End. If the value of keywords is "NULL", then no keywords are added.}
+and the necessary End. Conditions, starting with IF must include "EndIf", no
+checking is done. If the value of keywords is "NULL", then no keywords are added.}
 
 \item{group}{a character string naming the group to which the keywords are attached. 
-If NULL, then the keywords are attached to each stand separately. If
-the group is not already in the input database, then the group is changed
-to NULL and the keywords are added to each stand separately.}
+If NULL, then the keywords are attached to each stand.}
 }
 \value{
-the number of stands in the added run.
+the uuid (identifier) of the new run
 }
 \description{
 Build an FVS run in a project and add it to the list of runs in the project. 
