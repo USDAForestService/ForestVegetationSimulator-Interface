@@ -15,8 +15,8 @@
 #'    would load just one. If NULL, all stands in the init table are loaded. 
 #' @param stdInit a character string of the name of the standinit table you 
 #'    want to use, the stands would be loaded from that table.
-#' @param variant a 2 character string specifying the variant. If NULL, and error. If not null, 
-#'    then the standID and the variant must match in the designated init table.
+#' @param variant a 2 character string specifying the variant (required).  
+#'    Ihe standID and the variant must match in the designated init table.
 #' @param keywords a named vector of character strings with the keywords 
 #'    you want added to the group specified in the next argument 
 #'    (see below): Here is an example:
@@ -25,58 +25,27 @@
 #'    All of the keywords will be set to be owned by the "base", that is, 
 #'    if you include "extension" keywords, they must already have the 
 #'    necessary extension start keyword (ie, for the FFE, its: FFIN) 
-#'    and the necessary End. If the value of keywords is "NULL", then no keywords are added.
+#'    and the necessary End. Conditions, starting with IF must include "EndIf", no
+#'    checking is done. If the value of keywords is "NULL", then no keywords are added.
 #' @param group a character string naming the group to which the keywords are attached. 
-#'     If NULL, then the keywords are attached to ea#' Build an FVS run in a project
+#'     If NULL, then the keywords are attached to each stand.
 #'
-#' Build an FVS run in a project and add it to the list of runs in the project. 
-#' The working directory is the project directory
-#' and if some FVS runs are already present, another is added with this call.
-#' The name of the input data base is FVS_Data.db and it must already exist.
-#'
-#' @param prjDir is the path name to the project directory, if null the system
-#'   assumes that the current directory is the project directory.
-#' @param title a character string with the run title, if null, the system generates 
-#'   the name, that is, it would be "Run 1", or "Run 2", and so on for 
-#'   all the runs already present. If none are present, then the default 
-#'   run title with be "Run 1" corresponding to the first run.
-#' @param standIDs a vector of character strings holding the stand IDs (for example: 
-#'   \code{standIDs=c("id1","id2")} would load 2 stands, whereas: \code{standIDs="id1"} 
-#'    would load just one. If NULL, all stands in the init table are loaded. 
-#' @param stdInit a character string of the name of the standinit table you 
-#'    want to use, the stands would be loaded from that table.
-#' @param variant a 2 character string specifying the variant. If NULL, and error. If not null, 
-#'    then the standID and the variant must match in the designated init table.
-#' @param keywords a named vector of character strings with the keywords 
-#'    you want added to the group specified in the next argument 
-#'    (see below): Here is an example:
-#'    \code{keywords = c("title of first keyword set" = "Keyword line 1\\nKeyword line 2",
-#'                        "title of the second set" = "Keyword line 1\\nKeyword line 2")}
-#'    All of the keywords will be set to be owned by the "base", that is, 
-#'    if you include "extension" keywords, they must already have the 
-#'    necessary extension start keyword (ie, for the FFE, its: FFIN) 
-#'    and the necessary End. If the value of keywords is "NULL", then no keywords are added.
-#' @param group a character string naming the group to which the keywords are attached. 
-#'     If NULL, then the keywords are attached to each stand separately. If
-#'     the group is not already in the input database, then the group is changed
-#'     to NULL and the keywords are added to each stand separately.
-#' @return the number of stands in the added run.
+#' @return the uuid (identifier) of the new run
 #' @export
 externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FVS_StandInit",
-                   variant=NULL, keywords=NULL, group=NULL)
+                   variant, keywords=NULL, group=NULL)
 {
+  if (missing(variant)) stop("variant required")
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
     stop("The specified project directory must exist.")
   dbfile = file.path(prjDir,"FVS_Data.db")
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
-  if (is.null(variant)) stop ("variant must be defined") 
   runsFile=file.path(prjDir,"FVS_Runs.RData")
   if (file.exists(runsFile)) load(runsFile) else FVS_Runs=list()
   if (is.null(title)) title=nextRunName(FVS_Runs)
   fvsRun=mkfvsRun(title=title,uuid=uuidgen(),runScript="fvsRun",
                   FVSpgm=paste0("FVS",variant),
                   refreshDB=stdInit,startyr=format(Sys.time(), "%Y"))
-
   dbcon <- dbConnect(dbDriver("SQLite"),dbfile)
   on.exit(expr = dbDisconnect(dbcon))
   
@@ -96,11 +65,9 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FV
   dbExecute(dbcon,'drop table if exists temp.Stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
     ' where lower(variant) like "%',tolower(variant),'%"')
-  if (!is.null(standIDs)) 
-  {
-    dbWriteTable(dbcon,DBI::SQL("temp.Stds"),data.frame(SelStds = standIDs))
-    qry = paste0(qry," and ",sidid," in (select SelStds from temp.Stds)")
-  } 
+  dbWriteTable(dbcon,DBI::SQL("temp.Stds"),data.frame(SelStds = standIDs))
+  qry = paste0(qry," and ",sidid," in (select SelStds from temp.Stds)")
+  
   fvsInit = try(dbGetQuery(dbcon,qry))
 
   if (class(fvsInit) == "try-error") stop(paste0("query failed, qry=",qry))                                                          
@@ -189,8 +156,7 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FV
   } else {
     cycleLength="10"
     simLength="100"
-  }
-  
+  }  
   fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) + as.numeric(simLength))
   fvsRun$cyclelen <- cycleLength
   FVS_Runs <- append(FVS_Runs,fvsRun$title)
@@ -200,8 +166,48 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,stdInit="FV
   save(FVS_Runs,file=runsFile)
   saveFvsRun = fvsRun 
   save(saveFvsRun,file=paste0(fvsRun$uuid,".RData"))
-  return(length(saveFvsRun$stands))
+  return(fvsRun$uuid)
 }
+
+#' Duplicate a run and give the duplicate a new title
+#'
+#' Pass in a project directory and an existing runUUID, the duplicates title
+#' and the run is duplicated and given the new title. 
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID the uuid of the run that will be duplicated.
+#' @param dupTitle a character string with the duplicated run's title
+#'   if null, the system generates the name.
+#' @return the new run uuid, NULL if not created.
+#' @export
+externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL)
+{
+  if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
+    stop("The specified project directory must exist.")
+  if (is.null(runUUID)) stop("runUUID must be specified.")
+  runsFile=file.path(prjDir,"FVS_Runs.RData")
+  if (!file.exists(runsFile)) stop(paste0(runFile," not found."))
+  load(runsFile)
+  rFile=file.path(prjDir,paste0(runUUID,".RData"))
+  if (!file.exists(rFile) || !(runUUID %in% names(FVS_Runs))) 
+    stop("runUUID run data not found.")
+  load(rFile)
+  if (!exists("saveFvsRun")) stop("Run load error.")
+  if (is.null(dupTitle)) dupTitle=nextRunName(FVS_Runs)
+  dupTitle=mkNameUnique(dupTitle,unlist(FVS_Runs))
+  saveFvsRun$title=dupTitle
+  uuid=uuidgen()
+  saveFvsRun$uuid=uuid
+  rFile=file.path(prjDir,paste0(uuid,".RData"))
+  save(file=rFile,saveFvsRun)
+  FVS_Runs <- append(FVS_Runs,fvsRun$title)
+  names (FVS_Runs)[length(FVS_Runs)] <- fvsRun$uuid
+  attr(FVS_Runs[[length(FVS_Runs)]],"time")=as.integer(Sys.time())  
+  FVS_Runs=reorderFVSRuns(FVS_Runs)
+  save(FVS_Runs,file=runsFile)
+  return(uuid)
+} 
 
 
 #' Get FVS Runs
@@ -220,7 +226,7 @@ externalGetRuns <- function (prjDir=NULL)
   prjDir = normalizePath(prjDir)
   runsFile = file.path(prjDir,"FVS_Runs.RData")
   if (!file.exists(runsFile)) return(NULL)
-  load(runsFile)
+  if (file.exists(runsFile)) load(runsFile) else return(NULL)
   rr=lapply(FVS_Runs,function(x) c(x,attr(x,"time")))
   runs=as.data.frame(t(data.frame(rr)))
   colnames(runs)=c("title","datetime")
@@ -237,15 +243,15 @@ externalGetRuns <- function (prjDir=NULL)
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runuuids a character vector of 1 or more run uuids to be deleted.
+#' @param runUUIDs a character vector of 1 or more run uuids to be deleted.
 #' @param delOutput if TRUE (the default) the data in FVSOut.db is also
 #'   deleted.
 #' @return a data.frame listing the uuid, title, and datetime of the remaining runs
 #'   and NULL if the no runs exist.
 #' @export
-externalDeleteRuns <- function (prjDir=NULL,runuuids=NULL,delOutput=TRUE)
+externalDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 {
-  if (is.null(runuuids)) stop("runuuids must be specified.")
+  if (is.null(runUUIDs)) stop("runUUIDs must be specified.")
   if (is.null(prjDir)) prjDir=getwd() 
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
@@ -253,7 +259,7 @@ externalDeleteRuns <- function (prjDir=NULL,runuuids=NULL,delOutput=TRUE)
   if (file.exists(runsFile))
   {
     load(runsFile)
-    todel = na.omit(match(runuuids,names(FVS_Runs)))
+    todel = na.omit(match(runUUIDs,names(FVS_Runs)))
     if (length(todel) == length(FVS_Runs)) unlink(runsFile) else
     {
       FVS_Runs = FVS_Runs[-todel]
@@ -261,16 +267,97 @@ externalDeleteRuns <- function (prjDir=NULL,runuuids=NULL,delOutput=TRUE)
     }
   }
   on.exit(expr = dbDisconnect(dbcon))
-  for (uuid in runuuids) removeFVSRunFiles(uuid,all=TRUE)
+  for (uuid in runUUIDs) removeFVSRunFiles(uuid,all=TRUE)
   if (delOutput)
   {
     dbcon=dbConnect(dbDriver("SQLite"),file.path(prjDir,"FVSOut.db"))
-    for (uuid in runuuids) deleteRelatedDBRows(uuid,dbcon)
+    for (uuid in runUUIDs) deleteRelatedDBRows(uuid,dbcon)
   }
   return(externalGetRuns())
 }
     
    
+#' Add keywords to a run
+#'
+#' Given a project directory a run uuid, a dataframe of 
+#' keywords is added to groups or stands.
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of 1 run uuid that is processed
+#' @param kwds a dataframe of 3 columns. The first column can be named "Groups"
+#'   if the keywords are added to "Groups" or "Stands" if they are added to stands.
+#'   The first column then identifies the groups or stands (case sensitive strings).
+#'   The values in the first column may be duplicated, they are processed in order.
+#'   The second column is the "title" of the component that is added.
+#'   The third column are the corresponding keywords. Several lines can be separated
+#'   by \n chars to indicated muliple keywords.
+#' @return The number of keyword components added to the run.
+#' @export
+externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  if (missing(kwds) || class(kwds) != "data.frame") 
+     stop("kwds is required and must be a data.frame")
+  rFile=file.path(prjDir,paste0(runUUID,".RData"))
+  if (!file.exists(rFile)) stop("runUUID run data not found")
+  load(rFile)
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
+  cols = colnames(kwds)
+  if (length(cols)!=3) stop("Must have exactly 3 columns in kwds")
+  # process groups
+  nadd=0
+  if (cols[1] == "Groups") 
+  {
+    for (i in 1:length(saveFvsRun$grps))
+    {
+      gid = saveFvsRun$grps[[i]]$grp
+      rows = grep(gid,kwds[,1])
+      for (ik in rows)
+      {
+        ncmp = mkfvsCmp(kwds = kwds[ik,3], exten="base", title=kwds[ik,2], 
+               variant=substring(saveFvsRun$FVSpgm,4),uuid=fvsOL:::uuidgen(),atag="k")
+        saveFvsRun$grps[[i]]$cmps = append(saveFvsRun$grps[[i]]$cmps,ncmp)
+        nadd=nadd+1
+      }
+    }
+  } else if (cols[1] == "Stands") {
+    for (i in 1:length(saveFvsRun$stands))
+    {
+      sid = saveFvsRun$stands[[i]]$sid
+      rows = grep(sid,kwds[,1])
+      for (ik in rows)
+      {
+        ncmp = mkfvsCmp(kwds = kwds[ik,3], exten="base", title=kwds[ik,2], 
+               variant=substring(saveFvsRun$FVSpgm,4),uuid=fvsOL:::uuidgen(),atag="k")
+        saveFvsRun$stands[[i]]$cmps = append(saveFvsRun$stands[[i]]$cmps,ncmp)
+        nadd=nadd+1
+      }
+    }
+  }
+  if (nadd==0) return(0)
     
+  prjDir = normalizePath(prjDir)
+  runsFile = file.path(prjDir,"FVS_Runs.RData")
+  if (file.exists(runsFile))
+  {
+    load(runsFile)
+    touch = match(runUUID,names(FVS_Runs))
+    if (!is.na(touch)) 
+    {
+      attr(FVS_Runs[[touch]],"time") <- as.integer(Sys.time())
+      save(FVS_Runs,file=runsFile)
+    }
+  }
+  save(saveFvsRun,file=rFile)
+  nadd
+}
+    
+       
+      
+
+    
+  
       
     

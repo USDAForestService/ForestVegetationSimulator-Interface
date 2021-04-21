@@ -4,13 +4,13 @@
 \alias{externalDeleteRuns}
 \title{Delete FVS Runs}
 \usage{
-externalDeleteRuns(prjDir = NULL, runuuids = NULL, delOutput = TRUE)
+externalDeleteRuns(prjDir = NULL, runUUIDs = NULL, delOutput = TRUE)
 }
 \arguments{
 \item{prjDir}{is the path name to the project directory, if null the 
 current directory is the project directory.}
 
-\item{runuuids}{a character vector of 1 or more run uuids to be deleted.}
+\item{runUUIDs}{a character vector of 1 or more run uuids to be deleted.}
 
 \item{delOutput}{if TRUE (the default) the data in FVSOut.db is also
 deleted.}
