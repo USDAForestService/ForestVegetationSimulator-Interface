@@ -1632,13 +1632,15 @@ cat ("renderPlot\n")
       if (length(mlv))
       {
         # this bit makes sure CaseID is first
-        byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+        if(input$selectdbtables!="CmpStdStk")byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+                        c("CaseID","MgmtID","StandID","DBHClass","RunTitle"))) else
+         byset=c(setdiff(names(dat)[unlist(lapply(dat,is.factor))],
                         c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
         newrows = ddply(dat,byset,function(x) x[1,])
         newrows[,!unlist(lapply(dat,is.factor))]=0
         newrows$DBHClass=as.character(newrows$DBHClass)
         dat$DBHClass=as.character(dat$DBHClass)
-        for (lms in mlv) 
+        for (lms in mlv)
         {
           newrows$DBHClass = lms
           dat=rbind(dat,newrows)
