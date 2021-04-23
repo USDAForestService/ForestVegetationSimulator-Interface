@@ -1088,7 +1088,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        naughty <- c("PlantNatural","Econ_reports")
+        naughty <- c("Econ_reports")
         if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
         { 
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
@@ -1161,8 +1161,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base" && 
-        !length(grep("PlantNatural",cmp$kwdName))) cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {

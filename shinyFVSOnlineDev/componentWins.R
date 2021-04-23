@@ -330,15 +330,17 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
 
 PlantNaturalFullWin.mkKeyWrd <- function(input,output,full=TRUE)
 { 
+  kwds = list()
 cat ("in PlantNaturalFullWin.mkKeyWrd\n")
-  kwds = sprintf("Estab     %10s",input$pnDOD)
-  if (full & input$pnPBrn != " ") kwds = paste0(kwds,
-    sprintf("\nBurnPrep  %10s%10s",
-      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$PBrn))
-  if (full & input$pnPMch != " ") kwds = paste0(kwds,
+  if (full & input$pnPBrn != " ") kwds = sprintf("\nBurnPrep  %10s%10s",
+      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$PBrn)
+  if (full & input$pnPMch != " ") kwds = if (length(kwds)) paste0(kwds,
     sprintf("\nMechPrep  %10s%10s",
-      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch))
-  kwds = paste0(kwds,"\n",if (input$pnSprt == "1") "Sprout" else "NoSprout")
+      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch)) else
+    sprintf("\nMechPrep  %10s%10s",
+      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch) 
+  kwds = if (length(kwds)) paste0(kwds,"\n",if (input$pnSprt == "1") "Sprout" else "NoSprout") else
+         if (input$pnSprt == "1") "Sprout" else "NoSprout"
   if (full) kwds = paste0(kwds,"\n",if (input$pnIng  == "1") "InGrow" else "NoInGrow")
   if (full) kwds = paste0(kwds,sprintf("\nStockAdj  %10s%10s",input$pnDOD,
     if (input$pnNt=="0") "0.0" else input$pnSAj))
@@ -358,7 +360,6 @@ cat ("in PlantNaturalFullWin.mkKeyWrd\n")
       input$pnSp2,input$pnTpa2,input$pnPsv2,input$pnAge2,input$pnHt2,
       input$pnShd2))
   }
-  kwds = paste0(kwds,"\nEnd")
   reopn=c(pnDOD  =input$pnDOD , pnYD   =input$pnYD  ,
           pnPBrn =input$pnPBrn, pnPMch =input$pnPMch,
           pnSprt =input$pnSprt,
