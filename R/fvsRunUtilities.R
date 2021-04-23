@@ -78,7 +78,7 @@ cat("resetfvsRun\n")
   fvsRun$endyr = character(0)
   fvsRun$cyclelen = character(0)
   fvsRun$cycleat = character(0)
-  fvsRun$defMgmtID = nextMgmtID(length(globals$FVS_Runs))
+  fvsRun$defMgmtID = nextMgmtID(length(FVS_Runs))
   fvsRun$runScript = "fvsRun"
   uiCustomRunOps = list()
   fvsRun$uuid = uuidgen()

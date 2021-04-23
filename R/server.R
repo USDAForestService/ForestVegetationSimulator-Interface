@@ -11,9 +11,12 @@
 #'   if NULL or not found in the list of runs, it is ignored.
 #' @param fvsBin the name of the directory containing the FVS load libraries for the platform
 #' @param shiny.trace turns on tracing for shiny, see shiny documentation
+#' @param logToConsole controls if the log is output to the console or the log file,
+#'   the default set by the interactive() function.
 #' @return the shiny app.
 #' @export
-fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE)                                          
+fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
+                   logToConsole=interactive())                                         
 {
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
   if (is.null(fvsBin) || !dir.exists(fvsBin)) 
@@ -22,6 +25,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE)
   }
   fvsBin <<- fvsBin
   runUUID <<- runUUID
+  logToConsole <<- logToConsole
   
   cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
@@ -193,7 +197,7 @@ cat ("FVSOnline/OnLocal interface server start\n")
 
 cat ("ServerDate=",serverDate,"\n")
 
-  if (!interactive()) 
+  if (!logToConsole) 
   {
     if (file.exists("FVSOnline.log")) 
     {
@@ -345,7 +349,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     setProgress(value = NULL)          
   }, min=1, max=6)
- 
+  
   observe({
 cat ("protocol: ", session$clientData$url_protocol, "\n",
      "hostname: ", session$clientData$url_hostname, "\n",
@@ -2533,8 +2537,8 @@ cat ("error loading",fn,"\n")
       resetGlobals(globals,TRUE)
       tmp = unlist(globals$activeFVS[globals$fvsRun$FVSpgm])
       globals$lastRunVar = if (length(tmp) && !is.null(tmp)) tmp[1] else 
-        if (length(globals$fvsRun$FVSpgm) && nchar(globals$fvsRun$FVSpgm)==5) 
-          substr(globals$fvsRun$FVSpgm,4,5) else character(0)         
+        if (length(globals$fvsRun$FVSpgm) && nchar(globals$fvsRun$FVSpgm)>4) 
+          substring(globals$fvsRun$FVSpgm,4) else character(0)         
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
@@ -2982,7 +2986,8 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-      output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
+      output$titleBuild <-output$condBuild <- output$cmdBuild <- 
+        output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)    
     })                    
   })
 
@@ -2990,8 +2995,10 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
-    if(!length(globals$currentEditCmp$kwds) || input$compTabSet !="Management"){
-      output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
+    if(!length(globals$currentEditCmp$kwds) || input$compTabSet !="Management")
+    {
+      output$titleBuild <-output$condBuild <- output$cmdBuild <- 
+        output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
     } 
     if (length(globals$fvsRun$FVSpgm) == 0) return(NULL)
     if (! globals$fvsRun$FVSpgm %in% names(globals$activeFVS)) return(NULL)
@@ -4047,7 +4054,7 @@ cat ("length(allSum)=",length(allSum),"\n")
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
         colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
-        volType = if (substr(globals$fvsRun$FVSpgm,4,5) %in% c("cs","ls","ne","sn"))
+        volType = if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
            "Merchantable" else "Total"
         plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
             geom_line (aes(x=X,y=Y,color=Stand)) +
@@ -4515,8 +4522,12 @@ cat ("SVS3d hit\n")
         selected=0) 
       updateSelectInput(session=session, inputId="SVSImgList2", choices=list(),
         selected=0)
-      output$SVSImg1 = renderRglwidget(NULL)
-      output$SVSImg2 = renderRglwidget(NULL)
+      output$SVSqImg1Top  = renderUI(NULL)
+      output$SVSqImg1Side = renderUI(NULL)
+      output$SVSImg1      = renderRglwidget(NULL)
+      output$SVSqImg2Top  = renderUI(NULL)
+      output$SVSqImg2Side = renderUI(NULL)
+      output$SVSImg2      = renderRglwidget(NULL)
     }
   })
   observe({
@@ -4554,9 +4565,10 @@ cat ("SVS3d hit\n")
           if(block==1) {
             j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
             chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
-                                          strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
+              strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
           }
-          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
+          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && 
+            strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
             block <- 0
             k <- k + 1
           } 
@@ -4565,7 +4577,9 @@ cat ("SVS3d hit\n")
       } else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
-      output$SVSImg1 = renderRglwidget(NULL)
+      output$SVSImg1Top  = renderUI(NULL)
+      output$SVSImg1Side = renderUI(NULL)
+      output$SVSImg1      = renderRglwidget(NULL)
     }
   })
   observe({
@@ -4592,7 +4606,7 @@ cat ("SVS3d hit\n")
         k <- 1
         for (i in 1:length(choices)){
           svssid <- paste0(as.list(strsplit(strsplit(index[i,1]," ")[[1]][1],""))[[1]]
-                           [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
+            [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
           if(!length(grep(svssid,names(globals$fvsRun$simcnts[stands])))){
             chnames[i,1] <- index[i,1]
             next
@@ -4602,9 +4616,10 @@ cat ("SVS3d hit\n")
           if(block==1) {
             j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
             chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
-                                          strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
+              strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
           }
-          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
+          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && 
+            strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
             block <- 0
             k <- k + 1
           } 
@@ -4613,7 +4628,9 @@ cat ("SVS3d hit\n")
       } else names(choices) = index[,1]
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
-      output$SVSImg2 = renderRglwidget(NULL)
+      output$SVSImg2Top  = renderUI(NULL)
+      output$SVSImg2Side = renderUI(NULL)
+      output$SVSImg2     = renderRglwidget(NULL)
     }
   })
   observe(  
@@ -4627,10 +4644,8 @@ cat ("SVS3d hit\n")
     {
       session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg2") 
     }
-  )
-  
-  
-  
+  )                    
+  svsImage <- reactiveVal("")
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
   {
@@ -4673,7 +4688,7 @@ cat ("args=",args,"\n")
         polygon3d(plotDef,col=plotColor,alpha=0.7)
       }
       pltshp=0
-    }
+    }                
     if (subplots)
     {
       subplts = grep("^#LINE",svs)
@@ -4842,9 +4857,17 @@ cat("Residual length of svs=",length(svs),"\n")
     displayTrees(drawnTrees)
     progress$set(message = "Sending image to browser",value = length(svs)+2) 
     output[[id]] <- renderRglwidget(rglwidget(scene3d()))
-    Sys.sleep(1)
+    Sys.sleep(.5)
     progress$close()
+    svsImage(id)
   }
+  observe({
+cat ("svsImage()=",svsImage(),"\n")
+    if (svsImage()=="") return()
+    session$sendCustomMessage(type="makeTopSideImages", 
+      c(svsImage(),paste0(svsImage(),"Top"),paste0(svsImage(),"Side")))
+    svsImage("")
+  })
 
   observe({
     if (length(input$SVSImgList1))
@@ -5600,12 +5623,14 @@ cat("delete project button.")
       progress$set(message = "Loading Help File", value = 2)
       # build the help file if it doesn't exist or if it is older than 
       # fvsOnlineHelp.html or databaseDescription.xlsx
-      fr = "fvsOnlineHelpRender.html"
+      help=NULL
+      fr = "fvsOnlineHelpRender.RData"
       fn =  system.file("extdata", "fvsOnlineHelp.html", package = "fvsOL")
       xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
       info=file.info(c(fr,fn,xlsxfile))
-      if (!file.exists(fr) || which.max(info[,4]) != 1) 
+      if (which.max(info[,4]) != 1) 
       {
+        unlink(fr)
         help = readChar(fn, info[2,1]) 
         progress$set(message = "Compiling the help file for this project", 
                      detail = "Loading Output Table Descriptions",value = 5)
@@ -5635,8 +5660,9 @@ cat("delete project button.")
           if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
                   pattern="**INPUTHTML**",replacement=morehtml)
         }
-        writeChar(help,fr)         
-      } 
+        save(help,file=fr)
+      } else  if (is.null(help) && file.exists(fr)) load(fr) 
+      if (is.null(help)) help="<h4>Help is not available</h4>"
       output$uiHelpText <- renderUI(HTML(help))
       progress$close()
     }
