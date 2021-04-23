@@ -4530,106 +4530,53 @@ cat ("SVS3d hit\n")
       output$SVSImg2      = renderRglwidget(NULL)
     }
   })
+  
+  mkSVSchoices <- function(svsRun)
+  {
+    fn = paste0(svsRun,"_index.svs")
+    if (!file.exists(fn)) return(list())
+    index = read.table(file=fn,as.is=TRUE) 
+    dups = duplicated(index[,1])
+    if (any(dups))
+    {
+      dupTab = table(index[dups,1])
+      for (id in names(dupTab))
+      {
+        idxs = grep(id,index[,1],fixed=TRUE)
+        rep = 1
+        for (idx in idxs) 
+        {
+          index[idx,1] = sub("Year",paste0("rep ",rep," Year"),index[idx,1])
+          rep = rep+1
+        }
+      }
+    }
+    choices = as.list(index[,2])
+    names(choices) = index[,1]
+    choices
+  }
+            
   observe({
     if (length(input$SVSRunList1))
     {
-      cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
-      fn = paste0(input$SVSRunList1,"_index.svs")
-      if (!file.exists(fn)) return()
-      index = read.table(file=fn,as.is=TRUE)
-      choices = as.list(index[,2])
-      ind <- 0
-      for(f in 1:length(globals$fvsRun$stands)){
-        if (globals$fvsRun$stands[[f]]$rep > 0)
-          ind <- ind + 1
-      }
-      if(ind > 0){
-        chnames <- data.frame()
-        lst <- list()
-        lstidx <- 1
-        nonstands <- grep(">", names(globals$fvsRun$simcnts))
-        inds <- 1:length(globals$fvsRun$simcnts)
-        stands <- inds[which(!inds %in% nonstands)]
-        repstands <- grep(" r", names(globals$fvsRun$simcnts[stands]))
-        stands <- stands[repstands]
-        k <- 1
-        for (i in 1:length(choices)){
-          svssid <- paste0(as.list(strsplit(strsplit(index[i,1]," ")[[1]][1],""))[[1]]
-                           [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
-          if(!length(grep(svssid,names(globals$fvsRun$simcnts[stands])))){
-            chnames[i,1] <- index[i,1]
-            next
-          }
-          block <- 0
-          if(strsplit(index[,1]," ")[[1]][4]=="conditions" && block==0) block <- 1
-          if(block==1) {
-            j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
-            chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
-              strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
-          }
-          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && 
-            strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
-            block <- 0
-            k <- k + 1
-          } 
-        }
-        names(choices) = chnames[,1]
-      } else names(choices) = index[,1]
+cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
+      choices = mkSVSchoices(input$SVSRunList1)
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
-      output$SVSImg1Top  = renderUI(NULL)
-      output$SVSImg1Side = renderUI(NULL)
-      output$SVSImg1      = renderRglwidget(NULL)
+#      output$SVSImg1Top  = renderUI(NULL)
+#      output$SVSImg1Side = renderUI(NULL)
+      output$SVSImg1     = renderRglwidget(NULL)
     }
   })
   observe({
     if (length(input$SVSRunList2))
     {
-      cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
-      fn = paste0(input$SVSRunList2,"_index.svs")
-      index = read.table(file=fn,as.is=TRUE)
-      choices = as.list(index[,2])
-      ind <- 0
-      for(f in 1:length(globals$fvsRun$stands)){
-        if (globals$fvsRun$stands[[f]]$rep > 0)
-          ind <- ind + 1
-      }
-      if(ind > 0){
-        chnames <- data.frame()
-        lst <- list()
-        lstidx <- 1
-        nonstands <- grep(">", names(globals$fvsRun$simcnts))
-        inds <- 1:length(globals$fvsRun$simcnts)
-        stands <- inds[which(!inds %in% nonstands)]
-        repstands <- grep(" r", names(globals$fvsRun$simcnts[stands]))
-        stands <- stands[repstands]
-        k <- 1
-        for (i in 1:length(choices)){
-          svssid <- paste0(as.list(strsplit(strsplit(index[i,1]," ")[[1]][1],""))[[1]]
-            [7:length(strsplit(strsplit(index[i,1]," ")[[1]][1],"")[[1]])],collapse="")
-          if(!length(grep(svssid,names(globals$fvsRun$simcnts[stands])))){
-            chnames[i,1] <- index[i,1]
-            next
-          }
-          block <- 0
-          if(strsplit(index[,1]," ")[[1]][4]=="conditions" && block==0) block <- 1
-          if(block==1) {
-            j <- grep(svssid,names(globals$fvsRun$simcnts[stands]))
-            chnames[i,1] <- paste0(append(as.list(strsplit(index[i,1]," ")[[1]]),
-              strsplit(names(globals$fvsRun$simcnts[stands[k]])," ")[[1]][2],1),collapse=" ")
-          }
-          if(length(strsplit(index[i,1]," ")[[1]]) > 4 && 
-            strsplit(index[i,1]," ")[[1]][5]=="projection" && block==1){
-            block <- 0
-            k <- k + 1
-          } 
-        }
-        names(choices) = chnames[,1]
-      } else names(choices) = index[,1]
+cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
+      choices = mkSVSchoices(input$SVSRunList2)
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
-      output$SVSImg2Top  = renderUI(NULL)
-      output$SVSImg2Side = renderUI(NULL)
+#      output$SVSImg2Top  = renderUI(NULL)
+#      output$SVSImg2Side = renderUI(NULL)
       output$SVSImg2     = renderRglwidget(NULL)
     }
   })
@@ -4857,15 +4804,16 @@ cat("Residual length of svs=",length(svs),"\n")
     displayTrees(drawnTrees)
     progress$set(message = "Sending image to browser",value = length(svs)+2) 
     output[[id]] <- renderRglwidget(rglwidget(scene3d()))
-    Sys.sleep(.5)
     progress$close()
-    svsImage(id)
+    svsImage(id)  # will be used in the quick images logic (maybe)
   }
   observe({
 cat ("svsImage()=",svsImage(),"\n")
     if (svsImage()=="") return()
-    session$sendCustomMessage(type="makeTopSideImages", 
-      c(svsImage(),paste0(svsImage(),"Top"),paste0(svsImage(),"Side")))
+# come back to this for the quick images, need to put them in the ui.R as well.
+#    Sys.sleep(.1)
+#    session$sendCustomMessage(type="makeTopSideImages", 
+#      c(svsImage(),paste0(svsImage(),"Top"),paste0(svsImage(),"Side")))
     svsImage("")
   })
 
