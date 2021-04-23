@@ -5541,9 +5541,14 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
           if (icon) dbDisconnect(dbGlb$dbIcon)
           if(!globals$localWindows)unzip (fvsWorkBackup)
           if(globals$localWindows){
-            td <- tempdir()
-            unzip (fvsWorkBackup,exdir=td)
-            prjConts <- dir(td)
+            currPrjFiles <- dir(prjDir)
+            del = grep(".zip$",currPrjFiles)
+            if (length(del)) {
+              currPrjFiles = currPrjFiles[-del]
+            }
+            unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
+            unzip (fvsWorkBackup,exdir=prjDir)
+            prjConts <- dir(prjDir)
             FVSconts <- character()
             progress$set(message = "Checking backup contents",value = 3)
             del = grep("FVSbin",prjConts)
@@ -5599,15 +5604,7 @@ cat ("restorePrjBackupDlgBtn fvsWorkBackup=",fvsWorkBackup,"\n")
             if (length(del)) {
               prjConts = prjConts[-del]
             }
-            currPrjFiles <- dir(prjDir)
-            del = grep(".zip$",currPrjFiles)
-            if (length(del)) {
-              currPrjFiles = currPrjFiles[-del]
-            }
-            unlink(paste0(prjDir,"/",currPrjFiles), recursive = TRUE)
             progress$set(message = "Copying backup contents",value = 4)
-            if(length(prjConts))file.copy(paste0(td,"/",prjConts),prjDir,overwrite=TRUE)
-            unlink(td)
           }
           if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
           if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
