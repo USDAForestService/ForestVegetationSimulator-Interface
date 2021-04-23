@@ -156,16 +156,16 @@ Compute_PreDefined <- function(title, prms, fvsRun, globals)
       myInlineTextInput("f2",
        "Enter the name for your user-defined variable (< 8 characters)",
        globals$currentCmdDefs["f2"]),
-      myInlineListButton ("f3", "Pick Event Monitor Varialbe", mkVarList(globals), 
+      myInlineListButton ("f3", "Pick Event Monitor Variable", mkVarList(globals), 
         selected=globals$currentCmdDefs["f3"], deltll=2)),
     list(br(),p(paste(
-      "Computes stand variables using pre-defined EM variables.  You must enter the",
-      "name of your user-defined variable.  Computed variables may be viewed in the", 
-      "Activity Summary of the main output file or in any of the Compute post",
-      "processors.")),
+      "Computes stand variables using pre-defined EM variables. You must enter the",
+      "name of your user-defined variable. The name of your user-defined variable", 
+      "may not be a word that is reserved for use by FVS or the Event Monitor, or", 
+      "contain any special characters.")),
       p(paste(
-      "Note: The name of your user-defined variable may not be a word that is reserved",
-      "for use by FVS or the Event Monitor.")))) 
+      "Note: Computed variables may be viewed in the FVS_Compute table under the",
+      "View Outputs menu, or in the Activity Summary of the main output file.")))) 
   ans  
 }
 
