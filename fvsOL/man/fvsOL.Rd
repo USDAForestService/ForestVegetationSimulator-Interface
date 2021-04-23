@@ -4,7 +4,13 @@
 \alias{fvsOL}
 \title{Run fvsOL (FVS OnLine/OnLocal).}
 \usage{
-fvsOL(prjDir = NULL, runUUID = NULL, fvsBin = NULL, shiny.trace = FALSE)
+fvsOL(
+  prjDir = NULL,
+  runUUID = NULL,
+  fvsBin = NULL,
+  shiny.trace = FALSE,
+  logToConsole = interactive()
+)
 }
 \arguments{
 \item{prjDir}{the name of the directory containing an fvsOL project.}
@@ -15,6 +21,9 @@ if NULL or not found in the list of runs, it is ignored.}
 \item{fvsBin}{the name of the directory containing the FVS load libraries for the platform}
 
 \item{shiny.trace}{turns on tracing for shiny, see shiny documentation}
+
+\item{logToConsole}{controls if the log is output to the console or the log file,
+the default set by the interactive() function.}
 }
 \value{
 the shiny app.

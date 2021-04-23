@@ -101,9 +101,49 @@ Shiny.addCustomMessageHandler("copyWebGLSnapshotToClipboard",
     selection.addRange(range);
     document.execCommand('copy');              
     selection.removeAllRanges();
-    document.body.removeChild(imageElt);
+    document.body.removeChild(imageElt);        
   }
 );
+
+
+Shiny.addCustomMessageHandler("makeTopSideImages",
+  function(eltIds)                      
+  { 
+    var eltid=eltIds[0];            
+    var topid=eltIds[1];                                                                     
+    var sidid=eltIds[2];
+    const elt  = document.getElementById(eltid);                        
+    const top  = document.getElementById(topid);  
+    const ssid = document.getElementById(sidid); 
+   
+        var rglinst = elt.rglinstance;
+        if (rglinst == null) return;
+        var sid = rglinst.scene.rootSubscene;
+        if (sid == null) return;
+        var p3d = rglinst.getObj(sid).par3d;
+        if (p3d == null) return;
+        var cpy3d = p3d;
+        cpy3d$zoom = 4;
+        rglinst.getObj(sid).par3d = cpy3d;
+        rglinst.drawScene(); 
+        var imageData = elt.firstChild.toDataURL('image/png', 1.0);
+        top.style.display = 'none';
+        top.setAttribute("src", imageData);
+        top.style.display = 'inline';       
+        cpy3d$zoom = .5;
+        rglinst.getObj(sid).par3d = cpy3d;
+        rglinst.drawScene(); 
+        imageData = elt.firstChild.toDataURL('image/png', 1.0);
+        ssid.style.display = 'none';
+        ssid.setAttribute("src", imageData);
+        ssid.style.display = 'inline';
+        rglinst.getObj(sid).par3d = p3d;
+        rglinst.drawScene();        
+  }
+);
+
+
+
 
 })();
 
