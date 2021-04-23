@@ -2137,6 +2137,20 @@ cat ("in reloadStandSelection\n")
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
     } else {
+      if(tolower(input$inVars)=="cr"){# check for 5 GENGYM submodel variant codes in the input data
+        test <- try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct variant from ',input$inTabs)))
+        test=sort(unique(tolower(scan(text=gsub(","," ",test[,1]),what="character",
+                                      strip.white=TRUE,sep=" ",quiet=TRUE))))
+        CRsubModels <- c("sm","sp","bp","sf","lp")
+        if(any(!is.na(match(test,CRsubModels)))){
+          CRsubModels <- CRsubModels[na.omit(match(test,CRsubModels))]
+          for(i in 1:length(CRsubModels)){
+            subgrps <- try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups from ",input$inTabs,
+                                                          ' where lower(variant) like "%',tolower(CRsubModels[i]),'%"')))
+            if(length(subgrps))grps <- rbind(grps,subgrps)
+          }
+        }
+      }
       dd = apply(grps,1,function (x)
         { 
           gr=unlist(strsplit(x[2]," "))
@@ -3419,7 +3433,9 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         if (is.null(fps)) break
         instr =  if (length(globals$currentEditCmp$atag) && 
                             globals$currentEditCmp$atag=="c") 
-                input[[paste0("cnd.",pkey)]] else input[[pkey]]            
+                input[[paste0("cnd.",pkey)]] else input[[pkey]]
+        if(is.null(instr))instr=" "
+        if(instr=="blank")instr=" "
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
@@ -5509,7 +5525,7 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
             message = list(id = "restorePrjBackupDlg",
                       message = "WARNING: restoring this project backup will overwrite 
                       any existing project files in this current project. If you don't 
-                      want to lose exiting project files, consider restoring to a new empty
+                      want to lose existing project files, consider restoring to a new empty
                       project instead. This backup also contains FVS software that will
                       overwrite your currently installed version with the software in the
                       backup, if selected.  What contents would you like to restore?"))
@@ -5524,7 +5540,7 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
             message = list(id = "restorePrjBackupDlg",
                       message = "WARNING: restoring this project backup will overwrite 
                       any existing project files in this current project. If you don't 
-                      want to lose exiting project files, consider restoring to a new
+                      want to lose existing project files, consider restoring to a new
                       empty project instead. Are you sure?"))
     }
   })
