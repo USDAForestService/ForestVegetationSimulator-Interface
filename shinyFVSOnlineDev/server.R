@@ -3392,7 +3392,8 @@ cat ("mkCondKeyWrd, kwPname=",kwPname,"\n")
   buildKeywords <- function(oReopn,pkeys,kwPname,globals)
   {
 cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
-    if (length(pkeys) == 0 && nchar(kwPname)) 
+    if (length(pkeys) == 0 && nchar(kwPname) || (length(globals$currentEditCmp$kwds) &&
+        length(pkeys) > 0 && exists(paste0(kwPname,".mkKeyWrd")))) 
     {
       # try to find a function that can make the keywords
       fn = paste0(kwPname,".mkKeyWrd")
