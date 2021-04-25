@@ -99,7 +99,7 @@ mkGlobals <- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",deleteLockFile="logical",gFreeze="logical",
+    lastRunVar="character",gFreeze="logical",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
@@ -216,7 +216,7 @@ cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
     setProgress(message = "Start up", 
                 detail  = "Loading scripts and settings", value = 1)
                 
-    globals <- mkGlobals$new(saveOnExit=TRUE,reloadAppIsSet=0,deleteLockFile=TRUE,
+    globals <- mkGlobals$new(saveOnExit=TRUE,reloadAppIsSet=0,
                gFreeze=FALSE,fvsBin=fvsBin)
     dbGlb <- new.env()
     dbGlb$tbl <- NULL
@@ -369,7 +369,6 @@ cat ("sending closeWindow\n")
   session$onSessionEnded(function ()
   { 
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
-     " globals$deleteLockFile=",globals$deleteLockFile,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
@@ -389,7 +388,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
         write(file=prjIdTxt,prjid)
       }
     }
-    if (globals$deleteLockFile) unlink ("projectIsLocked.txt")  
+    unlink ("projectIsLocked.txt")  
     #note: the stopApp function returns to the R process that called shinyApp()
     if (globals$reloadAppIsSet == 0) stopApp()
     globals$reloadAppIsSet == 0
@@ -413,7 +412,6 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   observe({
     if (!is.null(input$exitNow) && input$exitNow>0)
     {
-      globals$deleteLockFile=FALSE
       globals$saveOnExit=FALSE
       session$sendCustomMessage(type = "closeWindow"," ")
     }
@@ -3933,6 +3931,12 @@ cat ("cmd=",cmd,"\n")
           return()
         }
         fvschild = makePSOCKcluster(1)
+        #on exit of the reactive context
+        on.exit({          
+          progress$close()
+cat ("exiting, stop fvschild\n")          
+          try(stopCluster(fvschild))
+        }) 
         clusterEvalQ(fvschild,library(rFVS))
         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
              globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"'))")
@@ -3943,15 +3947,15 @@ cat ("load FVSpgm cmd=",cmd,"\n")
         if (globals$fvsRun$runScript != "fvsRun")
         {
           rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
-          if (!file.exists(rfFn)) rsFn = system.file("extdata", rsFn, package = "fvsOL")
-          if (!file.exists(rfFn)) return()
+          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn, package = "fvsOL")
+          if (!file.exists(rsFn)) return()
           cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
 cat ("run script load cmd=",cmd,"\n")
           rtn = try(eval(parse(text=cmd)))
-          if (class(rtn) == "try-error") return()        
+          if (class(rtn) == "try-error") return()
           runOps <- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
             globals$fvsRun$uiCustomRunOps
-          rtn = try(clusterExport(fvschild,list("runOps"))) 
+          rtn = try(clusterExport(fvschild,list("runOps"),envir=environment())) 
           if (class(rtn) == "try-error") return()
         }
         foo = paste0(globals$fvsRun$uuid,".key")
@@ -3959,13 +3963,6 @@ cat ("run script load cmd=",cmd,"\n")
 cat ("load run cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd))) 
         if (class(rtn) == "try-error") return()
-        #on exit of the reactive context
-        on.exit({          
-          progress$close()
-cat ("exiting, stop fvschild\n")          
-          try(stopCluster(fvschild))
-        }) 
-
 cat ("at for start\n") 
         allSum = list()
         for (i in 1:length(globals$fvsRun$stands))
@@ -3981,13 +3978,13 @@ cat ("custom run cmd=",cmd,"\n")
 cat ("running normal run cmd\n")
               try(clusterEvalQ(fvschild,fvsRun()))
             }
+cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
           if (class(rtn) == "try-error")
           { 
             cat ("run try error\n")
-            break
+            return()
           }
-cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
-          if (class(rtn) != "try-error") rtn = rtn[[1]]
+          rtn = rtn[[1]]
           if (rtn != 0) break          
           ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
           if (class(ids) == "try-error") break
@@ -5219,7 +5216,6 @@ cat ("delete run",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,
         } 
         globals$saveOnExit = FALSE
         globals$reloadAppIsSet=1
-        globals$deleteLockFile=TRUE
         session$reload()       
       })
     }
@@ -7456,8 +7452,10 @@ cat ("in customRunOps runScript: ",input$runScript,"\n")
       output$uiCustomRunOps = renderUI(NULL)    
       if (input$runScript != "fvsRun")
       {
-##### TODO
-        rtn = try(source(paste0("customRun_",globals$fvsRun$runScript,".R")))
+        fn=paste0("customRun_",globals$fvsRun$runScript,".R")
+        if (!file.exists(fn)) fn=system.file("extdata", fn, package = "fvsOL")
+        if (!file.exists(fn)) return()        
+        rtn = try(source(fn))
         if (class(rtn) == "try-error") return()
         uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",globals$fvsRun$runScript)))))
         if (class(uiF) != "function") return()

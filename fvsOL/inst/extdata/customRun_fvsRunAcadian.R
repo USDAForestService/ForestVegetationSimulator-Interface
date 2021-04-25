@@ -1,18 +1,31 @@
 # $Id: customRun_fvsRunAcadian.R 2814 2019-10-10 11:02:11Z nickcrookston $
 
-if (file.exists("Acadian.log")) file.remove("Acadian.log")
+unlink("Acadian.log")
 
 # Note: The form of the function call is very carefully coded. Make sure
 # "runOps" exists if you want them to be used.
 fvsRunAcadian <- function(runOps,logfile="Acadian.log")
-{ 
+{
+  
   if (!is.null(logfile) && !interactive()) 
   {
     sink()
     sink(logfile,append=TRUE)
   }
-  cat ("*** in fvsRunAcadian",date()," AcadianVersionTag=",AcadianVersionTag,"\n")
   
+  #load the growth model R code
+  rFn="AcadianGY.R"
+  if (file.exists(rFn)) source(rFn) else
+  {
+    rFn = system.file("extdata", rFn, package = "fvsOL")
+    if (! file.exists(rFn)) stop("can not find and load model code")
+    source(rFn)
+  }
+  cat ("\nSource file for this fvsRunAcadian=\n",rFn,"\n")  
+  cat ("*** in fvsRunAcadian",date()," AcadianVersionTag=",AcadianVersionTag,"\n")
+  cat ("\nrunOps=\n")
+  print (runOps)
+
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAcadianIngrowth)) "N" else 
                runOps$uiAcadianIngrowth
@@ -36,7 +49,9 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                if (runOps$uiAcadianSBW == "No") NULL else 
                  c(CDEF=CDEF,SBW.YR=SBW.YR,SBW.DUR=SBW.DUR)
   if (!is.null(SBW) && any(is.na(SBW))) SBW=NULL
- 
+
+  cat ("fvsRunAcadian, options set\n")
+
   #load some handy conversion factors
   CMtoIN  = fvsUnitConversion("CMtoIN")
   INtoCM  = fvsUnitConversion("INtoCM")
@@ -51,6 +66,9 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   THINMOD = NULL
   
   incr    = list()
+  
+  cat ("Starting repeat loop\n")
+
   repeat     
   {
     #stopPointCode 5 (after growth and mortality, before it is added)
@@ -62,6 +80,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     if (rtn != 0) break
     stopPoint <- fvsGetRestartcode()
     # end of current stand?
+    cat ("first stopPoint code=",stopPoint,"\n")
     if (stopPoint == 100) break
 
     cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
@@ -202,13 +221,14 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
       fvsSetTreeAttrs(vols)
     }
   }
+  cat ("rtn=",rtn,"\n")
   rtn
 }
 
-#NOTE: I tried various ways of building these elements. Setting the initial
-#value to the saved value when the elements are created seems to work well. 
-#What did not work was setting the initial value to some default and then 
-#changing it using an update call in the server code.  
+# NOTE: I tried various ways of building these elements. Setting the initial
+# value to the saved value when the elements are created seems to work well. 
+# What did not work was setting the initial value to some default and then 
+# changing it using an update call in the server code.  
 
 uiAcadian <- function(fvsRun)
 {  
@@ -237,25 +257,25 @@ cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.DUR))
               fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "10"
   list(
-    myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:", 
+    fvsOL:::myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
-    myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
+    fvsOL:::myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAcadianMinDBH),
-    myRadioGroup("uiAcadianMort", "Mortality model:", 
+    fvsOL:::myRadioGroup("uiAcadianMort", "Mortality model:", 
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianMort),
-    myInlineTextInput("uiAcadianCutPoint","CutPoint", 
+    fvsOL:::myInlineTextInput("uiAcadianCutPoint","CutPoint", 
                fvsRun$uiCustomRunOps$uiAcadianCutPoint),
-    myRadioGroup("uiAcadianVolume", "Merchantable volume logic:", 
+    fvsOL:::myRadioGroup("uiAcadianVolume", "Merchantable volume logic:", 
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
-    myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:", 
+    fvsOL:::myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:", 
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
-    myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 
+    fvsOL:::myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:", 
        c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
-    myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:", 
+    fvsOL:::myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:", 
                fvsRun$uiCustomRunOps$uiAcadianSBWCDEF),
-    myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:", 
+    fvsOL:::myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:", 
                fvsRun$uiCustomRunOps$uiAcadianSBW.YR),
-    myInlineTextInput("uiAcadianSBW.DUR","Defoliation duration (years):", 
+    fvsOL:::myInlineTextInput("uiAcadianSBW.DUR","Defoliation duration (years):", 
                fvsRun$uiCustomRunOps$uiAcadianSBW.DUR)
   )
 }

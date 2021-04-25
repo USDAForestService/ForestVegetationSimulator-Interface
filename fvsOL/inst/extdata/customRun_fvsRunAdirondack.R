@@ -1,8 +1,28 @@
 # $Id: customRun_fvsRunAdirondack.R 3269 2020-10-27 15:16:35Z nickcrookston $
 
 # Note: This is very carefully coded.
-fvsRunAdirondack <- function(runOps)
+
+unlink("Adirondack.log")
+
+fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
 {
+  #load the growth model R code
+  rFn="AdirondackGY.R"
+  if (file.exists(rFn)) source(rFn) else
+  {
+    rFn = system.file("extdata", rFn, package = "fvsOL")
+    if (! file.exists(rFn)) stop("can not find and load model code")
+    source(rFn)
+  } 
+  
+  if (!is.null(logfile) && !interactive()) 
+  {
+    sink()
+    sink(logfile,append=TRUE)
+  }
+
+  cat ("*** in fvsRunAdirondack",date()," AdirondackGYVersionTag=",AdirondackGYVersionTag,"\n")
+
   # process the ops.
   INGROWTH = if (is.null(runOps$uiAdirondackIngrowth)) "N" else 
              runOps$uiAdirondackIngrowth
@@ -172,7 +192,7 @@ cat ("in uiAdirondack uiAdirondackVolume=",
     radioButtons("uiAdirondackIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackIngrowth),
-    myInlineTextInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
+    fvsOL:::myInlineTextInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAdirondackMinDBH),
     radioButtons("uiAdirondackMort", "Mortality model:", 
       c("Adirondack","Base Model"),inline=TRUE,
@@ -180,7 +200,7 @@ cat ("in uiAdirondack uiAdirondackVolume=",
     radioButtons("uiAdirondackVolume", "Merchantable volume logic:", 
       c("Kozak","Base Model"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackVolume),
-    myInlineTextInput("uiAdirondackCutPoint","CutPoint", 
+    fvsOL:::myInlineTextInput("uiAdirondackCutPoint","CutPoint", 
                fvsRun$uiCustomRunOps$uiAdirondackCutPoint)
   )
 }

@@ -2739,13 +2739,12 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
 
   CSI      = if (is.null(stand$CSI))  12  else stand$CSI
  
-  if (verbose) cat ("AcadianGY: nrow(tree)=",nrow(tree)," CSI=",CSI,
+  if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
     " MinDBH=",MinDBH," SBW=",SBW," useDBH_RDmodifier=",useDBH_RDmodifier,
     " useHT_RDmodifier=",useHT_RDmodifier,"\n           useMORT_RDmodifier=",
     useMORT_RDmodifier," usedHTCap=",usedHTCap,"\n")                                               
-  if (exists("AcadianVersionTag") && verbose) 
-    cat("AcadianVersionTag=",AcadianVersionTag,"\n")
+  if (exists("AcadianVersionTag") && verbose) cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
   temp = SPP.func(tree$SP)  
   tree$SPtype=temp$SPtype
@@ -2805,7 +2804,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   temp <- subset(tree,select=c("PLOT",'TREE','DBH','EXPF','ELEV','ba',
     'ba.SW','ba.WP','ba.BF','ba.RM','ba.SPR','ba.BRH','ba.OH','ba.OS','ba.RS',
     'ba.AB','ba.QA','ba.SM','ba.WC','ba.BS','ba.PB','ba.YB','ba.IHW','tph.BF'))
- 
+
+  if (verbose) cat("process temp, make maxtree, nrow=",nrow(temp),"\n") 
   temp = ddply(temp,.(PLOT),
     function(x)
     {
@@ -2821,11 +2821,13 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,NA)
   tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
   
+  if (verbose) cat("making temp2, nrow(trees)=",nrow(trees),"\n") 
   temp2=ddply(tree,.(PLOT),plyr::summarize,tph=sum(EXPF),meanSG=sum(SG.wt)/sum(ba),
               SDI=sum(SDIadd,na.rm=T),avgDBH.SW=mean(DBH.SW,na.rm=T),avgDBH=mean(DBH.10,na.rm=T),sdDBH=sd(DBH.10,na.rm=T),
               SPP.DIV=length(unique(SP)),minDBH=min(DBH.10,na.rm=T),maxDBH=max(DBH.10,na.rm=T))
   
   temp=merge(temp,temp2,by=c('PLOT'))
+  if (verbose) cat("after temp2, nrow(temp2)=",nrow(temp2)," nrow(temp)=",nrow(temp),"\n") 
   temp$avgDBH.SW=ifelse(is.na(temp$avgDBH.SW),0,temp$avgDBH.SW)
   temp$qmd<-ifelse(temp$tph==0,0,sqrt(temp$BAPH/(0.00007854*temp$tph)))
   temp$qmd.BF=ifelse(temp$tph.BF==0,0,sqrt(temp$ba.BF/(0.00007854*temp$tph.BF)))
@@ -2849,6 +2851,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   temp$pSM.ba=ifelse(temp$BAPH==0,0,temp$ba.SM/temp$BAPH)
   temp$pWC.ba=ifelse(temp$BAPH==0,0,temp$ba.WC/temp$BAPH)
   temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)
+  if (verbose) cat("after ifelse set on temp, nrow(temp)=",nrow(temp),"\n") 
   temp$DBH.RANGE=temp$maxDBH-temp$minDBH
   temp$DBH.CV=temp$sdDBH/temp$avgDBH
   temp$DBH.R=temp$avgDBH*(1+(((1.6064-1.0)*1.6064)/2)*temp$DBH.CV)^1.6064
@@ -2857,8 +2860,15 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
     sqrt(temp$DBH.RANGE)+14.811*temp$SPP.DIV-0.0848*temp$ELEV+0.0001*
     temp$ELEV^2+331.3714*(1/CSI)
   temp$SIDmax2=-6017.3*temp$meanSG+4156.3
-  temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
+  if (verbose) cat("after temp$SIDmax, temp$SIDmax=",temp$SIDmax,"\n") 
+  if (verbose) cat("after temp$SIDmax2, temp$SIDmax2=",temp$SIDmax2,"\n") 
+# temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
+  if (verbose) cat("after na check temp$SIDmax, temp$SDImax=",temp$SDImax,"\n")
+    
   temp$RD=temp$SDI/temp$SDImax
+  if (verbose) cat("after RD\n") 
+
+  if (verbose) cat("subsetting temp, nrow(temp)=",nrow(temp),"\n") 
   
   temp=subset(temp,select=c("PLOT",'BAPH','tph','qmd','pHW.ba',
     'pWP.ba','pBF.ba','pRM.ba','pSPR.ba','pBRH.ba','pOH.ba','pOS.ba','pRS.ba',
@@ -2868,6 +2878,10 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
 
   Sum.temp=temp
   temp$maxTREE = NULL
+  
+  if (verbose) cat("merge nrow(tree)=",nrow(tree)," with nrow(Sum.temp)=",
+                   nrow(Sum.temp),"\n") 
+    
   tree=merge(tree,Sum.temp,by="PLOT")
 
   #Compute basal area in larger trees
@@ -2903,27 +2917,37 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   rdMod.MORTmod_start = 0.55
   rdMod.lamda = 1.5
 
-  # BLC RD DBH mods - straight line
-  rdMod.pctInRange =(tree$RD - rdMod.dDBHmod_start) / (rdMod.dDBHmod_end - rdMod.dDBHmod_start)
-  rdMod.dDBH_RDmod = if(useDBH_RDmodifier) 
-    ifelse(tree$RD>rdMod.dDBHmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
-  
-  # BLC RD HT mods - straight line
-  rdMod.pctInRange =(tree$RD - rdMod.dHTmod_start) / (rdMod.dHTmod_end - rdMod.dHTmod_start)
-  rdMod.dHT_RDmod = if(useHT_RDmodifier) 
-    ifelse(tree$RD>rdMod.dHTmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
-  
-  # BLC RD MORT mods - exponential decay as it rises above rdMod.MORTmod_start (default RD > 0.55)                                                                 
-  rdMod.dMORT_RDmod = if(useMORT_RDmodifier)
-    ifelse(tree$RD>rdMod.MORTmod_start,exp(rdMod.lamda * (tree$RD - rdMod.MORTmod_start)),1)  else 1                                                                   
-
-  if (verbose)
+  if (verbose) cat("BLC RD DBH mods\n") 
+  if (all(!is.na(tree$RD)))
   {
-    cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
-    cat("in RDmods - mean(dDBH_RDMod) = ",mean(rdMod.dDBH_RDmod),"\n")
-    cat("in RDmods - mean(dHT_RDMod) = ",mean(rdMod.dHT_RDmod),"\n")
-    cat("in RDmods - mean(dMORT_RDMod) = ",mean(rdMod.dMORT_RDmod),"\n")
+    # BLC RD DBH mods - straight line
+    rdMod.pctInRange =(tree$RD - rdMod.dDBHmod_start) / (rdMod.dDBHmod_end - rdMod.dDBHmod_start)
+    rdMod.dDBH_RDmod = if(useDBH_RDmodifier) 
+    ifelse(tree$RD>rdMod.dDBHmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
+    
+    # BLC RD HT mods - straight line
+    rdMod.pctInRange =(tree$RD - rdMod.dHTmod_start) / (rdMod.dHTmod_end - rdMod.dHTmod_start)
+    rdMod.dHT_RDmod = if(useHT_RDmodifier) 
+      ifelse(tree$RD>rdMod.dHTmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
+    
+    # BLC RD MORT mods - exponential decay as it rises above rdMod.MORTmod_start (default RD > 0.55)                                                                 
+    rdMod.dMORT_RDmod = if(useMORT_RDmodifier)
+      ifelse(tree$RD>rdMod.MORTmod_start,exp(rdMod.lamda * (tree$RD - rdMod.MORTmod_start)),1)  else 1                                                                   
+    
+    if (verbose)
+    {
+      cat("In RDmods, tree$RD=",tree$RD,"\n")
+      cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
+      cat("in RDmods - mean(dDBH_RDMod) = ",mean(rdMod.dDBH_RDmod),"\n")
+      cat("in RDmods - mean(dHT_RDMod) = ",mean(rdMod.dHT_RDmod),"\n")
+      cat("in RDmods - mean(dMORT_RDMod) = ",mean(rdMod.dMORT_RDmod),"\n")
+    }
+  } else {
+    rdMod.dDBH_RDmod = 1. 
+    rdMod.dHT_RDmod = 1.
+    rdMod.dMORT_RDmod = 1.
   }
+    
   
   #form and risk
   #tree$LSW=mapply(form.prob,tree$SPP,tree$DBH)
