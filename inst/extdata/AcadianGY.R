@@ -2862,8 +2862,9 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   temp$SIDmax2=-6017.3*temp$meanSG+4156.3
   if (verbose) cat("after temp$SIDmax, temp$SIDmax=",temp$SIDmax,"\n") 
   if (verbose) cat("after temp$SIDmax2, temp$SIDmax2=",temp$SIDmax2,"\n") 
+# the next line sometimes failed...
 # temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
-  if (verbose) cat("after na check temp$SIDmax, temp$SDImax=",temp$SDImax,"\n")
+#  if (verbose) cat("after na check temp$SIDmax, temp$SDImax=",temp$SDImax,"\n")
     
   temp$RD=temp$SDI/temp$SDImax
   if (verbose) cat("after RD\n") 
