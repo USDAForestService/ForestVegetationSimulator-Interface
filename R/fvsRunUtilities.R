@@ -45,17 +45,6 @@ cat ("in loadVarData, globals$activeVariants=",globals$activeVariants,"\n")
   } 
 })
 
-reorderFVSRuns <- function(FVS_Runs)
-{
-  if (length(FVS_Runs) > 1)
-  {
-    tims = unlist(lapply(FVS_Runs,function (x) attr(x,"time")))
-    idx = sort(tims,decreasing=TRUE,index.return=TRUE)$ix
-    FVS_Runs = FVS_Runs[idx]
-  }
-  FVS_Runs
-}
-
 findIdx = function (list, uuid)
 {
   if (length(list) == 0 || is.null(uuid)) return(NULL)
@@ -2580,4 +2569,225 @@ getTableName <- function(dbcon,basename)
   if (is.na(itab)) itab <- grep(basename,ltbs,fixed=TRUE)[1]
   if (is.na(itab)) return(NULL) else return(tbs[itab])  
 }
+
+
+#these two functions create compressed raw objects given an Robject or the reverse
+toRaw   = function(x) memCompress(serialize(x,NULL),type="gzip")
+fromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
+
+storeOrUpdateObject <- function (db,data)
+{
+  # store (or update) an Robject in database db in table "Robjects"
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(data)) stop("data required")
+  name = deparse(substitute(data))
+  if (!("Robjects" %in% dbListTables(db))) dbExecute(db,
+    "create table Robjects (name text primary key, data blob)")
+  row = dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');"))
+  row = row[1,1]
+  toRaw = function(x) memCompress(serialize(x,NULL),type="gzip")
+  if (is.na(row)) 
+  {  # insert
+    changed=suppressWarnings(dbExecute(db,
+      "insert into Robjects (name,data) values ((:name), (:data))", 
+      params=data.frame(name=name,data=I(list(toRaw(data))))))
+  } else { #update
+    changed=suppressWarnings(dbExecute(db,
+      paste0("update Robjects set data=(:data) where (rowid=",row,")"),
+      params=data.frame(data=I(list(toRaw(data))))))
+  }
+  changed
+}
+
+loadObject <- function (db,name,asName=name)
+{
+  # load an Robject from database db table "Robjects". The object is loaded into
+  # the parent.frame and given the name "name" or the one passed in "as.name"
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(name)) stop("name required")
+  row = try(dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');")))
+  if (class(row)=="try-error") return()
+  row = row[nrow(row),1]
+  if (is.na(row)) return()
+  data=dbGetQuery(db,paste0("select data from Robjects where (rowid=",row,");"))
+  if (nrow(data)) assign(envir=parent.frame(),x=asName,value=fromRaw(data[1,1][[1]]))
+}
+
+removeObject <- function (db,name)
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(name)) stop("name required")
+  row = dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');"))
+  row = row[nrow(row),1]
+  if (length(row) == 0 || is.na(row)) return(0)
+  for (rr in row) dbExecute(db,paste0("delete from Robjects where (rowid=",rr,");"))
+  return(length(row))
+}
+
+listTableNames <- function (db) 
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  dbGetQuery(db,"select name from Robjects")[,1]
+}
+
+
+mkFVSProjectDB <- function (prjDir=getwd())
+{
+  # used to build an FVSProject database from the .RData file formats
+  if (!dir.exists(prjDir)) return(NULL) 
+  prjDir = normalizePath(prjDir)
+  prjDB = file.path(prjDir,"FVSProject.db")
+  db = dbConnect(SQLite(), dbname = prjDB)
+  dbExecute(db,paste0("create table if not exists FVSRuns ",
+      "(uuid text primary key, name text, time integer, run blob)"))
+      
+### TODO: this code assumes we have old run files and it loads them. After about 
+### the year 2025 this code can be deleted down to the dbDisconnect.
+  runsFile = file.path(prjDir,"FVS_Runs.RData")
+  if (file.exists(runsFile)) try(load(runsFile))
+  if (exists("FVS_Runs"))
+  {
+    stdstkParms=attr(FVS_Runs,"stdstkParms")
+    if (!is.null(stdstkParms)) storeOrUpdateObject(db,stdstkParms)
+    for (i in 1:length(FVS_Runs))
+    {
+      run=FVS_Runs[i]
+      runFile = file.path(prjDir,paste0(names(run),".RData"))
+      if (!file.exists(runFile)) next
+      rtn = try(load(runFile))
+      if (class(rtn) == "try.error" || !exists("saveFvsRun")) next
+      df = data.frame(uuid=names(run),name=unlist(run),time=attr(which="time",x=run[[1]]),
+           run=I(list(toRaw(saveFvsRun))))
+      row = dbGetQuery(db,paste0("select rowid from FVSRuns where (uuid='",names(run),"');"))
+      row = row[nrow(row),1]
+      for (rr in row) dbExecute(db,paste0("delete from FVSRuns where (rowid=",rr,");"))      
+      rtn = dbExecute(db,paste0("insert into FVSRuns (uuid,name,time,run) values ",
+                           "((:uuid), (:name), (:time), (:run))"), params=df)
+      unlink(runFile)
+    }
+    unlink(runsFile)
+  }
+  # try getting other run files that were not in the project file (orphans)
+  for (fl in dir(pattern="RData"))
+  {
+    if (nchar(fl) == 42) 
+    {
+      uuid=substr(fl,1,36)
+      if (exists("saveFvsRun")) rm (saveFvsRun)
+      load(fl)
+      if (!exists("saveFvsRun")) next
+      if (saveFvsRun$uuid == uuid) 
+      {
+        attrtime = attr(saveFvsRun,"time")
+        if (is.null(attrtime)) attrtime = as.integer(file.mtime(fl))
+        storeFVSRun(db,saveFvsRun,time=as.integer(file.mtime(fl)))
+        unlink(fl)
+      }
+    }
+  }
+  ### process some of the other odd .RData files.
+  if (file.exists("customQueries.RData"))
+  {
+    load("customQueries.RData")
+    storeOrUpdateObject(db,customQueries)
+    rm (customQueries)
+    unlink("customQueries.RData")
+  }
+  if (file.exists("FVS_kcps.RData"))
+  {
+    load("FVS_kcps.RData")
+    storeOrUpdateObject(db,customCmps)
+    rm (customCmps)
+    unlink("FVS_kcps.RData")
+  }   
+  if (file.exists("GraphSettings.RData"))
+  {
+    load("GraphSettings.RData")
+    storeOrUpdateObject(db,GraphSettings)
+    rm (GraphSettings)
+    unlink("GraphSettings.RData")
+  }   
+  unlink("prms.RData")
+  unlink("treeforms.RData")
+  unlink("fvsOnlineHelpRender.RData")
+  ########################
+  cnt = dbGetQuery(db,"select count(*) from FVSRuns")
+  dbDisconnect(db)
+  cnt[1,1]
+}
+
+connectFVSProjectDB <- function (prjDir=getwd())
+{
+  if (!dir.exists(prjDir)) return(NULL) 
+  prjDir = normalizePath(prjDir)
+  prjDB = file.path(prjDir,"FVSProject.db")
+  dbConnect(SQLite(), dbname = prjDB)
+}
+
+getFVSRuns <- function(db,asList=TRUE)
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if ("FVSRuns" %in% dbListTables(db))
+  {
+    df = dbGetQuery(db,"select uuid,name,time from FVSRuns order by time desc")  
+  } else return(NULL) 
+  if (asList) 
+  {  
+    rl = df$uuid
+    names(rl) = df$name
+    return(as.list(rl))
+  }
+  return(df)
+}
+
+removeFVSRun <- function(db,uuid) 
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(uuid)) stop("uuid required")
+  if ("FVSRuns" %in% dbListTables(db))
+    try(dbExecute(db,paste0("delete from FVSRuns where (uuid='",uuid,"');"))) else 0
+}
+
+storeFVSRun <- function(db,FVSRun,time=NULL)
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(FVSRun) || class(FVSRun) != "fvsRun") stop("FVSRun required")
+  if ("FVSRuns" %in% dbListTables(db)) 
+    dbExecute(db,paste0("delete from FVSRuns where (uuid='",FVSRun$uuid,"');")) else
+      dbExecute(db, "create table FVSRuns (uuid text, name text, time integer, run blob)")
+    time= if (is.null(time)) as.integer(Sys.time()) else as.integer(time)
+    df = data.frame(uuid=FVSRun$uuid,name=FVSRun$title,time=time,
+       run=I(list(toRaw(FVSRun))))
+  rtn = dbExecute(db,paste0("insert into FVSRuns (uuid,name,time,run) values ",
+                     "((:uuid), (:name), (:time), (:run))"), params=df)
+  rtn
+}
+
+loadFVSRun <- function(db,uuid)
+{
+  if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
+  if (missing(uuid)) stop("uuid required")
+  rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",uuid,"')"))
+  if (nrow(rtn)) fromRaw(rtn[1,1][[1]]) else NULL
+}
+
+  
+mergeProjects <- function(masterdb,addondb)
+{
+  if (!file.exists(master)) return(0)
+  if (!file.exists(addondb))  return(0)
+  db = dbConnect(SQLite(), dbname = master)
+  qry = paste0("attach database '",addondb,"' as 'addondb';")
+  dbExecute(db,qry)
+  qry = paste0("insert into FVSRuns select * from addondb.FVSRuns ",
+               "where uuid not in (select uuid from FVSRuns);")
+  dbExecute(db,qry)
+  cnt = dbGetQuery(db,"select count(*) from FVSRuns;")[1,1] 
+  dbDisconnect(db)
+  cnt
+}  
+  
+  
+      
+
 

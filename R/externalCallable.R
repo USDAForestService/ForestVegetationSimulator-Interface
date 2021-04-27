@@ -154,13 +154,9 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   }  
   fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) + as.numeric(simLength))
   fvsRun$cyclelen <- cycleLength
-  FVS_Runs <- append(FVS_Runs,fvsRun)
-  names (FVS_Runs)[length(FVS_Runs)] <- fvsRun$uuid
-  attr(FVS_Runs[[length(FVS_Runs)]],"time")=as.integer(Sys.time())  
-  FVS_Runs=reorderFVSRuns(FVS_Runs)
-  save(FVS_Runs,file=runsFile)
-  saveFvsRun = fvsRun 
-  save(saveFvsRun,file=paste0(fvsRun$uuid,".RData"))
+  db = connectFVSProjectDB(prjDir)
+  storeFVSRun(db,fvsRun)
+  dbDisconnect(db)
   return(fvsRun$uuid)
 }
 
@@ -184,27 +180,18 @@ externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
     stop("The specified project directory must exist.")
   if (is.null(runUUID)) stop("runUUID must be specified.")
-  runsFile=file.path(prjDir,"FVS_Runs.RData")
-  if (!file.exists(runsFile)) stop(paste0(runFile," not found."))
-  load(runsFile)
-  rFile=file.path(prjDir,paste0(runUUID,".RData"))
-  if (!file.exists(rFile) || !(runUUID %in% names(FVS_Runs))) 
-    stop("runUUID run data not found.")
-  load(rFile)
-  if (!exists("saveFvsRun")) stop("Run load error.")
-  if (is.null(dupTitle)) dupTitle=nextRunName(FVS_Runs)
-  dupTitle=mkNameUnique(dupTitle,unlist(FVS_Runs))
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db))
+  saveFvsRun=loadFVSRun(db,runUUID)
+  if (is.null(saveFvsRun)) stop("runUUID run data not found.")
+  prjs=getFVSRuns(db)  
+  if (is.null(dupTitle)) dupTitle=nextRunName(names(prjs))
+  dupTitle=mkNameUnique(dupTitle,names(prjs))
   saveFvsRun$title=dupTitle
   uuid=uuidgen()
   saveFvsRun$uuid=uuid
-  saveFvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(FVS_Runs)) else dupMgmtID
-  rFile=file.path(prjDir,paste0(uuid,".RData"))
-  save(file=rFile,saveFvsRun)
-  FVS_Runs <- append(FVS_Runs,saveFvsRun$title)
-  names (FVS_Runs)[length(FVS_Runs)] <- saveFvsRun$uuid
-  attr(FVS_Runs[[length(FVS_Runs)]],"time")=as.integer(Sys.time())  
-  FVS_Runs=reorderFVSRuns(FVS_Runs)
-  save(FVS_Runs,file=runsFile)
+  saveFvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(prjs)) else dupMgmtID
+  storeFVSRun(db,saveFvsRun)
   return(uuid)
 } 
 
@@ -213,25 +200,19 @@ externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
 #'
 #' Pass in a project directory and get back a data.fram of the FVS runs. 
 #'
-#' @param prjDir is the path name to the project directory, if null the 
-#'   current directory is the project directory.
+#' @param prjDir is the path name to the project directory, default is  
+#'   current directory.
 #' @return a data.frame listing the uuid, title, and datetime of existing runs
 #'   and NULL if the project does not exist or if no runs exist.
 #' @export
-externalGetRuns <- function (prjDir=NULL)
+externalGetRuns <- function (prjDir=getwd())
 {
-  if (is.null(prjDir)) prjDir=getwd() 
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
-  runsFile = file.path(prjDir,"FVS_Runs.RData")
-  if (!file.exists(runsFile)) return(NULL)
-  if (file.exists(runsFile)) load(runsFile) else return(NULL)
-  rr=lapply(FVS_Runs,function(x) c(x,attr(x,"time")))
-  runs=as.data.frame(t(data.frame(rr)))
-  colnames(runs)=c("title","datetime")
-  runs=cbind(uuid=names(rr),runs)
-  rownames(runs)=1:nrow(runs)
-  class(runs$datetime)= c('POSIXt','POSIXct')
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db))
+  runs = getFVSRuns(db,asList=FALSE)
+  class(runs$time)= c('POSIXt','POSIXct')
   return(runs)
 }
 
@@ -254,23 +235,26 @@ externalDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
   if (is.null(prjDir)) prjDir=getwd() 
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
-  runsFile = file.path(prjDir,"FVS_Runs.RData")
-  if (file.exists(runsFile))
+  db = connectFVSProjectDB(prjDir)
+  on.exit({
+    if (class(db)  == "SQLiteConnection") dbDisconnect(db)
+    if (exists("dbO") && class(dbO) == "SQLiteConnection") dbDisconnect(dbO)
+  })    
+  runs = getFVSRuns(db)
+  todel=na.omit(match(runUUIDs,runs))
+  if (length(todel))
   {
-    load(runsFile)
-    todel = na.omit(match(runUUIDs,names(FVS_Runs)))
-    if (length(todel) == length(FVS_Runs)) unlink(runsFile) else
+    deluuid = runs[todel]
+    for (du in deluuid) 
     {
-      FVS_Runs = FVS_Runs[-todel]
-      save(FVS_Runs,file=runsFile)
+      removeFVSRun(db,du)
+      removeFVSRunFiles(du,all=TRUE)
     }
-  }
-  on.exit(expr = dbDisconnect(dbcon))
-  for (uuid in runUUIDs) removeFVSRunFiles(uuid,all=TRUE)
-  if (delOutput)
-  {
-    dbcon=dbConnect(dbDriver("SQLite"),file.path(prjDir,"FVSOut.db"))
-    for (uuid in runUUIDs) deleteRelatedDBRows(uuid,dbcon)
+    if (delOutput)
+    {
+      dbO=dbConnect(dbDriver("SQLite"),file.path(prjDir,"FVSOut.db"))
+      for (du in deluuid) deleteRelatedDBRows(du,dbO)
+    }
   }
   return(externalGetRuns())
 }
@@ -298,9 +282,9 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
   if (missing(kwds) || class(kwds) != "data.frame") 
      stop("kwds is required and must be a data.frame")
   prjDir = normalizePath(prjDir)
-  rFile=file.path(prjDir,paste0(runUUID,".RData"))
-  if (!file.exists(rFile)) stop("runUUID run data not found")
-  load(rFile)
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  saveFvsRun = loadFVSRun(db,runUUID)
   if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
   if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   cols = colnames(kwds)
@@ -336,19 +320,7 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
     }
   }
   if (nadd==0) return(0)
-    
-  runsFile = file.path(prjDir,"FVS_Runs.RData")
-  if (file.exists(runsFile))
-  {
-    load(runsFile)
-    touch = match(runUUID,names(FVS_Runs))
-    if (!is.na(touch)) 
-    {
-      attr(FVS_Runs[[touch]],"time") <- as.integer(Sys.time())
-      save(FVS_Runs,file=runsFile)
-    }
-  }
-  save(saveFvsRun,file=rFile)
+  storeFVSRun(db,saveFvsRun)  
   nadd
 }
 
@@ -385,9 +357,9 @@ externalSetSomeOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NU
   changed=FALSE
   if (missing(runUUID)) stop("runUUID required")
   prjDir = normalizePath(prjDir)
-  rFile=file.path(prjDir,paste0(runUUID,".RData"))
-  if (!file.exists(rFile)) stop("runUUID run data not found")
-  load(rFile)
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  saveFvsRun = loadFVSRun(db,runUUID)
   if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
   if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   if (!is.null(autoOut))
@@ -433,7 +405,7 @@ externalSetSomeOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NU
   }
   if (changed) 
   {
-    save(saveFvsRun,file=rFile)
+    storeFVSRun(db,saveFvsRun)
     return(runUUID)
   } 
   NULL
@@ -454,10 +426,11 @@ externalGetComponentKwds <- function(prjDir=getwd(),runUUID)
 {
   if (missing(runUUID)) stop("runUUID required")
   prjDir = normalizePath(prjDir)
-  rFile=file.path(prjDir,paste0(cmprunUUID,".RData"))
-  if (!file.exists(rFile)) stop("runUUID run data not found")
-  load(rFile)
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  saveFvsRun = loadFVSRun(db,runUUID)
   if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   gdf = NULL
   for (grp in saveFvsRun$grps)
     for (cmp in grp$cmps) if (nchar(cmp$kwds))
@@ -489,10 +462,11 @@ externalDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
   if (missing(runUUID)) stop("runUUID required")
   if (missing(compUUIDs)) stop("compUUIDs required")
   prjDir = normalizePath(prjDir)
-  rFile=file.path(prjDir,paste0(cmprunUUID,".RData"))
-  if (!file.exists(rFile)) stop("runUUID run data not found")
-  load(rFile)
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  saveFvsRun = loadFVSRun(db,runUUID)
   if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   changed = 0
   for (grp in saveFvsRun$grps)
   {
@@ -522,7 +496,7 @@ externalDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
       changed = changed+length(todel)
     }
   }
-  if (changed) save(saveFvsRun,file=rFile)
+  if (changed) storeFVSRun(db,saveFvsRun)
   return(changed)
 }
 
