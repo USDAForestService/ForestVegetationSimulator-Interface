@@ -4,11 +4,11 @@
 \alias{externalGetRuns}
 \title{Get FVS Runs}
 \usage{
-externalGetRuns(prjDir = NULL)
+externalGetRuns(prjDir = getwd())
 }
 \arguments{
-\item{prjDir}{is the path name to the project directory, if null the 
-current directory is the project directory.}
+\item{prjDir}{is the path name to the project directory, default is
+current directory.}
 }
 \value{
 a data.frame listing the uuid, title, and datetime of existing runs
