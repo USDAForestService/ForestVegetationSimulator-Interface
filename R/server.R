@@ -241,7 +241,7 @@ cat ("Project is locked.\n")
 
     if (nruns==0)
     {   
-      globals$fvsRun <- mkfvsRun$new(uuid=uuidgen())  
+      globals$fvsRun <- mkfvsRun$new(uuid=uuidgen(),title="Run 1")
       resetGlobals(globals,FALSE)
       storeFVSRun(dbGlb$prjDB,globals$fvsRun)
     } 
@@ -5365,15 +5365,21 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
           if (ocon) dbDisconnect(dbGlb$dbOcon)
           if (icon) dbDisconnect(dbGlb$dbIcon)
+          curdir=getwd()
           td <- tempdir()
-          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
+          setwd(td)
+          lapply(dir(),function(x) unlink(x,recursive=TRUE,force=TRUE))
+          rtn = try(unzip (paste0(curdir,"/",fvsWorkBackup),exdir=td,
                     overwrite=TRUE,junkpaths=FALSE))
           if (class(rtn)=="try-error") return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
           del=NULL
           for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
-                           "prms.RData",".log$")) del = c(del,grep (todel,zipConts))
+                           "prms.RData",".log$","FVS_Data.db.default","FVS_Data.db.empty", 
+                           "databaseDescription.xlsx","projectIsLocked.txt",".png$", 
+                           "SpatialData.RData.default" )) del = c(del,grep (todel,zipConts))
           if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
+          mkFVSProjectDB()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
           pgms=dir(td,pattern="^FVS[a-z]*.so$")
           if (length(pgms)) 
@@ -5385,6 +5391,13 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
             file.rename(from=frompgms,to=topgms)
             dir.create("FVSbin")
           }
+          setwd(curdir)
+          curcnts=dir()
+          tokeep = grep("^ProjectBackup",curcnts)
+          tokeep = c(tokeep,grep("^projectIsLocked",curcnts))
+          tokeep = c(tokeep,grep("^projectId",curcnts))
+          curcnts = curcnts[-tokeep]
+          lapply(paste0(td,"/",curcnts),unlink,recursive=TRUE)          
           progress$set(message = "Copying backup contents",value = 4)
           zipConts <- dir(td,recursive=TRUE)    
           lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
@@ -7510,6 +7523,8 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       if (nchar(input$PrjNewTitle)==0) return()
       prjid = if (file.exists("projectId.txt")) scan("projectId.txt",
          what="character",sep="\n",quiet=TRUE) else NUL
+      fbin = Sys.readlink(fvsBin) #will be na if file does not exist, "" if not symbolic link.
+      if (is.na(fbin)) return()
       curdir = getwd()
       setwd("../")
       newTitle = input$PrjNewTitle
@@ -7520,7 +7535,13 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
         newTitle
       } else uuidgen()
       dir.create(fn)
-      setwd(fn) 
+      setwd(fn)
+      if (dirname(fvsBin) == ".")  #fvsBin points to an entry in the current dir.
+      {
+        if (nchar(fbin)) file.symlink(fbin, "FVSbin") else 
+          file.copy(paste0(normalizePath(curdir),"/FVSbin"), getwd(), recursive = TRUE,
+            copy.mode = TRUE, copy.date = TRUE)
+      }
       if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
       ntit=paste0("title= ",newTitle)
       idrow = grep("title=",prjid)
@@ -7529,7 +7550,6 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       setwd(curdir)
       updateProjectSelections()
-      progress$close()
     })
   }) 
   
@@ -7559,8 +7579,10 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             globals$saveOnExit = TRUE
             globals$reloadAppIsSet=1
             rscript = if (exists("RscriptLocation")) RscriptLocation else 
-              commandArgs(trailingOnly=FALSE)[1]     
-            cmd = paste0(rscript,' --vanilla -e "require(fvsOL);fvsOL(prjDir=newPrj,fvsBin=fvsBin);quit()"')
+              commandArgs(trailingOnly=FALSE)[1]
+            cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
+                         "',fvsBin='",fvsBin,"');quit()$")
+            cmd = gsub('$','"',cmd,fixed=TRUE)
             if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
 cat ("cmd for launch project=",cmd,"\n")
             system (cmd,wait=FALSE)

@@ -2605,6 +2605,7 @@ loadObject <- function (db,name,asName=name)
   # the parent.frame and given the name "name" or the one passed in "as.name"
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
   if (missing(name)) stop("name required")
+  if (! "Robjects" %in% dbListTables(db)) return ()
   row = try(dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');")))
   if (class(row)=="try-error") return()
   row = row[nrow(row),1]
@@ -2617,6 +2618,7 @@ removeObject <- function (db,name)
 {
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
   if (missing(name)) stop("name required")
+  if (! "Robjects" %in% dbListTables(db)) return (0)
   row = dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');"))
   row = row[nrow(row),1]
   if (length(row) == 0 || is.na(row)) return(0)
@@ -2627,7 +2629,8 @@ removeObject <- function (db,name)
 listTableNames <- function (db) 
 {
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
-  dbGetQuery(db,"select name from Robjects")[,1]
+  if ("Robjects" %in% dbListTables(db)) 
+    dbGetQuery(db,"select name from Robjects")[,1] else NULL
 }
 
 
