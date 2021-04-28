@@ -693,7 +693,8 @@ cat ("tbs6=",tbs,"\n")
         }
         globals$tbsFinal <- tbsFinal
         updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
-                          selected=sel)
+                          selected="FVS_Cases")
+                          
         setProgress(value = NULL)
       }, min=1, max=6)
     } else
@@ -786,12 +787,12 @@ cat("selectdbtables\n")
         }
         break
       }
-      vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]), 
-        fvsOutData$dbLoadData)
+      vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]),fvsOutData$dbLoadData)
       vars = unlist(vars)
+
       if (length(vars) == 0) return()
       fvsOutData$dbVars    <- vars
-      fvsOutData$dbSelVars <- vars
+      fvsOutData$dbSelVars <- vars     
       updateSelectInput(session=session, "selectdbvars",choices=as.list(vars), 
                         selected=vars)
       output$tbSel <-renderUI({
@@ -826,7 +827,7 @@ cat ("input$selectdbvars=",input$selectdbvars,"\n")
   observe({  
     if (input$leftPan == "Custom Query")
     {
-cat("Custom Query\n")        
+cat("Custom Query\n")
       initTableGraphTools(globals,session,output,fvsOutData)
       if (length(globals$customQueries) == 0) 
       {
@@ -1308,11 +1309,16 @@ cat ("cmd=",cmd,"\n")
         globals$exploreChoices$dbhclass = cho        
         iprg = iprg+1
         setProgress(message = "Finishing", detail  = "", value = iprg)
-        vars <- c("Select All",vars)
-        updateCheckboxGroupInput(session, "browsevars", choices=as.list(vars), 
+        fvsOutData$dbData <- mdat
+        vars <- c("Select all",vars)
+        fvsOutData$browseVars <- vars
+        varsList <- as.list(vars)
+        vars = setdiff(vars,c("Select all","Stand_CN","KeywordFile",
+           "SamplingWt","Variant","Version", 
+           "RV", "RunDateTime"))
+        fvsOutData$browseSelVars <- vars
+        updateCheckboxGroupInput(session, "browsevars", choices=varsList, 
                                  selected=vars,inline=TRUE)                               
-        fvsOutData$dbData        <- mdat
-        fvsOutData$browseVars <- fvsOutData$browseSelVars <- vars
         setProgress(value = NULL)          
       }, min=1, max=12)
     } 
@@ -1504,7 +1510,7 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
       cont = union("Year",setdiff(input$browsevars,cats))
-      if(length(cont) > 1 && cont[2]=="Select All") cont <- cont[-2]
+      if(length(cont) > 1 && cont[2]=="Select all") cont <- cont[-2]
       spiv  = if (length(input$pivVar) && 
                 input$pivVar %in% cats) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 

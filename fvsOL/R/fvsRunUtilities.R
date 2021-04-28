@@ -2608,7 +2608,7 @@ loadObject <- function (db,name,asName=name)
   row = try(dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');")))
   if (class(row)=="try-error") return()
   row = row[nrow(row),1]
-  if (is.na(row)) return()
+  if (length(row)==0 || row==0 || is.na(row)) return()
   data=dbGetQuery(db,paste0("select data from Robjects where (rowid=",row,");"))
   if (nrow(data)) assign(envir=parent.frame(),x=asName,value=fromRaw(data[1,1][[1]]))
 }
