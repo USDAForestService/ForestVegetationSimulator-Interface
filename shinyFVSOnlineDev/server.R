@@ -2681,6 +2681,12 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
   # install callback functionality for the textarea that has the focus 
   # to get start and end selection poistions.
   observe({
+    if (length(input$freeEdit)) 
+    {
+      session$sendCustomMessage(type="getStartEnd", "freeEdit")
+    }
+  })
+  observe({
     if (length(input$focusedElement) && 
         input$focusedElement %in% c("freeEdit","condDisp"))
       session$sendCustomMessage(type="getStartEnd", input$focusedElement)    
@@ -2700,12 +2706,16 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
   observe({
     if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
-      if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
-      eltList <- append(eltList,list(
-        actionButton("fvsFuncInsert","Insert function"),
-        actionButton("fvsFuncCancel","Cancel function"),h6()))
-      output$fvsFuncRender <- renderUI(eltList)
+      if (is.null(pkeys) && input$freeFuncs !=" "){# assume it's one of the three EM functions that don't 
+                          # have any pkeys (MAXINDEX,MININDEX & TIME)
+        insertStringIntoFocusedTextarea(input$focusedElement,paste0(input$freeFuncs,"()"))
+      }else {
+        eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+        eltList <- append(eltList,list(
+          actionButton("fvsFuncInsert","Insert function"),
+          actionButton("fvsFuncCancel","Cancel function"),h6()))
+        output$fvsFuncRender <- renderUI(eltList)
+      }
     })
   })  
   observe({  #fvsFuncCancel
