@@ -194,6 +194,7 @@ cat ("FVSOnline/OnLocal interface server start\n")
 
   # set serverDate to be the release date using packageVersion
   serverDate=as.character(packageVersion("fvsOL"))
+  serverDate=gsub(".","",serverDate, fixed = TRUE)
 
 cat ("ServerDate=",serverDate,"\n")
 
