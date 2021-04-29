@@ -2367,7 +2367,8 @@ cat ("saveRun\n")
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management")
       updateSelectInput(session=session, inputId="compTabSet", 
-                        selected="Management") 
+                        selected="Management")
+      if (length(globals$mgmtsel) == 0) globals$mgmtsel <- mkMgmtCats(globals)
       selChoices = names(globals$FVS_Runs) 
       names(selChoices) = globals$FVS_Runs
       updateSelectInput(session=session, inputId="runSel", 
@@ -3090,6 +3091,7 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
   ## addMgmtCats
   observe({
     if (is.null(input$addMgmtCats)) return()
+    if (length(globals$mgmtsel) == 0) globals$mgmtsel <- mkMgmtCats(globals)
     updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0, 
       choices=globals$mgmtsel[[as.numeric(input$addMgmtCats)]])
     output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
@@ -3436,6 +3438,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
                 input[[paste0("cnd.",pkey)]] else input[[pkey]]
         if(is.null(instr))instr=" "
         if(instr=="blank")instr=" "
+        if(length(grep("noInput",fps)))instr=" "
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
