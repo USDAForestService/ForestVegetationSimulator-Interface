@@ -162,16 +162,13 @@ defaultRun <- list("Default useful for all FVS variants"="fvsRun")
 
 # used in Tools, dlZipSet
 zipList <- list(  
+  "FVSProject data base (covers all runs)" = "fvsProjdb",
   "Output data base for for all runs"  = "outdb",  
   "Keyword file for current run" = "key",  
   "FVS output file for current run" = "out",  
   "SVS output files for current run" = "subdir",  
-  "Input data base FVS_Data.db" = "FVS_Data",  
-  "Spatial data (SpatialData.RData)" = "SpatialData",  
-  "Graph settings (GraphSettings.RData)" = "GraphSettings",  
-  "FVS runs (RData files)" = "FVS_Runs",  
-  "Custom SQL query archive (customQueries.RData)" = "customSQL",  
-  "FVS keyword component archive (FVS_kcps.RData)" = "FVS_kcps")  
+  "Input data base FVS_Data.db" = "FVS_Data", 
+  "Spatial data (SpatialData.RData)" = "SpatialData")  
 selZip <- unlist(zipList[1:4])  
 
 # if "runScripts.R" exists in the project directory, then use it, otherwise load
@@ -5373,7 +5370,8 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           if (ocon) dbDisconnect(dbGlb$dbOcon)
           if (icon) dbDisconnect(dbGlb$dbIcon)
           curdir=getwd()
-          td <- tempdir()
+          td <- paste0(tempdir(),"/pbk")
+          suppressWarnings(dir.create(td))
           setwd(td)
           lapply(dir(),function(x) unlink(x,recursive=TRUE,force=TRUE))
           rtn = try(unzip (paste0(curdir,"/",fvsWorkBackup),exdir=td,
@@ -5381,6 +5379,8 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           if (class(rtn)=="try-error") return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
           del=NULL
+          # TODO: most of this list is related to old versions the software (pre "package")
+          # and can be reviewed (many dropped) in the future, say 2024 or so.
           for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
                            "prms.RData",".log$","FVS_Data.db.default","FVS_Data.db.empty", 
                            "databaseDescription.xlsx","projectIsLocked.txt",".png$", 
@@ -5401,7 +5401,6 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           setwd(curdir)
           curcnts=dir()
           tokeep = grep("^ProjectBackup",curcnts)
-          tokeep = c(tokeep,grep("^projectIsLocked",curcnts))
           tokeep = c(tokeep,grep("^projectId",curcnts))
           curcnts = curcnts[-tokeep]
           lapply(paste0(td,"/",curcnts),unlink,recursive=TRUE)          
@@ -5410,8 +5409,6 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
           unlink(td,recursive=TRUE)
         } 
-        if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
-        if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
         globals$reloadAppIsSet=1
         globals$saveOnExit=FALSE
         progress$close()
@@ -7572,19 +7569,21 @@ cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
       { 
         if (isLocal()) 
         {
-          saveRun(input,session)
-          if(.Platform$OS.type == "windows")
-          {
-            if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-            if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-            write(file="projectId.txt",paste0("title= ",basename(newPrj)))
-            globals$saveOnExit = TRUE
-            globals$reloadAppIsSet=1
-            setwd(newPrj)
-            session$reload()
-          } else {
-            globals$saveOnExit = TRUE
-            globals$reloadAppIsSet=1
+#TODO: rmeove this "difference" with windows and allow more than one project to be open.
+#          if(.Platform$OS.type == "windows")
+#          {
+#            saveRun(input,session) 
+#            if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
+#            if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
+#            write(file="projectId.txt",paste0("title= ",basename(newPrj)))
+#            globals$saveOnExit = TRUE
+#            globals$reloadAppIsSet=1
+#            setwd(newPrj)
+#            session$reload()
+#          } else { 
+#TODO: The next two lines are not needed
+#            globals$saveOnExit = TRUE
+#            globals$reloadAppIsSet=1
             rscript = if (exists("RscriptLocation")) RscriptLocation else 
               commandArgs(trailingOnly=FALSE)[1]
             cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
