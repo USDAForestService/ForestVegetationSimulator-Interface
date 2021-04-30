@@ -7557,42 +7557,26 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
     })
   }) 
   
-  observe(if (length(input$PrjSwitch) && input$PrjSwitch > 0) 
+  observe(if (length(input$PrjOpen) && input$PrjOpen > 0) 
   {
     isolate({
       newPrj=paste0("../",input$PrjSelect)
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
-cat("PrjSwitch to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
+cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
 " locked=",plk,"\n")
       if (plk) {updateProjectSelections();return()}
       if (dir.exists(newPrj))
       { 
         if (isLocal()) 
         {
-#TODO: rmeove this "difference" with windows and allow more than one project to be open.
-#          if(.Platform$OS.type == "windows")
-#          {
-#            saveRun(input,session) 
-#            if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-#            if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))
-#            write(file="projectId.txt",paste0("title= ",basename(newPrj)))
-#            globals$saveOnExit = TRUE
-#            globals$reloadAppIsSet=1
-#            setwd(newPrj)
-#            session$reload()
-#          } else { 
-#TODO: The next two lines are not needed
-#            globals$saveOnExit = TRUE
-#            globals$reloadAppIsSet=1
-            rscript = if (exists("RscriptLocation")) RscriptLocation else 
-              commandArgs(trailingOnly=FALSE)[1]
-            cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
-                         "',fvsBin='",fvsBin,"');quit()$")
-            cmd = gsub('$','"',cmd,fixed=TRUE)
-            if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
+          rscript = if (exists("RscriptLocation")) RscriptLocation else 
+            commandArgs(trailingOnly=FALSE)[1]
+          cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
+                       "',fvsBin='",fvsBin,"');quit()$")
+          cmd = gsub('$','"',cmd,fixed=TRUE)
+          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
 cat ("cmd for launch project=",cmd,"\n")
-            system (cmd,wait=FALSE)
-          }                                                        
+          system (cmd,wait=FALSE)
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)

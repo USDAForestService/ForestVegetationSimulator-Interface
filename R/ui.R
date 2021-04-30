@@ -682,8 +682,7 @@ FVSOnlineUI <- fixedPage(
                                     h4("Start another project"), 
                 selectInput("PrjSelect", "Select project", multiple=FALSE,
                    choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjSwitch",if (isLocal()) "Switch to selected project" else
-                    "Start selected project"),h4(),
+                actionButton("PrjOpen","Open selected project"),h4(),
                 h4("Create a new project"),
                 textInput("PrjNewTitle", "New project title", ""), 
                 actionButton("PrjNew","Make new project"),
