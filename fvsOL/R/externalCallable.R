@@ -27,7 +27,7 @@
 #'    outside the startyr to endyr interval are used.
 #' @return the new run uuid, NULL if not created.
 #' @export
-externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
+extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
    stdInit="FVS_StandInit", variant)
 {
   if (missing(variant)) stop("variant required")
@@ -172,29 +172,52 @@ externalMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
 #'   if null, the system generates the name.
 #' @param dupMgmtID a character string with the duplicated run's management ID.
 #'   if null, the system generates the ID.
+#' @param toPrjDir if not null, the duplicate is placed in a different 
+#'   project directory given by this argument. 
 #' @return the new run uuid, NULL if not created.
 #' @export
-externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
-   dupMgmtID=NULL)
+extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
+   dupMgmtID=NULL,toPrjDir=NULL)
 {
-  if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
-    stop("The specified project directory must exist.")
+  if (!dir.exists(prjDir)) stop("The specified project directory must exist.")
   if (is.null(runUUID)) stop("runUUID must be specified.")
   db = connectFVSProjectDB(prjDir)
-  on.exit(dbDisconnect(db))
+  if (is.null(toPrjDir)) dbo = db else 
+  {
+    dbo = connectFVSProjectDB(toPrjDir)
+    if (is.null(dbo)) stop("'toPrjDir' directory error.")
+  }
+  on.exit({ 
+    dbDisconnect(db)
+    if (!is.null(dbo)) suppressWarnings(dbDisconnect(dbo))
+  })
   saveFvsRun=loadFVSRun(db,runUUID)
   if (is.null(saveFvsRun)) stop("runUUID run data not found.")
-  prjs=getFVSRuns(db)  
+  prjs=getFVSRuns(dbo)  
   if (is.null(dupTitle)) dupTitle=nextRunName(names(prjs))
   dupTitle=mkNameUnique(dupTitle,names(prjs))
   saveFvsRun$title=dupTitle
   uuid=uuidgen()
   saveFvsRun$uuid=uuid
   saveFvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(prjs)) else dupMgmtID
-  storeFVSRun(db,saveFvsRun)
+  storeFVSRun(dbo,saveFvsRun)
   return(uuid)
 } 
 
+
+#' Convert an R object to a raw vector
+#'
+#' param object is any R object to be convered to a raw
+#' @return a raw vector representation of the object
+#' @export
+extnToRaw <- function(x) memCompress(serialize(x,NULL),type="gzip")
+
+#' Convert a raw vector to an R object
+#'
+#' param object a raw vector
+#' @return the object
+#' @export
+extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 
 #' Get FVS Runs
 #'
@@ -205,7 +228,7 @@ externalDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
 #' @return a data.frame listing the uuid, title, and datetime of existing runs
 #'   and NULL if the project does not exist or if no runs exist.
 #' @export
-externalGetRuns <- function (prjDir=getwd())
+extnGetRuns <- function (prjDir=getwd())
 {
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
@@ -229,7 +252,7 @@ externalGetRuns <- function (prjDir=getwd())
 #' @return a data.frame listing the uuid, title, and datetime of the remaining runs
 #'   and NULL if the no runs exist.
 #' @export
-externalDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
+extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 {
   if (is.null(runUUIDs)) stop("runUUIDs must be specified.")
   if (is.null(prjDir)) prjDir=getwd() 
@@ -256,65 +279,81 @@ externalDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
       for (du in deluuid) deleteRelatedDBRows(du,dbO)
     }
   }
-  return(externalGetRuns())
+  return(extnGetRuns())
 }
        
-#' Add keywords to a run
-#'
+#' Add Components to a run.
+#'                                         
 #' Given a project directory a run uuid, a dataframe of 
 #' keywords is added to groups or stands in the run.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of 1 run uuid that is processed
-#' @param kwds a dataframe of 3 columns. The first column can be named "Groups"
-#'   if the keywords are added to groups or "Stands" if they are added to stands.
-#'   The first column then identifies the groups or stands (case sensitive strings).
-#'   The values in the first column may be duplicated, they are processed in order.
-#'   The second column is the "title" of the keyword component that is added.
-#'   The third column are the corresponding keywords. Several lines can be separated
-#'   by \\n (newline) chars to indicated muliple keywords in a component.
+#' @param cmps is a list of components that will be processed (in order). Each
+#'   list member can be an fvsOL keyword component, a raw vector that can be 
+#'   transformed intoan fvsOL keyword component, or a character 
+#'   string of keywords. If a character string,
+#    they are considered "free form. Several lines of keywords can be separated
+#'   by \\n (newline) chars to indicated muliple keywords in the component. If
+#'   If the list item are named, the component name is set to that name.
+#'   a component, the list item is turned into one internally to this function. 
+#' @param groups is a character string vector (or a list) of group names (or uuids)
+#'    to which the keyword components will be attached.
+#' @param stands is a character string vector (or a list) of stand ids (or uuids)
+#'    to which the keyword components will be attached.
+#' 
 #' @return The number of keyword components added to the run.
 #' @export
-externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
+extnAddKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
 {
   if (missing(runUUID)) stop("runUUID required")
-  if (missing(kwds) || class(kwds) != "data.frame") 
-     stop("kwds is required and must be a data.frame")
+  if (missing(cmps)) stop("cmps is required") 
   prjDir = normalizePath(prjDir)
+  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
-  cols = colnames(kwds)
-  if (length(cols)!=3) stop("Must have exactly 3 columns in kwds")
-  # process groups
-  nadd=0
-  if (cols[1] == "Groups") 
+  if (!exists("saveFvsRun")) stop("runUUID run data not found")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
+  # process the cmps. convert "raw" and/or "character" as needed.
+  onames = names(cmps)
+  for (i in 1:length(cmps))
   {
-    for (i in 1:length(saveFvsRun$grps))
-    {
-      gid = saveFvsRun$grps[[i]]$grp
-      rows = grep(gid,kwds[,1])
-      for (ik in rows)
+    cmps[i] = switch(class(cmps[i]),
+      "fvsCmp" = mkfvsCmp(cmps[i],uuid=uuidgen()),
+      "raw"=extnFromRaw(cmp[i]),
+      "character" = 
       {
-        ncmp = mkfvsCmp(kwds = kwds[ik,3], exten="base", title=kwds[ik,2], 
-               variant=substring(saveFvsRun$FVSpgm,4),uuid=fvsOL:::uuidgen(),atag="k")
-        saveFvsRun$grps[[i]]$cmps = append(saveFvsRun$grps[[i]]$cmps,ncmp)
+        title = onames[i]
+        if (is.null(title) || nchar(title)==0) title=paste0("Added from external source (",i,")")
+        mkfvsCmp(kwds = cmp[i], exten="base", title=title, 
+         variant=substring(saveFvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
+      })
+    cname=names(cmps[i])
+    if (!is.null(cname) && nchar(cname)) cmps[i]$title = cname
+  }
+  nadd=0
+  # process groups
+  if (!is.null(groups))
+  {
+    for (grp in saveFvsRun$grps)
+    {
+      if (grp$grp %in% groups) for(cmp in cmps) 
+      {
+        append(grp$cmps,cmp)
         nadd=nadd+1
       }
     }
-  } else if (cols[1] == "Stands") {
-    for (i in 1:length(saveFvsRun$stands))
+  }
+  # process stands
+  if (!is.null(stands))
+  {
+    for (std in saveFvsRun$stds)
     {
-      sid = saveFvsRun$stands[[i]]$sid
-      rows = grep(sid,kwds[,1])
-      for (ik in rows)
-      {
-        ncmp = mkfvsCmp(kwds = kwds[ik,3], exten="base", title=kwds[ik,2], 
-               variant=substring(saveFvsRun$FVSpgm,4),uuid=fvsOL:::uuidgen(),atag="k")
-        saveFvsRun$stands[[i]]$cmps = append(saveFvsRun$stands[[i]]$cmps,ncmp)
+      if (sid$sid %in% stands) for(cmp in cmps) 
+      {  
+        append(sid$cmps,cmp)
         nadd=nadd+1
       }
     }
@@ -351,12 +390,13 @@ externalAddKwds <- function(prjDir=getwd(),runUUID,kwds)
 #'   no changes are made.
 #' @return the runUUID if changes are made, else NULL
 #' @export
-externalSetSomeOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
+extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
    startyr=NULL,endyr=NULL,cyclelen=NULL,cycleat=NULL)
 {
   changed=FALSE
   if (missing(runUUID)) stop("runUUID required")
   prjDir = normalizePath(prjDir)
+  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   saveFvsRun = loadFVSRun(db,runUUID)
@@ -411,39 +451,64 @@ externalSetSomeOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NU
   NULL
 }  
 
-#' Get FVS keywords for the components in a run.
+#' Get FVS keyword components from a run
 #'
-#' Given a project directory a run uuid, get the keywords in the run.
+#' Given a project and a run uuid, get the keyword components in the run. 
+#' The keyword components can be returned as a raw vector, an fvsOL keyword component,
+#' or just the text of the keywords depending on the returnType. Note that
+#' the original components are never returned, copies are generated and returned.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of the run uuid that is processed
-#' @return a list of two data.frames corresponding to components attached
-#'   to "Groups" and another to "Stands". Each data.frame has 4 columns as
-#'   follows: 1-the group name or stand ID, 2-the component title, 3-the 
-#'   component UUID, 4-the keywords.
-externalGetComponentKwds <- function(prjDir=getwd(),runUUID)
+#' @param returnType requested where: 
+#'   "fvsCmp" the components are returned as copies of original fvsCmp objects,
+#'   "raw" the components are returned a compressed raw data vectors suitable for storing
+#'   in a database.
+#'   "keywords" the keyword part of the components are returned as a character vector.
+#' @return a named list of two other named lists. The first named list 
+#'   contains a named list of components attached to groups. The type of the items
+#'   is depends on the value of returnType. The names of the items are take from the
+#'   "titles" of components returned. The second named list is like the first but
+#'   contains items attached to groups. The first named list is named "grpCmps" and
+#'   the second "stdCmps". 
+#' @export
+extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 {
   if (missing(runUUID)) stop("runUUID required")
+  if (! returnType %in% c("fvsCmp","raw","keywords")) stop ("invalid value for 'returnType'")
   prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
-  gdf = NULL
-  for (grp in saveFvsRun$grps)
-    for (cmp in grp$cmps) if (nchar(cmp$kwds))
-      gdf = rbind(gdf,
-            data.frame(Groups=grp$grp,Title=cmp$title,UUID=cmp$uuid,
-                       Keywords=cmp$kwds))
-  sdf = NULL
-  for (std in saveFvsRun$stands)
-    for (cmp in std$cmps) if (nchar(cmp$kwds))
-      sdf = rbind(sdf,
-            data.frame(Stands=std$grp,Title=cmp$title,UUID=cmp$uuid,
-                       Keywords=cmp$kwds))
-  return (list(Groups=gdf,Stands=sdf))
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded") 
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("the loaded FVS run was not recognized")
+  togrps = list() 
+  togrpsnames = c()
+  for (grp in saveFvsRun$grps) for (ocmp in grp$cmps) 
+  { 
+    cmp = switch(returnType,
+      "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
+      "raw" =  I(list(extnToRaw(ocmp))), 
+      "keywords" = ocmp$kwds
+    )
+    togrpsnames = c(togrpsnames,ocmp$title)
+    togrps = append(togrps,cmp)
+  }
+  if (length(togrps)) names(togrps)=togrpsnames
+  tostds = list() 
+  tostdsnames = c()
+  for (std in saveFvsRun$stands) for (ocmp in std$cmps) 
+  {
+    cmp = switch(returnType,
+      "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
+      "raw" =  I(list(extnToRaw(ocmp))), 
+      "keywords" = ocmp$kwds
+    )
+    tostdsnames = c(tostdsnames,ocmp$title)
+    tostds = append(tostds,cmp)
+  }
+  return (list(Groups=togrps,Stands=tostds))       
 }
 
 #' Delete FVS keyword components from a run.
@@ -457,11 +522,13 @@ externalGetComponentKwds <- function(prjDir=getwd(),runUUID)
 #' @param compUUIDs a vector of character strings holding the UUIDs of
 #'   the components that will be deleted from the run.
 #' @return the number of deletions.
-externalDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
+#' @export
+extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
 {
   if (missing(runUUID)) stop("runUUID required")
   if (missing(compUUIDs)) stop("compUUIDs required")
   prjDir = normalizePath(prjDir)
+  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   saveFvsRun = loadFVSRun(db,runUUID)

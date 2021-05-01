@@ -2571,10 +2571,6 @@ getTableName <- function(dbcon,basename)
 }
 
 
-#these two functions create compressed raw objects given an Robject or the reverse
-toRaw   = function(x) memCompress(serialize(x,NULL),type="gzip")
-fromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
-
 storeOrUpdateObject <- function (db,data)
 {
   # store (or update) an Robject in database db in table "Robjects"
@@ -2585,16 +2581,15 @@ storeOrUpdateObject <- function (db,data)
     "create table Robjects (name text primary key, data blob)")
   row = dbGetQuery(db,paste0("select rowid from Robjects where (name='",name,"');"))
   row = row[1,1]
-  toRaw = function(x) memCompress(serialize(x,NULL),type="gzip")
   if (is.na(row)) 
   {  # insert
     changed=suppressWarnings(dbExecute(db,
       "insert into Robjects (name,data) values ((:name), (:data))", 
-      params=data.frame(name=name,data=I(list(toRaw(data))))))
+      params=data.frame(name=name,data=I(list(extnToRaw(data))))))
   } else { #update
     changed=suppressWarnings(dbExecute(db,
       paste0("update Robjects set data=(:data) where (rowid=",row,")"),
-      params=data.frame(data=I(list(toRaw(data))))))
+      params=data.frame(data=I(list(extnToRaw(data))))))
   }
   changed
 }
@@ -2611,7 +2606,7 @@ loadObject <- function (db,name,asName=name)
   row = row[nrow(row),1]
   if (length(row)==0 || row==0 || is.na(row)) return()
   data=dbGetQuery(db,paste0("select data from Robjects where (rowid=",row,");"))
-  if (nrow(data)) assign(envir=parent.frame(),x=asName,value=fromRaw(data[1,1][[1]]))
+  if (nrow(data)) assign(envir=parent.frame(),x=asName,value=extnFromRaw(data[1,1][[1]]))
 }
 
 removeObject <- function (db,name)
@@ -2660,7 +2655,7 @@ mkFVSProjectDB <- function (prjDir=getwd())
       rtn = try(load(runFile))
       if (class(rtn) == "try.error" || !exists("saveFvsRun")) next
       df = data.frame(uuid=names(run),name=unlist(run),time=attr(which="time",x=run[[1]]),
-           run=I(list(toRaw(saveFvsRun))))
+           run=I(list(extnToRaw(saveFvsRun))))
       row = dbGetQuery(db,paste0("select rowid from FVSRuns where (uuid='",names(run),"');"))
       row = row[nrow(row),1]
       for (rr in row) dbExecute(db,paste0("delete from FVSRuns where (rowid=",rr,");"))      
@@ -2760,7 +2755,7 @@ storeFVSRun <- function(db,FVSRun,time=NULL)
       dbExecute(db, "create table FVSRuns (uuid text, name text, time integer, run blob)")
     time= if (is.null(time)) as.integer(Sys.time()) else as.integer(time)
     df = data.frame(uuid=FVSRun$uuid,name=FVSRun$title,time=time,
-       run=I(list(toRaw(FVSRun))))
+       run=I(list(extnToRaw(FVSRun))))
   rtn = dbExecute(db,paste0("insert into FVSRuns (uuid,name,time,run) values ",
                      "((:uuid), (:name), (:time), (:run))"), params=df)
   rtn
@@ -2771,7 +2766,7 @@ loadFVSRun <- function(db,uuid)
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
   if (missing(uuid)) stop("uuid required")
   rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",uuid,"')"))
-  if (nrow(rtn)) fromRaw(rtn[1,1][[1]]) else NULL
+  if (nrow(rtn)) extnFromRaw(rtn[1,1][[1]]) else NULL
 }
 
   
