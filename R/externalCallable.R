@@ -1,7 +1,7 @@
 #' Build an FVS run in a project
 #'
 #' Build an FVS run in a project and add it to the list of runs in the project. 
-#' If some FVS runs are already present, another is added with this call.
+#' If some FVS runs are already present, another is added with this function.
 #' The name of the input data base is FVS_Data.db and it must already exist.
 #'
 #' @param prjDir is the path name to the project directory, if null the system
@@ -10,7 +10,7 @@
 #'   the name, that is, it would be "Run 1", or "Run 2", and so on for 
 #'   all the runs already present. If none are present, then the default 
 #'   run title with be "Run 1" corresponding to the first run.
-#' @param standIDs a vector of character strings holding the stand IDs (for example: 
+#' @param standIDs a vector (or list) of character strings holding the stand IDs (for example: 
 #'   \code{standIDs=c("id1","id2")} would load 2 stands, whereas: \code{standIDs="id1"} 
 #'    would load just one. If NULL, all stands in the init table are loaded. 
 #' @param stdInit a character string of the name of the standinit table you 
@@ -25,7 +25,7 @@
 #'    variant-specific settings.
 #' @param cycleat a vector of years where cycle boundaries are requested, none
 #'    outside the startyr to endyr interval are used.
-#' @return the new run uuid, NULL if not created.
+#' @return The new run uuid, NULL if not created.
 #' @export
 extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
    stdInit="FVS_StandInit", variant)
@@ -57,6 +57,7 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   }
   allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
   fields = intersect(toupper(fields),toupper(allNeed))
+  
   dbExecute(dbcon,'drop table if exists temp.Stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
     ' where lower(variant) like "%',tolower(variant),'%"')
@@ -160,21 +161,22 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   return(fvsRun$uuid)
 }
 
-#' Duplicate a run and give the duplicate a new title
+#' Duplicate a run and assign the duplicate a new title and new management ID.
 #'
-#' Pass in a project directory and an existing runUUID, the duplicates title
-#' and the run is duplicated and given the new title and default management ID.
+#' Pass in a project directory and an existing runUUID, the duplicate's title
+#' and new management ID, and the run is duplicated into the current project
+#' or another project.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runUUID the uuid of the run that will be duplicated.
+#' @param runUUID is the uuid of the run that will be duplicated.
 #' @param dupTitle a character string with the duplicated run's title
 #'   if null, the system generates the name.
 #' @param dupMgmtID a character string with the duplicated run's management ID.
 #'   if null, the system generates the ID.
 #' @param toPrjDir if not null, the duplicate is placed in a different 
 #'   project directory given by this argument. 
-#' @return the new run uuid, NULL if not created.
+#' @return The new run uuid, NULL if not created.
 #' @export
 extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
    dupMgmtID=NULL,toPrjDir=NULL)
@@ -207,15 +209,15 @@ extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
 
 #' Convert an R object to a raw vector
 #'
-#' param object is any R object to be convered to a raw
-#' @return a raw vector representation of the object
+#' @param x is an R object that is convered to a raw
+#' @return A raw vector representation of the object
 #' @export
 extnToRaw <- function(x) memCompress(serialize(x,NULL),type="gzip")
 
 #' Convert a raw vector to an R object
 #'
-#' param object a raw vector
-#' @return the object
+#' @param x is a raw that converted to an R object
+#' @return The R object
 #' @export
 extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 
@@ -225,10 +227,13 @@ extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 #'
 #' @param prjDir is the path name to the project directory, default is  
 #'   current directory.
-#' @return a data.frame listing the uuid, title, and datetime of existing runs
-#'   and NULL if the project does not exist or if no runs exist.
+#' @return NULL if the project does not exist or if no runs exist, otherwise,
+#' a data.frame with these columns:
+#' * uuid of the run, 
+#' * title of the run, 
+#' * datetime the run was last saved. 
 #' @export
-extnGetRuns <- function (prjDir=getwd())
+extnListRuns <- function (prjDir=getwd())
 {
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
@@ -246,11 +251,12 @@ extnGetRuns <- function (prjDir=getwd())
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runUUIDs a character vector of 1 or more run uuids to be deleted.
+#' @param runUUIDs a vector (or list) character strings holding the 1 or more 
+#'   run uuids to be deleted.
 #' @param delOutput if TRUE (the default) the data in FVSOut.db is also
 #'   deleted.
 #' @return a data.frame listing the uuid, title, and datetime of the remaining runs
-#'   and NULL if the no runs exist.
+#'   and NULL if the no runs exist created using [extnListRuns].
 #' @export
 extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 {
@@ -279,33 +285,34 @@ extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
       for (du in deluuid) deleteRelatedDBRows(du,dbO)
     }
   }
-  return(extnGetRuns())
+  return(extnListRuns())
 }
        
-#' Add Components to a run.
-#'                                         
-#' Given a project directory a run uuid, a dataframe of 
-#' keywords is added to groups or stands in the run.
+#' Add Keyword Components to a run
+#'
+#' Given a project directory and a run uuid, a list of 
+#' keywords components are added to groups or stands in the run.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runUUID a character vector of 1 run uuid that is processed
-#' @param cmps is a list of components that will be processed (in order). Each
-#'   list member can be an fvsOL keyword component, a raw vector that can be 
-#'   transformed intoan fvsOL keyword component, or a character 
-#'   string of keywords. If a character string,
-#    they are considered "free form. Several lines of keywords can be separated
-#'   by \\n (newline) chars to indicated muliple keywords in the component. If
-#'   If the list item are named, the component name is set to that name.
-#'   a component, the list item is turned into one internally to this function. 
-#' @param groups is a character string vector (or a list) of group names (or uuids)
-#'    to which the keyword components will be attached.
-#' @param stands is a character string vector (or a list) of stand ids (or uuids)
-#'    to which the keyword components will be attached.
+#' @param runUUID a character string of 1 run uuid that is processed.
+#' @param cmps is a list of keyword components that will be processed (in order, 
+#'   also see [extnGetComponentKwds]). Each list member can be one of the following:
+#'   * an fvsOL keyword component (of object of class fvsCmp which is internal to fvsOL), 
+#'   * a raw vector (see [extnToRaw] and [extnFromRaw]) that can be transformed into an 
+#'     fvsOL keyword component, or
+#'   * a character string of keywords. Several lines of keywords can be separated
+#'     by \\n (newline) chars to indicated muliple keywords. 
+#'     If the list items are named, the component name is set to the corresponding
+#'     list item name.
+#' @param groups is a list of group names 
+#'   to which the keyword components will be attached.
+#' @param stands is a list of stand ids
+#'   to which the keyword components will be attached.
 #' 
 #' @return The number of keyword components added to the run.
 #' @export
-extnAddKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
+extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
 {
   if (missing(runUUID)) stop("runUUID required")
   if (missing(cmps)) stop("cmps is required") 
@@ -349,11 +356,11 @@ extnAddKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
   # process stands
   if (!is.null(stands))
   {
-    for (std in saveFvsRun$stds)
+    for (std in saveFvsRun$stands)
     {
-      if (sid$sid %in% stands) for(cmp in cmps) 
+      if (std$sid %in% stands) for(cmp in cmps) 
       {  
-        append(sid$cmps,cmp)
+        append(std$cmps,cmp)
         nadd=nadd+1
       }
     }
@@ -374,12 +381,12 @@ extnAddKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
 #' @param autoOut a vector of character strings corresponding to the automatic
 #'   output selections to be set (not the svs ones), where these values "turn on"
 #'   the corresponding selections and existing selections are not changed (if NULL
-#'   no changes are made: "Treelists", "Carbon", "Fire", "Dead", "CanProfile", 
+#'   no changes are made): "Treelists", "Carbon", "Fire", "Dead", "CanProfile", 
 #'   "SnagDet",  "StrClass", "CalibStats", "Climate", "Econ", "DM_Sz_Sum", 
 #'   "RD_Sum",  "RD_Det", "RD_Beetle", "InvStats", "Regen", "KeepTextTables"
 #' @param svsOut a vector of two character strings where the first is the
 #'   plot shape ("round" or "square") and the second is the number of images
-#'   of firelines, for example: svsOut=c("square",2). If only one value is given
+#'   of firelines, for example: svsOut=c("square",4). If only one value is given
 #'   it must be the plot shape and the number of intervals is set to 4.
 #' @param startyr is the common starting year of the simulation, if NULL, 
 #'   no changes are made.
@@ -453,20 +460,20 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 
 #' Get FVS keyword components from a run
 #'
-#' Given a project and a run uuid, get the keyword components in the run. 
+#' Given a project directory and a run uuid, get the keyword components in the run. 
 #' The keyword components can be returned as a raw vector, an fvsOL keyword component,
-#' or just the text of the keywords depending on the returnType. Note that
+#' or just the text of the keywords depending on the returnType parameter value. Note that
 #' the original components are never returned, copies are generated and returned.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of the run uuid that is processed
-#' @param returnType requested where: 
-#'   "fvsCmp" the components are returned as copies of original fvsCmp objects,
-#'   "raw" the components are returned a compressed raw data vectors suitable for storing
-#'   in a database.
-#'   "keywords" the keyword part of the components are returned as a character vector.
-#' @return a named list of two other named lists. The first named list 
+#' @param returnType requested where [see extnAddComponentKwds]: 
+#'   * "fvsCmp" the components are returned as copies of original fvsCmp objects,
+#'   * "raw" the components are returned a compressed raw data vectors suitable for storing
+#'   in a database (see [[extnToRaw] and [extnFromRaw]).
+#'   * "keywords" the keyword part of the components are returned as a vector of character strings.
+#' @return A named list of two other named lists. The first named list 
 #'   contains a named list of components attached to groups. The type of the items
 #'   is depends on the value of returnType. The names of the items are take from the
 #'   "titles" of components returned. The second named list is like the first but
@@ -521,7 +528,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 #' @param runUUID a character string of the run uuid that is processed
 #' @param compUUIDs a vector of character strings holding the UUIDs of
 #'   the components that will be deleted from the run.
-#' @return the number of deletions.
+#' @return The number of deletions.
 #' @export
 extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
 {
@@ -567,4 +574,190 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
   return(changed)
 }
 
+
+#' Generate the FVS .key file for a run.
+#'
+#' Given a project directory and a run uuid, generate the FVS .key file and, 
+#' optionally, an RScript file suitable for running the run. The name 
+#' of the .key file will be the runUUID followed by .key and it will be created
+#' in the project file. The Rscript file name will be the runUUID followed by .RScript.
+#' See [extnSimulateTheRun] for running the simulation.
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of the run uuid that is processed
+#' @return A list of the fullpath names of the created files or NULL if none created.
+#' @export
+extnMakeKeyfile <- function(prjDir=getwd(),runUUID,withRScript=TRUE)
+{
+  return("Not yet implemented."); return(NULL)
+}
+
+#' Simulate (run) a run's .key and .RScript
+#'
+#' Given a project directory and a run uuid, start the simulation that was
+#' created using function [extnMakeKeyfile]. 
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of the run uuid .key created by [extnMakeKeyfile].
+#' @param nCPUs is the max number of CPUs to use. When > 1, the run is broken into
+#'   parts and simulated using [parallel::parallel-package] in a set of R processes. 
+#'   This parameter is ignored if there are less than 10 stands in a run.
+#' @param wait if TRUE, the function does not return until the run has finished
+#'   otherwise the run is started in background.
+#' @return the system PID of the process that is started when wait is FALSE, otherwise
+#'   NULL.
+#' @export
+extnSimulateTheRun <- function(prjDir=getwd(),runUUID,nCPUs=1,wait=FALSE)
+{
+  return("Not yet implemented."); return(NULL)
+}
+
+#' Given a project directory a run uuid, and a list of component UUIDs,
+#' this function deletes those components.
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of the run uuid that is processed
+#' @return a vector of stand ids that are in the run.
+#' @export
+extnListStands <- function(prjDir=getwd(),runUUID)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  saveFvsRun = loadFVSRun(db,runUUID)
+  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  stands = c()
+  for (std in saveFvsRun$stands) stands=c(stands,std$sid)
+  return(stands)
+}
+
+#' Add Stands to a run
+#'
+#' Given a project directory and a run uuid, a list of 
+#' stands are added to the run. Note that stands that are already in the
+#' run are not added.
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of 1 run uuid that is processed.
+#' @param stands a vector (or list) of stand ids that will be added.
+#' @param stdInit a character string of the name of the standinit table you 
+#'    want to use, the stands would be loaded from that table.
+#' @return The number of stands, groups, and components added to the run 
+#' @export
+extnAddStands <- function(prjDir=getwd(),runUUID,stands,stdInit="FVS_StandInit")
+{
+  if (missing(runUUID)) stop("runUUID required")
+  if (missing(stands)) stop("stands is required") 
+  if (nrow(aa)==0) stop("stands list is empty")
+  prjDir = normalizePath(prjDir)
+  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
+  dbfile = file.path(prjDir,"FVS_Data.db")
+  if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
+  db = connectFVSProjectDB(prjDir)
+  saveFvsRun = loadFVSRun(db,runUUID)
+  if (!exists("saveFvsRun")) stop("runUUID run data not found")
+  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
+  dbcon <- dbConnect(dbDriver("SQLite"),dbfile)
+  on.exit({
+    suppressWarnings(dbDisconnect(dbcon))
+    suppressWarnings(dbDisconnect(db))
+  })
+  nadd=list(nstd=0,ngrps=0,ncmps=0)
+  if (! stdInit %in% dbListTables(dbcon)) stop(paste0(stdInit," not found in database."))
   
+  fields = dbListFields(dbcon,stdInit)
+  if (toupper(stdInit) %in% toupper(c("FVS_PlotInit","FVS_PlotInit_Plot"))) 
+  {
+    sidid = "StandPlot_ID" 
+    needFs = c("StandPlot_ID","StandPlot_CN") 
+  } else {  
+    sidid = "Stand_ID"
+    needFs = c("Stand_ID","Stand_CN")
+  }
+  allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
+  fields = intersect(toupper(fields),toupper(allNeed))
+  if (length(fields) < length(allNeed)) stop("required db fields are missing")
+
+  getStds = data.frame(getStds=unlist(stands))
+  dbWriteTable(dbcon,name=DBI::SQL("temp.getStds"),value=getStds,overwrite=TRUE)
+  variant = substring(saveFvsRun$FVSpgm,4)
+  dbExecute(dbcon,'drop table if exists temp.Stds')
+  qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
+    ' where lower(variant) like "%',tolower(variant),'%" and "',sidid,
+    '" in (select getStds from temp.getStds')
+  fvsInit = try(dbGetQuery(dbcon,qry))
+  if (class(fvsInit)=="try-error") stop("query error")
+  if (nrow(fvsInit) == 0) return(nadd)
+  names(fvsInit) = toupper(names(fvsInit))
+  
+  for (row in 1:nrow(fvsInit))  # the selectInput list
+  {
+    sid = fvsInit[row,toupper(sidid)]  
+    newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
+    addfiles = AddFiles(fvsInit[row,"ADDFILES"])
+    for (addf in names(addfiles))
+    {
+      nadd$ncmps=nadd$ncmps+1
+      newstd$cmps <- append(newstd$cmps,
+               mkfvsCmp(kwds=addfiles[[addf]],uuid=uuidgen(),variant=variant,
+                 exten="base", atag="k",kwdName=paste0("AddFile: ",addf),
+                 title=paste0("AddFile: ",addf)))  
+    }
+    addkeys <- fvsInit[row,"FVSKEYWORDS"]
+    if (!is.null(addkeys) && !is.na(addkeys) && nchar(addkeys) && addkeys != "NA") 
+    {
+      nadd$ncmps=nadd$cmps+1
+      newstd$cmps <- append(newstd$cmps,mkfvsCmp(kwds=addkeys,uuid=uuidgen(),
+        exten="base", atag="k",kwdName=paste0("From: ",stdInit),variant=variant, 
+        title=paste0("From: ",stdInit)))
+    }            
+    grps <- if (!is.null(fvsInit$GROUPS))
+         scan(text=fvsInit[row,"GROUPS"],
+              what=" ",quiet=TRUE) else c("All All_Stands")              
+    requ <- unlist(grps[grep("^All",grps)])
+    have <- unlist(lapply(saveFvsRun$grps,function(x) x$grp))
+    need <- setdiff(grps, have)
+    for (grp in need) 
+    {
+      nadd$grps = nadd$grps+1
+      newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
+      grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
+        grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
+             fixed=TRUE) else c()
+      for (grow in grprow)
+      {
+        addkeys <- globals$inData$
+                   FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
+        if (!is.null(addkeys) && !is.na(addkeys))
+        {
+          nadd$ncmps=nadd$cmps+1
+          newgrp$cmps[[length(newgrp$cmps)+1]] <- 
+            mkfvsCmp(kwds=addkeys,uuid=uuidgen(),atag="k",exten="base",
+                     kwdName="From: FVS_GroupAddFilesAndKeywords",
+                       title="From: FVS_GroupAddFilesAndKeywords")
+        }
+        addfiles <- AddFiles(globals$inData$
+                    FVS_GroupAddFilesAndKeywords[grow,"ADDFILES"])
+        for (addf in names(addfiles)) 
+        {
+          nadd$ncmps=nadd$cmps+1
+          newgrp$cmps[[length(newgrp$cmps)+1]] <-
+          mkfvsCmp(kwds=as.character(addfiles[addf]),uuid=uuidgen(),atag="k",exten="base",
+            kwdName=paste0("AddFile: ",addf),title=paste0("AddFile: ",addf))
+        }           
+      }
+      saveFvsRun$grps <- append(saveFvsRun$grps,newgrp)
+    }
+    invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
+    if (invyr > as.numeric(saveFvsRun$startyr)) saveFvsRun$startyr <- as.character(invyr)
+    newstd$invyr <- as.character(invyr)
+    have <- unlist(lapply(saveFvsRun$grps,function(x) 
+            if (x$grp != "") x$grp else NULL))
+    newstd$grps <- saveFvsRun$grps[sort(match(grps,have))]
+    saveFvsRun$stands <- append(saveFvsRun$stands,newstd)   
+  }
+  nadd
+}
+
