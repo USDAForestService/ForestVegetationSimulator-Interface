@@ -141,7 +141,7 @@ cat("findCmp, cmp=",cmp,"\n")
 }
 
 
-writeKeyFile <- function (globals,input,dbIcon,prms,newSum=TRUE)
+writeKeyFile <- function (globals,input,dbIcon,newSum=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
 cat("writeKeyFile, num stds=",length(stds),
@@ -188,8 +188,8 @@ cat ("qry=",qry,"\n")
   cat ("!!uuid: ",globals$fvsRun$uuid,"\n",file=fc)
   cat ("!!built:",format(Sys.time(), 
         "%Y-%m-%d_%H:%M:%S"),"\n",file=fc)
-  thisYr = as.numeric(format(Sys.time(), "%Y"))
   # Start year checks
+  thisYr = as.numeric(format(Sys.time(), "%Y"))
   for(i in 1:length(globals$fvsRun$stands)){
     if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
          ((input$startyr !="") && nchar(input$startyr) > 4))){
@@ -414,6 +414,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
           insertidx <- list() # list of indices of where to insert those keywords at the end
           numinserts <- 0 # number of keywords to insert
           kcpconts <- (strsplit(cmp$kwds,"\n"))[[1]] # top down list of the addfile
+
           # loop through each existing line of the addfile
           for(j in 1:length(kcpconts)){
             comment <- strsplit(kcpconts[j],"")[[1]][1]=="*"
@@ -485,18 +486,6 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                     condflag <- 0
                   }
                 }
-                # Maybe I'll come back to this block. Not required--might be nice to have END inserted where the old timers are used to.
-                # If it's a component specifier, for a base keyword and we re already in an extension block
-                # else if(length(suppcomp) && extflag > 0 &&
-                #         strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-1)]=="base"){
-                #   insertkw[k] <- "END"
-                #   insertidx[k] <- j-1
-                #   k <- k+1
-                #   numinserts <- numinserts +1
-                #   extflag <- 0
-                # }
-                
-                # otherwise, ignore the "bam" and move to the next line
                 else next
               }
               # if it's an extension invocation keyword and we're not in an extension block,

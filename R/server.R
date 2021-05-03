@@ -3765,7 +3765,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
-        msg=writeKeyFile(globals,input,dbGlb$dbIcon,prms,newSum=newSum)
+        msg=writeKeyFile(globals,input,dbGlb$dbIcon,newSum=newSum)
         if(globals$timeissue==1){
           progress$close()
           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
