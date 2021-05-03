@@ -193,16 +193,16 @@ extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
     dbDisconnect(db)
     if (!is.null(dbo)) suppressWarnings(dbDisconnect(dbo))
   })
-  saveFvsRun=loadFVSRun(db,runUUID)
-  if (is.null(saveFvsRun)) stop("runUUID run data not found.")
+  fvsRun=loadFVSRun(db,runUUID)
+  if (is.null(fvsRun)) stop("runUUID run data not found.")
   prjs=getFVSRuns(dbo)  
   if (is.null(dupTitle)) dupTitle=nextRunName(names(prjs))
   dupTitle=mkNameUnique(dupTitle,names(prjs))
-  saveFvsRun$title=dupTitle
+  fvsRun$title=dupTitle
   uuid=uuidgen()
-  saveFvsRun$uuid=uuid
-  saveFvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(prjs)) else dupMgmtID
-  storeFVSRun(dbo,saveFvsRun)
+  fvsRun$uuid=uuid
+  fvsRun$defMgmtID = if (is.null(dupMgmtID)) nextMgmtID(length(prjs)) else dupMgmtID
+  storeFVSRun(dbo,fvsRun)
   return(uuid)
 } 
 
@@ -320,9 +320,9 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not found")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not found")
+  if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
   # process the cmps. convert "raw" and/or "character" as needed.
   onames = names(cmps)
   for (i in 1:length(cmps))
@@ -335,7 +335,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
         title = onames[i]
         if (is.null(title) || nchar(title)==0) title=paste0("Added from external source (",i,")")
         mkfvsCmp(kwds = cmp[i], exten="base", title=title, 
-         variant=substring(saveFvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
+         variant=substring(fvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
       })
     cname=names(cmps[i])
     if (!is.null(cname) && nchar(cname)) cmps[i]$title = cname
@@ -344,7 +344,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   # process groups
   if (!is.null(groups))
   {
-    for (grp in saveFvsRun$grps)
+    for (grp in fvsRun$grps)
     {
       if (grp$grp %in% groups) for(cmp in cmps) 
       {
@@ -356,7 +356,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   # process stands
   if (!is.null(stands))
   {
-    for (std in saveFvsRun$stands)
+    for (std in fvsRun$stands)
     {
       if (std$sid %in% stands) for(cmp in cmps) 
       {  
@@ -366,7 +366,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
     }
   }
   if (nadd==0) return(0)
-  storeFVSRun(db,saveFvsRun)  
+  storeFVSRun(db,fvsRun)  
   nadd
 }
 
@@ -406,9 +406,9 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
   if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   if (!is.null(autoOut))
   {
     autoSets = c(autoTreelists = "Treelists", autoCarbon = "Carbon",               
@@ -422,7 +422,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
     if (is.na(set)) warning(paste0("autoOut does not contains one or more of: ",
                       paste0(autoSets,collapse=", "))) else
     {                 
-      saveFvsRun$autoOut$autoOut=as.list(names(autoSets)[set])
+      fvsRun$autoOut$autoOut=as.list(names(autoSets)[set])
       changed=TRUE
     }
   }
@@ -431,28 +431,28 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
     svsSets = list(shape=if (tolower(svsOut[1])=="round") "Round" else "Square")
     nfire=if (length(svsOut)>1) suppressWarnings(as.integer(svsOut[2])) else NA
     if (is.na(nfire)) nfire=4
-    saveFvsRun$autoOut$svsOut = c(svsSets,nfire=nfire)
+    fvsRun$autoOut$svsOut = c(svsSets,nfire=nfire)
     changed=TRUE
   }
   if (!is.null(startyr)) {
-    saveFvsRun$startyr=as.character(startyr)
+    fvsRun$startyr=as.character(startyr)
     changed=TRUE
   }
   if (!is.null(endyr))   {
-    saveFvsRun$endyr  =as.character(endyr) 
+    fvsRun$endyr  =as.character(endyr) 
     changed=TRUE
   }
   if (!is.null(cyclelen)) {
-    saveFvsRun$cyclelen=as.character(cyclelen) 
+    fvsRun$cyclelen=as.character(cyclelen) 
     changed=TRUE
   }
   if (!is.null(cycleat)) {
-    saveFvsRun$cycleat=as.character(cycleat) 
+    fvsRun$cycleat=as.character(cycleat) 
     changed=TRUE
   }
   if (changed) 
   {
-    storeFVSRun(db,saveFvsRun)
+    storeFVSRun(db,fvsRun)
     return(runUUID)
   } 
   NULL
@@ -487,12 +487,12 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
   prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded") 
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("the loaded FVS run was not recognized")
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded") 
+  if (attr(class(fvsRun),"package") != "fvsOL") stop("the loaded FVS run was not recognized")
   togrps = list() 
   togrpsnames = c()
-  for (grp in saveFvsRun$grps) for (ocmp in grp$cmps) 
+  for (grp in fvsRun$grps) for (ocmp in grp$cmps) 
   { 
     cmp = switch(returnType,
       "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
@@ -505,7 +505,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
   if (length(togrps)) names(togrps)=togrpsnames
   tostds = list() 
   tostdsnames = c()
-  for (std in saveFvsRun$stands) for (ocmp in std$cmps) 
+  for (std in fvsRun$stands) for (ocmp in std$cmps) 
   {
     cmp = switch(returnType,
       "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
@@ -538,11 +538,11 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
   if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   changed = 0
-  for (grp in saveFvsRun$grps)
+  for (grp in fvsRun$grps)
   {
     todel=NULL
     if (length(grp$cmps)) for (i in 1:length(grp$cmps)) 
@@ -556,7 +556,7 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
       changed = changed+length(todel)
     }
   }
-  for (std in saveFvsRun$stands)
+  for (std in fvsRun$stands)
   {
     todel=NULL
     if (length(std$cmps)) for (i in 1:length(std$cmps)) 
@@ -570,7 +570,7 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
       changed = changed+length(todel)
     }
   }
-  if (changed) storeFVSRun(db,saveFvsRun)
+  if (changed) storeFVSRun(db,fvsRun)
   return(changed)
 }
 
@@ -625,48 +625,50 @@ extnListStands <- function(prjDir=getwd(),runUUID)
   if (missing(runUUID)) stop("runUUID required")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not loaded")
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
   stands = c()
-  for (std in saveFvsRun$stands) stands=c(stands,std$sid)
+  for (std in fvsRun$stands) stands=c(stands,std$sid)
   return(stands)
 }
 
 #' Add Stands to a run
 #'
 #' Given a project directory and a run uuid, a list of 
-#' stands are added to the run. Note that stands that are already in the
+#' stands are added to the run. Stands that are already in the
 #' run are not added.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runUUID a character string of 1 run uuid that is processed.
+#' @param runUUID a character string of 1 run uuid that is processed,
+#'    or, if value is of class fvsRun, then it is the run being processed.
 #' @param stands a vector (or list) of stand ids that will be added.
-#' @param stdInit a character string of the name of the standinit table you 
-#'    want to use, the stands would be loaded from that table.
 #' @return The number of stands, groups, and components added to the run 
 #' @export
-extnAddStands <- function(prjDir=getwd(),runUUID,stands,stdInit="FVS_StandInit")
+extnAddStands <- function(prjDir=getwd(),runUUID,stands,
+   nreps=1,addStandsRegardless=FALSE)
 {
   if (missing(runUUID)) stop("runUUID required")
   if (missing(stands)) stop("stands is required") 
-  if (nrow(aa)==0) stop("stands list is empty")
+  if (length(stands)==0) stop("stands list is empty")
   prjDir = normalizePath(prjDir)
   if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
   dbfile = file.path(prjDir,"FVS_Data.db")
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
   db = connectFVSProjectDB(prjDir)
-  saveFvsRun = loadFVSRun(db,runUUID)
-  if (!exists("saveFvsRun")) stop("runUUID run data not found")
-  if (attr(class(saveFvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
+  fvsRun = if (class(runUUID) == "fvsRun") runUUID else 
+  {
+    db = connectFVSProjectDB(prjDir)
+    loadFVSRun(db,runUUID)
+    dbDisconnect(db)
+  }
+  if (!exists("fvsRun")) stop("run data not found")
+  if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
   dbcon <- dbConnect(dbDriver("SQLite"),dbfile)
-  on.exit({
-    suppressWarnings(dbDisconnect(dbcon))
-    suppressWarnings(dbDisconnect(db))
-  })
+  on.exit(suppressWarnings(dbDisconnect(dbcon)))
   nadd=list(nstd=0,ngrps=0,ncmps=0)
+  stdInit = fvsRun$refreshDB
   if (! stdInit %in% dbListTables(dbcon)) stop(paste0(stdInit," not found in database."))
-  
   fields = dbListFields(dbcon,stdInit)
   if (toupper(stdInit) %in% toupper(c("FVS_PlotInit","FVS_PlotInit_Plot"))) 
   {
@@ -680,15 +682,18 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,stdInit="FVS_StandInit")
   fields = intersect(toupper(fields),toupper(allNeed))
   if (length(fields) < length(allNeed)) stop("required db fields are missing")
 
-  getStds = data.frame(getStds=unlist(stands))
+  getStds = data.frame(getStds=setdiff(stands,
+            unlist(lapply(fvsRun$stands,function(x) x$sid))))
+
   dbWriteTable(dbcon,name=DBI::SQL("temp.getStds"),value=getStds,overwrite=TRUE)
-  variant = substring(saveFvsRun$FVSpgm,4)
+  variant = substring(fvsRun$FVSpgm,4)
   dbExecute(dbcon,'drop table if exists temp.Stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
     ' where lower(variant) like "%',tolower(variant),'%" and "',sidid,
-    '" in (select getStds from temp.getStds')
+    '" in (select getStds from temp.getStds);')
   fvsInit = try(dbGetQuery(dbcon,qry))
   if (class(fvsInit)=="try-error") stop("query error")
+  fvsInit=na.omit(fvsInit)
   if (nrow(fvsInit) == 0) return(nadd)
   names(fvsInit) = toupper(names(fvsInit))
   
@@ -717,7 +722,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,stdInit="FVS_StandInit")
          scan(text=fvsInit[row,"GROUPS"],
               what=" ",quiet=TRUE) else c("All All_Stands")              
     requ <- unlist(grps[grep("^All",grps)])
-    have <- unlist(lapply(saveFvsRun$grps,function(x) x$grp))
+    have <- unlist(lapply(fvsRun$grps,function(x) x$grp))
     need <- setdiff(grps, have)
     for (grp in need) 
     {
@@ -748,16 +753,17 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,stdInit="FVS_StandInit")
             kwdName=paste0("AddFile: ",addf),title=paste0("AddFile: ",addf))
         }           
       }
-      saveFvsRun$grps <- append(saveFvsRun$grps,newgrp)
+      fvsRun$grps <- append(fvsRun$grps,newgrp)
     }
     invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
-    if (invyr > as.numeric(saveFvsRun$startyr)) saveFvsRun$startyr <- as.character(invyr)
+    if (invyr > as.numeric(fvsRun$startyr)) fvsRun$startyr <- as.character(invyr)
     newstd$invyr <- as.character(invyr)
-    have <- unlist(lapply(saveFvsRun$grps,function(x) 
+    have <- unlist(lapply(fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
-    newstd$grps <- saveFvsRun$grps[sort(match(grps,have))]
-    saveFvsRun$stands <- append(saveFvsRun$stands,newstd)   
+    newstd$grps <- fvsRun$grps[sort(match(grps,have))]
+    fvsRun$stands <- append(fvsRun$stands,newstd)   
   }
+  storeFVSRun(db,fvsRun)
   nadd
 }
 
