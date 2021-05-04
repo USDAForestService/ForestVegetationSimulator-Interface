@@ -27,14 +27,19 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
     stop("The specified project directory must exist.")
   dbfile = file.path(prjDir,"FVS_Data.db")
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
-  runsFile=file.path(prjDir,"FVS_Runs.RData")
-  if (file.exists(runsFile)) load(runsFile) else FVS_Runs=list()
-  if (is.null(title)) title=nextRunName(FVS_Runs)
+  if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
+  db = connectFVSProjectDB(prjDir)
+  curRunNames=names(getFVSRuns(db))
+  if (is.null(title)) title=nextRunName(curRunNames)
+  title = mkNameUnique(title,curRunNames)
   fvsRun=mkfvsRun(title=title,uuid=uuidgen(),runScript="fvsRun",
                   FVSpgm=paste0("FVS",variant),
                   refreshDB=stdInit,startyr=format(Sys.time(), "%Y"))
   dbcon <- dbConnect(dbDriver("SQLite"),dbfile)
-  on.exit(expr = dbDisconnect(dbcon))
+  on.exit({
+    suppressWarnings(dbDisconnect(dbcon))
+    suppressWarnings(dbDisconnect(db))
+  })
   
   if (! stdInit %in% dbListTables(dbcon)) stop(paste0(stdInit," not found in database."))
   
@@ -126,7 +131,6 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   }  
   fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) + as.numeric(simLength))
   fvsRun$cyclelen <- cycleLength
-  db = connectFVSProjectDB(prjDir)
   fvsRun$defMgmtID = if (is.null(mgmtID)) 
   {
     nruns=if ("FVSRuns" %in% dbListTables(db)) 
@@ -134,7 +138,6 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
     nextMgmtID(nruns)
   } else mgmtID
   storeFVSRun(db,fvsRun)
-  dbDisconnect(db)
   return(fvsRun$uuid)
 }
 
@@ -294,7 +297,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   if (missing(runUUID)) stop("runUUID required")
   if (missing(cmps)) stop("cmps is required") 
   prjDir = normalizePath(prjDir)
-  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
+  if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
@@ -380,7 +383,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
   changed=FALSE
   if (missing(runUUID)) stop("runUUID required")
   prjDir = normalizePath(prjDir)
-  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
+  if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
@@ -512,7 +515,7 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
   if (missing(runUUID)) stop("runUUID required")
   if (missing(compUUIDs)) stop("compUUIDs required")
   prjDir = normalizePath(prjDir)
-  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
+  if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
@@ -629,7 +632,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   if (missing(stands)) stop("stands is required") 
   if (length(stands)==0) stop("stands list is empty")
   prjDir = normalizePath(prjDir)
-  if (file.exists(paste0(prjDir),"/projectIsLocked.txt")) stop("project is locked")
+  if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   dbfile = file.path(prjDir,"FVS_Data.db")
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
   db = connectFVSProjectDB(prjDir)
