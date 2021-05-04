@@ -5867,7 +5867,7 @@ cat ("cmd=",cmd,"\n")
       }
       cat (".quit\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Import data to Sqlite3", value = 4) 
-      cmd = paste0(findpgm(sqlite3)," FVS_Data.db < sqlite3.import")
+      cmd = paste0(findpgm("sqlite3")," FVS_Data.db < sqlite3.import")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
