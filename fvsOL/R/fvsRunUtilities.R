@@ -1282,14 +1282,13 @@ cat ("findStand, search=",search,"\n")
   return(NULL)
 }           
 
-nextRunName <- function(FVS_Runs)
+nextRunName <- function(runNames)
 {
   i=1
-  rs=unlist(FVS_Runs)
   repeat 
   {
-    rn=paste0("Run ",length(FVS_Runs)+i) 
-    if (rn %in% rs) i=i+1 else break
+    rn=paste0("Run ",length(runNames)+i) 
+    if (rn %in% runNames) i=i+1 else break
   }
   rn
 }
@@ -2511,24 +2510,32 @@ myListTables <- function(db)
     
 mkNameUnique <- function(name,setOfNames=NULL)
 {
-  if (is.null(setOfNames)) return(name)
   if (!name %in% setOfNames) return(name)
-  pl=regexpr(pattern="\\([0-9]*\\)$",name)
+  i=1
   repeat
   {
-    if (pl != -1)
+    sp=unlist(strsplit(name,split="")) 
+    pl = grep("\\(",sp)
+    if (length(pl) == 0) return (paste0(name," (1)"))
+    pl = max(pl)
+    if (pl==length(sp)) return (paste0(name,"1)"))
+    kp = if (sp[length(sp)]==")") length(sp)-1 else length(sp)
+    nn = suppressWarnings(as.numeric(paste0(sp[(pl+1):kp],collapse="")))
+    if (is.na(nn))
     {
-      i=as.numeric(substring(name,pl+1,pl+attr(pl,"match.length")-2))
-      if (is.na(i)) i=1 else
-      {
-        i=i+1
-        name=gsub("^\\s+|\\s+$","",substr(name,1,pl-1))
-      }
-    } else i=1
-    name = paste0(name," (",i,")")
-    if (!name %in% setOfNames) break
-  }
-  return(name)
+      nn=i 
+      kp = length(sp)
+      ac = " ("
+    } else {
+      kp = pl
+      nn=nn+1
+      ac = ""
+    }   
+    sp = sp[1:kp]
+    name = paste0(c(sp,ac,as.character(nn),")"),collapse="")
+    if (!name %in% setOfNames) return(name)
+    i = i+1
+  } 
 }
                     
 mkFileNameUnique <- function(fn)
