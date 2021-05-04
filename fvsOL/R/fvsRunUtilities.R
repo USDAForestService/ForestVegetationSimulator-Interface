@@ -2759,15 +2759,15 @@ loadFVSRun <- function(db,uuid)
 }
 
   
-mergeProjects <- function(masterdb,addondb)
+mergeProjects <- function(masterdbfile,addondbfile)
 {
-  if (!file.exists(master)) return(0)
-  if (!file.exists(addondb))  return(0)
-  db = dbConnect(SQLite(), dbname = master)
-  qry = paste0("attach database '",addondb,"' as 'addondb';")
+  if (!file.exists(masterdbfile)) return(0)
+  if (!file.exists(addondbfile))  return(0)
+  db = dbConnect(SQLite(), dbname = masterdbfile)
+  qry = paste0("attach database '",addondbfile,"' as 'addondb';")
   dbExecute(db,qry)
   qry = paste0("insert into FVSRuns select * from addondb.FVSRuns ",
-               "where uuid not in (select uuid from FVSRuns);")
+               "where addondb.uuid not in (select uuid from FVSRuns);")
   dbExecute(db,qry)
   cnt = dbGetQuery(db,"select count(*) from FVSRuns;")[1,1] 
   dbDisconnect(db)

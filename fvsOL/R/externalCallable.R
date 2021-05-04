@@ -17,18 +17,10 @@
 #'    want to use, the stands would be loaded from that table.
 #' @param variant a 2 character string specifying the variant (required).  
 #'    Ihe standID and the variant must match in the designated init table.
-#' @param autoOut a character vector of output table selections using these
-#'    codes (if null, defaults are used): 
-#' @param startyr the start year of the simulation, if NULL, the current year
-#'    is used. a 2 character string specifying the variant (required).  
-#' @param endyr the end year of the simulation, if NULL one is computed using
-#'    variant-specific settings.
-#' @param cycleat a vector of years where cycle boundaries are requested, none
-#'    outside the startyr to endyr interval are used.
 #' @return The new run uuid, NULL if not created.
 #' @export
 extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
-   stdInit="FVS_StandInit", variant)
+   stdInit="FVS_StandInit", mgmtID=NULL, variant)
 {
   if (missing(variant)) stop("variant required")
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
@@ -68,21 +60,6 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
 
   if (class(fvsInit) == "try-error") stop(paste0("query failed, qry=",qry))                                                          
   if (nrow(fvsInit) == 0) stop(paste0("query returned no data, qry=",qry))   
-
-  keyCmps=list()
-  if (class(keywords)=="character")
-  {
-    for (i in 1:length(keywords))
-    {
-      kys = keywords[i]
-      nam = names(kys)
-      if (is.null(nam) || nchar(nam)==0) nam=paste0("KeywordSet",i)
-      names(kys) = NULL
-      key = mkfvsCmp(kwds=kys,uuid=uuidgen(), exten="base", atag="k",
-                     kwdName="freeForm",title=nam,variant=variant)
-      keyCmps = append(keyCmps,key)
-    }
-  }
  
   FVS_GroupAddFilesAndKeywords = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
   if (class(FVS_GroupAddFilesAndKeywords) == "try-error") 
@@ -104,12 +81,8 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
                exten="base", atag="k",kwdName="freeForm", 
                title=paste0("From: ",stdInit)))
 
-    if (is.null(group)) for (key in keyCmps)
-      newstd$cmps[[length(newstd$cmps)+1]] <- mkfvsCmp(key,uuid=uuidgen())
-
     grps <- if (!is.null(fvsInit$GROUPS))
-       scan(text=fvsInit[row,"GROUPS"],
-            what=" ",quiet=TRUE) else c("All All_Stands")
+      scan(text=fvsInit[row,"GROUPS"], what=" ",quiet=TRUE) else c("All All_Stands")
     requ <- unlist(grps[grep("^All",grps)])
     have <- unlist(lapply(fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
@@ -132,8 +105,6 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
             newgrp$cmps[[length(newgrp$cmps)+1]] <-
             mkfvsCmp(kwds=as.character(addfiles[addf]),uuid=uuidgen(),atag="k",exten="base",
                   kwdName="freeForm",title=paste0("AddFile: ",addf))
-        if (!is.null(group) && group == grp) for (key in keyCmps) 
-           newgrp$cmps[[length(newgrp$cmps)+1]] <- key
       }
       fvsRun$grps <- append(fvsRun$grps,newgrp)
     }
@@ -156,6 +127,12 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   fvsRun$endyr <- as.character(as.numeric(fvsRun$startyr) + as.numeric(simLength))
   fvsRun$cyclelen <- cycleLength
   db = connectFVSProjectDB(prjDir)
+  fvsRun$defMgmtID = if (is.null(mgmtID)) 
+  {
+    nruns=if ("FVSRuns" %in% dbListTables(db)) 
+      dbGetQuery(db,"select count(*) from FVSRuns")[1,1] else 0
+    nextMgmtID(nruns)
+  } else mgmtID
   storeFVSRun(db,fvsRun)
   dbDisconnect(db)
   return(fvsRun$uuid)
@@ -240,7 +217,7 @@ extnListRuns <- function (prjDir=getwd())
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db))
   runs = getFVSRuns(db,asList=FALSE)
-  class(runs$time)= c('POSIXt','POSIXct')
+  if (!is.null(runs)) class(runs$time)= c('POSIXt','POSIXct')
   return(runs)
 }
 
