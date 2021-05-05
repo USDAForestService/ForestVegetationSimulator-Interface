@@ -162,7 +162,7 @@ defaultRun <- list("Default useful for all FVS variants"="fvsRun")
 
 # used in Tools, dlZipSet
 zipList <- list(  
-  "FVSProject data base (covers all runs)" = "fvsProjdb",
+  "FVSProject data base (Runs, Custom components (kcp), Custom queries, GraphSettings)" = "fvsProjdb",
   "Output data base for for all runs"  = "outdb",  
   "Keyword file for current run" = "key",  
   "FVS output file for current run" = "out",  
@@ -1391,7 +1391,7 @@ cat("filterRows and/or pivot\n")
     if (nrow(dat) > tableDisplayLimit) 
     {
       msg=paste0("Table display limit exceeded. ",
-        tableDisplayLimit," of ",nrow(dat)," displayed. Use Download table",
+        tableDisplayLimit," of ",nrow(dat)," displayed. Use .o. table",
         " to download all rows.")
       output$tableLimitMsg<-renderText(msg)
       dat = dat[1:tableDisplayLimit,,drop=FALSE] 
@@ -4140,71 +4140,56 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
           cat (file=tf,"Keywords not yet created.\n")
       }, contentType="text")
   
-  ## Download fvsRun.zip 
-  output$dlFVSRunZip <- downloadHandler(filename="fvsRun.zip",
+  ## Download FVSProjectData.zip 
+  output$dlFVSRunZip <- downloadHandler(filename="FVSProjectData.zip",
      content = function (tf = tempfile())
          {
            tempDir = paste0(dirname(tf),"/tozip")
            if (dir.exists(tempDir)) lapply(paste0(tempDir,"/",dir(tempDir)),unlink) else
                dir.create(tempDir)
            spatdat = "SpatialData.RData" 
-           grsets = "GraphSettings.RData" 
-           custSQL = "customQueries.RData" 
-           KCPs =  "FVS_kcps.RData" 
            for (ele in input$dlZipSet)
            {
+cat ("building download, ele=",ele,"\n")
              switch (ele,
                outdb = {
                  from="FVSOut.db"
-                 to=paste0(tempDir,"/FVSOut.db")
+                 to=file.path(tempDir,from)
                  if (file.exists(from)) file.copy(from=from,to=to) else
                    cat (file=to,"Output database does not exist.\n")
                },
                key   = {
                  from=paste0(input$runSel,".key")
-                 to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSkeywords.txt") 
-                 if (file.exists(from)) file.copy(from=from,to=to) else
-                   cat (file=to,"Keyword file not yet created.\n")                   
+                 to=file.path(tempDir,paste0(globals$fvsRun$title,"_FVSkeywords.txt")) 
+                 if (file.exists(from)) file.copy(from=from,to=to)                   
                },
                out   = {
                  from=paste0(input$runSel,".out")
                  to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt")
-                 if (file.exists(from)) file.copy(from=from,to=to) else
-                   cat (file=to,"Output not yet created.\n")
+                 if (file.exists(from)) file.copy(from=from,to=to) 
                },
                subdir= {
                  from=input$runSel
                  if (dir.exists(from)) 
                  {
-                   to = paste0(tempDir,"/",globals$fvsRun$title,"_SVS/")
+                   to = file.path(tempDir,paste0(globals$fvsRun$title,"_SVS"))
                    dir.create (to)
                    file.copy(from=from,to=to,recursive = TRUE)
                    file.copy(from=paste0(from,"_index.svs"),to=to)
-                 } else cat(file=paste0(tempDir,"/emptySVS.txt"),"No SVS files exist.\n")
+                 } 
                },              
                FVS_Data = file.copy(from="FVS_Data.db" ,
-                                    to=paste0(tempDir,"/FVS_Data.db")),
-               FVS_Runs = {
-                 rdat="FVS_Runs.RData"
-                 if (file.exists(rdat)) 
-                   file.copy(from=rdat,to=paste0(tempDir,"/FVS_Runs.RData"))
-                 rdm=paste0(tempDir,"/ReadMe.txt")
-                 cat (file=rdm,append=TRUE,"Run UUIDs and titles as of:",date(),"\n")
-                 for (kn in names(globals$FVS_Runs))
-                 {
-                   cat (file=rdm,append=TRUE,"UUID:",kn," Title:",globals$FVS_Runs[[kn]],"\n")
-                   fn = paste0(kn,".RData")
-                   if (file.exists(fn)) file.copy(from=fn,to=paste0(tempDir,"/",basename(fn)))
-                 }
+                                    to=file.path(tempDir,"FVS_Data.db")),
+               fvsProjdb = {
+                 rdat="FVSProject.db"
+                 if (file.exists(rdat)) file.copy(from=rdat,to=file.path(tempDir,rdat))
                },
-               SpatialData = if (file.exists(spatdat))
-                 file.copy(from=spatdat,to=paste0(tempDir,"/SpatialData.RData")),
-               GraphSettings = if (file.exists(grsets))
-                 file.copy(from=grsets,to=paste0(tempDir,"/GraphSettings.RData")),
-               customSQL = if (file.exists(custSQL))
-                 file.copy(from=custSQL,to=paste0(tempDir,"/customQueries.RData")),
-               FVS_kcps = if (file.exists(KCPs))
-                 file.copy(from=KCPs,to=paste0(tempDir,"/FVS_kcps.RData"))
+               SpatialData = {
+                 spatdat = "SpatialData.RData" 
+               if (file.exists(spatdat)) file.copy(from=spatdat,
+                                     to=file.path(tempDir,spatdat))
+               }
+                                   
            )}
            curdir = getwd()
            setwd(tempDir)
@@ -5654,7 +5639,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
   
   ##### data upload code  
   observe({
-    if(input$topPan == "Import Data")
+    if(input$topPan == "Import Input Data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Upload inventory data")
@@ -6692,7 +6677,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   })  
   
   observe({
-    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Import Data") 
+    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Import Input Data") 
     {
 cat ("dataEditor View and edit existing tables\n")
       tbs <- myListTables(dbGlb$dbIcon)
@@ -7290,109 +7275,109 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    })
 
    observe({
-    if(input$toolsPan == "Import Runs")
+    if(input$toolsPan == "Import runs and other items") 
     {
-      output$uploadRunMsg <- NULL
-      output$addRunMsg <- NULL
+      nullImportMsgsAndLists()
+      choices = getProjectList(includeLocked=TRUE) 
+      updateSelectInput(session=session, inputId="impPrjSource", 
+        choices=choices,selected="")
+    }  
+  })                                     
+
+  nullImportMsgsAndLists <- function(skipPrj=TRUE)         
+  { 
+    output$impPrjSourceMsg       <-
+    output$uploadRunsRdatMsg     <- 
+    output$impRunsMsg            <-   
+    output$impCustomCmpsMsg      <- 
+    output$impGraphSettingMsg    <- 
+    output$impCustomQueriesMsg   <- 
+    output$impFVSDatasMsg        <- 
+    output$impSpatialDataMsg     <- NULL
+    if (!skipPrj) updateSelectInput(session=session, inputId="impPrjSource",choices=list())
+    updateSelectInput(session=session, inputId="uploadRunsRdat",choices=list())
+    updateSelectInput(session=session, inputId="impRuns",choices=list())
+    updateSelectInput(session=session, inputId="impCustomCmps",choices=list())
+    updateSelectInput(session=session, inputId="impGraphSetting",choices=list())
+    updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
+    updateSelectInput(session=session, inputId="impFVSDatas",choices=list())
+    updateSelectInput(session=session, inputId="impSpatialData",choices=list())
+  }
+    
+   ## Upload zip file.                  
+  observe({ 
+    nullImportMsgsAndLists(skipPrj=FALSE)
+    if (length(input$uploadRunsRdat)==0 || is.null(input$uploadRunsRdat)) return()
+    if (input$uploadRunsRdat$type != "application/zip") {                                 
+      output$uploadRunsRdatMsg  <- renderUI(HTML("Uploaded file is not a .zip"))
+    } else {
+      
+      
+                                                                                         
+#TODO      
+      uz = try(unzip(input$uploadRunsRdat$datapath)) 
+      if (class(uz)!="try-error") 
+      { 
+ cat("uploaded zip\n")
+
+      } else {
+cat("uploaded zip failed\n")
+       output$uploadRunsRdatMsg <- renderUI(HTML("Uploaded file could not be unzipped."))        
+      }
     }
-  })
-   
-   ## Upload Runs
-  observe({
-    if (is.null(input$uploadRunsRdat)) return()
-    output$uploadRunMsg <- NULL
-    output$addRunMsg <- NULL
-    fvsRunsRData = input$uploadRunsRdat$name
-cat ("fvsRunsRData=",fvsRunsRData,"\n")
-    if (fvsRunsRData !="fvsRun.zip") 
-    {
-      output$uploadRunMsg  = renderText("Uploaded file is not a valid fvsRun.zip file.")
-      unlink(input$uploadRunsRdat$datapath)
-      return()
-    }
-    fdir = dirname(input$uploadRunsRdat$datapath)
-    unzip(input$uploadRunsRdat$datapath, junkpaths = TRUE, exdir = fdir)
-    unlink(input$uploadRunsRdat$datapath)
-    fname = dir(dirname(input$uploadRunsRdat$datapath))
-    if (length(fname) == 0) {
-      output$actionMsg = renderText(".zip was empty.")
-      progress$close()
-      return()
-    } 
-    if(length(grep(".RData$",fname)))fname <- fname[grep(".RData$",fname)]
-    if(length(grep("FVS_Runs.RData",fname)))fname <- fname[-grep("FVS_Runs.RData",fname)]
-    fext = tools::file_ext(fname)
-    if (!length(fname)) 
-    {
-      output$uploadRunMsg = renderText("fvsRun.zip did not contain any valid run files.")
-      lapply (dir(dirname(input$uploadRunsRdat$datapath),full.names=TRUE),unlink)
-      progress$close()
-      return()
-    }
-    runTitles <- list()
-    runUuids <- list()
-    for(h in 1:length(fname)){
-      load(paste0(fdir,"/",fname[h]))
-      runTitles[h] <- saveFvsRun$title
-      runUuids[h] <- saveFvsRun$uuid
-    }
-    globals$selRuns <- as.character(runTitles)
-    globals$selUuids <- as.character(runUuids)
-    updateSelectInput(session=session, inputId="runsList",
-                  choices  = runTitles)
+    session$sendCustomMessage(type = "resetFileInputHandler","uploadRunsRdat")          
   })
 
   observe({
-    output$renameRunText = if(input$prjRenameToggle==1) 
-      renderUI(textInput("renameRun", "Renamed run title:", width="28.5%")) else NULL
-  })
-  
-  # Add run
-  observeEvent(input$addRun,{
-    if (!length(input$runsList)) return()
-    if (input$prjRenameToggle==1 && nchar(trim(input$renameRun))==0)
+    if (length(input$impPrjSource) && nchar(input$impPrjSource) > 0)
     {
-      output$addRunMsg  = renderText("Rename run title is blank.")
-      return()
+cat ("impPrjSource=",input$impPrjSource,"\n")
+      nullImportMsgsAndLists()
     }
-    file = "FVS_Runs.RData"
-    truedat <- load(file)
-    isolate({
-      if (!is.na(match(input$runsList,FVS_Runs)) && input$prjRenameToggle==2)
-      {
-        output$addRunMsg  = renderText(paste0(input$runsList,
-         " already exists in current project. Rename selected run before adding."))
-        return()
-      }
-    })
-    fname = dir(dirname(input$uploadRunsRdat$datapath))
-    fdir = dirname(input$uploadRunsRdat$datapath)
-    idx <- grep(input$runsList,globals$selRuns)
-    load(paste0(fdir,"/",fname[grep(globals$selUuids[idx],fname)]))
-###TODO
-browser()
-    saveFvsRun$title
-#    storeFVSRun
-    globals$FVS_Runs[[saveFvsRun$uuid]] = if(input$prjRenameToggle==1) input$renameRun else saveFvsRun$title
-    attr(globals$FVS_Runs[[saveFvsRun$uuid]],"time") = as.integer(Sys.time())
-    file.copy(from=paste0(fdir,"/",fname[grep(globals$selUuids[idx],fname)]),to=".")
-    load(paste0(prjDir,"/",fname[grep(globals$selUuids[idx],fname)]))
-    temp1 <- input$runsList
-    if(input$prjRenameToggle==1){
-      saveFvsRun$title <- input$renameRun
-      temp2 <- input$renameRun
+  })                                                                                   
+
+  observe({
+    if (length(input$impRuns) && input$impRuns > 0)
+    {
+cat ("impRuns\n")
     }
-    save (file=paste0(saveFvsRun$uuid,".RData",saveFvsRun))
-    output$addRunMsg  = if(input$prjRenameToggle==2) renderText(paste0(temp1,
-                           " added to the project run list")) else renderText(paste0(temp2,
-                           " added to the project run list"))
-    updateSelectInput(session=session, inputId="runSel", 
-                      choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]])
-    if(length(input$renameRun) && input$renameRun!="")updateTextInput(session=session, inputId="renameRun",value="")
-    FVS_Runs <- globals$FVS_Runs
-    save (file="FVS_Runs.RData",FVS_Runs)
   })
-  
+
+  observe({
+    if (length(input$impCustomCmps) && input$impCustomCmps > 0)
+    {
+cat ("impCustomCmps\n")
+    }
+  })
+
+  observe({
+    if (length(input$impGraphSettings) && input$impGraphSettings > 0)
+    {
+cat ("impGraphSettings\n")
+    }
+  })
+
+  observe({
+    if (length(input$impCustomQueries) && input$impCustomQueries > 0)
+    {
+cat ("impCustomQueries\n")
+    }
+  })
+
+  observe({
+    if (length(input$impFVS_Data) && input$impFVS_Data > 0)
+    {
+cat ("impFVS_Data\n")
+    }
+  })
+
+  observe({
+    if (length(input$impSpatialData) && input$impSpatialData > 0)                       
+    {
+cat ("impSpatialData\n")
+    }
+  })
+   
   #runScript selection
   observe(if (length(input$runScript)) customRunOps())
 
@@ -7426,61 +7411,6 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     })
   }
     
-  ## Refresh/copy projects 
-  observe({    
-    if (input$topPan == "Project Tools" && input$toolsPan == "Copy projects") 
-    {
-      cat ("Refresh/copy projects\n")
-      selChoices = getProjectList(includeLocked=TRUE)
-      sel = charmatch(basename(getwd()),selChoices)
-      if (is.na(sel)) return()
-      sel = sel[1]
-      validTargets = getProjectList()
-      namidx = match(validTargets,selChoices)
-      names(validTargets) <- names(selChoices)[namidx]
-      sel = if (is.na(sel))  0 else selChoices[sel]
-      updateSelectInput(session=session, inputId="sourcePrj", 
-                          choices=selChoices,selected=sel)
-      updateSelectInput(session=session,inputId="targetPrj",
-                          choices=validTargets,selected=0)
-    }
-  })
-  
-  observe({    
-    if (input$cpyNow > 0) 
-    {
-      isolate({
-        if (length(input$targetPrj) == 0) return()
-        progress <- shiny::Progress$new(session,min=1,max=10)
-        progress$set(message = "Copying files to target project",value = 1)
-cat ("cpyNow src=",input$sourcePrj," trg=",input$targetPrj," input$cpyElts=",input$cpyElts,"\n")
-        files=NULL
-        srcprj=paste0("../",input$sourcePrj,"/")
-        progress$set(message = "Copying files to new project",value = 4)
-        for (elt in input$cpyElts)
-        {
-          files=c(files,switch(elt,
-                               "inDBS"="FVS_Data.db",
-                               "inSpace"="SpatialData.RData",
-                               "kcps"="FVS_kcps.RData",
-                               "custQ"="customQueries.RData",
-                               "graphSet"="GraphSettings.RData"))
-        }
-        progress$set(message = "Copying files to target project",value = 6)
-cat ("cpyNow files=",files,"\n")
-        files=paste0(srcprj,files)
-        for (trgPrj in input$targetPrj) lapply(files,function (x,trg) 
-          if (file.exists(x)) file.copy(from=x,to=trg,overwrite=TRUE,recursive=TRUE),
-                              paste0("../",trgPrj))
-        progress$set(message = "Copying files to target project",value = 9)
-        updateSelectInput(session=session,inputId="targetPrj",selected=0)
-        output$copyActionMsg <- renderText(HTML("<b>Target project software and/or files updated</b>"))
-        progress$close()
-        
-      })      
-    }
-  })
-  
   updateProjectSelections <- function ()
   {
     selChoices = getProjectList() 
