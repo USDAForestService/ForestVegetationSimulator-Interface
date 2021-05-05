@@ -612,6 +612,58 @@ extnListStands <- function(prjDir=getwd(),runUUID)
   return(stands)
 }
 
+#' Fetch a run
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of the run uuid that is fetched
+#' @param returnRaw return as a raw (default), otherwise return as class fvsRun.
+#' @return the run.
+#' @export
+extnLoadFVSRun <- function(prjDir=getwd(),runUUID,returnRaw=TRUE)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db))
+  rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",runUUID,"')"))
+  fvsRun = if (nrow(rtn)) rtn[1,1][[1]] else NULL
+  if (returnRaw) return(fvsRun)
+  return(if (!is.null(fvsRun)) extnFromRaw(fvsRun) else NULL)
+}
+
+
+#' Store a run
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param theRun an object of class fvsRun.
+#' @return return value from data base action.
+#' @export
+extnStoreFVSRun <- function(prjDir=getwd(),theRun)
+{
+  if (missing(theRun)) stop("fvsRun required")
+  if (class(theRun) != "fvsRun") stop ("fvsRun is not of class fvsRun")
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db))
+  runUUID=theRun$uuid
+  rowid=0
+  if ("FVSRuns" %in% dbListTables(db))
+  {
+    rowid=dbGetQuery(db,paste0("select rowid from FVSRuns where (uuid='",runUUID,"')"))      
+    rowid=if (nrow(rowid)) rowid[1,1] else 0
+  } else dbExecute(db, "create table FVSRuns (uuid text, name text, time integer, run blob)")
+  if (rowid) dbExecute(db,paste0("delete from FVSRuns where (rowid=",rowid,");"))
+  prjs=getFVSRuns(db)
+  theRun$title=mkNameUnique(theRun$title,names(prjs))
+  if (nchar(trim(theRun$defMgmtID))==0) theRun$defMgmtID=nextMgmtID(length(prjs))
+  df = data.frame(uuid=theRun$uuid,name=theRun$title,time=as.integer(Sys.time()),
+       run=I(list(extnToRaw(theRun))))
+  rtn = dbExecute(db,paste0("insert into FVSRuns (uuid,name,time,run) values ",
+                 "((:uuid), (:name), (:time), (:run))"), params=df)
+  rtn
+}
+
+
 #' Add Stands to a run
 #'
 #' Given a project directory and a run uuid, a list of 
