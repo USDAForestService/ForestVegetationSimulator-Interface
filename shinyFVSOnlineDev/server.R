@@ -3879,6 +3879,7 @@ cat ("cmd=",cmd,"\n")
           Sys.sleep(1)
           updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
+          if(globals$localWindows)setwd(currdir)
           progress$close()
           return()
         }
