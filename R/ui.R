@@ -1,10 +1,10 @@
 # $Id: ui.R 3389 2021-02-09 03:00:48Z mshettles521 $
 
-
 FVSOnlineUI <- fixedPage(
-  tags$head(tags$style(HTML(".shiny-notification {height: 80px;width: 500px;
-              position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
+  tags$head(tags$style(HTML(
+    ".shiny-notification {height: 80px;width: 500px;position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
   tags$style(type="text/css", ".progress-bar {color: transparent!important}"),
+  singleton(tags$head(tags$script(src = "message-handler.js"))),
   tags$style(HTML(paste0(
     ".nav>li>a {padding:3px;}",
     ".btn {padding:2px 2px;color:darkred; background-color:#eef8ff;}",
@@ -12,8 +12,16 @@ FVSOnlineUI <- fixedPage(
     ".form-group {margin-bottom:4px}",
     ".leaflet-popup-content-wrapper,.leaflet-popup-tip {background: rgb(255, 255, 255, .7); box-shadow: 0 3px 14px rgba(0,0,0,0.4);"
     ))),
-  fixedRow(
-    column(width=4,offset=0,
+  tags$script('
+    Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
+        var el = $("#" + x);
+        el.replaceWith(el = el.clone(true));
+        var id = "#" + x + "_progress";     
+        $(id).css("visibility", "hidden");});'
+    ),       
+  tags$head(tags$script(HTML(
+      'Shiny.addCustomMessageHandler("jsCode",function(message) {eval(message.code);});'))),
+  fixedRow(column(width=4,offset=0,
       HTML(paste0(
              '<h4><img src="FVSlogo.png" align="middle"</img>',
              '&nbsp;Forest Vegetation Simulator</h4>'))),
@@ -24,213 +32,208 @@ FVSOnlineUI <- fixedPage(
              "position: absolute; left: 30px;",            
              "opacity: .9; height: 35px; width: 50%;}")),
       uiOutput("contCnts")),
-    column(width=2,
-      uiOutput("serverDate"),
-      singleton(tags$head(tags$script(src = "message-handler.js")))
-  ) ),
+    column(width=2,uiOutput("serverDate"))
+  ), #End of Header
   fixedRow(column(width=12,offset=0,
     tags$style(type="text/css","#topPan {background-color: rgb(227,227,255);}"),
     uiOutput("appLocked"),
     tabsetPanel(id="topPan",
       tabPanel("Runs",
-        fixedRow(column(width=4,offset=0,
-            h6(),
-            tags$style(type="text/css", "#runSel { width: 100%; }"),
-            selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
-                        selectize=FALSE),
-            actionButton("newRun","New"),
-            actionButton("reload","Reload"),
-            tags$style(type="text/css", "#saveRun { color: green; }"),
-            actionButton("saveRun","Save"),
-            actionButton("dupRun","Duplicate"),
-            modalTriggerButton("deleteRun", "#deleteRunDlg", "Delete"),
-            modalDialog(id="deleteRunDlg", footer=list(
-              modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
-                 'data-dismiss' = "modal", "Cancel"))),
-            h6(),
-            tags$style(type="text/css", "#title { width: 90%; }"),
-            textInput("title", "Run title", ""), 
-            # all the select objects
-            tags$style(type="text/css", "select { width: 100%; }"),
-            h6(),
-            tags$style(type="text/css", "#simCont { width: 100%; height: 400px;}"),
-            myRadioGroup("simContType", "Run Contents ", 
-                  c("Full run","Just groups")),
-            selectInput("simCont",NULL, NULL, NULL, multiple=TRUE,
-                        selectize=FALSE),
-            actionButton("editSel","Edit"),
-            actionButton("mkfree","Change to freeform"),
-            actionButton("cutCmp","Cut/Delete"),
-            actionButton("copyCmp","Copy"),h6(),
-            actionButton("paste","Paste item selected below"),
-            selectInput("selpaste","Components available to paste", NULL, 
-                        NULL, multiple=FALSE, selectize=FALSE), 
-            myInlineTextInput("searchString", "Find stand:", value = "", size="25%"),
-            actionButton("searchNext","Find")
-          ),
-          column(width=8,offset=.2,
-            tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
-            tabsetPanel(id = "rightPan",
-              tabPanel("Stands",
-                selectInput("inTabs","Inventory Data Tables", NULL, NULL, 
-                          multiple=FALSE, selectize=FALSE),
-                selectInput("inVars","Variants", NULL, NULL, 
-                          multiple=FALSE, selectize=FALSE),
-                selectInput("inGrps","Groups", NULL, NULL, 
-                          multiple=TRUE, selectize=FALSE, size=6),
-                myRadioGroup("inAnyAll", "Stands must be in any or all selected groups ", 
-                  c("Any","All")),               
-                tags$style(type="text/css", "#inStds { height: 300px;}"),
-                selectInput("inStds", NULL, NULL, NULL, 
-                          multiple=TRUE, selectize=FALSE),
-                uiOutput("stdSelMsg"),
-                myInlineTextInput("inReps", "Number of replicates of each added stand ", value = "1", size="5%"),            
-                myInlineTextInput("inRwts", "Relative weights of each replicate ", value = "1", size="20%"), 
-                h6(),
-                actionButton("inAdd",   "Add selected stands"),
-                actionButton("inAddGrp","Add stands in selected groups"), 
-                h6(),
-                myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
-                actionButton("inStdFindBut","Find")
-              ), 
-              tabPanel("Time",
-                textInput("startyr",  "Common starting year", ""), 
-                textInput("endyr",    "Common ending year",   ""), 
-                textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
-                tags$style(type="text/css", "#cycleat { width: 90%; }"),
-                textInput("cycleat", "Additional output reporting years", ""),
-                h4("Projection Timing Summary"),
-                HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common',
-                     ' starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS',
-                     ' will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),
-                     ' years, with the simulation ending at the common ending year, for all stands, of ',
-                     htmlOutput("eYr", inline=TRUE),
-                     '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
-              ),
-              tabPanel("Components",          
-                tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
-                tabsetPanel(id = "compTabSet",
-                  tabPanel("Management",
-                    selectInput ("addMgmtCats","Categories",NULL,
-                                 multiple=FALSE,selectize=FALSE),
-                    selectInput("addMgmtCmps","Components",NULL,
-                                 multiple=FALSE,selectize=FALSE)
-                    ),
-                 tabPanel("Modifiers",                    
-                   selectInput("addModCats","Categories",NULL,
+        fixedRow(column(width=4,offset=0,h6(),
+          tags$style(type="text/css", "#runSel { width: 100%; }"),
+          selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
+                      selectize=FALSE),
+          actionButton("newRun","New"),
+          actionButton("reload","Reload"),
+          tags$style(type="text/css", "#saveRun { color: green; }"),
+          actionButton("saveRun","Save"),
+          actionButton("dupRun","Duplicate"),
+          modalTriggerButton("deleteRun", "#deleteRunDlg", "Delete"),
+          modalDialog(id="deleteRunDlg", footer=list(
+            modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
+              tags$button(type = "button", class = "btn btn-primary", 
+               'data-dismiss' = "modal", "Cancel"))),
+          h6(),
+          tags$style(type="text/css", "#title { width: 90%; }"),
+          textInput("title", "Run title", ""), 
+          # all the select objects
+          tags$style(type="text/css", "select { width: 100%; }"),
+          h6(),
+          tags$style(type="text/css", "#simCont { width: 100%; height: 400px;}"),
+          myRadioGroup("simContType", "Run Contents ", 
+                c("Full run","Just groups")),
+          selectInput("simCont",NULL, NULL, NULL, multiple=TRUE,
+                      selectize=FALSE),
+          actionButton("editSel","Edit"),
+          actionButton("mkfree","Change to freeform"),
+          actionButton("cutCmp","Cut/Delete"),
+          actionButton("copyCmp","Copy"),h6(),
+          actionButton("paste","Paste item selected below"),
+          selectInput("selpaste","Components available to paste", NULL, 
+                      NULL, multiple=FALSE, selectize=FALSE), 
+          myInlineTextInput("searchString", "Find stand:", value = "", size="25%"),
+          actionButton("searchNext","Find")
+        ),
+        column(width=8,offset=.2,
+          tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
+          tabsetPanel(id = "rightPan",
+            tabPanel("Stands",
+              selectInput("inTabs","Inventory Data Tables", NULL, NULL, 
+                        multiple=FALSE, selectize=FALSE),
+              selectInput("inVars","Variants", NULL, NULL, 
+                        multiple=FALSE, selectize=FALSE),
+              selectInput("inGrps","Groups", NULL, NULL, 
+                        multiple=TRUE, selectize=FALSE, size=6),
+              myRadioGroup("inAnyAll", "Stands must be in any or all selected groups ", 
+                c("Any","All")),               
+              tags$style(type="text/css", "#inStds { height: 300px;}"),
+              selectInput("inStds", NULL, NULL, NULL, 
+                        multiple=TRUE, selectize=FALSE),
+              uiOutput("stdSelMsg"),
+              myInlineTextInput("inReps", "Number of replicates of each added stand ", value = "1", size="5%"),            
+              myInlineTextInput("inRwts", "Relative weights of each replicate ", value = "1", size="20%"), 
+              h6(),
+              actionButton("inAdd",   "Add selected stands"),
+              actionButton("inAddGrp","Add stands in selected groups"), 
+              h6(),
+              myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
+              actionButton("inStdFindBut","Find")
+            ), 
+            tabPanel("Time",
+              textInput("startyr",  "Common starting year", ""), 
+              textInput("endyr",    "Common ending year",   ""),                                        
+              textInput("cyclelen", "Growth and reporting interval (years)",  ""), 
+              tags$style(type="text/css", "#cycleat { width: 90%; }"),
+              textInput("cycleat", "Additional output reporting years", ""),
+              h4("Projection Timing Summary"),
+              HTML(paste0('FVS will project your data, beginning from the year of inventory, to the common',
+                   ' starting year of ',htmlOutput("srtYr", inline=TRUE),' for all stands. Thereafter, FVS',
+                   ' will grow the stand, and provide output, in intervals of ',htmlOutput("cyLen", inline=TRUE),
+                   ' years, with the simulation ending at the common ending year, for all stands, of ',
+                   htmlOutput("eYr", inline=TRUE),
+                   '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
+            ),
+            tabPanel("Components",          
+              tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
+              tabsetPanel(id = "compTabSet",
+                tabPanel("Management",
+                  selectInput ("addMgmtCats","Categories",NULL,
                                multiple=FALSE,selectize=FALSE),
-                   selectInput("addModCmps","Components",NULL,
-                               multiple=FALSE,selectize=FALSE)),
-                 tabPanel("Event Monitor",
-                   h6(),
-                   selectInput("addEvCmps",NULL,NULL,multiple=FALSE,selectize=FALSE)),
-                 tabPanel("Economic",h6()),
-                 tabPanel("Keywords",
-                   h5("Note: Avoid direct use of keywords when possible."),
-                   selectInput("addKeyExt","Extensions",NULL,
-                               multiple=FALSE,selectize=FALSE),
-                   selectInput("addKeyWds","Keywords",NULL,
-                               multiple=FALSE,selectize=FALSE)),
-                 tabPanel("Editor",
-                   h5(),
-                   fileInput("kcpUpload",
-                             "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
-                             width="90%"),
-                   selectInput("kcpSel","Existing component collection", NULL, 
-                              NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
-                   actionButton("kcpNew","New"),
-                   actionButton("kcpAppend","Append selected component from run"),
-                   tags$style(type="text/css", "#kcpSaveInRun {color:green;}"),
-                   actionButton("kcpSaveInRun","Save in run"),
-                   tags$style(type="text/css", "#kcpSaveCmps {color:green;}"),
-                   actionButton("kcpSaveCmps","Save in component collection"),
-                   tags$style(type="text/css", "#kcpDelete { color: red; }"),
-                   actionButton("kcpDelete","Delete"),
-                   tags$style(type="text/css", "#kcpDownload { color: black; }"),
-                   downloadButton("kcpDownload","Download (KCP)"),
-                   h6(),
-                   tags$style(type="text/css", "#kcpTitle { width: 60%; }"),
-                   myInlineTextInput("kcpTitle", "Component Title: ", value = "", size="65%"),h6(),      
-                   tags$style(type="text/css", 
-                      "#kcpCols{font-family:monospace;font-size:90%;width:80%;}"), 
-                   tags$p(id="kcpCols", 
-                       HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
-                   tags$style(type="text/css", 
-                      "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-                   tags$textarea(id="kcpEdit", rows=15),h6())),
-               uiOutput("titleBuild"),
-               uiOutput("condBuild"),
-               uiOutput("cmdBuild"),
-               uiOutput("cmdBuildDesc"),h5()
-              ),
-              tabPanel("Select Outputs",
-                    h4("Select outputs"),
-                    HTML(paste0("Note that all outputs are put in output database except for the SVS data.<br>",
-                         "FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum,",
-                         "FVS_DM_Spp_Sum) are always produced.")),h6(),                       
-                    fixedRow(
-                      column(width=2,style="padding-top:6px;",
-                        checkboxGroupInput("autoSVS",NULL,choices=list(
-                          "SVS:"="autoSVS"),width="100%",inline=TRUE)),
-                      column(width=5,style="padding-top:6px;",
-                          myRadioGroup("svsPlotShape","Plot shape",list("Round","Square"),
-                              selected="Round",labelstyle="font-weight:normal")),
-                      column(width=5,
-                          myInlineNumericInput("svsNFire","Images per fire:", value="4", min="1", max="8", 
-                                               step="1",size=15,labelstyle="font-weight:normal;"))),
-                    checkboxGroupInput("autoOut",NULL,choices=list(
-                        "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
-                        "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
-                        "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
-                        "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
-                        "FFE canopy profile (FVS_CanProfile)"="autoCanProfile",          
-                        "FFE detailed snag (FVS_SnagDet)"="autoSnagDet",  
-                        "Stand structure (FVS_StrClass)"="autoStrClass",
-                        "Calibration stats (FVS_CalibStats)"="autoCalibStats",  
-                        "Climate-FVS (FVS_Climate)"="autoClimate",                                    
-                        "Economics (FVS_EconSummary, FVS_EconHarvestValue)"="autoEcon",
-                        "Mistletoe detail by tree size (FVS_DM_Sz_Sum)"="autoDM_Sz_Sum",  
-                        "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
-                        "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
-                        "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
-                        "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
-                        "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
-                         AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
-                        "Include text outputs in the main output file (otherwise many are suppressed)"="autoDelOTab"  
-                        ),width="100%",inline=FALSE),
-                   selectInput("tabDescSel","Describe tables",choices=list(),
-                        multiple=FALSE,selectize=FALSE),
-                        h5(),uiOutput("tabDesc")
-              ),
-              tabPanel(title=htmlOutput("contChange"),
-                fixedRow(
-                  column(width=3,
-                    tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
-                    textInput("defMgmtID","MgmtID (4 chars)",""),
-                    radioButtons("runwaitback", NULL, 
-                      c("Wait for run","Run in background")),
-                    actionButton("saveandrun","Save and Run"),
-                    h6(),
-                    downloadButton("dlFVSRunout","FVS Main Output File"),
-                    h4()
+                  selectInput("addMgmtCmps","Components",NULL,
+                               multiple=FALSE,selectize=FALSE)
                   ),
-                  column(width=9,
-                    customRunElements
-                  )
-                ),
-                uiOutput("uiRunPlot"),
-                uiOutput("uiErrorScan"),
-                selectInput("bkgRuns", "Background run status", 
-                  choices  = list(), size=4, width = "95%", selected = NULL, selectize=FALSE),
-                actionButton("bkgKill","Kill selected background run"),
-                actionButton("bkgRefresh","Refresh list")
+               tabPanel("Modifiers",                    
+                 selectInput("addModCats","Categories",NULL,
+                             multiple=FALSE,selectize=FALSE),
+                 selectInput("addModCmps","Components",NULL,
+                             multiple=FALSE,selectize=FALSE)),
+               tabPanel("Event Monitor",h6(),
+                 selectInput("addEvCmps",NULL,NULL,multiple=FALSE,selectize=FALSE)),
+               tabPanel("Economic",h6()),
+               tabPanel("Keywords",
+                 h5("Note: Avoid direct use of keywords when possible."),
+                 selectInput("addKeyExt","Extensions",NULL,
+                             multiple=FALSE,selectize=FALSE),
+                 selectInput("addKeyWds","Keywords",NULL,
+                             multiple=FALSE,selectize=FALSE)),
+               tabPanel("Editor",
+                 h5(),
+                 fileInput("kcpUpload",
+                           "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
+                           width="90%"),
+                 selectInput("kcpSel","Existing component collection", NULL, 
+                            NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
+                 actionButton("kcpNew","New"),
+                 actionButton("kcpAppend","Append selected component from run"),
+                 tags$style(type="text/css", "#kcpSaveInRun {color:green;}"),
+                 actionButton("kcpSaveInRun","Save in run"),
+                 tags$style(type="text/css", "#kcpSaveCmps {color:green;}"),
+                 actionButton("kcpSaveCmps","Save in component collection"),
+                 tags$style(type="text/css", "#kcpDelete { color: red; }"),
+                 actionButton("kcpDelete","Delete"),
+                 tags$style(type="text/css", "#kcpDownload { color: black; }"),
+                 downloadButton("kcpDownload","Download (KCP)"),
+                 h6(),
+                 tags$style(type="text/css", "#kcpTitle { width: 60%; }"),
+                 myInlineTextInput("kcpTitle", "Component Title: ", value = "", size="65%"),h6(),      
+                 tags$style(type="text/css", 
+                    "#kcpCols{font-family:monospace;font-size:90%;width:80%;}"), 
+                 tags$p(id="kcpCols", 
+                     HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+                 tags$style(type="text/css", 
+                    "#kcpEdit{font-family:monospace;font-size:90%;width:95%;}"), 
+                 tags$textarea(id="kcpEdit", rows=15),h6())),
+             uiOutput("titleBuild"),
+             uiOutput("condBuild"),
+             uiOutput("cmdBuild"),
+             uiOutput("cmdBuildDesc"),h5()
+           ), #End Components
+           tabPanel("Select Outputs",
+             h4("Select outputs"),
+             HTML(paste0("Note that all outputs are put in output database except for the SVS data.<br>",
+                  "FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum,",
+                  "FVS_DM_Spp_Sum) are always produced.")),h6(),                       
+             fixedRow(
+               column(width=2,style="padding-top:6px;",
+                 checkboxGroupInput("autoSVS",NULL,choices=list(
+                   "SVS:"="autoSVS"),width="100%",inline=TRUE)),
+               column(width=5,style="padding-top:6px;",
+                   myRadioGroup("svsPlotShape","Plot shape",list("Round","Square"),
+                       selected="Round",labelstyle="font-weight:normal")),
+               column(width=5,
+                   myInlineNumericInput("svsNFire","Images per fire:", value="4", min="1", max="8", 
+                                        step="1",size=15,labelstyle="font-weight:normal;"))),
+             checkboxGroupInput("autoOut",NULL,choices=list(
+                 "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                 "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
+                 "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
+                 "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
+                 "FFE canopy profile (FVS_CanProfile)"="autoCanProfile",          
+                 "FFE detailed snag (FVS_SnagDet)"="autoSnagDet",  
+                 "Stand structure (FVS_StrClass)"="autoStrClass",
+                 "Calibration stats (FVS_CalibStats)"="autoCalibStats",  
+                 "Climate-FVS (FVS_Climate)"="autoClimate",                                    
+                 "Economics (FVS_EconSummary, FVS_EconHarvestValue)"="autoEcon",
+                 "Mistletoe detail by tree size (FVS_DM_Sz_Sum)"="autoDM_Sz_Sum",  
+                 "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
+                 "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
+                 "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
+                 "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
+                 paste0("Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally.",
+                        "AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth))"="autoRegen",
+                 "Include text outputs in the main output file (otherwise many are suppressed)"="autoDelOTab"  
+                 ),width="100%",inline=FALSE)),
+            selectInput("tabDescSel","Describe tables",choices=list(),
+                 multiple=FALSE,selectize=FALSE),
+                 h5(),uiOutput("tabDesc")
+          ), #End select outputs
+          tabPanel(title=htmlOutput("contChange"),   # Make a Runs
+            fixedRow(
+              column(width=3,
+                tags$style(type="text/css", "#defMgmtID { width: 65px; }"),
+                textInput("defMgmtID","MgmtID (4 chars)",""),
+                radioButtons("runwaitback", NULL, 
+                  c("Wait for run","Run in background")),
+                actionButton("saveandrun","Save and Run"),
+                h6(),
+                downloadButton("dlFVSRunout","FVS Main Output File"),
+                h4()
+              ),
+              column(width=9,
+                customRunElements
               )
-          ) )
-      ) ),   #END Make Runs
+            ),
+            uiOutput("uiRunPlot"),
+            uiOutput("uiErrorScan"),
+            selectInput("bkgRuns", "Background run status", 
+              choices  = list(), size=4, width = "95%", selected = NULL, selectize=FALSE),
+            actionButton("bkgKill","Kill selected background run"),
+            actionButton("bkgRefresh","Refresh list")
+          ) #END Make Runs 
+        ) #END right panel 
+      ) ) ), #End column END of Runs item in top panel 
       tabPanel("View Outputs",
-        fixedRow(
-        column(width=4,offset=0,
+        fixedRow(column(width=4,offset=0,
           tags$style(type="text/css","#leftPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="leftPan", 
             tabPanel("Load", 
@@ -263,8 +266,7 @@ FVSOnlineUI <- fixedPage(
               selectInput("stdgroups", "Groups", size=4,
                   choices  = list("None loaded"), width="100%",
                   selected = NULL, multiple = TRUE, selectize=FALSE),
-              fixedRow(
-                column(width=8,
+              fixedRow(column(width=8,
                   selectInput("stdid", "Stands", size=6,
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE)),
@@ -272,8 +274,7 @@ FVSOnlineUI <- fixedPage(
                   selectInput("mgmid", "MgmtIDs", size=6, 
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE))),
-              fixedRow(
-                column(width=4,
+              fixedRow(column(width=4,
                   selectInput("year", "Years", size=6,  
                       choices  = list("None loaded"), 
                       selected = NULL, multiple = TRUE, selectize=FALSE)),           
@@ -313,7 +314,7 @@ FVSOnlineUI <- fixedPage(
                     'The last statement that results in a table being returned ',
                     'defines the end of the sequence. That table is ',
                     'used in <b>Tables</b> and <b>Graphs</b>')))
-        ) ) ),
+        ) ) ), #END of outputleft pan
         column(width=8,offset=.2,
         tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
         conditionalPanel("input.leftPan != 'Load'", 
@@ -468,15 +469,15 @@ FVSOnlineUI <- fixedPage(
               textOutput("plotMessage")),
                 column(width=6,h6(),actionButton("copyplot","Copy plot to clipboard"))),
             fixedRow(column(width=12,plotOutput(outputId="outplot")))
-          )
-        ) ),
+          ) #END Graphs
+        ) ), #END Conditional pan 
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
             column(width=6,                 
               tabsetPanel(id="describe",selectInput("tabDescSel2","Describe tables",
                 choices=list(),multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
-      ) ) ),
+      ) ) ), # END View Outputs
       tabPanel("SVS3d",
         h6(),
         fixedRow(
@@ -520,7 +521,8 @@ FVSOnlineUI <- fixedPage(
 #              column(width=6,offset=0,HTML('<img id="SVSImg2Top"  alt="Top View"  width="200" height="200"</img>')),
 #              column(width=6,offset=0,HTML('<img id="SVSImg2Side" alt="Side View" width="200" height="200"</img>'))),
             rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
-      )),
+      )), #END SVS3d
+
       tabPanel("Maps",
         h6(),
         fixedRow(
@@ -542,24 +544,17 @@ FVSOnlineUI <- fixedPage(
                          "Google Streets"="m","Google Terrain"="p"),
             multiple=FALSE, selectize=FALSE, width="95%"))
          ), 
-         fixedRow(
-         column(width=12,offset=0,
+         fixedRow(column(width=12,offset=0,
            textOutput("leafletMessage"),
-           leafletOutput("leafletMap",height="800px",width="100%"))
-      )),
-      tabPanel("Import Input Data",
-        tags$script('
-           Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {   
-               var el = $("#" + x);
-               el.replaceWith(el = el.clone(true));
-               var id = "#" + x + "_progress";     
-               $(id).css("visibility", "hidden");});'
-        ),       
-        fixedRow(
-          tags$head(tags$script(HTML('
-             Shiny.addCustomMessageHandler("jsCode",
-             function(message) {eval(message.code);});'))),
-        column(width=12,offset=0,
+           leafletOutput("leafletMap",height="800px",width="100%")))
+      ), #END Maps
+     
+      
+      
+      
+      
+      tabPanel("Import Input Data", 
+        fixedRow(column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
             tabPanel("Upload inventory database", 
@@ -583,8 +578,7 @@ FVSOnlineUI <- fixedPage(
               actionButton("installEmptyDB","Install blank database"),h6()
             ),
             tabPanel("View and edit existing tables",        
-              fixedRow(
-                column(width=3,offset=0,
+              fixedRow(column(width=3,offset=0,
                   h6(),
                   myRadioGroup("mode", "Mode ", c("Edit","New rows")),
                   myInlineTextInput("disprows",  "Number display rows", value = 20, size=5),
@@ -597,17 +591,13 @@ FVSOnlineUI <- fixedPage(
                   uiOutput("stdSel"),
                   myInlineTextInput("editStandSearch", "Find stand:", value = "", size="25%"),h6(),
                   actionButton("clearTable","Remove all rows and commit"),h6(),
-                  actionButton("commitChanges","Commit edits or new rows")
-                ),
+                  actionButton("commitChanges","Commit edits or new rows")),
                 column(width=9,offset=0,
                   h6(),uiOutput("navRows"),
                   h6(),rHandsontableOutput("tbl"),
-                  textOutput("actionMsg"))
-              ),
-              fixedRow(
-                column(width=12,offset=0,
-                  h6(),uiOutput("inputTabDesc")
-            ))),              
+                  textOutput("actionMsg"))),
+              fixedRow(column(width=12,offset=0,h6(),uiOutput("inputTabDesc")))
+            ),              
             tabPanel("Upload Map data", 
               h4("Upload a stand layer to use in the Maps feature."),       
               h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
@@ -645,139 +635,165 @@ FVSOnlineUI <- fixedPage(
               h4(),             
               fileInput("climateFVSUpload",
                         "Upload and commit Climate-FVS data; (FVSClimAttrs.csv or answers.zip)",
-                        width="90%"),
+                        width="90%"),                                                                            
               tags$style(type="text/css","#uploadActionMsg{color:darkred;}"), 
               uiOutput("uploadClimActionMsg")     
-            )#END tabPanel
+            ) #END tabPanel
           ) #END tabsetPanel
-        ) ) #END column and fixed row
-      ),
-      tabPanel("Project Tools",           
-        fixedRow(
-        column(width=12,offset=0,                                                                 
-          tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),          
-          tabsetPanel(id="toolsPan",  
-            tabPanel("Import runs and other items",
-              h1("This feature is being developed and currently does not work."),
-              HTML(paste0('<p style="font-size:16px"><br><b>Step 1</b> ',
-                'Choose a source of items to ',               
-                'be imported. The source can be another of your projects or you can upload ',
-                'a zip file that contains runs and other project items. The zip file can ',
-                'be one created using the <i>Downloads</i> tab or a project backup created ',
-                'using the <i>Manage projects</i> tab.<br>Note: If you import runs ',
-                'that were created using different inventory data than what you have in this project, ',
-                'those data will need to be imported to run the imported runs.</p>')),h3(),                            
-              fileInput("uploadRunsRdat","Upload source .zip file",width="90%"),
-              uiOutput("uploadRunsRdatMsg"),h6(),
-              fixedRow(column(width=6,offset=0,
-                selectInput(inputId="impPrjSource", 
-                   label="Select an existing project as a source", multiple=FALSE,
-                   choices = list(), selected="", selectize=FALSE)),
-                      column(width=6,offset=0,uiOutput("impPrjSourceMsg"))),h6(),       
-              HTML(paste0('<p style="font-size:16px"><br><b>Step 2</b> ',
-                'Import items shown below into your current project. Note that ',
-                'it is a good practice to make a project backup before importing ',
-                'the input FVS_Data base or the Spatial data.</p>')),h3(),
-              fixedRow(column(width=6,offset=0,
-                selectInput(inputId="impRuns", label="Select a run to import", multiple=FALSE, 
-                      choices=list(),selectize=FALSE)),
-                      column(width=6,offset=0,uiOutput("impRunsMsg"))),h6(), 
-              fixedRow(column(width=6,offset=0,
-                selectInput(inputId="impCustomCmps", label="Select a custom component (.kcp)",  
-                      choices=list(),multiple=FALSE, selectize=FALSE)),
-                      column(width=6,offset=0,uiOutput("impCustomCmpsMsg"))),h6(), 
-              fixedRow(column(width=6,offset=0,
-                selectInput(inputId="impGraphSettings", label="Select a graph setting", 
-                      choices=list(),multiple=FALSE,selectize=FALSE)),
-                      column(width=6,offset=0,uiOutput("impGraphSettingMsg"))),h6(), 
-              fixedRow(column(width=6,offset=0,
-                selectInput(inputId="impCustomQueries", label="Select a custom query", 
-                      choices=list(),multiple=FALSE,selectize=FALSE)),
-                      column(width=6,offset=0,uiOutput("impCustomQueriesMsg"))),h6(), 
-              fixedRow(column(width=6,offset=0,
-                actionButton(inputId="impFVS_Data", label="Import the FVS_Data database")),
-                      column(width=6,offset=0,uiOutput("impFVSDataMsg"))),h6(),                          
-             fixedRow(column(width=6,offset=0,
-                actionButton(inputId="impSpatialData", label="Import the Spatial Data")),
-                      column(width=6,offset=0,uiOutput("impSpatialDataMsg"))),h3()                          
-            ),
-            tabPanel("Manage project",        
-                h4(),if (isLocal()) h4("Switch to another project") else
-                                    h4("Start another project"), 
-                selectInput("PrjSelect", "Select project", multiple=FALSE,
-                   choices = list(), selected="", selectize=FALSE),       
-                actionButton("PrjOpen","Open selected project"),h4(),
-                h4("Create a new project"),
-                textInput("PrjNewTitle", "New project title", ""), 
-                actionButton("PrjNew","Make new project"),
-              h4("Delete outputs in current project"),
+      ) ) ), #END END Import input data
+
+      ####
+      
+      tabPanel("Project Tools",
+        tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
+        tabsetPanel(id="toolsPan",
+        
+          tabPanel("Manage project",   
+              h4(),h4("Start another project"), 
+              selectInput("PrjSelect", "Select project", multiple=FALSE,
+                 choices = list(), selectize=FALSE),       
+              actionButton("PrjOpen","Open selected project"),h4(),
+              h4("Create a new project"),
+              textInput("PrjNewTitle", "New project title", ""), 
+              actionButton("PrjNew","Make new project"),
+            h4("Delete outputs in current project"),
+            list(
               modalTriggerButton("deleteAllOutputs", "#deleteAllOutputsDlg", 
                 "Delete ALL outputs in current project"),
               modalDialog(id="deleteAllOutputsDlg", footer=list(
                 modalTriggerButton("deleteAllOutputsDlgBtn", "#deleteAllOutputsDlg", 
                   "Yes"),
                 tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),                      
-              h4(),h4("Delete runs in current project"),
+                  'data-dismiss' = "modal", "Cancel")))
+            ),                      
+            h4(),h4("Delete runs in current project"),
+            list(
               modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
                 "Delete ALL runs and related outputs in current project"),
               modalDialog(id="deleteAllRunsDlg", footer=list(
                 modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
                   "Yes"),
                 tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel"))),  
-              h4(),h4("Make new project backup file"),
-              radioButtons("prjBckCnts",NULL,width="50%",choices=
-                 list("Project files only"="projOnly",
-                      "Project files and FVS software"="projFVS"),
-                      selected="projOnly"),
-              actionButton("mkZipBackup","Make a project backup zip file"),
-              h4("Manage current project backup files"),
-              selectInput("pickBackup", "Select backup to process", multiple=FALSE,
-                 choices = list(), selected="", selectize=FALSE),
-              actionButton("delZipBackup","Delete backup"),
-              downloadButton("dlPrjBackup","Download backup"),
-              tags$style(type="text/css","#restorePrjBackupDlg{color:darkred;font-size:150%;width:100%;}"),
-              list(
-                modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
-                  "Restore from backup"),
-                modalDialog(id="restorePrjBackupDlg", footer=list(
-                  modalTriggerButton("restorePrjBackupDlgBtnA", "#restorePrjBackupDlg", 
-                    htmlOutput("btnA", inline=TRUE)),
-                  modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
-                    htmlOutput("btnB", inline=TRUE)),
-                  modalTriggerButton("restorePrjBackupDlgBtnC", "#restorePrjBackupDlg", 
-                    "Cancel")))
+                  'data-dismiss' = "modal", "Cancel")))
+            ),  
+            h4(),h4("Make new project backup file"),
+            radioButtons("prjBckCnts",NULL,width="50%",choices=
+               list("Project files only"="projOnly",
+                    "Project files and FVS software"="projFVS"),
+                    selected="projOnly"),
+            actionButton("mkZipBackup","Make a project backup zip file"),                          
+            h4("Manage current project backup files"),
+            selectInput("pickBackup", "Select backup to process", multiple=FALSE,
+               choices = list(), selectize=FALSE),
+            actionButton("delZipBackup","Delete backup"),
+            downloadButton("dlPrjBackup","Download backup"),
+            tags$style(type="text/css","#restorePrjBackupDlg{color:darkred;font-size:150%;width:100%;}"),
+            list(
+              modalTriggerButton("restorePrjBackup", "#restorePrjBackupDlg", 
+                "Restore from backup"),
+              modalDialog(id="restorePrjBackupDlg", footer=list(
+                modalTriggerButton("restorePrjBackupDlgBtnA", "#restorePrjBackupDlg", 
+                  htmlOutput("btnA", inline=TRUE)),
+                modalTriggerButton("restorePrjBackupDlgBtnB", "#restorePrjBackupDlg", 
+                  htmlOutput("btnB", inline=TRUE)),
+                modalTriggerButton("restorePrjBackupDlgBtnC", "#restorePrjBackupDlg", 
+                  "Cancel"))) 
               ),
-              if(isLocal()) h4(),
-              if(isLocal()) h4("Upload existing project backup file into current project"),
-              if(isLocal()) fileInput("upZipBackup","Upload project backup zip file",
-                                      width="30%"),
-              uiOutput("delPrjActionMsg"),
-              h4("Delete entire project"),
-              selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
-                          choices = list(), selected="", selectize=FALSE),
-              list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
-                   modalDialog(id="PrjDeleteDlg", footer=list(
-                   modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg","Yes"),
-                   tags$button(type = "button", class = "btn btn-primary", 
-                              'data-dismiss' = "modal", "No")))),
-              h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
-            ), 
-            tabPanel("Downloads", h6(),
-              downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
-              downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
-              downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),h6(),
-              downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
-              checkboxGroupInput("dlZipSet","Set contents of FVSProjectData.zip",   
-                zipList,selZip,inline=FALSE),  
-              downloadButton("dlFVSRunZip","Download FVSProjectData.zip")
-            ) #END tabPanel                                        
-          ) #END tabsetPanel
-        ) ) #END column and fixed row   
-      ), ## END Tools
-      tabPanel("Help",       
-        h5(),div(style = 'overflow-y:scroll;height:500px;',uiOutput("uiHelpText"))
-      )
-) ) ) ) 
+            h4(),
+            h4("Upload existing project backup file into current project"),
+            fileInput("upZipBackup","Upload project backup zip file",width="30%"),
+            uiOutput("delPrjActionMsg"),
+            h4("Delete entire project"),
+            selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
+                        choices = list(), selectize=FALSE),                                        
+            list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
+                 modalDialog(id="PrjDeleteDlg", footer=list(
+                 modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg","Yes"),
+                 tags$button(type = "button", class = "btn btn-primary", 
+                            'data-dismiss' = "modal", "No")))),
+            h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
+          ),  # END Manage Project
 
+          tabPanel("Downloads", h6(), 
+            downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
+            downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
+            downloadButton("dlFVSOutxlsx", "Output .xlsx for current run"),h6(),
+            downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
+            checkboxGroupInput("dlZipSet","Set contents of FVSProjectData.zip",   
+              zipList,selZip,inline=FALSE),  
+            downloadButton("dlFVSRunZip","Download FVSProjectData.zip") 
+          ), #END Downloads tabPanel                                        
+        
+                                                                              
+       
+          tabPanel("Import runs and other items",
+h3("This feature is being developed and currently does not work."),
+            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 1:</b> ',         
+              'Choose a source of items to be imported. The source can be another ',               
+              'of your projects or you can upload a zip file that contains runs and ',
+              'other project items. If you pick a project, the items that can be imported ',
+              'are shown in the list boxes below and if you upload a zip file, those items ',
+              'are in the list boxes. The zip file can ',
+              'be one created using the <i>Downloads</i> tab or a project backup created ',
+              'using the <i>Manage projects</i> tab.<br><br>Note: If you import runs ',
+              'that were created using different inventory data than what you have in this project, ',
+              'those data will need to be imported to run the imported runs.</p>')),h3(),                            
+            fileInput("uploadRunsRdat","Upload source .zip file",width="90%"),
+            selectInput(inputId="impPrjSource", 
+                 label="Select an existing project as a source", multiple=FALSE,
+                 choices = list(), selectize=FALSE),                 
+            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 2:</b> ',
+              'Import items shown below into your current project. Note that ',
+              'it is a good practice to make a project backup before importing ',
+              'the input FVS_Data base or the Spatial data.</p>')),
+            h3(),
+            uiOutput("selectedSourceMsg"), 
+            fixedRow(column(width=4,offset=0,
+              selectInput(inputId="impRuns", label="Select a run to import", multiple=FALSE, 
+                    choices=list(),selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpRuns", label="Import")),    
+                    column(width=7,offset=0,uiOutput("impRunsMsg"))), 
+            fixedRow(column(width=4,offset=0,h6(),              
+              selectInput(inputId="impCustomCmps", label="Select a custom component (.kcp)",  
+                    choices=list(),multiple=FALSE, selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpCustomCmps", label="Import")),    
+                    column(width=7,offset=0,uiOutput("impCustomCmpsMsg"))),
+            fixedRow(column(width=4,offset=0,h6(), 
+              selectInput(inputId="impGraphSettings", label="Select a graph setting", 
+                    choices=list(),multiple=FALSE,selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpGraphSettings", label="Import")),    
+                    column(width=7,offset=0,uiOutput("impGraphSettingsMsg"))), 
+            fixedRow(column(width=4,offset=0,h6(),
+              selectInput(inputId="impCustomQueries", label="Select a custom query", 
+                    choices=list(),multiple=FALSE,selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpCustomQueries", label="Import")),    
+                    column(width=7,offset=0,uiOutput("impCustomQueriesMsg"))), 
+            fixedRow(column(width=5,offset=0,h6(),
+              actionButton(inputId="impFVS_Data", label="Import the FVS_Data database")),
+                    column(width=7,offset=0,uiOutput("impFVSDataMsg"))),                         
+            fixedRow(column(width=5,offset=0,h6(), 
+              actionButton(inputId="impSpatialData", label="Import the Spatial Data")),
+                    column(width=7,offset=0,uiOutput("impSpatialDataMsg"))),h3()
+          ) #END oF Import items
+          
+                                                                                                               
+        )  #END  tabsetPanel for toolsPan
+        
+         
+        
+      ),  ## END Project Tools
+      #####
+     
+      
+        tabPanel("Help",
+        fixedRow(column(width=12,offset=0,
+          h5(),div(style = 'overflow-y:scroll;height:550px;',uiOutput("uiHelpText"))))  
+        ) #END help tab
+     
+   ) #END of topPan
+   ) ) #END of second big row and End of Column
+  ) #end fixedPage
