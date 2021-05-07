@@ -7360,7 +7360,6 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
       output$uploadRunsRdatMsg  <- renderText("Uploaded file is not a .zip")
     } else { 
       isolate({
-cat("uploaded zip\n")
         if (length(globals$importItems))
         {
           if (attr(globals$importItems,"temp")) 
@@ -7426,9 +7425,8 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
   })                                                                                   
            
   observe({
-    if (input$doImpRuns > 0) 
+    if (input$doImpRuns > 0 && !is.null(input$impRuns)) 
     {
-cat ("impRuns, input$doImpRuns=",input$doImpRuns,"\n")  
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7452,9 +7450,8 @@ cat ("impRuns, input$doImpRuns=",input$doImpRuns,"\n")
   })
 
   observe({
-    if (input$doImpCustomCmps > 0)
+    if (input$doImpCustomCmps > 0  && !is.null(input$impCustomCmps))
     {
-cat ("doImpCustomCmps,input$doImpCustomCmps=",input$doImpCustomCmps,"\n")
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7470,9 +7467,8 @@ cat ("doImpCustomCmps,input$doImpCustomCmps=",input$doImpCustomCmps,"\n")
   })
 
   observe({
-    if (input$doImpGraphSettings > 0)
+    if (input$doImpGraphSettings > 0 && !is.null(input$impGraphSettings))
     {
-cat ("impGraphSettings,input$doImpGraphSettings=",input$doImpGraphSettings,"\n")
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7488,9 +7484,8 @@ cat ("impGraphSettings,input$doImpGraphSettings=",input$doImpGraphSettings,"\n")
   })
 
   observe({
-    if (input$doImpCustomQueries > 0)
+    if (input$doImpCustomQueries > 0 && !is.null(input$impCustomQueries))
     {
-cat ("impCustomQueries, input$doImpCustomQueries=",input$doImpCustomQueries,"\n")
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7504,31 +7499,57 @@ cat ("impCustomQueries, input$doImpCustomQueries=",input$doImpCustomQueries,"\n"
        ' is named "',newtitle,'" in your current project.'))      
     }
   })
-
   observe({
     if (input$impFVS_Data > 0)
     {
-cat ("impFVS_Data\n")
-      output$impFVS_DataMsg = renderText("Feature not yet implemented.")      
+cat(" input$impFVS_Data=",input$impFVS_Data,"\n")
+      session$sendCustomMessage(type = "dialogContentUpdate",
+        message = list(id = "impFVS_DataDlg",
+          message = "This action overwrites your current FVS_Data.db")) 
     }
   })
-
+  observe({  
+    if (input$impFVS_DataDlgBtn == 0) return()
+    isolate({
+cat(" input$impFVS_DataDlgBtn=",input$impFVS_DataDlgBtn,"\n")
+      needfile = file.path(attr(globals$importItems,"dir"),"FVS_Data.db")
+      if (length(needfile) && nchar(needfile) && file.exists(needfile)) 
+      {
+        file.copy(from=needfile,to="FVS_Data.db",overwrite=TRUE) 
+        output$impFVS_DataMsg = renderText("FVS_Data.db has been imported.")
+      } else output$impFVS_DataMsg = renderText("Source FVS_Data.db was NOT found.")
+    })  
+  })
   observe({
-    if (input$impSpatialData > 0)                       
-    {
-cat ("impSpatialData\n") 
-      output$impSpatialDataMsg = renderText("Feature not yet implemented.")      
-    }
+    if(input$impSpatialData > 0)
+    {           
+cat(" input$impSpatialData=",input$impSpatialData,"\n")
+      session$sendCustomMessage(type = "dialogContentUpdate",
+        message = list(id = "impSpatialDataDlg",
+          message = "This action overwrites your current SpatialData")) 
+     }                                                                    
   })
-   
-  #runScript selection
+  observe({  
+    if (input$impSpatialDataDlgBtn == 0) return()
+    isolate({
+cat(" input$impSpatialDataDlgBtn=",input$impSpatialDataDlgBtn,"\n")
+      needfile = file.path(attr(globals$importItems,"dir"),"SpatialData.RData")
+      if (length(needfile) && nchar(needfile) && file.exists(needfile)) 
+      {
+        file.copy(from=needfile,to="SpatialData.RData",overwrite=TRUE) 
+        output$impSpatialDataMsg = renderText("SpatialData.RDatahas been imported.")
+      } else output$impSpatialDataMsg = renderText("Source SpatialData.RData was NOT found.")
+    })  
+  })  
+ 
+  #runScript selection                                                         
   observe(if (length(input$runScript)) customRunOps())
 
-  customRunOps <- function ()
+  customRunOps <- function ()                                             
   {
     isolate({
       if (length(input$runScript) == 0)
-      {
+      {  
 cat ("in customRunOps runScript is empty\n")
         return()
       }  

@@ -640,7 +640,6 @@ FVSOnlineUI <- fixedPage(
         tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
         tabsetPanel(id="toolsPan",        
           tabPanel("Import runs and other items",
-h3("This feature is under development."),
             HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 1:</b> ',         
               'Choose a source of items to be imported. The source can be another ',               
               'of your projects or you can upload a zip file that contains runs and ',
@@ -685,12 +684,22 @@ h3("This feature is under development."),
                     column(width=1,offset=0,
                       h3(),actionButton(inputId="doImpCustomQueries", label="Import")),    
                     column(width=7,offset=0,h3(),uiOutput("impCustomQueriesMsg"))), 
-            fixedRow(column(width=5,offset=0,h6(),
-              actionButton(inputId="impFVS_Data", label="Import the FVS_Data database")),
-                    column(width=7,offset=0,h5(),uiOutput("impFVSDataMsg"))),                         
-            fixedRow(column(width=5,offset=0,h6(), 
-              actionButton(inputId="impSpatialData", label="Import the Spatial Data")),
-                    column(width=7,offset=0,h5(),uiOutput("impSpatialDataMsg"))),h3()
+            fixedRow(column(width=5,offset=0,h6(),list(
+              modalTriggerButton("impFVS_Data", "#impFVS_DataDlg", 
+                "Import FVS_Data.db"),
+              modalDialog(id="impFVS_DataDlg", footer=
+                modalTriggerButton("impFVS_DataDlgBtn", "#impFVS_DataDlg", 
+                  "Yes"), tags$button(type = "button", class = "btn btn-primary", 
+                  'data-dismiss' = "modal", "Cancel")))),
+                  column(width=7,offset=0,h5(),uiOutput("impFVS_DataMsg"),h3())),                    
+            fixedRow(column(width=5,offset=0,h6(),list(
+              modalTriggerButton("impSpatialData", "#impSpatialDataDlg", 
+                "Import the Spatial Data"),
+              modalDialog(id="impSpatialDataDlg", footer=
+                modalTriggerButton("impSpatialDataDlgBtn", "#impSpatialDataDlg", 
+                  "Yes"), tags$button(type = "button", class = "btn btn-primary", 
+                  'data-dismiss' = "modal", "Cancel")))),
+                  column(width=7,offset=0,h5(),uiOutput("impSpatialDataMsg"),h3()))                    
           ), #END oF Import items
           tabPanel("Manage project",   
               h4(),h4("Start another project"), 
@@ -716,8 +725,7 @@ h3("This feature is under development."),
                 "Delete ALL runs and related outputs in current project"),
               modalDialog(id="deleteAllRunsDlg", footer=list(
                 modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
-                  "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
+                  "Yes"),tags$button(type = "button", class = "btn btn-primary", 
                   'data-dismiss' = "modal", "Cancel")))
             ),  
             h4(),h4("Make new project backup file"),
