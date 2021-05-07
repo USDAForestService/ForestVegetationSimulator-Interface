@@ -7278,7 +7278,9 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    observe({
      if(input$toolsPan == "Import runs and other items") 
      {
-       choices = getProjectList(includeLocked=TRUE) 
+       choices = getProjectList(includeLocked=TRUE)
+       actprj <- grep(basename(getwd()),choices) # remove current project
+       if (length(actprj)) choices <- choices[-actprj]      
        updateSelectInput(session=session, inputId="impPrjSource", 
          choices=choices,selected=0)
        output$selectedSourceMsg <- renderText(
@@ -7409,7 +7411,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       {
         setwd(tmpPrj)
         db = connectFVSProjectDB()
-        nruns=mkFVSProjectDB()          
+        nruns=mkFVSProjectDB()
         ml = mkSrcMsgAndList(db,nruns)
         ml[[2]] = gsub("File",paste("Project",input$impPrjSource),ml[[2]])
         dbDisconnect(db)
@@ -7425,15 +7427,45 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
            
   observe({
     if (input$doImpRuns > 0) 
-    {      
-cat ("impRuns, input$doImpRuns=",input$doImpRuns,"\n")
+    {
+cat ("impRuns, input$doImpRuns=",input$doImpRuns,"\n")  
+      prjDir=attr(globals$importItems,"dir")
+      pDB=connectFVSProjectDB(prjDir)
+      on.exit(dbDisconnect(pDB))
+      curRuns = names(getFVSRuns(dbGlb$prjDB))
+      theRun = loadFVSRun(pDB,input$impRuns)
+      if (is.null(theRun)) 
+      { 
+        output$impRunsMsg = renderText("The run could not be loaded.")
+        return()
+      }
+      curTitle = theRun$title
+      theRun$title = mkNameUnique(curTitle,names(getFVSRuns(dbGlb$prjDB)))
+      theRun$uuid = uuidgen()
+      storeFVSRun(dbGlb$prjDB,theRun)
+      globals$FVS_Runs = getFVSRuns(dbGlb$prjDB)     
+      output$impRunsMsg = renderText(paste0('Run "',curTitle,'" imported and ',
+       ' is named "',theRun$title,'" in your current project.'))
+      updateSelectInput(session=session, inputId="runSel", 
+                        choices=globals$FVS_Runs,selected=globals$fvsRun$uuid)
     }
   })
 
   observe({
     if (input$doImpCustomCmps > 0)
     {
-cat ("impCustomCmps, input$doImpCustomCmps=",input$impCustomCmps,"\n")
+cat ("doImpCustomCmps,input$doImpCustomCmps=",input$doImpCustomCmps,"\n")
+      prjDir=attr(globals$importItems,"dir")
+      pDB=connectFVSProjectDB(prjDir)
+      on.exit(dbDisconnect(pDB))
+      loadObject(pDB,"customCmps",asName="source")
+      loadObject(dbGlb$prjDB,"customCmps")
+      curTitle = input$impCustomCmps
+      newtitle = mkNameUnique(curTitle,names(customCmps))
+      customCmps[newtitle] = source[curTitle]
+      storeOrUpdateObject(dbGlb$prjDB,customCmps)
+      output$impCustomCmpsMsg = renderText(paste0('Component "',curTitle,'" imported and ',
+       ' is named "',newtitle,'" in your current project.'))      
     }
   })
 
@@ -7441,6 +7473,17 @@ cat ("impCustomCmps, input$doImpCustomCmps=",input$impCustomCmps,"\n")
     if (input$doImpGraphSettings > 0)
     {
 cat ("impGraphSettings,input$doImpGraphSettings=",input$doImpGraphSettings,"\n")
+      prjDir=attr(globals$importItems,"dir")
+      pDB=connectFVSProjectDB(prjDir)
+      on.exit(dbDisconnect(pDB))
+      loadObject(pDB,"GraphSettings",asName="source")
+      loadObject(dbGlb$prjDB,"GraphSettings")
+      curTitle = input$impGraphSettings
+      newtitle = mkNameUnique(curTitle,names(GraphSettings))
+      GraphSettings[newtitle] = source[curTitle]
+      storeOrUpdateObject(dbGlb$prjDB,GraphSettings)
+      output$impGraphSettingsMsg = renderText(paste0('Graph setting "',curTitle,'" imported and ',
+       ' is named "',newtitle,'" in your current project.'))      
     }
   })
 
@@ -7448,6 +7491,17 @@ cat ("impGraphSettings,input$doImpGraphSettings=",input$doImpGraphSettings,"\n")
     if (input$doImpCustomQueries > 0)
     {
 cat ("impCustomQueries, input$doImpCustomQueries=",input$doImpCustomQueries,"\n")
+      prjDir=attr(globals$importItems,"dir")
+      pDB=connectFVSProjectDB(prjDir)
+      on.exit(dbDisconnect(pDB))
+      loadObject(pDB,"customQueries",asName="source")
+      loadObject(dbGlb$prjDB,"customQueries")
+      curTitle = input$impCustomQueries
+      newtitle = mkNameUnique(curTitle,names(customQueries))
+      customQueries[newtitle] = source[curTitle]
+      storeOrUpdateObject(dbGlb$prjDB,customQueries)
+      output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
+       ' is named "',newtitle,'" in your current project.'))      
     }
   })
 
@@ -7455,6 +7509,7 @@ cat ("impCustomQueries, input$doImpCustomQueries=",input$doImpCustomQueries,"\n"
     if (input$impFVS_Data > 0)
     {
 cat ("impFVS_Data\n")
+      output$impFVS_DataMsg = renderText("Feature not yet implemented.")      
     }
   })
 
@@ -7462,6 +7517,7 @@ cat ("impFVS_Data\n")
     if (input$impSpatialData > 0)                       
     {
 cat ("impSpatialData\n") 
+      output$impSpatialDataMsg = renderText("Feature not yet implemented.")      
     }
   })
    
@@ -7512,7 +7568,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       prj1 = charmatch("Project_1",selChoices)
       if (!is.na(prj1)) selChoices=selChoices[-prj1]
       actprj <- grep(basename(getwd()),selChoices)
-      if(length(actprj))selChoices <- selChoices[-actprj]
+      if (length(actprj)) selChoices <- selChoices[-actprj]
     }
     updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                       selected=0)

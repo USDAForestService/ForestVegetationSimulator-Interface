@@ -1555,15 +1555,20 @@ mkNameUnique <- function(name,setOfNames=NULL)
 {
   if (!name %in% setOfNames) return(name)
   i=1
+  nn=NA 
   repeat
   {
     sp=unlist(strsplit(name,split="")) 
     pl = grep("\\(",sp)
-    if (length(pl) == 0) return (paste0(name," (1)"))
-    pl = max(pl)
-    if (pl==length(sp)) return (paste0(name,"1)"))
-    kp = if (sp[length(sp)]==")") length(sp)-1 else length(sp)
-    nn = suppressWarnings(as.numeric(paste0(sp[(pl+1):kp],collapse="")))
+    if (length(pl) > 0)
+    {
+      pl = max(pl)
+      if (pl != length(sp)) 
+      {
+        kp = if (sp[length(sp)]==")") length(sp)-1 else length(sp)
+        nn = suppressWarnings(as.numeric(paste0(sp[(pl+1):kp],collapse="")))
+      }
+    }
     if (is.na(nn))
     {
       nn=i 
@@ -1789,6 +1794,7 @@ storeFVSRun <- function(db,FVSRun,time=NULL)
 {
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
   if (missing(FVSRun) || class(FVSRun) != "fvsRun") stop("FVSRun required")
+  attr(attr(FVSRun,"class"),"package") = "fvsOL"
   if ("FVSRuns" %in% dbListTables(db)) 
     dbExecute(db,paste0("delete from FVSRuns where (uuid='",FVSRun$uuid,"');")) else
       dbExecute(db, "create table FVSRuns (uuid text, name text, time integer, run blob)")
@@ -1805,7 +1811,9 @@ loadFVSRun <- function(db,uuid)
   if (missing(db) || class(db) != "SQLiteConnection") stop("db required connection")
   if (missing(uuid)) stop("uuid required")
   rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",uuid,"')"))
-  if (nrow(rtn)) extnFromRaw(rtn[1,1][[1]]) else NULL
+  fvsRun = if (nrow(rtn)) extnFromRaw(rtn[1,1][[1]]) else NULL
+  if (!is.null(fvsRun)) attr(attr(fvsRun,"class"),"package") = "fvsOL"
+  fvsRun
 }
 
   

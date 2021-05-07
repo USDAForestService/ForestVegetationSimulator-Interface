@@ -617,18 +617,14 @@ extnListStands <- function(prjDir=getwd(),runUUID)
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character string of the run uuid that is fetched
-#' @param returnRaw return as a raw (default), otherwise return as class fvsRun.
 #' @return the run.
 #' @export
-extnLoadFVSRun <- function(prjDir=getwd(),runUUID,returnRaw=TRUE)
+extnLoadFVSRun <- function(prjDir=getwd(),runUUID)
 {
   if (missing(runUUID)) stop("runUUID required")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db))
-  rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",runUUID,"')"))
-  fvsRun = if (nrow(rtn)) rtn[1,1][[1]] else NULL
-  if (returnRaw) return(fvsRun)
-  return(if (!is.null(fvsRun)) extnFromRaw(fvsRun) else NULL)
+  loadFVSRun(pDB,runUUID)
 }
 
 

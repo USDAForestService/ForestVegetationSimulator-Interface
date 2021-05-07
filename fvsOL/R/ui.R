@@ -548,11 +548,6 @@ FVSOnlineUI <- fixedPage(
            textOutput("leafletMessage"),
            leafletOutput("leafletMap",height="800px",width="100%")))
       ), #END Maps
-     
-      
-      
-      
-      
       tabPanel("Import Input Data", 
         fixedRow(column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
@@ -641,13 +636,62 @@ FVSOnlineUI <- fixedPage(
             ) #END tabPanel
           ) #END tabsetPanel
       ) ) ), #END END Import input data
-
-      ####
-      
       tabPanel("Project Tools",
         tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
-        tabsetPanel(id="toolsPan",
-        
+        tabsetPanel(id="toolsPan",        
+          tabPanel("Import runs and other items",
+h3("This feature is under development."),
+            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 1:</b> ',         
+              'Choose a source of items to be imported. The source can be another ',               
+              'of your projects or you can upload a zip file that contains runs and ',
+              'other project items. If you pick a project, the items that can be imported ',
+              'are shown in the list boxes below and if you upload a zip file, those items ',
+              'are in the list boxes. The zip file can ',
+              'be one created using the <i>Downloads</i> tab or a project backup created ',
+              'using the <i>Manage projects</i> tab.<br><br>Note: If you import runs ',
+              'that were created using different inventory data than what you have in this project, ',
+              'those data will need to be imported to run the imported runs.</p>')),h3(),                            
+            fileInput("uploadRunsRdat","Upload source .zip file",width="90%"),
+            selectInput(inputId="impPrjSource", 
+                 label="Select an existing project as a source", multiple=FALSE,
+                 choices = list(), selectize=FALSE),                 
+            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 2:</b> ',
+              'Import items shown below into your current project. Note that ',
+              'it is a good practice to make a project backup before importing ',
+              'the input FVS_Data base or the Spatial data.</p>')),
+            h3(),
+            uiOutput("selectedSourceMsg"), 
+            fixedRow(column(width=4,offset=0,
+              selectInput(inputId="impRuns", label="Select a run to import", multiple=FALSE, 
+                    choices=list(),selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpRuns", label="Import")),    
+                    column(width=7,offset=0,h3(),uiOutput("impRunsMsg"))), 
+            fixedRow(column(width=4,offset=0,h6(),              
+              selectInput(inputId="impCustomCmps", label="Select a custom component (.kcp)",  
+                    choices=list(),multiple=FALSE, selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpCustomCmps", label="Import")),    
+                    column(width=7,offset=0,h3(),uiOutput("impCustomCmpsMsg"))),
+            fixedRow(column(width=4,offset=0,h6(), 
+              selectInput(inputId="impGraphSettings", label="Select a graph setting", 
+                    choices=list(),multiple=FALSE,selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpGraphSettings", label="Import")),    
+                    column(width=7,offset=0,h3(),uiOutput("impGraphSettingsMsg"))), 
+            fixedRow(column(width=4,offset=0,h6(),
+              selectInput(inputId="impCustomQueries", label="Select a custom query", 
+                    choices=list(),multiple=FALSE,selectize=FALSE)),
+                    column(width=1,offset=0,
+                      h3(),actionButton(inputId="doImpCustomQueries", label="Import")),    
+                    column(width=7,offset=0,h3(),uiOutput("impCustomQueriesMsg"))), 
+            fixedRow(column(width=5,offset=0,h6(),
+              actionButton(inputId="impFVS_Data", label="Import the FVS_Data database")),
+                    column(width=7,offset=0,h5(),uiOutput("impFVSDataMsg"))),                         
+            fixedRow(column(width=5,offset=0,h6(), 
+              actionButton(inputId="impSpatialData", label="Import the Spatial Data")),
+                    column(width=7,offset=0,h5(),uiOutput("impSpatialDataMsg"))),h3()
+          ), #END oF Import items
           tabPanel("Manage project",   
               h4(),h4("Start another project"), 
               selectInput("PrjSelect", "Select project", multiple=FALSE,
@@ -713,7 +757,6 @@ FVSOnlineUI <- fixedPage(
                             'data-dismiss' = "modal", "No")))),
             h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
           ),  # END Manage Project
-
           tabPanel("Downloads", h6(), 
             downloadButton("dlFVSDatadb","Input data base (all data)"),h6(),
             downloadButton("dlFVSOutdb", "Output data base (.db, all runs)"),h6(),
@@ -722,78 +765,13 @@ FVSOnlineUI <- fixedPage(
             checkboxGroupInput("dlZipSet","Set contents of FVSProjectData.zip",   
               zipList,selZip,inline=FALSE),  
             downloadButton("dlFVSRunZip","Download FVSProjectData.zip") 
-          ), #END Downloads tabPanel                                        
-        
-                                                                              
-       
-          tabPanel("Import runs and other items",
-h3("This feature is being developed and currently does not work."),
-            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 1:</b> ',         
-              'Choose a source of items to be imported. The source can be another ',               
-              'of your projects or you can upload a zip file that contains runs and ',
-              'other project items. If you pick a project, the items that can be imported ',
-              'are shown in the list boxes below and if you upload a zip file, those items ',
-              'are in the list boxes. The zip file can ',
-              'be one created using the <i>Downloads</i> tab or a project backup created ',
-              'using the <i>Manage projects</i> tab.<br><br>Note: If you import runs ',
-              'that were created using different inventory data than what you have in this project, ',
-              'those data will need to be imported to run the imported runs.</p>')),h3(),                            
-            fileInput("uploadRunsRdat","Upload source .zip file",width="90%"),
-            selectInput(inputId="impPrjSource", 
-                 label="Select an existing project as a source", multiple=FALSE,
-                 choices = list(), selectize=FALSE),                 
-            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br><b>Step 2:</b> ',
-              'Import items shown below into your current project. Note that ',
-              'it is a good practice to make a project backup before importing ',
-              'the input FVS_Data base or the Spatial data.</p>')),
-            h3(),
-            uiOutput("selectedSourceMsg"), 
-            fixedRow(column(width=4,offset=0,
-              selectInput(inputId="impRuns", label="Select a run to import", multiple=FALSE, 
-                    choices=list(),selectize=FALSE)),
-                    column(width=1,offset=0,
-                      h3(),actionButton(inputId="doImpRuns", label="Import")),    
-                    column(width=7,offset=0,uiOutput("impRunsMsg"))), 
-            fixedRow(column(width=4,offset=0,h6(),              
-              selectInput(inputId="impCustomCmps", label="Select a custom component (.kcp)",  
-                    choices=list(),multiple=FALSE, selectize=FALSE)),
-                    column(width=1,offset=0,
-                      h3(),actionButton(inputId="doImpCustomCmps", label="Import")),    
-                    column(width=7,offset=0,uiOutput("impCustomCmpsMsg"))),
-            fixedRow(column(width=4,offset=0,h6(), 
-              selectInput(inputId="impGraphSettings", label="Select a graph setting", 
-                    choices=list(),multiple=FALSE,selectize=FALSE)),
-                    column(width=1,offset=0,
-                      h3(),actionButton(inputId="doImpGraphSettings", label="Import")),    
-                    column(width=7,offset=0,uiOutput("impGraphSettingsMsg"))), 
-            fixedRow(column(width=4,offset=0,h6(),
-              selectInput(inputId="impCustomQueries", label="Select a custom query", 
-                    choices=list(),multiple=FALSE,selectize=FALSE)),
-                    column(width=1,offset=0,
-                      h3(),actionButton(inputId="doImpCustomQueries", label="Import")),    
-                    column(width=7,offset=0,uiOutput("impCustomQueriesMsg"))), 
-            fixedRow(column(width=5,offset=0,h6(),
-              actionButton(inputId="impFVS_Data", label="Import the FVS_Data database")),
-                    column(width=7,offset=0,uiOutput("impFVSDataMsg"))),                         
-            fixedRow(column(width=5,offset=0,h6(), 
-              actionButton(inputId="impSpatialData", label="Import the Spatial Data")),
-                    column(width=7,offset=0,uiOutput("impSpatialDataMsg"))),h3()
-          ) #END oF Import items
-          
-                                                                                                               
+          ) #END Downloads tabPanel                                        
         )  #END  tabsetPanel for toolsPan
-        
-         
-        
       ),  ## END Project Tools
-      #####
-     
-      
-        tabPanel("Help",
-        fixedRow(column(width=12,offset=0,
+      tabPanel("Help",
+       fixedRow(column(width=12,offset=0,
           h5(),div(style = 'overflow-y:scroll;height:550px;',uiOutput("uiHelpText"))))  
-        ) #END help tab
-     
+      ) #END help tab  
    ) #END of topPan
    ) ) #END of second big row and End of Column
   ) #end fixedPage
