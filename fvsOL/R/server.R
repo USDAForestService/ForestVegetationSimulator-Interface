@@ -49,6 +49,8 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   data (prms)
   data (treeforms)
 
+  cat ("Starting shinyApp.\n")
+   
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
@@ -99,7 +101,7 @@ mkGlobals <- setRefClass("globals",
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",timeissue="numeric",
-    lastRunVar="character",gFreeze="logical",
+    lastRunVar="character",gFreeze="logical",importItems="list",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
@@ -151,9 +153,6 @@ pgmList <- list(
   FVSne = "Northeast",
   FVSsn = "Southern") 
                           
-fvsBinURL <- if (.Platform$OS.type == "windows") 
-     "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline" else NULL
- 
 options(rgl.useNULL=TRUE)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
@@ -191,13 +190,9 @@ cat ("FVSOnline/OnLocal interface server start\n")
 
   # set serverDate to be the release date using packageVersion
   serverDate=as.character(packageVersion("fvsOL"))
-  if(nchar(serverDate)==8)serverDate=paste(substr(serverDate, 1, 5), 
-                                           "0", substr(serverDate, 6, 7), "0", substr(serverDate, 8, 8),sep = "")
-  if(nchar(serverDate)==9 && strsplit(serverDate,"")[[1]][8]==".")serverDate=paste(substr(
-    serverDate, 1, 8), "0", substr(serverDate, 9, 9),sep = "")
-  if(nchar(serverDate)==9 && strsplit(serverDate,"")[[1]][8]!=".")serverDate=paste(substr(
-    serverDate, 1, 5), "0", substr(serverDate, 6, 9),sep = "")
-  serverDate=gsub(".","",serverDate, fixed = TRUE)
+  serverDate=unlist(strsplit(serverDate,".",fixed=TRUE))
+  for (i in 2:3) if (nchar(serverDate[i])==1) serverDate[i]=paste0("0",serverDate[i])
+  serverDate=paste0(serverDate,collapse="")
 
 cat ("ServerDate=",serverDate,"\n")
 
@@ -345,7 +340,13 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
      " globals$hostname=",globals$hostname,"\n")
     if (exists("dbOcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbOcon))
-    if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon))                                       
+    if (exists("dbIcon",envir=dbGlb,inherit=FALSE)) try(dbDisconnect(dbGlb$dbIcon)) 
+    if (length(globals$importItems))
+    {
+      if (attr(globals$importItems,"temp")) unlink(attr(globals$importItems,"dir"),recursive = TRUE)
+      globals$importItems=list()
+    }    
+
     if (globals$saveOnExit) 
     {
       saveRun(input,session)
@@ -5102,7 +5103,7 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
         names(backups) = backups 
       } else backups=list()
       updateSelectInput(session=session, inputId="pickBackup", 
-        choices = backups, selected="")
+        choices = backups, selected=NULL)
     } 
   }) 
                                                                                               
@@ -5209,7 +5210,7 @@ cat ("delete all runs and outputs\n")
           names(backups) = backups 
         } else backups=list()
         updateSelectInput(session=session, inputId="pickBackup", 
-          choices = backups, selected="")
+          choices = backups, selected=NULL)
       }
     }
   })    
@@ -5273,7 +5274,7 @@ cat ("delete all runs and outputs\n")
         names(backups) = backups 
       } else backups=list()
       updateSelectInput(session=session, inputId="pickBackup", 
-        choices = backups, selected="")
+        choices = backups, selected=NULL)
     }
   })    
   
@@ -5305,7 +5306,7 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
       updateSelectInput(session=session, inputId="pickBackup", 
           choices = backups, selected=backups[length(backups)])
     } else updateSelectInput(session=session, inputId="pickBackup", 
-            choices = list(), selected="")
+            choices = list(), selected=NULL)
     output$delPrjActionMsg  = renderText("<b>Project backup added to above list of backups to process</b>")
     progress$close()
   })
@@ -5441,7 +5442,7 @@ cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")
   })
   
   observeEvent(input$restorePrjBackupDlgBtnC,
-     updateSelectInput(session=session, inputId="pickBackup", selected="")
+     updateSelectInput(session=session, inputId="pickBackup", selected=NULL)
   )
 
 
@@ -6734,7 +6735,7 @@ cat ("stand_ID query error.\n")
       }   
       updateSelectInput(session=session, inputId="editSelDBvars", 
         choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)
-      html=NULL      
+      html=NULL
       xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
       tabs = try(read.xlsx(xlsxFile=xlsxFile,sheet="InputTableDescriptions"))
       if (class(tabs) != "try-error")
@@ -6744,7 +6745,7 @@ cat ("stand_ID query error.\n")
         {
           tab = tabs[row,1]
           html = paste0("<b>",tab,"</b> ",tabs[row,2])
-          mhtml = xlsx2html(tab,xlsxfile=xlsxfile)
+          mhtml = xlsx2html(tab,xlsxfile=xlsxFile)
           if (!is.null(mhtml)) html = paste0(html,mhtml)
         }
       }
@@ -7220,7 +7221,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      }
    })
    
-   prepSpatialData = function()
+   prepSpatialData = function(dbGlb)
    {
      if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
      stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
@@ -7249,7 +7250,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    observe({
      if(input$mapUpSave > 0)
      {
-       SpatialData=prepSpatialData()
+       SpatialData=prepSpatialData(dbGlb)
        if (!is.null(SpatialData)) 
        {
          save (SpatialData,file="SpatialData.RData")
@@ -7260,7 +7261,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    observe({
      if(input$mapUpAdd > 0)
      {     
-       NewSpatialData=prepSpatialData()
+       NewSpatialData=prepSpatialData(dbGlb)
        if (!is.null(NewSpatialData)) 
        {
          spatdat="SpatialData.RData"
@@ -7275,106 +7276,192 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
    })
 
    observe({
-    if(input$toolsPan == "Import runs and other items") 
-    {
-      nullImportMsgsAndLists()
-      choices = getProjectList(includeLocked=TRUE) 
-      updateSelectInput(session=session, inputId="impPrjSource", 
-        choices=choices,selected="")
-    }  
+     if(input$toolsPan == "Import runs and other items") 
+     {
+       choices = getProjectList(includeLocked=TRUE) 
+       updateSelectInput(session=session, inputId="impPrjSource", 
+         choices=choices,selected=0)
+       output$selectedSourceMsg <- renderText(
+            paste0('<p style="font-size:17px;color:darkred"><b>',
+                   'No source selected.</b>'))
+       output$impPrjSourceMsg     <- NULL
+       output$uploadRunsRdatMsg   <- NULL
+       output$impRunsMsg          <- NULL  
+       output$impCustomCmpsMsg    <- NULL
+       output$impGraphSettingMsg  <- NULL
+       output$impCustomQueriesMsg <- NULL
+       output$impFVSDataMsg       <- NULL    
+       output$impSpatialDataMsg   <- NULL
+       updateSelectInput(session=session, inputId="uploadRunsRdat",choices=list())
+       updateSelectInput(session=session, inputId="impRuns",choices=list())
+       updateSelectInput(session=session, inputId="impCustomCmps",choices=list())
+       updateSelectInput(session=session, inputId="impGraphSettings",choices=list())
+       updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
+       updateSelectInput(session=session, inputId="impFVSData",choices=list())
+       updateSelectInput(session=session, inputId="impSpatialData",choices=list())
+     }  
   })                                     
 
-  nullImportMsgsAndLists <- function(skipPrj=TRUE)         
-  { 
-    output$impPrjSourceMsg       <-
-    output$uploadRunsRdatMsg     <- 
-    output$impRunsMsg            <-   
-    output$impCustomCmpsMsg      <- 
-    output$impGraphSettingMsg    <- 
-    output$impCustomQueriesMsg   <- 
-    output$impFVSDatasMsg        <- 
-    output$impSpatialDataMsg     <- NULL
-    if (!skipPrj) updateSelectInput(session=session, inputId="impPrjSource",choices=list())
-    updateSelectInput(session=session, inputId="uploadRunsRdat",choices=list())
-    updateSelectInput(session=session, inputId="impRuns",choices=list())
-    updateSelectInput(session=session, inputId="impCustomCmps",choices=list())
-    updateSelectInput(session=session, inputId="impGraphSetting",choices=list())
-    updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
-    updateSelectInput(session=session, inputId="impFVSDatas",choices=list())
-    updateSelectInput(session=session, inputId="impSpatialData",choices=list())
-  }
+  mkSrcMsgAndList <- function(db,nruns)
+  {
+    msg = paste0("File contains ",nruns," runs")
+    tbs=dbListTables(db)
+    itms=listTableNames(db)
+    itms=intersect(itms,c("GraphSettings","customCmps","customQueries"))
+    if (file.exists("SpatialData.RData")) itms=c(itms,"SpatialData")
+    if (file.exists("FVS_Data.db")) itms=c(itms,"FVS_Data")
+    if (length(itms)>0) msg=paste0(msg," plus: ",paste0(itms,collapse=", "))
+    if (nruns > 0) itms=c(itms,"Runs")
+    rtn = list(itms,msg)
+    attr(rtn,"dir") = getwd()
+    for (itm in itms) 
+    { 
+      switch(itm,
+      "Runs" = {
+        updateSelectInput(session=session, inputId="impRuns",
+                          choices=getFVSRuns(db))
+      },
+      "GraphSettings" = {
+        loadObject(db,"GraphSettings")
+        names=setdiff(names(GraphSettings),"None")
+        updateSelectInput(session=session, inputId="impGraphSettings",
+          choices=as.list(names))
+      },
+      "customCmps" = {
+        loadObject(db,"customCmps")      
+        updateSelectInput(session=session, inputId="impCustomCmps",
+          choices=as.list(names(customCmps)))
+      },    
+      "customQueries" = {
+        loadObject(db,"customQueries")
+        updateSelectInput(session=session, inputId="impCustomQueries",
+          choices=as.list(names(customQueries)))
+      })
+    }
+    zout = setdiff(c("Runs","GraphSettings","customCmps","customQueries"),itms)
+    for (itm in zout) 
+    { 
+      switch(itm,
+      "Runs" = updateSelectInput(session=session, inputId="impRuns",choices=list()),
+      "GraphSettings" = updateSelectInput(session=session, inputId="impGraphSettings",choices=list()),
+      "customCmps" = updateSelectInput(session=session, inputId="impCustomCmps",choices=list()),    
+      "customQueries" = updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
+      )
+    }
+    rtn
+  }                                          
     
-   ## Upload zip file.                  
+  ## Upload zip file.                  
   observe({ 
-    nullImportMsgsAndLists(skipPrj=FALSE)
-    if (length(input$uploadRunsRdat)==0 || is.null(input$uploadRunsRdat)) return()
+    if (is.null(input$uploadRunsRdat)) return()
     if (input$uploadRunsRdat$type != "application/zip") {                                 
-      output$uploadRunsRdatMsg  <- renderUI(HTML("Uploaded file is not a .zip"))
-    } else {
-      
-      
-                                                                                         
-#TODO      
-      uz = try(unzip(input$uploadRunsRdat$datapath)) 
-      if (class(uz)!="try-error") 
-      { 
- cat("uploaded zip\n")
-
-      } else {
+      output$uploadRunsRdatMsg  <- renderText("Uploaded file is not a .zip")
+    } else { 
+      isolate({
+cat("uploaded zip\n")
+        if (length(globals$importItems))
+        {
+          if (attr(globals$importItems,"temp")) 
+            unlink(attr(globals$importItems,"dir"),recursive = TRUE)
+          globals$importItems=list()
+        }   
+        curdir = getwd()
+        tdir = dirname(input$uploadRunsRdat$datapath)
+        setwd(tdir)
+        tmpPrj = uuidgen()
+        dir.create(tmpPrj)
+        tmpPrj = file.path(getwd(),tmpPrj)
+        setwd(tmpPrj)
+        uz = try(unzip(input$uploadRunsRdat$datapath))
+        if (class(uz)=="try-error") 
+        {
 cat("uploaded zip failed\n")
-       output$uploadRunsRdatMsg <- renderUI(HTML("Uploaded file could not be unzipped."))        
-      }
+          output$uploadRunsRdatMsg <- renderText("Uploaded file could not be unzipped.")
+          unlink(input$uploadRunsRdat$datapath)
+          unlink(tmpPrj,recursive=TRUE)
+        } else {
+          updateSelectInput(session=session, inputId="impPrjSource",selected=0)
+          nruns=mkFVSProjectDB()
+          db=connectFVSProjectDB()
+          ml = mkSrcMsgAndList(db,nruns)
+          dbDisconnect(db)
+          output$uploadRunsRdatMsg <- renderUI(HTML(ml[[2]]))
+          attr(ml,"temp") = TRUE # this directory can be deleted
+          output$selectedSourceMsg <- renderText(
+            paste0('<p style="font-size:17px;color:darkred"><b>Source: ',
+                   ml[[2]]))
+          globals$importItems = ml
+cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
+        }   
+      setwd(curdir)
+      })
     }
     session$sendCustomMessage(type = "resetFileInputHandler","uploadRunsRdat")          
   })
 
   observe({
-    if (length(input$impPrjSource) && nchar(input$impPrjSource) > 0)
+    if (is.null(input$impPrjSource)) return() 
     {
-cat ("impPrjSource=",input$impPrjSource,"\n")
-      nullImportMsgsAndLists()
-    }
+      curdir = getwd()
+      setwd("../")
+      tmpPrj = file.path(getwd(),input$impPrjSource)
+      if (dir.exists(tmpPrj)) 
+      {
+        setwd(tmpPrj)
+        db = connectFVSProjectDB()
+        nruns=mkFVSProjectDB()          
+        ml = mkSrcMsgAndList(db,nruns)
+        ml[[2]] = gsub("File",paste("Project",input$impPrjSource),ml[[2]])
+        dbDisconnect(db)
+        output$selectedSourceMsg <- renderText(
+            paste0('<p style="font-size:17px;color:darkred"><b>Source: ',
+                   ml[[2]]))
+        attr(ml,"temp") = FALSE  # don't delete this source directory
+        globals$importItems = ml
+      }   
+      setwd(curdir)
+    }    
   })                                                                                   
-
+           
   observe({
-    if (length(input$impRuns) && input$impRuns > 0)
-    {
-cat ("impRuns\n")
+    if (input$doImpRuns > 0) 
+    {      
+cat ("impRuns, input$doImpRuns=",input$doImpRuns,"\n")
     }
   })
 
   observe({
-    if (length(input$impCustomCmps) && input$impCustomCmps > 0)
+    if (input$doImpCustomCmps > 0)
     {
-cat ("impCustomCmps\n")
+cat ("impCustomCmps, input$doImpCustomCmps=",input$impCustomCmps,"\n")
     }
   })
 
   observe({
-    if (length(input$impGraphSettings) && input$impGraphSettings > 0)
+    if (input$doImpGraphSettings > 0)
     {
-cat ("impGraphSettings\n")
+cat ("impGraphSettings,input$doImpGraphSettings=",input$doImpGraphSettings,"\n")
     }
   })
 
   observe({
-    if (length(input$impCustomQueries) && input$impCustomQueries > 0)
+    if (input$doImpCustomQueries > 0)
     {
-cat ("impCustomQueries\n")
+cat ("impCustomQueries, input$doImpCustomQueries=",input$doImpCustomQueries,"\n")
     }
   })
 
   observe({
-    if (length(input$impFVS_Data) && input$impFVS_Data > 0)
+    if (input$impFVS_Data > 0)
     {
 cat ("impFVS_Data\n")
     }
   })
 
   observe({
-    if (length(input$impSpatialData) && input$impSpatialData > 0)                       
+    if (input$impSpatialData > 0)                       
     {
-cat ("impSpatialData\n")
+cat ("impSpatialData\n") 
     }
   })
    
@@ -7436,7 +7523,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       names(backups) = backups 
     } else backups=list()
     updateSelectInput(session=session, inputId="pickBackup", 
-      choices = backups, selected="")
+      choices = backups, selected=NULL)
   }
 
    ## Projects hit
