@@ -2895,7 +2895,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       toed = input$simCont[1]
       cmp = findCmp(globals$fvsRun,toed)
       cmp$kwdName="freeEdit"
-      cmp$title=paste("Freeform: ",cmp$title)
+      if (substring(cmp$title,1,10) != "Freeform: ") cmp$title=paste("Freeform: ",cmp$title)
       cmp$reopn=character(0)
       mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
