@@ -2884,41 +2884,6 @@ cat("paste, class(topaste)=",class(topaste),"\n")
     })
   })
    
-  mkCmpFreeForm <- function (cmp,prms)
-  {
-    if (substring(cmp$kwdName,1,10) == "Freeform: ") return(cmp)
-    if (substring(cmp$kwdName,1,6) != "From: ")
-    {
-      kwPname = cmp$kwdName
-      mkKeyWrd = paste0(kwPname,".mkKeyWrd")    
-      if (exists(mkKeyWrd))
-      {
-        cmp$kwds <- eval(parse(text=paste0(mkKeyWrd,"(input,output)")))$kwds
-      }                           
-      else 
-      {                                 
-        pkeys = prms[[kwPname]]
-        if (!is.null(pkeys))
-        {
-          ansFrm = getPstring(pkeys,"parmsForm",globals$activeVariants[1])
-          if (is.null(ansFrm)) ansFrm = getPstring(pkeys,"answerForm",globals$activeVariants[1])
-          if (is.null(ansFrm)) 
-          {
-            kw = unlist(strsplit(kwPname,".",fixed=TRUE))
-            kw = kw[length(kw)]
-            ansFrm = paste0(substr(paste0(kw,"         "),1,10),
-                     "!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!")
-          }
-          if (is.null(ansFrm)) return()
-          if (cmp$atag != "c") cmp$kwds = mkKeyWrd(ansFrm,cmp$reopn,pkeys,globals$activeVariants[1])
-        }
-      }
-      cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
-      cmp$title = paste0("Freeform: ",cmp$title)
-      cmp$reopn = character(0)
-    }
-    cmp
-  }
   
   # Change to freeform
   observe({
@@ -2928,10 +2893,10 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       updateSelectInput(session=session, inputId="addMgmtCmps", selected = 0)
       if (length(input$simCont) == 0) return ()
       toed = input$simCont[1]
-      # find component
       cmp = findCmp(globals$fvsRun,toed)
-      if (is.null(cmp)) return() 
-      cmp <- mkCmpFreeForm(cmp,prms)       
+      cmp$kwdName="freeEdit"
+      cmp$title=paste("Freeform: ",cmp$title)
+      cmp$reopn=character(0)
       mkSimCnts(globals$fvsRun,sels=toed,justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
