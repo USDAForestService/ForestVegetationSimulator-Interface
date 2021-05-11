@@ -141,7 +141,6 @@ cat("findCmp, cmp=",cmp,"\n")
 }
 
 
-
 mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
 {
   tmpcnts = list()
