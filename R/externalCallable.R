@@ -295,7 +295,8 @@ extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
 {
   if (missing(runUUID)) stop("runUUID required")
-  if (missing(cmps)) stop("cmps is required") 
+  if (missing(cmps)) stop("cmps is required")
+  if (is.null(groups) && is.null(stands)) stop("groups or stands must be supplied")
   prjDir = normalizePath(prjDir)
   if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
@@ -307,18 +308,18 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   onames = names(cmps)
   for (i in 1:length(cmps))
   {
-    cmps[i] = switch(class(cmps[i]),
-      "fvsCmp" = mkfvsCmp(cmps[i],uuid=uuidgen()),
-      "raw"=extnFromRaw(cmp[i]),
+    cmps[[i]] = switch(class(cmps[[i]]),
+      "fvsCmp" = mkfvsCmp(cmps[[i]],uuid=uuidgen()),
+      "raw"=extnFromRaw(cmp[[i]]),
       "character" = 
       {
         title = onames[i]
         if (is.null(title) || nchar(title)==0) title=paste0("Added from external source (",i,")")
-        mkfvsCmp(kwds = cmp[i], exten="base", title=title, 
+        mkfvsCmp(kwds = cmp[[i]], exten="base", title=title, 
          variant=substring(fvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
       })
-    cname=names(cmps[i])
-    if (!is.null(cname) && nchar(cname)) cmps[i]$title = cname
+    cname=names(cmps)[i]
+    if (!is.null(cname) && nchar(cname)) cmps[[i]]$title = cname
   }
   nadd=0
   # process groups
@@ -328,7 +329,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
     {
       if (grp$grp %in% groups) for(cmp in cmps) 
       {
-        append(grp$cmps,cmp)
+        grp$cmps = append(grp$cmps,cmp)
         nadd=nadd+1
       }
     }
@@ -340,7 +341,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
     {
       if (std$sid %in% stands) for(cmp in cmps) 
       {  
-        append(std$cmps,cmp)
+        std$cmps = append(std$cmps,cmp)
         nadd=nadd+1
       }
     }
@@ -624,7 +625,7 @@ extnLoadFVSRun <- function(prjDir=getwd(),runUUID)
   if (missing(runUUID)) stop("runUUID required")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db))
-  loadFVSRun(pDB,runUUID)
+  loadFVSRun(db,runUUID)
 }
 
 
@@ -637,7 +638,7 @@ extnLoadFVSRun <- function(prjDir=getwd(),runUUID)
 #' @export
 extnStoreFVSRun <- function(prjDir=getwd(),theRun)
 {
-  if (missing(theRun)) stop("fvsRun required")
+  if (missing(theRun)) stop("theRun required")
   if (class(theRun) != "fvsRun") stop ("fvsRun is not of class fvsRun")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db))
