@@ -1,10 +1,10 @@
-writeKeyFile <- function (globals,input,dbIcon,newSum=TRUE)
+writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
-cat("writeKeyFile, num stds=",length(stds),
+if (verbose) cat("writeKeyFile, num stds=",length(stds),
     " globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")
-  globals$timeissue <- 0
-  if (length(stds)==0) return("No stands to process.")
+  if (length(stds)==0) return(paste0("No stands to process. Run =",
+           globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
   dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
  
@@ -17,14 +17,17 @@ cat("writeKeyFile, num stds=",length(stds),
                   "FVS_STANDINIT_PLOT"=c("STAND_ID","STAND_CN"),
                   "FVS_PLOTINIT_PLOT" =c("STANDPLOT_ID","STANDPLOT_CN"))
   initfields = try(toupper(dbListFields(dbIcon,intable)))
-  if (class(initfields) == "try-error") return("Run data query returned no data to run.")
+  if (class(initfields) == "try-error") 
+    return(paste0("Run data query returned no data to run, Run =",
+           globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   queryIDs = queryIDs[queryIDs %in% initfields] 
   if (length(queryIDs) == 0) return("Needed stand id fields are missing")
   qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
               intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
-cat ("qry=",qry,"\n")
+if (verbose) cat ("Database qry=",qry,"\n")
   fvsInit = try(dbGetQuery(dbIcon,qry))
-  if (class(fvsInit) == "try-error") return("Run data query failed.")
+  if (class(fvsInit) == "try-error") return(paste0("Run data query failed. qry=",qry," Run =",
+           globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   if (nrow(fvsInit) == 0) return("Run data query returned no data to run.")
   # compute replication weights
   stofix=table(stds)
@@ -40,102 +43,16 @@ cat ("qry=",qry,"\n")
   source(system.file("extdata", "autoOutKeys.R", package = "fvsOL"),local=TRUE)
   defaultOut = sub ("FVSOut",globals$fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
-  fc = file(description=paste0(globals$fvsRun$uuid,".key"),open="wt")
+  if (is.null(keyFileName)) keyFileName=paste0(globals$fvsRun$uuid,".key")
+  fc = file(description=keyFileName,open="wt")
   cat ("!!title:",globals$fvsRun$title,"\n",file=fc)
   cat ("!!uuid: ",globals$fvsRun$uuid,"\n",file=fc)
   cat ("!!built:",format(Sys.time(), 
         "%Y-%m-%d_%H:%M:%S"),"\n",file=fc)
-  # Start year checks
-  thisYr = as.numeric(format(Sys.time(), "%Y"))
-  for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
-         ((input$startyr !="") && nchar(input$startyr) > 4))){
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common starting year of ",input$startyr,
-              " is more than 50 years from the current year of ", thisYr))
-      globals$timeissue <- 1
-      return()
-    }
-    if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common starting year of ",input$startyr,
-              " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-      globals$timeissue <- 1
-      return()
-    }
-    if (input$startyr =="") {
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common starting year is blank."))
-      globals$timeissue <- 1
-      return()
-    }
-  }
-  # End year checks
-  for(i in 1:length(globals$fvsRun$stands)){
-    if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
-      (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
-         ((input$endyr !="") && nchar(input$endyr) > 4))){
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr,
-              " is more than 40 growth cycles from the current year of ", thisYr))
-      globals$timeissue <- 1
-      return("Year check error")
-    }
-    if ((input$endyr !="") && ((as.numeric(input$endyr) < 
-      as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year of ", input$endyr,
-              " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-      globals$timeissue <- 1
-      return("Year check error")
-    }
-    if (input$endyr =="") {
-      session$sendCustomMessage(type = "infomessage",
-              message = paste0("The common ending year is blank."))
-      globals$timeissue <- 1
-      return("Year check error")
-    }
-  }
-  # Cycle length checks
-  if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
-       ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
-    session$sendCustomMessage(type = "infomessage",
-            message = paste0("The growth interval of ", input$cyclelen,
-            " years is greater than the maximum 50 years"))
-    globals$timeissue <- 1
-    return("Year check error")
-  }
-  if (input$cyclelen =="") {
-    session$sendCustomMessage(type = "infomessage",
-            message = paste0("The growth interval is blank."))
-    globals$timeissue <- 1
-    return("Year check error")
-  }
   baseCycles = seq(as.numeric(globals$fvsRun$startyr),as.numeric(globals$fvsRun$endyr),
                    as.numeric(globals$fvsRun$cyclelen))
   cycleat = scan(text=gsub(";"," ",gsub(","," ",globals$fvsRun$cycleat)),
-                 what=0,quiet=TRUE)
-  # Cycle break checks
-  if (length(cycleat)){
-    for(i in 1:length(globals$fvsRun$stands)){
-      for(j in 1:length(cycleat)){
-        if ((cycleat[j] > (thisYr + 400))){
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j],
-                  " is more than 400 years from the current year of", thisYr))
-          globals$timeissue <- 1
-          return("Cycle break check error")
-        }
-        if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The additional reporting year of ", cycleat[j],
-                  " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-          globals$timeissue <- 1
-          return("Cycle break check error")
-        }
-      }
-    }
-  }
+                  what=0,quiet=TRUE)
   cycleat = union(baseCycles,cycleat)
   cycleat = sort(union(cycleat,as.numeric(globals$fvsRun$endyr))) 
   for (std in globals$fvsRun$stands)
@@ -143,7 +60,7 @@ cat ("qry=",qry,"\n")
     names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
-cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
+if (verbose) cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
     if (is.na(sRows) && is.na(sRowp)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",globals$fvsRun$title,"\n",file=fc,sep="")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
@@ -896,7 +813,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
             kwdlist<- gsub("[\r]", "", kwdlist)
             cmp$kwds <- paste(kwdlist,collapse="\n")
           }
-          cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
+          cat ("!Exten:",cmp$exten," Title:",cmp$title,"\n",
                     cmp$kwds,"\n",file=fc,sep="")
         }
       }
@@ -952,6 +869,8 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
   }
   cat ("Stop\n",file=fc)    
   close(fc)
-cat ("end of writeKeyFile\n")
-  return("Keyword file write complete")
+  msg = paste0("Num stands=",length(stds)," keyFileName=",keyFileName,
+        " Run title=",globals$fvsRun$title)
+if (verbose) cat ("End of writeKeyFile, msg=",msg,"\n")
+  return(msg)
 }

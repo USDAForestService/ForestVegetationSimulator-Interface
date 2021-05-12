@@ -3709,16 +3709,108 @@ cat ("changeind=",globals$changeind,"\n")
     isolate ({
       if (length(globals$fvsRun$stands) > 0) 
       {
+cat("Nulling uiRunPlot at Save and Run\n")
+        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+        globals$currentQuickPlot = character(0) 
+        # timeing checks.
+        thisYr = as.numeric(format(Sys.time(), "%Y"))
+        for(i in 1:length(globals$fvsRun$stands)){
+          if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
+               ((input$startyr !="") && nchar(input$startyr) > 4))){
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common starting year of ",input$startyr,
+                    " is more than 50 years from the current year of ", thisYr))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+          if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common starting year of ",input$startyr,
+                    " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+          if (input$startyr =="") {
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common starting year is blank."))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+        }
+        # End year checks
+        for(i in 1:length(globals$fvsRun$stands)){
+          if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
+            (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
+               ((input$endyr !="") && nchar(input$endyr) > 4))){
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common ending year of ", input$endyr,
+                    " is more than 40 growth cycles from the current year of ", thisYr))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+          if ((input$endyr !="") && ((as.numeric(input$endyr) < 
+            as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common ending year of ", input$endyr,
+                    " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+          if (input$endyr =="") {
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common ending year is blank."))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+        }
+        # Cycle length checks
+        if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
+             ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The growth interval of ", input$cyclelen,
+                  " years is greater than the maximum 50 years"))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+        if (input$cyclelen =="") {
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The growth interval is blank."))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+        baseCycles = seq(as.numeric(globals$fvsRun$startyr),as.numeric(globals$fvsRun$endyr),
+                         as.numeric(globals$fvsRun$cyclelen))
+        cycleat = scan(text=gsub(";"," ",gsub(","," ",globals$fvsRun$cycleat)),
+                       what=0,quiet=TRUE)
+        # Cycle break checks
+        if (length(cycleat)){
+          for(i in 1:length(globals$fvsRun$stands)){
+            for(j in 1:length(cycleat)){
+              if ((cycleat[j] > (thisYr + 400))){
+                session$sendCustomMessage(type = "infomessage",
+                        message = paste0("The additional reporting year of ", cycleat[j],
+                        " is more than 400 years from the current year of", thisYr))
+                updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+                return()
+              }
+              if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+                session$sendCustomMessage(type = "infomessage",
+                        message = paste0("The additional reporting year of ", cycleat[j],
+                        " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+                updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+                return()
+              }
+            }
+          }
+        }        
         progress <- shiny::Progress$new(session,min=1,
                            max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
-          detail = "Saving FVS Runs", value = 1)         
+          detail = "Saving FVS Runs", value = 1)
         saveRun(input,session)
-cat("Nulling uiRunPlot at Save and Run\n")
-        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
-        globals$currentQuickPlot = character(0)                                  
         updateSelectInput(session=session, inputId="runSel", 
             choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]]) 
+
         killIfRunning(globals$fvsRun$uuid)
         # if rerunning a run that is currently selected in the "View Outputs",
         # then clear those tools.
@@ -3731,11 +3823,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
-        msg=writeKeyFile(globals,input,dbGlb$dbIcon,newSum=newSum)
-        if(globals$timeissue==1){
-          progress$close()
-          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-        }
+        msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
         if (!file.exists(fc))
         {

@@ -566,11 +566,29 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of the run uuid that is processed
-#' @return A list of the fullpath names of the created files or NULL if none created.
+#' @param fvsBin is the name of the directory that contains the FVSBin
+#' @param keyFileName is the name of the keyword file, the default is the
+#'    the runUUID with .key suffix.
+#' @param verbose turns on some extra output to the console
+#' @return A text string reporting the nmber of stands and keyword file name.
 #' @export
-extnMakeKeyfile <- function(prjDir=getwd(),runUUID,withRScript=TRUE)
+extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
+  keyFileName=NULL,verbose=FALSE)
 {
-  return("Not yet implemented."); return(NULL)
+  if (!dir.exists(fvsBin)) fvsBin=file.path(prjDir,fvsBin)
+  if (!dir.exists(fvsBin)) stop("fvsBin can not be located.")   
+  globals=new.env()
+  globals$fvsBin=fvsBin
+  fvsOL:::resetActiveFVS(globals)
+  db = fvsOL:::connectFVSProjectDB(prjDir)
+  globals$fvsRun = fvsOL:::loadFVSRun(db,runUUID)
+  dbDisconnect(db)
+  prjDir = normalizePath(prjDir)
+  prjDB = file.path(prjDir, "FVSProject.db")
+  db=dbConnect(SQLite(), dbname = "FVS_Data.db")
+  rtn = writeKeyFile(globals,db,newSum=TRUE,keyFileName,verbose=verbose)
+  dbDisconnect(db) 
+  rtn
 }
 
 #' Simulate (run) a run's .key and .RScript
