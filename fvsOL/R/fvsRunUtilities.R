@@ -411,7 +411,6 @@ resetActiveFVS <- function(globals)
   keep=match(globals$activeVariants,vars)
   globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
   globals$activeExtens=character(0)
-cat ("in resetActiveFVS, globals$activeVariants=",globals$activeVariants,"\n")
 }
 
 nextMgmtID <- function(nruns=0)
