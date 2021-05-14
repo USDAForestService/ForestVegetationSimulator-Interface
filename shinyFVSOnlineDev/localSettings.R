@@ -30,7 +30,7 @@ fvsBinURL = if (.Platform$OS.type == "windows")
      "http://www.fs.fed.us/.ftproot/pub/fmsc/ftp/fvs/software/FVSOnline" else NULL
 
 pgmList= list(
-  FVSak = "Southeast AK - Coastal BC",
+  FVSak = "Alaska",
   FVSbm = "Blue Mountains, Oregon",
   FVSca = "Inland CA, Southern Cascades",
   FVSci = "Central ID",

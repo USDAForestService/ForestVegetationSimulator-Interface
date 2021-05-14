@@ -1429,7 +1429,7 @@ resetActiveFVS <- function(globals)
   avalFVS <- sub(shlibsufx,"",avalFVS)
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
-  vars = c("ak: Southeast AK - Coastal BC"="ak",
+  vars = c("ak: Alaska"="ak",
            "bm: Blue Mountains,Oregon"="bm",
            "ca: Inland CA,Southern Cascades"="ca",
            "ci: Central ID"="ci",
