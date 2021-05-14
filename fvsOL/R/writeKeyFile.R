@@ -1,7 +1,7 @@
 writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
-if (verbose) cat("writeKeyFile, num stds=",length(stds),
+  if (verbose) cat("writeKeyFile, num stds=",length(stds),
     " globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")
   if (length(stds)==0) return(paste0("No stands to process. Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
@@ -24,7 +24,7 @@ if (verbose) cat("writeKeyFile, num stds=",length(stds),
   if (length(queryIDs) == 0) return("Needed stand id fields are missing")
   qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
               intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
-if (verbose) cat ("Database qry=",qry,"\n")
+  if (verbose) cat ("Database qry=",qry,"\n")
   fvsInit = try(dbGetQuery(dbIcon,qry))
   if (class(fvsInit) == "try-error") return(paste0("Run data query failed. qry=",qry," Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
@@ -60,7 +60,7 @@ if (verbose) cat ("Database qry=",qry,"\n")
     names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
-if (verbose) cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
+    if (verbose) cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")    
     if (is.na(sRows) && is.na(sRowp)) next
     cat ("StdIdent\n",sprintf("%-26s",std$sid)," ",globals$fvsRun$title,"\n",file=fc,sep="")
     if (!is.null(fvsInit$STAND_CN[sRows]) && !is.na(fvsInit$STAND_CN[sRows]) && 
@@ -871,6 +871,6 @@ if (verbose) cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n"
   close(fc)
   msg = paste0("Num stands=",length(stds)," keyFileName=",keyFileName,
         " Run title=",globals$fvsRun$title)
-if (verbose) cat ("End of writeKeyFile, msg=",msg,"\n")
+  if (verbose) cat ("End of writeKeyFile, msg=",msg,"\n")
   return(msg)
 }

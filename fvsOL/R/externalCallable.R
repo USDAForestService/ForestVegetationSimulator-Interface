@@ -600,13 +600,15 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
 #' @param runUUID a character vector of the run uuid .key created by [extnMakeKeyfile].
 #' @param nCPUs is the max number of CPUs to use. When > 1, the run is broken into
 #'   parts and simulated using [parallel::parallel-package] in a set of R processes. 
-#'   This parameter is ignored if there are less than 10 stands in a run.
+#'   The default is return value of [parallel::detectCores()].
 #' @param wait if TRUE, the function does not return until the run has finished
 #'   otherwise the run is started in background.
+#' @param verbose when true, extra informative output is sent to the console.
 #' @return the system PID of the process that is started when wait is FALSE, otherwise
 #'   NULL.
 #' @export
-extnSimulateTheRun <- function(prjDir=getwd(),runUUID,nCPUs=1,wait=FALSE)
+extnSimulateTheRun <- function(prjDir=getwd(),runUUID,nCPUs=detectCores(),
+         wait=FALSE,verbose=TRUE)
 {
   return("Not yet implemented."); return(NULL)
 }
@@ -814,3 +816,119 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   nadd
 }
 
+#' Simulate (run) a run's .key and .RScript
+#'
+#' Given a project directory and a run uuid, start the simulation that was
+#' created using function [extnMakeKeyfile]. 
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character vector of the run uuid .key created by [extnMakeKeyfile].
+#' @param fvsBin is the name of the directory that contains the FVSBin
+#' @param ncpu is the max number of CPUs to use. When > 1, the run is broken into
+#'   parts and simulated using [parallel::parallel-package] in a set of R processes. 
+#'   The default is return value of [parallel::detectCores()].
+#' @param keyFileName use this keyword file if specified, otherwise one is built.
+#' @param wait if TRUE, the function does not return until the run has finished
+#'   otherwise the run is started in background.
+#' @param verbose when true, extra informative output is sent to the console.
+#' @return the system PID of the process that is started when wait is FALSE, otherwise
+#'   NULL.
+#' @export
+extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCores(),
+         keyFileName=NULL,wait=FALSE,verbose=TRUE)
+{
+  curdir=getwd()
+  if (missing(runUUID)) stop("runUUID required")
+  setwd(prjDir)
+  db = fvsOL:::connectFVSProjectDB(prjDir)
+  on.exit({
+    dbDisconnect(db)
+    setwd(curdir)
+  })
+  fvsRun = fvsOL:::loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  fvsOL:::killIfRunning(runUUID)
+  if (!is.null(keyFileName) && !file.exists(keyFileName)) 
+    stop (paste0("keyFileName=",keyFileName," does not exist.")) 
+  if (is.null(keyFileName)) 
+  {
+    keyFileName=paste0(runUUID,".key")
+    cat("keyFileName=",keyFileName," is being created.")
+    extnMakeKeyfile(runUUID=runUUID,fvsBin="FVSBin",
+                    keyFileName=keyFileName,verbose=verbose)
+  }
+  # process .key file into ncpu sets.
+  nstnds = length(fvsRun$stands)
+  kwds = readLines(keyFileName)
+  pkwds = grep ("^Process$",kwds)
+  if (nstnds != length(pkwds)) stop("Not all stands in run are present in the keyword file.")
+  ncpu = min(length(pkwds),ncpu) 
+  sets=paste0("-set",1:ncpu)
+  asign = suppressWarnings(split(1:nstnds,sets))
+  clindx=1
+  for (set in names(asign))
+  {
+    rundir=paste0(runUUID,set)
+    if (dir.exists(rundir)) unlink(rundir,force=TRUE,recursive=TRUE)
+    dir.create(rundir)
+    file.symlink(from=file.path("..",fvsBin),to=file.path(rundir,fvsBin))
+    file.symlink(from="../FVS_Data.db",to=file.path(rundir,"FVS_Data.db"))
+    opnout = file(file.path(rundir,keyFileName),open="wt")
+    cat(file=opnout,kwds[1:3],sep="\n")
+    for (i in asign[[set]])
+    {
+      fl = if(i==1) 4 else pkwds[i-1]+1
+      cat(file=opnout,kwds[fl:pkwds[i]],sep="\n",append=TRUE)
+    }
+    cat(file=opnout,"\nStop\n",append=TRUE)
+    close(opnout)
+#   make the run script
+    opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
+    cat ("library(rFVS)\n",file=opnout)
+    cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)    
+    if (fvsRun$runScript != "fvsRun")
+    {   
+       # if the custom run script exists in the project dir, use it, otherwise
+       # look in the system extdata directory to find it in the package
+       cmdfil=paste0("customRun_",fvsRun$runScript,".R")
+       if (!file.exists(cmdfil)) cmdfil=system.file("extdata", cmdfil, package = "fvsOL")
+       if (file.exists(paste=cmdfil))
+       {
+         cat ("curdir=getwd();setwd('..')\n",file=opnout)
+         cat ("source('",cmdfil,"')\n",sep="",file=opnout)
+         cat ("setwd(curdir)\n",file=opnout)
+         cat (paste0("uiCustomRunOps=",paste0(deparse(fvsRun$uiCustomRunOps),
+              collapse=""),"\n"),sep="",file=opnout)
+       }                                    
+    }
+    cat('fvsSetCmdLine("--keywordfile=',paste0(fvsRun$uuid,'.key")\n'),sep="",file=opnout)
+    runCmd = if (fvsRun$runScript == "fvsRun") "fvsRun()" else
+             paste0(fvsRun$runScript,"(uiCustomRunOps)")
+    cat(runCmd,"\n",file=opnout)
+    cat('dbcon=dbConnect(SQLite(), dbname = "../',runUUID,'.db")\n',sep="",file=opnout)
+    cat('addNewRun2DB("',runUUID,'", dbcon)\n',sep="",file=opnout)
+    cat('dbDisconnect(dbcon)\n',sep="",file=opnout)
+    clindx=clindx+1
+    close(opnout)
+  }
+  rscript=paste0(runUUID,".Rscript")
+  cat ('cat (Sys.getpid()," Running ',fvsRun$title,' on ',ncpu,' processes; started ",',
+       'date(),"\\n",sep="",file=paste0("',runUUID,'",".pidStatus"))\n',sep="",file=rscript)
+  cat('require(fvsOL)\n',file=rscript,append=TRUE)
+  cat('fvskids = makePSOCKcluster(',ncpu,')\n',sep="",file=rscript,append=TRUE)
+  #each subprocess needs this function.
+  cat ('clusterExport(cl=fvskids,envir=environment(),list("addNewRun2DB"))\n',
+       file=rscript,append=TRUE)
+  for (i in 1:ncpu) cat('clusterEvalQ(fvskids[',i,'],setwd("',paste0(runUUID,names(asign)[i]),'"))\n',
+        sep="",file=rscript,append=TRUE)      
+  cat ('clusterEvalQ(fvskids,source("',runUUID,'.Rscript"))\n',sep="",file=rscript,append=TRUE)
+  cat ('stopCluster(fvskids)\n',file=rscript,append=TRUE)  
+  cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)  
+  rsloc = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+  cmd = paste0(rsloc," --no-restore --no-save --no-init-file ",rscript,
+                       " > ",rscript,".Rout")
+  if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
+  system (cmd,wait=wait) 
+}  
+  
+  

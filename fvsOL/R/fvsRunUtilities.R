@@ -1113,16 +1113,18 @@ cat ("qry=",qry,"\n")
 #'
 #' Add the output from a recently completed run to the master output database,
 #' FVSOut.db
-#' @param runuuid a character string with the run UUID 
+#' @param runuuid a character string with the runUUID that will be merged into 
+#'   the connection in argument dbcon.
 #' @param dbcon the database connection to FVSOut.db
+#' @param verbose if TRUE (default), progress output is written.
 #' @return a character string with an informative message as to what was done.
 #' @export 
-addNewRun2DB <- function(runuuid,dbcon)
+addNewRun2DB <- function(runuuid,dbcon,verbose=TRUE)
 {
   # dbcon is the connection to the existing output database
   # runuuid is the uuid of the run that will be merged to the output database
 
-cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
+  if (verbose) cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
   # breaking these two clauses allows for Windows to see that the new db has a size greater than 0
   if (!file.exists((fn))) {
@@ -1143,7 +1145,7 @@ cat ("addNewRun2DB, runuuid=",runuuid,"\n")
       myListTables(dbcon) #any query will cause the locking mode to become active
       return("could not get exclusive lock.")
     }
-cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
+    if (verbose) cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
     rtn <- try(dbExecute(dbcon,"create table dummy (dummy int)"))
     if (class(rtn) != "try-error") break;
     Sys.sleep (10)
@@ -1155,11 +1157,11 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
   mkDBIndices(dbcon)
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
   qry = paste0("attach database '",fn,"' as ",newrun)
-cat ("qry=",qry,"\n") 
+  if (verbose) cat ("qry=",qry,"\n") 
   res = try (dbExecute(dbcon,qry))
   if (class(res) == "try-error") return ("new run database attach failed")
   qry = paste0("select * from ",newrun,".sqlite_master where type='table'")
-cat ("qry=",qry,"\n") 
+  if (verbose) cat ("qry=",qry,"\n") 
   newtabs = dbGetQuery(dbcon,qry)[,"tbl_name",drop=TRUE]
   if (length(newtabs)==0)
   {
@@ -1169,26 +1171,23 @@ cat ("qry=",qry,"\n")
   ic = grep ("FVS_Cases",newtabs)
   if (length(ic) == 0) return("no FVS_Cases found in new run") 
   qry = paste0("select * from ",newrun,".FVS_Cases")
-cat ("qry=",qry,"\n") 
+  if (verbose) cat ("qry=",qry,"\n") 
   res = dbGetQuery(dbcon,qry)
-cat ("nrow(res)=",nrow(res)," CaseID=",res$CaseID,"\n")
+  if (verbose) cat ("nrow(res)=",nrow(res)," CaseID=",res$CaseID,"\n")
   if (nrow(res) == 0)
   {
     dbExecute(dbcon,paste0("detach database '",newrun,"'"))
     return("no new cases found in new run")
   }
   tbs <- dbGetQuery(dbcon,"select name from sqlite_master where type='table';")[,1]
-cat ("length(tbs)=",length(tbs),"\n")
   for (newtab in newtabs) 
   {        
     if (newtab %in% tbs)
     {
       qry = paste0("PRAGMA ",newrun,".table_info('",newtab,"')")
-cat ("qry=",qry,"\n") 
       newCols = dbGetQuery(dbcon,qry)
       newColNs = newCols[,"name",drop=TRUE]
       qry = paste0("PRAGMA table_info('",newtab,"')")
-cat ("qry=",qry,"\n") 
       existCols = dbGetQuery(dbcon,qry)[,"name",drop=TRUE]
       toAdd = setdiff(newColNs,existCols)
       if (length(toAdd))
@@ -1197,7 +1196,6 @@ cat ("qry=",qry,"\n")
         {
           qry = paste0("alter table ",newtab," add column ",addCol," ",
                 subset(newCols,name==addCol)[,"type"])
-cat ("qry=",qry,"\n") 
           dbExecute(dbcon,qry)
         }
       }
@@ -1205,12 +1203,11 @@ cat ("qry=",qry,"\n")
         paste0("insert into ",newtab," select * from ",newrun,".",newtab) else
         paste0("insert into ",newtab," (",
           paste0(newColNs,collapse=","),") select * from ",newrun,".",newtab)
-cat ("qry=",qry,"\n") 
+      if (verbose) cat ("main insert qry=",qry,"\n") 
       rtn=dbExecute(dbcon,qry)
-cat ("rtn=",rtn,"\n")
     } else {
       qry = paste0("create table ",newtab," as select * from ",newrun,".",newtab,";")
-cat ("qry=",qry,"\n") 
+      if (verbose) cat ("copy qry=",qry,"\n") 
       dbExecute(dbcon,qry)
     }
   }    
