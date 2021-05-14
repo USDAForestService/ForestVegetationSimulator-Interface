@@ -89,7 +89,7 @@ getBkgRunList = function ()
   pidfiles=dir(pattern="pidStatus$")
   if (length(pidfiles) == 0) return (list())
   theList = unlist(lapply(pidfiles,function (x)
-    scan(file=x,what="character",sep="\n",quiet=TRUE)))
+    readLines(x)[1]))
   pidfiles=as.list(pidfiles)
   names(pidfiles) = theList
   pidfiles 
@@ -101,12 +101,22 @@ killIfRunning = function (uuid)
 cat ("killIfRunning, fn=",fn,"\n")
   if (file.exists(fn))
   {
-    pid = scan (file=fn,what="character",n=1,sep=" ",quiet=TRUE)
-    cmd = if (.Platform$OS.type == "windows") paste("taskkill /pid",pid) else 
-      paste("kill ",pid)    
+    pstat = readLines(fn)
+    pids=as.numeric(scan(text=pstat[1],what="character",n=1,sep=" ",quiet=TRUE))
+    if (length(pstat) > 1) 
+    {
+      p2=scan(text=pstat[2],what="character",sep=" ",quiet=TRUE)
+      p2=na.omit(suppressWarnings(as.numeric(p2)))
+      pids = c(pids,p2)
+    }
+    for (pid in pids)
+    {
+      cmd = if (.Platform$OS.type == "windows") paste("taskkill /pid",pid) else 
+        paste("kill ",pid)    
 cat ("kill cmd =",cmd,"\n")
-    system (cmd)
-    Sys.sleep(.5)
+      system (cmd)
+      Sys.sleep(.2)
+    }
     unlink(fn)
   }
 }

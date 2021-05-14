@@ -3854,74 +3854,15 @@ cat ("keyword file was not created.\n")
           return()
         }
 cat ("runwaitback=",input$runwaitback,"\n")
-        if (input$runwaitback!="Wait for run")
+        if (input$runwaitback!="Wait for run (1 CPU)")
         {
-          runScript = paste0(globals$fvsRun$uuid,".rscript")
-          rs = file(runScript,open="wt")
-          cat (paste0('setwd("',getwd(),'")\n'),file=rs)
-          cat ('options(echo=TRUE)\nlibrary(fvsOL)\nlibrary(methods)\n',file=rs)
-          cat ('pid = Sys.getpid()\n',file=rs)
-          cmd = paste0('unlink("',globals$fvsRun$uuid,'.db")')
-          cat (cmd,"\n",file=rs)
-          cmd = paste0("title = '",globals$fvsRun$title,"'")
-          cat (cmd,"\n",file=rs)                   
-          cmd = paste0("nstands = ",length(globals$fvsRun$stands))
-          cat (cmd,"\n",file=rs)          
-          cmd = paste0("fvsLoad('",
-             globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"')")
-          cat (cmd,"\n",file=rs)
-          if (globals$fvsRun$runScript != "fvsRun")
-          {
-            # if the custom run script exists in the project dir, use it, otherwise
-            # look in the system extdata directory to find it in the package
-            cmdfil=paste0("customRun_",globals$fvsRun$runScript,".R")
-            if (!file.exists(cmdfil)) cmdfil=system.file("extdata", cmdfil, package = "fvsOL")
-            if (file.exists(cmdfil)) 
-            {
-              cmd=paste0("source('",cmdfil,"')") 
-              cat (cmd,"\n",file=rs)
-              cat ("runOps = ",deparse(globals$fvsRun$uiCustomRunOps),"\n",file=rs) 
-            }
-          }
-          foo = foo = paste0(globals$fvsRun$uuid,".key")
-          cmd = paste0('fvsSetCmdLine("--keywordfile=',foo,'")')
-          cat (cmd,"\n",file=rs)
-          runCmd = if (globals$fvsRun$runScript == "fvsRun") "fvsRun()" else
-               paste0(globals$fvsRun$runScript,"(runOps)")
-          pidfile = paste0(globals$fvsRun$uuid,".pidStatus")
-          cmd = 'cat (pid,"Starting title=",title,"\n")'
-          cat (cmd,"\n",file=rs)       
-          cmd = paste0('cat (pid,"Starting title=",title,file="',pidfile,'")')
-          cat (cmd,"\n",file=rs)       
-          cmd = paste0('for (istand in 1:nstands)\n{\n',
-                       '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n")\n',
-                       '  cat (pid,"Running",istand,"of",nstands," title=",title,"\n",file="',pidfile,
-                       '")\n',
-                       '  rtn = ',runCmd,'\nfvsRun()\n}')
-          cat (cmd,"\n",file=rs)
-          cmd = paste0('dbOcon = dbConnect(drv = dbDriver("SQLite"),"FVSOut.db")')
-          cat (cmd,"\n",file=rs)
-          cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n")')
-          cat (cmd,"\n",file=rs)
-          cmd = paste0('cat (pid,"Adding results to output database; title=",title,"\n",file="',pidfile,
-                       '")')
-          cat (cmd,"\n",file=rs)
-          cmd = paste0('addNewRun2DB("',globals$fvsRun$uuid,'",dbOcon)')
-          cat (cmd,"\n",file=rs)
-          cat ("dbDisconnect(dbOcon)\n",file=rs)
-          cmd = paste0("unlink('",pidfile,"')")
-          cat (cmd,"\n",file=rs)
-          progress$set(message = "Run starting in background", 
-              detail = "", value = 4)
-          unlink(paste0(globals$fvsRun$uuid,".db"))
-          close (rs)
-          rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
-          cmd = paste0(rscript," --no-restore --no-save --no-init-file ",runScript,
-                       " > ",runScript,".Rout")
-          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
-cat ("cmd=",cmd,"\n")
-          system (cmd,wait=FALSE) 
-          Sys.sleep(1)
+          ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
+               as.numeric(input$bkgNcpu))
+          if (is.na(ncpu)) ncpu=detectCores()
+          updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
+          extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
+                          ncpu=ncpu)
+          Sys.sleep(.5)
           updateSelectInput(session=session, inputId="bkgRuns", 
                           choices=getBkgRunList(),selected=0)
           progress$close()
@@ -4021,6 +3962,7 @@ cat ("length(allSum)=",length(allSum),"\n")
              value = length(globals$fvsRun$stands)+6)
         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
         unlink(paste0(globals$fvsRun$uuid,".db"))
+        unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
         progress$set(message = "Building plot", detail = "", 
                      value = length(globals$fvsRun$stands)+6)
         modn = names(allSum)
