@@ -94,7 +94,6 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
     } else c(autos,"autoDelOTab")
     for (out in autos) if (exists(out) && !is.null(out)) eval(parse(text=paste0("cat(",out,",file=fc)")))
-
     if (!is.null(globals$fvsRun$autoOut[["svsOut"]]) && !is.null(globals$fvsRun$autoOut[["svsOut"]][["svs"]]) && 
       exists("autoSVS"))
     {
@@ -114,7 +113,6 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       "ardwrd3"="RDIn","armwrd3"="RDIn\nRRType             3",
       "phewrd3"="RDIn\nRRType             4","dbs"="DataBase",
       "econ"="Econ","climate"="Climate","organon"="Organon")
-
     if (length(std$grps)) for (grp in std$grps)
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
