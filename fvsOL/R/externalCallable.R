@@ -869,7 +869,6 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
 #   make the run script
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
     cat ("library(rFVS)\n",file=opnout)
-    cat ('dir.create("',runUUID,'")\n',sep="",file=opnout)
     cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)    
     if (fvsRun$runScript != "fvsRun")
     {   

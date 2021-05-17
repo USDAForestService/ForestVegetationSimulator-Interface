@@ -4415,12 +4415,12 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       })
     }
   })
-  
+                                                                     
   ## Download KCP
   output$kcpDownload <- downloadHandler(filename=function ()
       paste0(input$kcpSel,".kcp"),
       content=function (tf = tempfile())
-      {
+      {     
         write(input$kcpEdit,tf)
       }, contentType="text")
 
@@ -4433,7 +4433,12 @@ cat ("SVS3d hit\n")
       for (has in names(allRuns))
       {
         fn = paste0(allRuns[[has]],"_index.svs")
-        if (file.exists(fn)) runChoices[[has]] = allRuns[[has]]
+        if (file.exists(fn)) runChoices[[has]] = allRuns[[has]] else
+        {
+          fn = file.path(paste0(allRuns[[has]],"-set1"),
+               paste0(allRuns[[has]],"_index.svs"))
+          if (file.exists(fn)) runChoices[[has]] = allRuns[[has]]
+        }
       }
       updateSelectInput(session=session, inputId="SVSRunList1", 
         choices=runChoices,selected=0)
@@ -4454,9 +4459,28 @@ cat ("SVS3d hit\n")
                
   mkSVSchoices <- function(svsRun)
   {
-    fn = paste0(svsRun,"_index.svs")
-    if (!file.exists(fn)) return(list())
-    index = read.table(file=fn,as.is=TRUE) 
+    fns = paste0(svsRun,"_index.svs")
+    if (!file.exists(fns)) 
+    {
+      fns = NULL
+      i = 1
+      repeat
+      {
+        fn = file.path(paste0(svsRun,"-set",i),paste0(svsRun,"_index.svs"))
+        if (!file.exists(fn)) break
+        fns = c(fns,fn)
+        i = i+1
+      }
+    }
+    index=NULL
+    for (fn in fns) 
+    {
+      ind=read.table(file=fn,as.is=TRUE)
+      if (dirname(fn)!=".") ind[,2]=file.path(dirname(fn),ind[,2])
+      index = rbind(index,ind)
+    }
+    ix=sort(index[,1],index.return=TRUE)$ix
+    index=index[ix,]
     dups = duplicated(index[,1])
     if (any(dups))
     {
@@ -5229,7 +5253,7 @@ cat ("delete all runs and outputs\n")
       {
         if (globals$fvsBin != "FVSbin")
         {
-          if (!dir.exists("FVSbin")) mkdir("FVSbin")
+          if (!dir.exists("FVSbin")) dir.create("FVSbin")
           fvsPgms = list.files(fvsBin,pattern=paste0(.Platform$dynlib.ext,"$"),
                                full.names=TRUE)
           file.copy(fvsPgms,"FVSbin")
@@ -5317,22 +5341,22 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
       output$btnA <-renderUI(HTML("Project files and FVS software"))
       output$btnB <-renderUI(HTML("Project files only"))
       session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "restorePrjBackupDlg",
-                      message = paste0("WARNING: restoring this project backup will overwrite",
-                      " any existing project files in this current project. If you don't",
-                      " want to lose exiting project files, consider restoring to a new empty",
-                      " project instead. This backup also contains FVS software that will",
-                      " overwrite your currently installed version with the software in the",
-                      " backup, if selected.  What contents would you like to restore?")))
+        message = list(id = "restorePrjBackupDlg",
+          message = paste0("WARNING: restoring this project backup will overwrite",
+          " any existing project files in this current project. If you don't",
+          " want to lose exiting project files, consider restoring to a new empty",
+          " project instead. This backup also contains FVS software that will",
+          " overwrite your currently installed version with the software in the",
+          " backup, if selected.  What contents would you like to restore?")))
     } else {
       output$btnA <-renderUI(HTML("Yes"))
       output$btnB <-renderUI(HTML("Yes"))
       session$sendCustomMessage(type = "dialogContentUpdate",
-            message = list(id = "restorePrjBackupDlg",
-                      message = paste0("WARNING: restoring this project backup will overwrite", 
-                      " any existing project files in this current project. If you don't", 
-                      " want to lose exiting project files, consider restoring to a new",
-                      " empty project instead. Are you sure?")))
+        message = list(id = "restorePrjBackupDlg",
+          message = paste0("WARNING: restoring this project backup will overwrite", 
+          " any existing project files in this current project. If you don't", 
+          " want to lose exiting project files, consider restoring to a new",
+          " empty project instead. Are you sure?")))
     }
   })
   
@@ -5363,9 +5387,9 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           # TODO: most of this list is related to old versions the software (pre "package")
           # and can be reviewed (many dropped) in the future, say 2024 or so.
           for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
-                           "prms.RData",".log$","FVS_Data.db.default","FVS_Data.db.empty", 
-                           "databaseDescription.xlsx","projectIsLocked.txt",".png$", 
-                           "SpatialData.RData.default" )) del = c(del,grep (todel,zipConts))
+              "prms.RData",".log$","FVS_Data.db.default","FVS_Data.db.empty", 
+              "databaseDescription.xlsx","projectIsLocked.txt",".png$", 
+              "SpatialData.RData.default" )) del = c(del,grep (todel,zipConts))
           if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
           mkFVSProjectDB()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
