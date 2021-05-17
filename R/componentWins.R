@@ -1,7 +1,7 @@
 # $Id: componentWins.R 3389 2021-02-09 03:00:48Z mshettles521 $
 
 keyword.base.Compute.Win <- function(title, prms, globals, input, output)
-{                           
+{ 
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")
   if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
@@ -9,7 +9,8 @@ keyword.base.Compute.Win <- function(title, prms, globals, input, output)
   ans = list( 
     list (
       mkScheduleBox("f1",prms,NULL,globals,input,output),
-      mkFreeformEltList(globals,prms,title,globals$currentCmdDefs["freeEdit"]),
+      mkFreeformEltList(globals,input,prms,globals$currentEditCmp$title,
+                        globals$currentEditCmp$kwds),
       tags$p(id="instruct",HTML(paste0(
           "Enter one or more expressions that define <i>compute</i> variables. ",
           "Example:<br><b>NormStk = 25000*((BADBH+1.)**(-1.588))<br></b>",

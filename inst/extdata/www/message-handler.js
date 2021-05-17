@@ -115,9 +115,9 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
     const elt  = document.getElementById(eltid);                        
     const top  = document.getElementById(topid);  
     const ssid = document.getElementById(sidid); 
-   
-        var rglinst = elt.rglinstance;
-        if (rglinst == null) return;
+    var rglinst = elt.rglinstance;
+    if (rglinst == null) return;
+ 
         var sid = rglinst.scene.rootSubscene;
         if (sid == null) return;
         var p3d = rglinst.getObj(sid).par3d;
@@ -138,8 +138,9 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
         ssid.setAttribute("src", imageData);
         ssid.style.display = 'inline';
         rglinst.getObj(sid).par3d = p3d;
-        rglinst.drawScene();        
-  }
+        rglinst.drawScene(); 
+    }     
+ 
 );
 
 

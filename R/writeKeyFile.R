@@ -1,3 +1,5 @@
+# $Id$
+#
 writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
