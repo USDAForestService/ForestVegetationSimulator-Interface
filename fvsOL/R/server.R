@@ -5862,7 +5862,6 @@ cat ("cmd=",cmd,"\n")
           
       for (tab in tbln) 
       {
-
         progress$set(message = paste0("Export table ",tab), value = 3)
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
         cmd = paste0 (findpgm()," -I sqlite ",fname," ",tab," >> sqlite3.import")
@@ -7545,7 +7544,7 @@ cat(" input$impFVS_DataDlgBtn=",input$impFVS_DataDlgBtn,"\n")
 cat(" input$impSpatialData=",input$impSpatialData,"\n")
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "impSpatialDataDlg",
-          message = "This action overwrites your current SpatialData")) 
+          message = "This action adds this SpatialData your current SpatialData")) 
      }                                                                    
   })
   observe({  
@@ -7555,9 +7554,18 @@ cat(" input$impSpatialDataDlgBtn=",input$impSpatialDataDlgBtn,"\n")
       needfile = file.path(attr(globals$importItems,"dir"),"SpatialData.RData")
       if (length(needfile) && nchar(needfile) && file.exists(needfile)) 
       {
-        file.copy(from=needfile,to="SpatialData.RData",overwrite=TRUE) 
-        output$impSpatialDataMsg = renderText("SpatialData.RDatahas been imported.")
-      } else output$impSpatialDataMsg = renderText("Source SpatialData.RData was NOT found.")
+        spatdat = "SpatialData.RData"
+        if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && file.exists(spatdat))
+        {
+          load(spatdat,envir=dbGlb)
+          if (class(dbGlb$SpatialData)=="SpatialPolygonsDataFrame") 
+            dbGlb$SpatialData=list(d=dbGlb$SpatialData)
+          load(needfile) #loads into the current frame (local environment).
+          dbGlb$SpatialData <- append(dbGlb$SpatialData,SpatialData)
+          save(SpatialData,envir=dbGlb,file="SpatialData.RData")
+        } else file.copy(from=needfile,to="SpatialData.RData",overwrite=TRUE) 
+        output$impSpatialDataMsg = renderText("SpatialData.RData has been added to this project's spatial data.")
+      } else output$impSpatialDataMsg = renderText("Source SpatialData.RData was not found.")
     })  
   })  
  
