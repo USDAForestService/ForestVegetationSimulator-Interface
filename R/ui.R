@@ -218,7 +218,6 @@ FVSOnlineUI <- fixedPage(
                     value=as.character(detectCores()), min="1", 
                     max=as.character(detectCores()), 
                     step="1",size=10,labelstyle="font-weight:normal;"),h5(),
-                HTML("Note: SVS imges are not yet fully supported when running in background."),h5(),
                 actionButton("saveandrun","Save and Run"),
                 h6(),
                 downloadButton("dlFVSRunout","FVS Main Output File"),
@@ -501,7 +500,7 @@ FVSOnlineUI <- fixedPage(
                 actionButton(inputId="svsCopy1","Snapshot to clipboard"))),
             selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-# needed for the quick images.
+# needed for the quick side view and top view images, not yet implemented
 #            fixedRow(
 #              column(width=6,offset=0,HTML('<img id="SVSImg1Top"  alt="Top View"  width="200" height="200"</img>')),
 #              column(width=6,offset=0,HTML('<img id="SVSImg1Side" alt="Side View" width="200" height="200"</img>'))),
@@ -521,7 +520,7 @@ FVSOnlineUI <- fixedPage(
                 actionButton(inputId="svsCopy2","Snapshot to clipboard"))),
             selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-# needed for the quick images.
+# needed for the quick side view and top view images, not yet implemented
 #            fixedRow(
 #              column(width=6,offset=0,HTML('<img id="SVSImg2Top"  alt="Top View"  width="200" height="200"</img>')),
 #              column(width=6,offset=0,HTML('<img id="SVSImg2Side" alt="Side View" width="200" height="200"</img>'))),
