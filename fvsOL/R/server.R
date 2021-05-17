@@ -4537,7 +4537,7 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg2") 
     }
   )                    
-  svsImage <- reactiveVal("")
+
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
   {
@@ -4749,18 +4749,10 @@ cat("Residual length of svs=",length(svs),"\n")
     displayTrees(drawnTrees)
     progress$set(message = "Sending image to browser",value = length(svs)+2) 
     output[[id]] <- renderRglwidget(rglwidget(scene3d()))
-    progress$close()
-    svsImage(id)  # will be used in the quick images logic (maybe)
-  }
-  observe({
-cat ("svsImage()=",svsImage(),"\n")
-    if (svsImage()=="") return()
-# come back to this for the quick images, need to put them in the ui.R as well.
-#    Sys.sleep(.1)
 #    session$sendCustomMessage(type="makeTopSideImages", 
-#      c(svsImage(),paste0(svsImage(),"Top"),paste0(svsImage(),"Side")))
-    svsImage("")
-  })
+#      c(id,paste0(id,"Top"),paste0(id,"Side")))
+    progress$close()
+  }
 
   observe({
     if (length(input$SVSImgList1))
