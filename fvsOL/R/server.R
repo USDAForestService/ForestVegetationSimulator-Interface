@@ -4763,7 +4763,6 @@ cat("Residual length of svs=",length(svs),"\n")
 cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
       fn=input$SVSImgList1
       if (!file.exists(fn)) return()
-      idq = paste0(substring(id,1,3),"q",substring(id,4,7),"Top")
       # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
       output$SVSqImg1Top  <- renderUI(HTML('<img id="SVSImg1Top"  alt="Top View"   width="200" height="200"</img>'))
       output$SVSqImg1Side <- renderUI(HTML('<img id="SVSImg1Side" alt="Side View"  width="200" height="200"</img>'))
