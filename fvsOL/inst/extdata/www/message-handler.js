@@ -116,34 +116,44 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
     const top  = document.getElementById(topid);  
     const ssid = document.getElementById(sidid); 
     var rglinst = elt.rglinstance;
-    if (rglinst == null) return;
- 
-        var sid = rglinst.scene.rootSubscene;
-        if (sid == null) return;
-        var p3d = rglinst.getObj(sid).par3d;
-        if (p3d == null) return;
-        var cpy3d = p3d;
-        cpy3d$zoom = 4;
-        rglinst.getObj(sid).par3d = cpy3d;
-        rglinst.drawScene(); 
-        var imageData = elt.firstChild.toDataURL('image/png', 1.0);
-        top.style.display = 'none';
-        top.setAttribute("src", imageData);
-        top.style.display = 'inline';       
-        cpy3d$zoom = .5;
-        rglinst.getObj(sid).par3d = cpy3d;
-        rglinst.drawScene(); 
-        imageData = elt.firstChild.toDataURL('image/png', 1.0);
-        ssid.style.display = 'none';
-        ssid.setAttribute("src", imageData);
-        ssid.style.display = 'inline';
-        rglinst.getObj(sid).par3d = p3d;
-        rglinst.drawScene(); 
-    }     
- 
+    if (rglinst == null) return; 
+    var sid = rglinst.scene.rootSubscene;
+    if (sid == null) return;
+    let p3d = rglinst.getObj(sid).par3d;
+    if (p3d == null) return;
+    let cpy3d = JSON.parse(JSON.stringify(p3d));
+    cpy3d.userMatrix.m11=1;
+    cpy3d.userMatrix.m12=0;                                                                                               
+    cpy3d.userMatrix.m13=0;
+    cpy3d.userMatrix.m14=0;
+    cpy3d.userMatrix.m21=0;                                              
+    cpy3d.userMatrix.m22=0;
+    cpy3d.userMatrix.m23=1;                                                                                               
+    cpy3d.userMatrix.m24=0;                                                                                              
+    cpy3d.userMatrix.m31=0;                                              
+    cpy3d.userMatrix.m32=1;
+    cpy3d.userMatrix.m33=0;                                             
+    cpy3d.userMatrix.m34=0;                                             
+    cpy3d.userMatrix.m41=0;
+    cpy3d.userMatrix.m42=0;
+    cpy3d.userMatrix.m43=0;
+    cpy3d.userMatrix.m44=1;
+    rglinst.getObj(sid).par3d = cpy3d;
+    rglinst.drawScene();                                                   
+    var imageData = elt.firstChild.toDataURL('image/png', 1.0);            
+    top.setAttribute("src", imageData);                                     
+    cpy3d.userMatrix.m22=1;
+    cpy3d.userMatrix.m23=0;
+    cpy3d.userMatrix.m32=0;                                             
+    cpy3d.userMatrix.m33=1;                                                    
+    rglinst.getObj(sid).par3d = cpy3d;
+    rglinst.drawScene();                                               
+    imageData = elt.firstChild.toDataURL('image/png', 1.0);
+    ssid.setAttribute("src", imageData);
+    rglinst.getObj(sid).par3d = p3d;
+    rglinst.drawScene(); 
+  } 
 );
-
-
 
 
 })();

@@ -500,10 +500,9 @@ FVSOnlineUI <- fixedPage(
                 actionButton(inputId="svsCopy1","Snapshot to clipboard"))),
             selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-# needed for the quick side view and top view images, not yet implemented
-#            fixedRow(
-#              column(width=6,offset=0,HTML('<img id="SVSImg1Top"  alt="Top View"  width="200" height="200"</img>')),
-#              column(width=6,offset=0,HTML('<img id="SVSImg1Side" alt="Side View" width="200" height="200"</img>'))),
+            fixedRow(
+              column(width=6,offset=0,uiOutput("SVSqImg1Top")),
+              column(width=6,offset=0,uiOutput("SVSqImg1Side"))),
             rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),                                        
         column(width=6,offset=0,
             fixedRow(
@@ -520,10 +519,9 @@ FVSOnlineUI <- fixedPage(
                 actionButton(inputId="svsCopy2","Snapshot to clipboard"))),
             selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-# needed for the quick side view and top view images, not yet implemented
-#            fixedRow(
-#              column(width=6,offset=0,HTML('<img id="SVSImg2Top"  alt="Top View"  width="200" height="200"</img>')),
-#              column(width=6,offset=0,HTML('<img id="SVSImg2Side" alt="Side View" width="200" height="200"</img>'))),
+            fixedRow(
+              column(width=6,offset=0,uiOutput("SVSqImg2Top")),
+              column(width=6,offset=0,uiOutput("SVSqImg2Side"))),
             rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
       )), #END SVS3d
 
