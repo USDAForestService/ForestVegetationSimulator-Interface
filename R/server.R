@@ -4508,9 +4508,9 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
       choices = mkSVSchoices(input$SVSRunList1)
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
-#      output$SVSImg1Top  = renderUI(NULL)
-#      output$SVSImg1Side = renderUI(NULL)
-      output$SVSImg1     = renderRglwidget(NULL)
+      output$SVSqImg1Top  = renderUI(NULL)
+      output$SVSqImg1Side = renderUI(NULL)
+      output$SVSImg1      = renderRglwidget(NULL)
     }
   })
   observe({
@@ -4520,9 +4520,9 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       choices = mkSVSchoices(input$SVSRunList2)
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
-#      output$SVSImg2Top  = renderUI(NULL)
-#      output$SVSImg2Side = renderUI(NULL)
-      output$SVSImg2     = renderRglwidget(NULL)
+      output$SVSqImg2Top  = renderUI(NULL)
+      output$SVSqImg2Side = renderUI(NULL)
+      output$SVSImg2      = renderRglwidget(NULL)
     }
   })
   observe(  
@@ -4748,9 +4748,12 @@ cat("Residual length of svs=",length(svs),"\n")
     progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
     progress$set(message = "Sending image to browser",value = length(svs)+2) 
-    output[[id]] <- renderRglwidget(rglwidget(scene3d()))
-#    session$sendCustomMessage(type="makeTopSideImages", 
-#      c(id,paste0(id,"Top"),paste0(id,"Side")))
+    output[[id]] <- renderRglwidget(rglwidget(scene3d())) 
+    # this code forces the scene to be loaded prior to calling the custom message
+    # and that is critical to getting all this to work.
+    callBack <- function() session$sendCustomMessage(type="makeTopSideImages", 
+                           c(id,paste0(id,"Top"),paste0(id,"Side")))      
+    session$onFlushed(callBack, once = TRUE)
     progress$close()
   }
 
@@ -4760,6 +4763,10 @@ cat("Residual length of svs=",length(svs),"\n")
 cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
       fn=input$SVSImgList1
       if (!file.exists(fn)) return()
+      idq = paste0(substring(id,1,3),"q",substring(id,4,7),"Top")
+      # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
+      output$SVSqImg1Top  <- renderUI(HTML('<img id="SVSImg1Top"  alt="Top View"   width="200" height="200"</img>'))
+      output$SVSqImg1Side <- renderUI(HTML('<img id="SVSImg1Side" alt="Side View"  width="200" height="200"</img>'))
       renderSVSImage('SVSImg1',fn,
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
@@ -4772,6 +4779,9 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
 cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
       fn=input$SVSImgList2
       if (!file.exists(fn)) return()
+      # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
+      output$SVSqImg2Top  <- renderUI(HTML('<img id="SVSImg2Top"  alt="Top View"   width="200" height="200"</img>'))
+      output$SVSqImg2Side <- renderUI(HTML('<img id="SVSImg2Side" alt="Side View"  width="200" height="200"</img>'))
       renderSVSImage('SVSImg2',fn,
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
