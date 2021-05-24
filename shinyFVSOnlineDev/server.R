@@ -2900,7 +2900,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
         }
       }
       cmp$kwdName = paste0("Freeform: ",cmp$kwdName)
-      cmp$title = paste0("Freeform: ",cmp$title)
+      cmp$title = if(!length(grep("Freeform:",cmp$title))) paste0("Freeform: ",cmp$title) else cmp$title
       cmp$reopn = character(0)
     }
     cmp
