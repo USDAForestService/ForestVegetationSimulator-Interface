@@ -22,9 +22,9 @@ FVSOnlineUI <- fixedPage(
   tags$head(tags$script(HTML(
       'Shiny.addCustomMessageHandler("jsCode",function(message) {eval(message.code);});'))),
   fixedRow(column(width=4,offset=0,
-      HTML(paste0(
-             '<h4><img src="FVSlogo.png" align="middle"</img>',
-             '&nbsp;Forest Vegetation Simulator</h4>'))),
+      HTML(paste0('<h4 style="margin-top: 1px; margin-bottom: 0px;"><img src="FVSlogo.png"</img>',
+                  '&nbsp;Forest Vegetation Simulator</h4><br>',
+                  '<img style="margin-top: -18px; margin-bottom: 2px;" src="displayLogo.png" </img>'))),
     column(width=4,offset=.5,uiOutput("projectTitle")),
     column(width=2,
       tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 

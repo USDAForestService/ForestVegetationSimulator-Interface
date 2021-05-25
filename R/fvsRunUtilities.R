@@ -1126,10 +1126,12 @@ cat ("qry=",qry,"\n")
 #' @param runuuid a character string with the runUUID that will be merged into 
 #'   the connection in argument dbcon.
 #' @param dbcon the database connection to FVSOut.db
+#' @param removeOldOutput if TRUE (default) any previous output for this run
+#'   is removed prior to new output being added.
 #' @param verbose if TRUE (default), progress output is written.
 #' @return a character string with an informative message as to what was done.
 #' @export 
-addNewRun2DB <- function(runuuid,dbcon,verbose=TRUE)
+addNewRun2DB <- function(runuuid,dbcon,removeOldOutput=TRUE,verbose=TRUE)
 {
   # dbcon is the connection to the existing output database
   # runuuid is the uuid of the run that will be merged to the output database
@@ -1162,7 +1164,7 @@ addNewRun2DB <- function(runuuid,dbcon,verbose=TRUE)
   } 
   dbExecute(dbcon,"drop table if exists dummy")
 
-  deleteRelatedDBRows(runuuid,dbcon)   
+  if (removeOldOutput) deleteRelatedDBRows(runuuid,dbcon)   
 
   mkDBIndices(dbcon)
   newrun = paste0("newrun",gsub("-","",runuuid),Sys.getpid())
