@@ -840,7 +840,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   {
     keyFileName=paste0(runUUID,".key")
     cat("keyFileName=",keyFileName," is being created.")
-    extnMakeKeyfile(runUUID=runUUID,fvsBin="FVSBin",
+    extnMakeKeyfile(runUUID=runUUID,fvsBin=fvsBin,
                     keyFileName=keyFileName,verbose=verbose)
   }
   # process .key file into ncpu sets.
@@ -851,14 +851,15 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   ncpu = min(length(pkwds),ncpu) 
   sets=paste0("-set",1:ncpu)
   asign = suppressWarnings(split(1:nstnds,sets))
+  # adjust location of the input database in the keyword file.  
+  indb=grep ("FVS_Data.db$",kwds)
+  if (length(indb)) kwds[indb]=paste0("../",kwds[indb])
   clindx=1
   for (set in names(asign))
   {
     rundir=paste0(runUUID,set)
     if (dir.exists(rundir)) unlink(rundir,force=TRUE,recursive=TRUE)
     dir.create(rundir)
-    file.symlink(from=file.path("..",fvsBin),to=file.path(rundir,fvsBin))
-    file.symlink(from="../FVS_Data.db",to=file.path(rundir,"FVS_Data.db"))
     opnout = file(file.path(rundir,keyFileName),open="wt")
     cat(file=opnout,kwds[1:3],sep="\n")
     for (i in asign[[set]])
@@ -868,9 +869,9 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     }
     cat(file=opnout,"\nStop\n",append=TRUE)
     close(opnout)
-#   make the run script
+    # make the run script
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
-    cat ("library(rFVS)\n",file=opnout)
+    cat ("library(fvsOL)\n",file=opnout)
     cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)    
     if (fvsRun$runScript != "fvsRun")
     {   

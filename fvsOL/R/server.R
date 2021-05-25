@@ -7664,7 +7664,7 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       setwd(fn)
       if (dirname(fvsBin) == ".")  #fvsBin points to an entry in the current dir.
       {
-        if (nchar(fbin)) file.symlink(fbin, "FVSbin") else 
+        if (nchar(fbin) && .Platform$OS.type=="unix") file.symlink(fbin, "FVSbin") else 
           file.copy(paste0(normalizePath(curdir),"/FVSbin"), getwd(), recursive = TRUE,
             copy.mode = TRUE, copy.date = TRUE)
       }
