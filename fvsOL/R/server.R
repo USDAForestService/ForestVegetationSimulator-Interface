@@ -3824,6 +3824,24 @@ cat("Nulling uiRunPlot at Save and Run\n")
                           choices=getBkgRunList(),selected=0)
         progress$set(message = "Run preparation: ", 
           detail = "Write .key file and prepare program", value = 3)
+cat ("runwaitback=",input$runwaitback,"\n")
+          
+        if (input$runwaitback!="Wait for run (1 CPU)")
+        {
+          ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
+               as.numeric(input$bkgNcpu))
+          if (is.na(ncpu)) ncpu=detectCores()
+          progress$set(message = "Run preparation: ", 
+             detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
+          updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
+          extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
+                          ncpu=ncpu)
+          refreshTimmer <- reactiveTimer(500,session=session)
+          progress$close()
+          output$contChange <- renderUI("Run")    
+          return()
+        }         
+          
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
@@ -3853,21 +3871,6 @@ cat ("keyword file was not created.\n")
                       detail = "", value = 3) 
           Sys.sleep(5)
           progress$close()     
-          return()
-        }
-cat ("runwaitback=",input$runwaitback,"\n")
-        if (input$runwaitback!="Wait for run (1 CPU)")
-        {
-          ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
-               as.numeric(input$bkgNcpu))
-          if (is.na(ncpu)) ncpu=detectCores()
-          updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
-          extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
-                          ncpu=ncpu)
-          Sys.sleep(.5)
-          updateSelectInput(session=session, inputId="bkgRuns", 
-                          choices=getBkgRunList(),selected=0)
-          progress$close()
           return()
         }
         fvschild = makePSOCKcluster(1)
@@ -4033,10 +4036,17 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
   })
   
 ## bkgRefresh
+  refreshTimmer <- reactiveTimer(1000,session=session)
   observe({  
-    if (input$bkgRefresh == 0) return()
-    updateSelectInput(session=session, inputId="bkgRuns", 
-                      choices=getBkgRunList(),selected=0)
+    if (input$bkgRefresh > 0 || refreshTimmer()) 
+    {
+      
+      choices=getBkgRunList()
+      refreshTimmer <- if (length(choices)==0) reactiveTimer(Inf,session=session) else 
+                                               reactiveTimer(10000,session=session)        
+      updateSelectInput(session=session, inputId="bkgRuns", 
+                        choices=getBkgRunList(),selected=0)
+    }
   })
   
   ## Download handlers
