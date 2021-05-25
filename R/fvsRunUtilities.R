@@ -391,12 +391,12 @@ resetActiveFVS <- function(globals)
   avalFVS <- unique(sub(.Platform$dynlib.ext,"",avalFVS))
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
-  vars = c("ak: Southeast AK - Coastal BC"="ak",
+  vars = c("ak: Alaska"="ak",
            "bm: Blue Mountains,Oregon"="bm",
            "ca: Inland CA,Southern Cascades"="ca",
            "ci: Central ID"="ci",
            "cr: Central Rockies GENGYM"="cr",
-           "sw: GENGYM: Southwest Mixed Conifers"="sw",
+           "sm: GENGYM: Southwest Mixed Conifers"="sm",
            "sp: GENGYM: Southwest Ponderosa Pine"="sp",
            "bp: GENGYM: Black Hills Ponderosa Pine"="bp",
            "sf: GENGYM: Spruce-fir"="sf",
@@ -661,7 +661,7 @@ cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
               "FALSE" = 0, 
               "TRUE"  = 1,
               as.numeric(input[fld]))
-        fld = if (is.na(inp)) "*error*" else 
+        fld = if (is.na(inp)) " " else 
           if (inp<=0) trns[1] else if (inp>length(trns)) trns[length(trns)] else 
              trns[inp+1]
         out = if (nchar(fldw) > 0) paste0(out,sprintf(fldw,fld)) else

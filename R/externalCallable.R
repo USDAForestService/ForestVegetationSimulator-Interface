@@ -932,11 +932,12 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     }
     dbDisconnect(dbcon)\n',
   file=rscript,append=TRUE) 
-  cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)  
+  cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)
   rsloc = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
   cmd = paste0(rsloc," --no-restore --no-save --no-init-file ",rscript,
                        " > ",rscript,".Rout")
   if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
+  if (verbose) cat("rsloc=",rsloc," rscript=",rscript," wait=",wait,"\ncmd=",cmd,"\n")
   system (cmd,wait=wait) 
 }  
   
