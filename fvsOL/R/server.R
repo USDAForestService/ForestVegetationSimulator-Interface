@@ -37,6 +37,8 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
     system.file("srcjs",package="colourpicker"))
   addResourcePath("FVSlogo.png", 
     system.file("extdata","www/FVSlogo.png",package="fvsOL"))
+  addResourcePath("displayLogo.png", 
+    system.file("extdata","www/displayLogo.png",package="fvsOL"))
   addResourcePath("message-handler.js", 
     system.file("extdata","www/message-handler.js",package="fvsOL"))
   if (!dir.exists ("www")) dir.create("www")

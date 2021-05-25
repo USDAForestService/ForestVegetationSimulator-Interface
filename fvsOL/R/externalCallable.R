@@ -892,10 +892,6 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     runCmd = if (fvsRun$runScript == "fvsRun") "fvsRun()" else
              paste0(fvsRun$runScript,"(uiCustomRunOps)")
     cat(runCmd,"\n",file=opnout)
-    cat('dbcon=dbConnect(SQLite(), dbname = "../FVSOut.db")\n',sep="",file=opnout)
-    cat('addNewRun2DB("',runUUID,'", dbcon)\n',sep="",file=opnout)
-    cat('dbDisconnect(dbcon)\n',sep="",file=opnout)
-    cat('unlink(paste0("',runUUID,'",".db"))\n',sep="",file=opnout)
     cat('unlink(paste0("',runUUID,'","_genrpt.txt"))\n',sep="",file=opnout)
     clindx=clindx+1
     close(opnout)
@@ -918,15 +914,23 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   cat (paste0("runUUID=",paste0(deparse(runUUID),collapse=""),"\n"),sep="",append=TRUE,file=rscript)
   cat ('
   out=paste0(runUUID,".out")
+  first=TRUE
+  dbcon=dbConnect(SQLite(), dbname = "FVSOut.db")
   for (rundir in rundirs)
+  {
+    if (dir.exists(rundir)) 
     {
-      if (dir.exists(rundir)) 
-      {
-        frm=file.path(rundir,paste0(runUUID,".out"))
-        if (file.exists(frm)) 
-          if (file.exists(out)) file.append(out,frm) else file.copy(from=frm,to=out)
-      }
-    }\n',
+      frm=file.path(rundir,paste0(runUUID,".out"))
+      if (file.exists(frm)) 
+        if (file.exists(out)) file.append(out,frm) else file.copy(from=frm,to=out)
+      setwd(rundir)
+      addNewRun2DB(runUUID, dbcon, removeOldOutput=first, verbose=TRUE)
+      first=FALSE
+      unlink(paste0(runUUID,".db"))
+      setwd("..")
+    }
+  }
+  dbDisconnect(dbcon)\n',
   file=rscript,append=TRUE) 
   cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)  
   rsloc = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
