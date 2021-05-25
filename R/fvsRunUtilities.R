@@ -1163,7 +1163,7 @@ addNewRun2DB <- function(runuuid,dbcon,removeOldOutput=TRUE,verbose=TRUE)
     Sys.sleep (10)
   } 
   dbExecute(dbcon,"drop table if exists dummy")
-
+  if (verbose) cat ("removeOldOutput=",removeOldOutput,"\n")
   if (removeOldOutput) deleteRelatedDBRows(runuuid,dbcon)   
 
   mkDBIndices(dbcon)
