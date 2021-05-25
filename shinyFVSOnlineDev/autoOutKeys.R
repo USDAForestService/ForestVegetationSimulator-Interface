@@ -8,7 +8,7 @@ DSNOut
 FVSOut.db
 * FVS_Summary, FVS_Compute, Mistletoe
 Summary        2
-Compute            0         1
+Computdb          0         1
 MisRpts        2
 End
 "
@@ -23,9 +23,11 @@ autoTreelists="
 * FVS_TreeList, FVS_Cutlist 
 Treelist       0                   0
 Cutlist        0                   0
+Atrtlist       0                   0
 Database
-Treelist       2
-Cutlist        2
+TreeLiDB       2
+CutLiDB        2
+Atrtlidb       2
 End
 "
 
@@ -39,8 +41,8 @@ FuelOut         0
 FuelRept
 End
 Database
-CarbRpts        2
-FuelRept        2
+CarbReDB        2
+FuelReDB        2
 FuelsOut        2
 End
 " else NULL
@@ -55,8 +57,8 @@ FuelOut         0
 FuelRept
 End
 Database
-CarbRpts        1
-FuelRept        1
+CarbReDB        1
+FuelReDB        1
 FuelsOut        1
 End
 " else NULL
@@ -69,9 +71,9 @@ BurnRept        0
 PotFire         0
 End
 Database
-MortRept        2        2
+MortReDB        2        2
 BurnRept        2
-PotFire         2
+PotFirDB        2
 End
 " else NULL
 
@@ -83,9 +85,9 @@ BurnRept        0
 PotFire         0
 End
 Database
-MortRept        1        2
+MortReDB        1        2
 BurnRept        1
-PotFire         1
+PotFirDB       1
 End
 " else NULL
 
@@ -97,9 +99,9 @@ DWDVlout
 DWDCvOut
 End
 Database
-SnagSum        2
-DWDVlout       2
-DWDCvOut       2
+SnagSuDB       2
+DWDVlDB        2
+DWDCvDB        2
 End
 " else NULL
 
@@ -111,9 +113,9 @@ DWDVlout
 DWDCvOut
 End
 Database
-SnagSum        1
-DWDVlout       1
-DWDCvOut       1
+SnagSuDB       1
+DWDVlDB        1
+DWDCvDB        1
 End
 " else NULL
 
@@ -135,7 +137,7 @@ End
 
 autoCalibStats="
 Database
-CalbStat
+CalbStDB
 End
 "
 autoInvStats="
@@ -152,7 +154,7 @@ End
 "
 autoClimate = if ("climate" %in% extns) "
 Database
-ClimRept
+ClimReDB
 End
 " else NULL
 
@@ -167,7 +169,7 @@ FMIn
 SnagOut
 End
 Database
-SnagOut        2         2
+SnagOuDB      2         2
 End
 " else NULL
 autoSnagDet.withText <- if ("fire" %in% extns) "
@@ -175,7 +177,7 @@ FMIn
 SnagOut
 End
 Database
-SnagOut        1         2
+SnagOuDB      1         2
 End
 " else NULL
 
@@ -206,12 +208,12 @@ End
 autoStrClass <- "
 StrClass
 Database
-StrClass         2
+StrClsDB         2
 End
 "
 autoStrClass.withText <- "
 StrClass
 Database
-StrClass         1
+StrClsDB         1
 End
 "

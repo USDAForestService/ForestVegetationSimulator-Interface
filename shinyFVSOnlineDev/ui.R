@@ -234,7 +234,7 @@ shinyUI(fixedPage(
                           myInlineNumericInput("svsNFire","Images per fire:", value="4", min="1", max="8", 
                                                step="1",size=15,labelstyle="font-weight:normal;"))),
                     checkboxGroupInput("autoOut",NULL,choices=list(
-                        "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                        "Tree lists (FVS_Treelist, FVS_CutList, FVS_ATRTList, (StdStk-stand and stock))"="autoTreelists",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
                         "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
