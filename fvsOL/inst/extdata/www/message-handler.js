@@ -20,7 +20,7 @@ Shiny.addCustomMessageHandler("refocus",
 
 
 // This gets the cursor postion from eltid
-Shiny.addCustomMessageHandler("getStart",
+Shiny.addCustomMessageHandler("getStartEnd",
   function(eltid) 
   {
     if (document.getElementById(eltid)) 

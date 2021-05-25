@@ -153,7 +153,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
                            "SALVAGE","SALVSP","SIMFIRE","SNAGBRK","SNAGCLAS","SNAGDCAY","SNAGFALL",
                            "SNAGINIT","SNAGOUT","SNAGPBN","SNAGPSFT","SNAGSUM","SOILHEAT","STATFUEL",
                            "SVIMAGES")
-          dbkwds <- list("ATRTLIST","BURNREPT","CARBRPTS","COMPUTE","CUTLIST","DWDCVOUT","DWDVLOUT",
+          dbkwds <- list("ATRTLIDB","BURNREPT","CARBRPTS","COMPUTDB","CUTLIST","DWDCVOUT","DWDVLOUT",
                          "ECONRPTS","FUELREPT","FUELSOFT","MISRPTS","MORTREPT","POTFIRE","RDBBMORT",
                          "RDDETAIL","RDSUM","SNAGOUT","SNAGSUM","STRCLASS","SUMMARY","TREELIST",
                          "STANDSQL","TREESQL","SQLIN","SQLOUT","DSNIN","DSNOUT","INVSTATS","REGREPTS")
@@ -774,7 +774,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
         } 
-        naughty <- c("PlantNatural","Econ_reports")
+        naughty <- "Econ_reports"
         if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
         { 
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
@@ -846,8 +846,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base" && 
-        !length(grep("PlantNatural",cmp$kwdName))) cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]))
     {

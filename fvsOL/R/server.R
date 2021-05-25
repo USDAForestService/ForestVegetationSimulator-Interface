@@ -1394,7 +1394,7 @@ cat("filterRows and/or pivot\n")
     if (nrow(dat) > tableDisplayLimit) 
     {
       msg=paste0("Table display limit exceeded. ",
-        tableDisplayLimit," of ",nrow(dat)," displayed. Use .o. table",
+        tableDisplayLimit," of ",nrow(dat)," displayed. Use Download table",
         " to download all rows.")
       output$tableLimitMsg<-renderText(msg)
       dat = dat[1:tableDisplayLimit,,drop=FALSE] 
@@ -2201,6 +2201,20 @@ cat ("in reloadStandSelection\n")
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
     } else {
+      if(tolower(input$inVars)=="cr"){# check for 5 GENGYM submodel variant codes in the input data
+        test <- try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct variant from ',input$inTabs)))
+        test=sort(unique(tolower(scan(text=gsub(","," ",test[,1]),what="character",
+                                      strip.white=TRUE,sep=" ",quiet=TRUE))))
+        CRsubModels <- c("sm","sp","bp","sf","lp")
+        if(any(!is.na(match(test,CRsubModels)))){
+          CRsubModels <- CRsubModels[na.omit(match(test,CRsubModels))]
+          for(i in 1:length(CRsubModels)){
+            subgrps <- try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups from ",input$inTabs,
+                                                          ' where lower(variant) like "%',tolower(CRsubModels[i]),'%"')))
+            if(length(subgrps))grps <- rbind(grps,subgrps)
+          }
+        }
+      }
       dd = apply(grps,1,function (x)
         { 
           gr=unlist(strsplit(x[2]," "))
@@ -2400,8 +2414,6 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                       value=globals$fvsRun$title) 
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
-      updateSelectInput(session=session, inputId="compTabSet", 
-                        selected="Management")
       updateSelectInput(session=session, inputId="compTabSet", 
                         selected="Management") 
       updateSelectInput(session=session, inputId="runSel", 
@@ -3402,7 +3414,8 @@ cat ("mkCondKeyWrd, kwPname=",kwPname,"\n")
   buildKeywords <- function(oReopn,pkeys,kwPname,globals)
   {
 cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
-    if (length(pkeys) == 0 && nchar(kwPname)) 
+    if (length(pkeys) == 0 && nchar(kwPname) || (length(globals$currentEditCmp$kwds) &&
+        length(pkeys) > 0 && exists(paste0(kwPname,".mkKeyWrd")))) 
     {
       # try to find a function that can make the keywords
       fn = paste0(kwPname,".mkKeyWrd")
@@ -3428,7 +3441,10 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         if (is.null(fps)) break
         instr =  if (length(globals$currentEditCmp$atag) && 
                             globals$currentEditCmp$atag=="c") 
-                input[[paste0("cnd.",pkey)]] else input[[pkey]]            
+                input[[paste0("cnd.",pkey)]] else input[[pkey]]
+        if(is.null(instr))instr=" "
+        if(instr=="blank")instr=" "
+        if(length(grep("noInput",fps)))instr=" "
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
@@ -4039,8 +4055,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
   refreshTimmer <- reactiveTimer(1000,session=session)
   observe({  
     if (input$bkgRefresh > 0 || refreshTimmer()) 
-    {
-      
+    {      
       choices=getBkgRunList()
       refreshTimmer <- if (length(choices)==0) reactiveTimer(Inf,session=session) else 
                                                reactiveTimer(10000,session=session)        
@@ -4924,7 +4939,9 @@ cat ("1 matchVar=",matchVar,"\n")
         # for the spatial data. If it is not null, then there is only one item, so use it.
         mapList = if (is.null(matchVar)) dbGlb$SpatialData else list(d=dbGlb$SpatialData)
         polys = NULL
+        pts = NULL
         polyLbs = NULL
+        ptsLbs  = NULL
         for (map in mapList)
         {
           if (!length(uidsToGet)) break 
