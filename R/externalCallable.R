@@ -908,7 +908,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   cat('clusterEvalQ(fvsprocs,library(fvsOL))\n',sep="",file=rscript,append=TRUE)
   for (i in 1:ncpu) cat('clusterEvalQ(fvsprocs[',i,'],setwd("',paste0(runUUID,names(asign)[i]),'"))\n',
         sep="",file=rscript,append=TRUE)     
-  cat ('clusterEvalQ(fvsprocs,source("',runUUID,'.Rscript"))\n',sep="",file=rscript,append=TRUE)
+  cat ('try(clusterEvalQ(fvsprocs,source("',runUUID,'.Rscript")))\n',sep="",file=rscript,append=TRUE)
   cat ('stopCluster(fvsprocs)\n',file=rscript,append=TRUE) 
   rdirs=paste0(runUUID,names(asign))
   cat (paste0("rundirs=",paste0(deparse(rdirs),collapse=""),"\n"),sep="",append=TRUE,file=rscript)

@@ -1752,13 +1752,11 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     }
     chk = if ("RunTitle" %in% c(input$xaxis, vf, hf, pb, input$yaxis)) 
           c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
-    if (input$plotType != "box") for (v in chk) 
+    if ( ! input$plotType %in% c("scat","box")) for (v in chk) 
     { 
-      if (input$plotType %in% c("line","scat","DMD","StkCht") && v=="Year") next
+      if (input$plotType %in% c("line","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
-          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))
-          
-          
+          ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))          
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
                                " therefore must be an axis, plot-by code, or a facet.")))
     }
@@ -3854,7 +3852,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
                           ncpu=ncpu)
           refreshTimmer <- reactiveTimer(500,session=session)
           progress$close()
-          output$contChange <- renderUI("Run")    
+          output$contChange <- renderUI("Run")   
           return()
         }         
           
@@ -3868,15 +3866,15 @@ cat ("Run data query returned no data to run.\n")
           progress$set(message = "Error: Keyword file was not created. Try re-importing
                        the inventory database associated with this run.",
                       detail = msg, value = 3) 
-          Sys.sleep(10)
-          progress$close()     
+          Sys.sleep(5)
+          progress$close()
           return()  
           } else {
 cat ("keyword file was not created.\n")
           progress$set(message = "Error: Keyword file was not created.",
                       detail = msg, value = 3) 
           Sys.sleep(5)
-          progress$close()     
+          progress$close()
           return()
           }
         }
@@ -3886,7 +3884,7 @@ cat ("keyword file was not created.\n")
           progress$set(message = paste0("Error: ",globals$fvsBin," does not exist."),
                       detail = "", value = 3) 
           Sys.sleep(5)
-          progress$close()     
+          progress$close()
           return()
         }
         fvschild = makePSOCKcluster(1)
@@ -4052,13 +4050,13 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
   })
   
 ## bkgRefresh
-  refreshTimmer <- reactiveTimer(1000,session=session)
+  refreshTimmer <- reactiveTimer(2000,session=session)
   observe({  
     if (input$bkgRefresh > 0 || refreshTimmer()) 
     {      
       choices=getBkgRunList()
       refreshTimmer <- if (length(choices)==0) reactiveTimer(Inf,session=session) else 
-                                               reactiveTimer(10000,session=session)        
+                                               reactiveTimer(2000,session=session)        
       updateSelectInput(session=session, inputId="bkgRuns", 
                         choices=getBkgRunList(),selected=0)
     }
