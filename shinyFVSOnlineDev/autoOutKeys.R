@@ -72,7 +72,7 @@ PotFire         0
 End
 Database
 MortReDB        2        2
-BurnRept        2
+BurnReDB        2
 PotFirDB        2
 End
 " else NULL

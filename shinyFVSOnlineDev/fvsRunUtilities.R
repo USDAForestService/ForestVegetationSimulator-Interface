@@ -454,7 +454,7 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
                            "SALVAGE","SALVSP","SIMFIRE","SNAGBRK","SNAGCLAS","SNAGDCAY","SNAGFALL",
                            "SNAGINIT","SNAGOUT","SNAGPBN","SNAGPSFT","SNAGSUM","SOILHEAT","STATFUEL",
                            "SVIMAGES")
-          dbkwds <- list("ATRTLIDB","BURNREPT","CALBSTDB","CARBREDB","CLIMREDB","COMPUTDB",
+          dbkwds <- list("ATRTLIDB","BURNREDB","CALBSTDB","CARBREDB","CLIMREDB","COMPUTDB",
                          "CUTLIDB","DWDCVDB","DWDVLDB","ECONRPTS","FUELREDB","FUELSOFT","MISRPTS",
                          "MORTREDB","POTFIRDB","RDBBMORT","RDDETAIL","RDSUM","SNAGOUDB","SNAGSUDB","STRCLSDB",
                          "SUMMARY","TREELIDB","STANDSQL","TREESQL","SQLIN","SQLOUT","DSNIN","DSNOUT",
