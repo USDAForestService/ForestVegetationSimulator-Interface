@@ -4049,16 +4049,17 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
     })
   })
   
-## bkgRefresh
+## refreshTimmer
   refreshTimmer <- reactiveTimer(2000,session=session)
   observe({  
-    if (input$bkgRefresh > 0 || refreshTimmer()) 
-    {      
+    if (refreshTimmer()) 
+    { 
+      # 2000 millisceconds = 2 seconds
       choices=getBkgRunList()
       refreshTimmer <- if (length(choices)==0) reactiveTimer(Inf,session=session) else 
-                                               reactiveTimer(2000,session=session)        
+                                               reactiveTimer(2000,session=session)       
       updateSelectInput(session=session, inputId="bkgRuns", 
-                        choices=getBkgRunList(),selected=0)
+                        choices=getBkgRunList(),selected=isolate(input$bkgRuns))
     }
   })
   
