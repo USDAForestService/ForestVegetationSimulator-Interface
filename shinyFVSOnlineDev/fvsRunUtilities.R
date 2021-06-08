@@ -851,7 +851,9 @@ cat ("processing std=",std$sid," sRows=",sRows," sRowp=",sRowp,"\n")
         }
         if (cmp$atag == "k" && !is.null(lastCnd))
         {
+          if(lastExt != "base")cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
+          if(lastExt == lastExt)cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
