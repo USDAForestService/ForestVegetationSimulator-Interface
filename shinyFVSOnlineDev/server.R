@@ -3032,12 +3032,16 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
     if (length(input$freeFuncsKCP) && nchar(input$freeFuncsKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
       pkeys = prms[[paste0("evmon.function.",input$freeFuncsKCP)]] 
-      if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
-      eltList <- append(eltList,list(
-        actionButton("fvsFuncInsertKCP","Insert function"),
-        actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
-      output$fvsFuncRender <- renderUI(eltList)
+      if (is.null(pkeys) && input$freeFuncsKCP !=" "){# assume it's one of the three EM functions that don't 
+        # have any pkeys (MAXINDEX,MININDEX & TIME)
+        insertStrinIntokcpEdit(paste0(input$freeFuncsKCP,"()"))
+      }else {
+        eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+        eltList <- append(eltList,list(
+          actionButton("fvsFuncInsertKCP","Insert function"),
+          actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
+        output$fvsFuncRender <- renderUI(eltList)
+      }
     })
   })  
   observe({  #fvsFuncCancelKCP
