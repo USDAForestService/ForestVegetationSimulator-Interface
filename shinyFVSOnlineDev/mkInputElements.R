@@ -138,6 +138,10 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
   if (valpair && gsub('"','',mklist[1])==" "  && edt==0) sel <- as.character(as.numeric(sel)-1)
   if (valpair && gsub('"','',mklist[1])!=" " && edt==1){
     if(choices[1]==""){
+    if(length(grep("ModType:",globals$currentEditCmp$title))){
+      test <- which(mklist %in% mklist[mklist==mklist[[1]][1]][2])[2]
+      if (length(test)) mklist[1] <- test
+    } 
     sel <- as.character(mklist[mklist[[1]][1]])
     mklist[1] <- as.character((mklist[1]))
     } else sel <- as.character(as.numeric(sel))
