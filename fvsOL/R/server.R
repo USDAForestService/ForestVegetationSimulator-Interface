@@ -1711,8 +1711,11 @@ cat ("renderPlot\n")
       if (length(mlv))
       {
         # this bit makes sure CaseID is first
-        byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
-                        c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
+        if(!length(grep("CmpStdStk",input$selectdbtables)))
+          byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+                c("CaseID", "MgmtID","StandID","DBHClass","RunTitle"))) else
+          byset=c(setdiff(names(dat)[unlist(lapply(dat,is.factor))],
+                c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
         newrows = ddply(dat,byset,function(x) x[1,])
         newrows[,!unlist(lapply(dat,is.factor))]=0
         newrows$DBHClass=as.character(newrows$DBHClass)
@@ -2736,12 +2739,17 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
   observe({
     if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
-      if (is.null(pkeys)) return()
-      eltList <- mkeltList(pkeys,prms,globals,input,output,funcflag=TRUE)
-      eltList <- append(eltList,list(
-        actionButton("fvsFuncInsert","Insert function"),
-        actionButton("fvsFuncCancel","Cancel function"),h6()))
-      output$fvsFuncRender <- renderUI(eltList)
+      if (is.null(pkeys) && input$freeFuncsKCP !=" "){
+        # assume it's one of the three EM functions that don't 
+        # have any pkeys (MAXINDEX,MININDEX & TIME)
+        insertStrinIntokcpEdit(paste0(input$freeFuncsKCP,"()"))
+      } else {
+        eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+        eltList <- append(eltList,list(
+          actionButton("fvsFuncInsertKCP","Insert function"),
+          actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
+        output$fvsFuncRender <- renderUI(eltList)
+      }
     })
   })  
   observe({  #fvsFuncCancel

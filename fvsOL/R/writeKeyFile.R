@@ -762,7 +762,9 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         }
         if (cmp$atag == "k" && !is.null(lastCnd))
         {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
+          if(lastExt == lastExt) cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
