@@ -15,11 +15,11 @@
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmmaps">Maps</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmin">Import Data</a>
+		<li><p style="margin-bottom: 0in"><a href="#tmin">Import Input Data</a>
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#inputTables">Input Table Descriptions</a> 
 		</p>
-		<li><p><a href="#tmtool">Tools</a> 
+		<li><p><a href="#tmtool">Project Tools</a> 
 		</p>
 	</ul>
 </ul>
@@ -73,16 +73,18 @@ wiki about FVSOnline software</a>.</p>
 	simulations; the outputs go to an output database. 
 	</p>
 	<li><p style="margin-bottom: 0in"><b>View Outputs: </b>Make
-	tables and graphsusing the outputs stored in the output
+	tables and graphs using the outputs stored in the output
 	database. 
 	</p>
 	<li><p style="margin-bottom: 0in"><b>SVS3d: </b>Display 3d images of stands.
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Import Data: </b>Load (or
+	<li><p style="margin-bottom: 0in"><b>Import Input Data: </b>Load (or
 	edit) the input database. 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Tools: </b>Access commands to
-	download data, update software, and delete all runs. 
+	<li><p style="margin-bottom: 0in"><b>Project Tools: </b>Access commands to
+	import runs and other items from other projects or backup files. Manage projects
+	by creating create new projects, open other projects, deleted outputs or entire projects,
+	make and manage backup files. Create and download data from a project. 
 	</p>
 	<li><p><b>Help: </b>Display this help. 
 	</p>
@@ -439,7 +441,13 @@ Any reprojection needed to display the data is done automatically.</p>
 </p>
 <h4><a name="inputTables"></a>Input tables</h4>
 **INPUTHTML**
-<h4><a name="tmtool"></a>Tools</h4>
+<h4><a name="tmtool"></a>Project Tools</h4>
+<p>The <b>Import runs and other items</b> tab allows you to import runs,
+custom components (.kcp), graph settings, custom queries, FVS_Data.db (input data bases), 
+Spatial Data, or any combination of these from 1) an existing project, or 2) a backup
+file or other downloaded file that contains the items you desire. You first specify
+the source project or upload a zip file and then select the item(s) you wish to import
+into your current project.
 <p>The <b>Manage projects</b> tab allows you to:
 <ul>
 <li><p style="margin-bottom: 0in">Switch to a different existing project.</p>
@@ -454,27 +462,8 @@ and restore from an existing backup. Note that you can not upload a backup.</p>
 <p>The <b>Downloads</b> tab provides the ability to download specific
 files related to the project. Thre is also a facility for
 setting up and downloading a .zip file that contains sevaral optional
-elements. </p>
-<p>The <b>Refresh/copy software</b> tab has different features depending on the 
-system configuration you are running. When running the <i>Online configuration</i>
-(using a remote server), there are two sets of tools and when running the <i>Local
-configuration</i> only the second set described below is available.</p>
-The first set of tools (available only when running <i>Online</i>) allows you to 
-<b>Refresh current project from system sources.</b> The FVS variants that are available 
-in the active project can be refreshed you can select additional variants. There is also 
-a command to refresh the interface software itself where you can pick between the production and
-development versions of the interface software. Note that once a project is established, 
-the software (the interface and the FVS variants) are not automatically updated when 
-new software releases are made. This enables users to "freeze" the code they are using for a project 
-updating it only if there is a need and desire to do so.</p>
-The second set of tools (always available) allow you to 
-<b>Copy data and software from a source project to target project(s)</b>. You decide
-which data to copy, but note that you can not copy the runs nor the output database from
-one project to another. You first select
-the source and target projects and select the elements you want to copy. The selected
-files are copied when you press the <b>Copy now</b> button.
-</p>
-
+elements. Note that tese downloaded files can be a source of items that can be 
+imported into other projects. </p>
 <p><a href="#contents">Back to contents</a></p>
 </body>
 </html>
