@@ -1634,10 +1634,10 @@ cat ("renderPlot\n")
         # this bit makes sure CaseID is first
         if(!length(grep("CmpStdStk",input$selectdbtables))){
           byset=c("CaseID",setdiff(names(dat)[unlist(lapply(dat,is.factor))],c("CaseID",
-                                                                               "MgmtID","StandID","DBHClass","RunTitle")))
+                  "MgmtID","StandID","DBHClass","RunTitle")))
         } else
           byset=c(setdiff(names(dat)[unlist(lapply(dat,is.factor))],
-                          c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
+                        c("CaseID","MgmtID","StandID","DBHClass","RunTitle")))
         newrows = ddply(dat,byset,function(x) x[1,])
         newrows[,!unlist(lapply(dat,is.factor))]=0
         newrows$DBHClass=as.character(newrows$DBHClass)
@@ -3036,11 +3036,11 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         # have any pkeys (MAXINDEX,MININDEX & TIME)
         insertStrinIntokcpEdit(paste0(input$freeFuncsKCP,"()"))
       }else {
-        eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
-        eltList <- append(eltList,list(
-          actionButton("fvsFuncInsertKCP","Insert function"),
-          actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
-        output$fvsFuncRender <- renderUI(eltList)
+      eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
+      eltList <- append(eltList,list(
+        actionButton("fvsFuncInsertKCP","Insert function"),
+        actionButton("fvsFuncCancelKCP","Cancel function"),h6()))
+      output$fvsFuncRender <- renderUI(eltList)
       }
     })
   })  
@@ -3876,7 +3876,13 @@ cat ("runwaitback=",input$runwaitback,"\n")
               detail = "", value = 4)
           unlink(paste0(globals$fvsRun$uuid,".db"))
           close (rs)
-          rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+          if(!globals$localWindows){
+            rscript = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+          }
+          if(globals$localWindows){
+          rscript = if (exists("RscriptLocation")) RscriptLocation
+          else "C:/Users/Public/Documents/R/R-4.0.0/bin/x64/Rscript.exe"
+        }
           cmd = paste0(rscript," --no-restore --no-save --no-init-file ",runScript,
                        " > ",runScript,".Rout")
           if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
