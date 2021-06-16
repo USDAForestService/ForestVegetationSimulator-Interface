@@ -2646,16 +2646,16 @@ cat ("elt=",elt,"\n")
       if (is.null(cmp)) return()
       globals$currentEditCmp = cmp
       if (length(cmp$kwdName) == 0) cmp$kwdName="freeEdit"
-cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
+cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
       eltList = NULL
-      if (cmp$kwdName=="freeEdit"){
+      if (cmp$kwdName=="freeEdit")
+      {
         eltList <- mkFreeformEltList(globals,input,prms,cmp$title,cmp$kwds)
-        if(cmp$atag=="c"){
-        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Condition title ", 
-                             value=globals$currentEditCmp$title,size=40)),h5())
-        }else 
-        rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
-                             value=globals$currentEditCmp$title,size=40)),h5())
+        rtn <- if (cmp$atag=="c") list(h5(),
+                 div(myInlineTextInput("cmdTitle","Condition title ", 
+                 value=globals$currentEditCmp$title,size=40)),h5()) else
+                 list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
+                 value=globals$currentEditCmp$title,size=40)),h5())
         if(length(globals$currentEditCmp$title)) rtn <- append(rtn,list(
               h4(paste0('Edit: "',globals$currentEditCmp$title),'"')),after=0)  
         output$titleBuild <- renderUI(rtn)
@@ -2685,7 +2685,8 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
           }
         }
       }   
-      if (is.null(eltList)){
+      if (is.null(eltList))
+      {
         rtn <- list(h5(),div(myInlineTextInput("cmdTitle","Component title ", 
                              value=globals$currentEditCmp$title,size=40)),h5())
         rtn <- append(rtn,list(
@@ -2710,11 +2711,11 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       if (input$rightPan == "Components" && input$compTabSet !="Management") {
         updateSelectInput(session=session,
         inputId="compTabSet", selected="Management")
-      output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
+        output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)
       }
-      # for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
-      #              "addEvCmps","addKeyExt","addKeyWds"))
-      #    updateSelectInput(session=session, inputId=id, selected=0)
+      for (id in c("addMgmtCats","addMgmtCmps","addModCats","addModCmps",
+                   "addEvCmps","addKeyExt","addKeyWds"))
+          updateSelectInput(session=session, inputId=id, selected=0)
     })
   })
   # install callback functionality for the textarea that has the focus 
@@ -2737,13 +2738,14 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"\n")
       insertStringIntoFocusedTextarea(input,input$focusedElement,input$freeOps)
   })  
   observe({
-    if (length(input$freeFuncs) && nchar(input$freeFuncs)) isolate({
-      pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]] 
-      if (is.null(pkeys) && input$freeFuncsKCP !=" "){
+    if (length(input$freeFuncs) && nchar(input$freeFuncs)) 
+    isolate({
+      pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]]
+      if (is.null(pkeys) && !is.null(input$freeFuncsKCP) && input$freeFuncsKCP != " ")
         # assume it's one of the three EM functions that don't 
         # have any pkeys (MAXINDEX,MININDEX & TIME)
-        insertStrinIntokcpEdit(paste0(input$freeFuncsKCP,"()"))
-      } else {
+        insertStrinIntokcpEdit(paste0(input$freeFuncsKCP,"()")) else 
+      {
         eltList <- mkeltList(pkeys,prms,globals,globals$fvsRun,funcflag=TRUE)
         eltList <- append(eltList,list(
           actionButton("fvsFuncInsertKCP","Insert function"),
