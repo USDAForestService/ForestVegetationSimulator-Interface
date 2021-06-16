@@ -298,6 +298,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
 {
   if (missing(runUUID)) stop("runUUID required")
   if (missing(cmps)) stop("cmps is required")
+  if (class(cmps) %in% c("raw", "fvscmp", "character")) cmps=list(cmps)
   if (is.null(groups) && is.null(stands)) stop("groups or stands must be supplied")
   prjDir = normalizePath(prjDir)
   if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
@@ -308,45 +309,50 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
   if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
   # process the cmps. convert "raw" and/or "character" as needed.
   onames = names(cmps)
+  nadd=0 
   for (i in 1:length(cmps))
   {
-    cmps[[i]] = switch(class(cmps[[i]]),
+    cmp = switch(class(cmps[[i]]),
       "fvsCmp" = mkfvsCmp(cmps[[i]],uuid=uuidgen()),
-      "raw"=extnFromRaw(cmp[[i]]),
+      "raw" = 
+      {                      
+        x = extnFromRaw(cmps[[i]])
+        if (class(x) != "fvsCmp") stop(paste0("A member of 'cmps' of type 'raw'",
+                                       " could not be converted to a component"))
+        x
+      },                                                          
       "character" = 
       {
-        title = onames[i]
+        title = onames[i]                                                          
         if (is.null(title) || nchar(title)==0) title=paste0("Added from external source (",i,")")
-        mkfvsCmp(kwds = cmp[[i]], exten="base", title=title, 
+        mkfvsCmp(kwds = cmps[[i]], exten="base", title=title, kwdName="freeEdit",
          variant=substring(fvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
-      })
-    cname=names(cmps)[i]
-    if (!is.null(cname) && nchar(cname)) cmps[[i]]$title = cname
-  }
-  nadd=0
-  # process groups
-  if (!is.null(groups))
-  {
-    for (grp in fvsRun$grps)
+      }
+    )  
+    # process groups
+    if (!is.null(groups))
     {
-      if (grp$grp %in% groups) for(cmp in cmps) 
+      for (grp in fvsRun$grps)
       {
-        grp$cmps = append(grp$cmps,cmp)
-        nadd=nadd+1
+        if (grp$grp %in% groups) 
+        {                                                       
+          grp$cmps = append(grp$cmps,cmp)
+          nadd=nadd+1
+        }
       }
     }
-  }
-  # process stands
-  if (!is.null(stands))
-  {
-    for (std in fvsRun$stands)
+    # process stands
+    if (!is.null(stands))
     {
-      if (std$sid %in% stands) for(cmp in cmps) 
-      {  
-        std$cmps = append(std$cmps,cmp)
-        nadd=nadd+1
+      for (std in fvsRun$stands)
+      {
+        if (std$sid %in% stands) 
+        {  
+          std$cmps = append(std$cmps,cmp)
+          nadd=nadd+1
+        }
       }
-    }
+    } 
   }
   if (nadd==0) return(0)
   storeFVSRun(db,fvsRun)  
@@ -440,7 +446,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
   } 
   NULL
 }  
-
+                                                                                                  
 #' Get FVS keyword components from a run
 #'
 #' Given a project directory and a run uuid, get the keyword components in the run. 
@@ -455,7 +461,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 #'   * "fvsCmp" the components are returned as copies of original fvsCmp objects,
 #'   * "raw" the components are returned a compressed raw data vectors suitable for storing
 #'   in a database (see [[extnToRaw] and [extnFromRaw]).
-#'   * "keywords" the keyword part of the components are returned as a vector of character strings.
+#'   * "character" the keyword part of the components are returned as a vector of character strings.
 #' @return A named list of two other named lists. The first named list 
 #'   contains a named list of components attached to groups. The type of the items
 #'   is depends on the value of returnType. The names of the items are take from the
@@ -466,7 +472,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 {
   if (missing(runUUID)) stop("runUUID required")
-  if (! returnType %in% c("fvsCmp","raw","keywords")) stop ("invalid value for 'returnType'")
+  if (! returnType %in% c("fvsCmp","raw","character")) stop ("invalid value for 'returnType'")
   prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
@@ -480,7 +486,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
     cmp = switch(returnType,
       "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
       "raw" =  I(list(extnToRaw(ocmp))), 
-      "keywords" = ocmp$kwds
+      "character" = ocmp$kwds
     )
     togrpsnames = c(togrpsnames,ocmp$title)
     togrps = append(togrps,cmp)
@@ -493,7 +499,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
     cmp = switch(returnType,
       "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
       "raw" =  I(list(extnToRaw(ocmp))), 
-      "keywords" = ocmp$kwds
+      "character" = ocmp$kwds
     )
     tostdsnames = c(tostdsnames,ocmp$title)
     tostds = append(tostds,cmp)
@@ -591,7 +597,7 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
   rtn = writeKeyFile(globals,db,newSum=TRUE,keyFileName,verbose=verbose)
   dbDisconnect(db) 
   rtn
-}
+}                                                                    
 
 
 #' Given a project directory a run uuid, and a list of component UUIDs,
