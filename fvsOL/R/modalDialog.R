@@ -1,4 +1,4 @@
-# $Id: modalDialog.R 2814 2019-10-10 11:02:11Z nickcrookston $
+# $Id$
 
 # code taken form shiny-confirm-dialog, Wei Cheng, with thanks!
 modalDialog <- function(id, header = "Confirmation", body = "Confirm action", 

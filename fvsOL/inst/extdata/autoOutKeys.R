@@ -1,4 +1,4 @@
-# $Id: autoOutKeys.R 3146 2020-06-26 00:06:38Z nickcrookston $
+# $Id$
 
 # specifies the keywords that are loaded when automatic outputs are selected.
 

@@ -1,4 +1,4 @@
-# $Id: editDataUtilities.R 3117 2020-05-21 00:57:46Z nickcrookston $
+# $Id$
 
 mkStdSel <- function (dbGlb)
 {

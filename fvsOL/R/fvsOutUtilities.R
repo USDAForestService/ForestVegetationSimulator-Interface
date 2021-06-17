@@ -1,4 +1,4 @@
-# $Id: fvsOutUtilities.R 3172 2020-07-14 18:41:03Z nickcrookston $
+# $Id$
 
 initTableGraphTools <- function (globals,session,output,fvsOutData)
 {
