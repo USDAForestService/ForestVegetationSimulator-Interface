@@ -1,4 +1,4 @@
-# $Id: AdirondackGY.R 3269 2020-10-27 15:16:35Z nickcrookston $
+# $Id$
 
 AdirondackGYVersionTag = "SUNY_GYv5ck"
 

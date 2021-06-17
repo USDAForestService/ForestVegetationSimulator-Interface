@@ -1,4 +1,4 @@
-# $Id: fvsRunUtilities.R 3415 2021-03-03 00:03:19Z mshettles521 $
+# $Id$
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -592,6 +592,7 @@ mkKeyWrd = function (ansFrm,input,pkeys,variant)
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
+  if (is.null(pkeys) || is.null(input) || is.null(ansFrm)) return(out)
   for (i in 1:length(input)){
     if(!is.null(input) && input[i]==" ") next
     if(length(grep(" ", input[i]))) input[i] <- trim(input[i])

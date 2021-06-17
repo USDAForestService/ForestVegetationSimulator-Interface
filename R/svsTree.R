@@ -1,4 +1,4 @@
-# $Id: svsTree.R 3009 2020-03-20 15:05:42Z nickcrookston $
+# $Id$
 
 svsTree <- function(tree,treeform)
 {

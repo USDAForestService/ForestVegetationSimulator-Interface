@@ -1,4 +1,4 @@
-# $Id: componentWins.R 3389 2021-02-09 03:00:48Z mshettles521 $
+# $Id$
 
 keyword.base.Compute.Win <- function(title, prms, globals, input, output)
 { 

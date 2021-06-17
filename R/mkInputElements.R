@@ -1,4 +1,4 @@
-# $Id: mkInputElements.R 3394 2021-02-10 17:36:22Z mshettles521 $
+# $Id$
 
 mkeltList <- function (pkeys,prms,globals,input,output,
                        cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
