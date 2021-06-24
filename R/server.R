@@ -5663,9 +5663,10 @@ cat("delete project button.")
     } else return (NULL)
   } 
   
-  mkTableDescription <- function (tab,xlsxfile)
+  mkTableDescription <- function (tab)
   {
     html = NULL
+    xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
     if (!is.null(tab) && nchar(tab)>0 && !is.null(xlsxfile) && file.exists(xlsxfile))
     {
       sheets = sort(getSheetNames(xlsxfile), decreasing=FALSE)
