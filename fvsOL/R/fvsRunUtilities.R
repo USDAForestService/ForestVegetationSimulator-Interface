@@ -1430,7 +1430,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     }
     msgVal = msgVal+1
     progress$set(detail="Updating reps tags",value = msgVal)
-    updateReps(globals)
+    updateReps(globals$fvsRun)
     msgVal = msgVal+1
     progress$set(detail="Loading contents listbox",value = msgVal)
     mkSimCnts(globals$fvsRun,justGrps=isolate(input$simContType=="Just groups"))
@@ -1469,23 +1469,23 @@ cat ("in updateStandTableSelection, length(globals$fvsRun$stands)=",length(globa
   }   
 }
 
-updateReps <- function(globals)
+updateReps <- function(fvsRun)
 { 
-cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n") 
-  if (length(globals$fvsRun$stands))
+cat ("in updateReps, num stands=",length(fvsRun$stands),"\n") 
+  if (length(fvsRun$stands))
   {
-    stds <- unlist(lapply(globals$fvsRun$stands,function(x) x$sid))  
+    stds <- unlist(lapply(fvsRun$stands,function(x) x$sid))  
     cnts <- table(stds) 
-    have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+    have <- unlist(lapply(fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
     need = paste0("AutoRep=",1:max(cnts))
     mkgps <- setdiff(need, have)
     for (grp in mkgps) 
     {
       newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
-      globals$fvsRun$grps <- append(globals$fvsRun$grps,newgrp)
+      fvsRun$grps <- append(fvsRun$grps,newgrp)
     }
-    have <- unlist(lapply(globals$fvsRun$grps,function(x) 
+    have <- unlist(lapply(fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
     grpIdxs = match(need,have)
     names(grpIdxs) = need
@@ -1498,14 +1498,14 @@ cat ("in updateReps, num stands=",length(globals$fvsRun$stands),"\n")
         i <- 1
         for (r in reps) 
         {
-          globals$fvsRun$stands[[r]]$rep <- i
-          have <- unlist(lapply(globals$fvsRun$stands[[r]]$grps,function(x) 
+          fvsRun$stands[[r]]$rep <- i
+          have <- unlist(lapply(fvsRun$stands[[r]]$grps,function(x) 
                          if (x$grp != "") x$grp else NULL))
-          if (! names(grpIdxs)[i] %in% have) globals$fvsRun$stands[[r]]$grps <- 
-            append(globals$fvsRun$stands[[r]]$grps,globals$fvsRun$grps[[grpIdxs[i]]])
+          if (! names(grpIdxs)[i] %in% have) fvsRun$stands[[r]]$grps <- 
+            append(fvsRun$stands[[r]]$grps,fvsRun$grps[[grpIdxs[i]]])
           i <- i+1
         }     
-      } else globals$fvsRun$stands[[reps]]$rep <- 0                           
+      } else fvsRun$stands[[reps]]$rep <- 0                           
     }
   }
 }
