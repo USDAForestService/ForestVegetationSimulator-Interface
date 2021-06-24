@@ -600,8 +600,8 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
 }                                                                    
 
 
-#' Given a project directory a run uuid, and a list of component UUIDs,
-#' this function deletes those components.
+#' Given a project directory a run uuid, this function returns a list
+#' of the stands in the run.
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
@@ -676,33 +676,33 @@ extnStoreFVSRun <- function(prjDir=getwd(),theRun)
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
-#' @param runUUID a character string of 1 run uuid that is processed,
-#'    or, if value is of class fvsRun, then it is the run being processed.
+#' @param runUUID a character string of 1 run uuid that is processed.
 #' @param stands a vector (or list) of stand ids that will be added.
+#' @addStandsRegardless, if TRUE, stands are added even if they are already 
+#'   present.
 #' @return The number of stands, groups, and components added to the run 
 #' @export
 extnAddStands <- function(prjDir=getwd(),runUUID,stands,
-   nreps=1,addStandsRegardless=FALSE)
+   addStandsRegardless=FALSE)
 {
-  if (missing(runUUID)) stop("runUUID required")
-  if (missing(stands)) stop("stands is required") 
+  if (missing(runUUID) || is.null(runUUID)) stop("runUUID required")
+  if (missing(stands) || is.null(stands)) stop("stands is required") 
   if (length(stands)==0) stop("stands list is empty")
   prjDir = normalizePath(prjDir)
   if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   dbfile = file.path(prjDir,"FVS_Data.db")
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
   db = connectFVSProjectDB(prjDir)
-  fvsRun = if (class(runUUID) == "fvsRun") runUUID else 
-  {
-    db = connectFVSProjectDB(prjDir)
-    loadFVSRun(db,runUUID)
-    dbDisconnect(db)
-  }
-  if (!exists("fvsRun")) stop("run data not found")
+  fvsRun=loadFVSRun(db,runUUID)                       
+  if (is.null("fvsRun")) stop("run data not found")
   if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
-  dbcon <- dbConnect(dbDriver("SQLite"),dbfile)
-  on.exit(suppressWarnings(dbDisconnect(dbcon)))
-  nadd=list(nstd=0,ngrps=0,ncmps=0)
+  dbcon <- dbConnect(dbDriver("SQLite"),dbfile)            
+  on.exit({
+    try(dbExecute(dbcon,'drop table if exists temp.Stds'))
+    suppressWarnings(dbDisconnect(dbcon))           
+    suppressWarnings(dbDisconnect(db))
+  })
+  nadd=list(nstd=0,ngrps=0,ncmps=0)               
   stdInit = fvsRun$refreshDB
   if (! stdInit %in% dbListTables(dbcon)) stop(paste0(stdInit," not found in database."))
   fields = dbListFields(dbcon,stdInit)
@@ -718,9 +718,10 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   fields = intersect(toupper(fields),toupper(allNeed))
   if (length(fields) < length(allNeed)) stop("required db fields are missing")
 
-  getStds = data.frame(getStds=setdiff(stands,
+  getStds = data.frame(getStds=if (addStandsRegardless) stands else setdiff(stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
-
+  if (nrow(getStds) == 0) return(nadd)
+    
   dbWriteTable(dbcon,name=DBI::SQL("temp.getStds"),value=getStds,overwrite=TRUE)
   variant = substring(fvsRun$FVSpgm,4)
   dbExecute(dbcon,'drop table if exists temp.Stds')
@@ -728,18 +729,21 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     ' where lower(variant) like "%',tolower(variant),'%" and "',sidid,
     '" in (select getStds from temp.getStds);')
   fvsInit = try(dbGetQuery(dbcon,qry))
-  if (class(fvsInit)=="try-error") stop("query error")
+  if (class(fvsInit)=="try-error") stop("stdinit query error")
   fvsInit=na.omit(fvsInit)
   if (nrow(fvsInit) == 0) return(nadd)
   names(fvsInit) = toupper(names(fvsInit))
-  
-  for (row in 1:nrow(fvsInit))  # the selectInput list
-  {
+  grpAddKey=try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
+  if (class(grpAddKey)=="try-error" || nrow(grpAddKey)==0) grpAddKey=NULL else
+    names(grpAddKey) = toupper(names(grpAddKey))
+ 
+  for (row in 1:nrow(fvsInit))  # the selectInput list               
+  {                                                      
     sid = fvsInit[row,toupper(sidid)]  
-    newstd <- mkfvsStd(sid=sid,uuid=uuidgen())
-    addfiles = AddFiles(fvsInit[row,"ADDFILES"])
-    for (addf in names(addfiles))
-    {
+    newstd <- fvsOL:::mkfvsStd(sid=sid,uuid=uuidgen(),rep=0,repwt=1)
+    addfiles = fvsInit[row,"ADDFILES"]
+    for (addf in names(addfiles))                            
+    {                                                  
       nadd$ncmps=nadd$ncmps+1
       newstd$cmps <- append(newstd$cmps,
                mkfvsCmp(kwds=addfiles[[addf]],uuid=uuidgen(),variant=variant,
@@ -763,14 +767,12 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     for (grp in need) 
     {
       nadd$grps = nadd$grps+1
-      newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())
-      grprow <- if (!is.null(globals$inData$FVS_GroupAddFilesAndKeywords)) 
-        grep(grp,globals$inData$FVS_GroupAddFilesAndKeywords[,"GROUPS"],
-             fixed=TRUE) else c()
+      newgrp <- mkfvsGrp(grp=grp,uuid=uuidgen())              
+      grprow <- if (!is.null(grpAddKey)) 
+        grep(grp,grpAddKey[,"GROUPS"],fixed=TRUE) else c()
       for (grow in grprow)
       {
-        addkeys <- globals$inData$
-                   FVS_GroupAddFilesAndKeywords[grow,"FVSKEYWORDS"]
+        addkeys <- grpAddKey[grow,"FVSKEYWORDS"]
         if (!is.null(addkeys) && !is.na(addkeys))
         {
           nadd$ncmps=nadd$cmps+1
@@ -779,8 +781,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
                      kwdName="From: FVS_GroupAddFilesAndKeywords",
                        title="From: FVS_GroupAddFilesAndKeywords")
         }
-        addfiles <- AddFiles(globals$inData$
-                    FVS_GroupAddFilesAndKeywords[grow,"ADDFILES"])
+        addfiles <- AddFiles(grpAddKey[grow,"ADDFILES"])
         for (addf in names(addfiles)) 
         {
           nadd$ncmps=nadd$cmps+1
@@ -794,12 +795,16 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
     if (invyr > as.numeric(fvsRun$startyr)) fvsRun$startyr <- as.character(invyr)
     newstd$invyr <- as.character(invyr)
-    have <- unlist(lapply(fvsRun$grps,function(x) 
-            if (x$grp != "") x$grp else NULL))
-    newstd$grps <- fvsRun$grps[sort(match(grps,have))]
-    fvsRun$stands <- append(fvsRun$stands,newstd)   
+    have <- unlist(lapply(fvsRun$grps,function(x) if (x$grp != "") x$grp else NULL))
+    newstd$grps <- fvsRun$grps[sort(match(grps,have))]    
+    fvsRun$stands <- append(fvsRun$stands,newstd)
+    nadd$nstd = nadd$nstd+1
+  }  
+  if (any(nadd>0)) 
+  {
+    if (addStandsRegardless) updateReps(fvsRun)
+    storeFVSRun(db,fvsRun)
   }
-  storeFVSRun(db,fvsRun)
   nadd
 }
 
