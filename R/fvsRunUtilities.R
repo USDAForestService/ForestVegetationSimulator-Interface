@@ -986,13 +986,13 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
   FALSE
 }
       
-pasteComponent <- function(fvsRun,sel,topaste)
+pasteComponent <- function(globals,sel,topaste)
 {
   # search for selected element in grps...attach to grp cmps.
-  idx = findIdx(fvsRun$grps,sel)
+  idx = findIdx(globals$fvsRun$grps,sel)
   if (!is.null(idx)) 
   {
-    fvsRun$grps[[idx]]$cmps <- append(fvsRun$grps[[idx]]$cmps,topaste)
+    globals$fvsRun$grps[[idx]]$cmps <- append(globals$fvsRun$grps[[idx]]$cmps,topaste)
     # test to see if the SpGroup needs to be added back to the species dropdown lists after pasting
     spgtest <- grep("^SpGroup",globals$pastelist[[1]]$kwds)
     if (length(spgtest)){
@@ -1012,17 +1012,17 @@ pasteComponent <- function(fvsRun,sel,topaste)
   if (is.null(idx))
   {
   # search for selected element in stands...attach to cmps.
-    idx = findIdx(fvsRun$stands,sel)
+    idx = findIdx(globals$fvsRun$stands,sel)
     if (!is.null(idx))
     {
-      fvsRun$stands[[idx]]$cmps <- append(fvsRun$stands[[idx]]$cmps,topaste)
+      globals$fvsRun$stands[[idx]]$cmps <- append(globals$fvsRun$stands[[idx]]$cmps,topaste)
       return(idx)
     }
   }
   if (is.null(idx))
   {
     # selected element is a component. Find the grp in which it is listed.
-    for (grp in fvsRun$grps)
+    for (grp in globals$fvsRun$grps)
     {
 cat("pasteComponent finding cmp in groups, sel=",sel,"\n")     
       idx = findIdx(grp$cmps,sel)
@@ -1040,7 +1040,7 @@ cat("pasteComponent finding cmp in groups, sel=",sel,"\n")
   {
     # search for selected component in stands...attach to std cmps.
 cat("pasteComponent finding cmp in stands, sel=",sel,"\n")     
-    for (std in fvsRun$stands)
+    for (std in globals$fvsRun$stands)
     {
       idx = findIdx(std$cmps,sel)
       if (!is.null(idx)) 

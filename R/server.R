@@ -711,13 +711,13 @@ cat ("tbs6=",tbs,"\n")
   })
     
   observe({
-    cat ("changeind=",globals$changeind,"\n")
+    cat ("changeind=",globals$changeind,"\n")          
     if (globals$changeind == 0){
       output$contChange <- renderUI("Run")
       output$srtYr <-renderUI({
         HTML(paste0("<b>",input$startyr,"</b>"))
       })
-      output$eYr <-renderUI({
+      output$eYr <-renderUI({        
         HTML(paste0("<b>",input$endyr,"</b>"))
       })
       output$cyLen <-renderUI({
@@ -743,9 +743,9 @@ cat("selectdbtables\n")
       # Throw up warning, then have first table selection in level that threw error remain selected
       while(length(tables)>1)
       {
-        if(length(tables)==2 && tables %in% "FVS_Cases") break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
+        if(length(tables)>1 && "FVS_Cases" %in% tables) break
+        if(length(tables)>1 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
+        if(length(tables)>1 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
@@ -2825,10 +2825,10 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {
         globals$foundStand=0L 
-        updateReps(globals)
+        updateReps(globals$fvsRun)
         mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
         updateSelectInput(session=session, inputId="simCont", 
-          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)                 
         output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
           length(globals$fvsRun$stands)," stand(s)<br>",
           length(globals$fvsRun$grps)," group(s)")))
@@ -2854,7 +2854,7 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
               exten=toCpy$exten,variant=toCpy$variant,uuid=uuidgen(),
               atag=toCpy$atag,title=toCpy$title,reopn=toCpy$reopn)
       globals$pastelist <- append(globals$pastelist,toCpy,after=0)     
-      globals$pastelistShadow <- append(globals$pastelistShadow,toCpy$uuid,after=0)
+      globals$pastelistShadow <- append(globals$pastelistShadow,toCpy$uuid,after=0)       
       names(globals$pastelistShadow)[1] = toCpy$title
       updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
@@ -2888,7 +2888,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
               exten=topaste$exten,variant=topaste$variant,uuid=uuidgen(),
               atag=topaste$atag,title=topaste$title,reopn=topaste$reopn)
-      idx = pasteComponent(globals$fvsRun,input$simCont[1],topaste)
+      idx = pasteComponent(globals,input$simCont[1],topaste)
       if (!is.null(idx))
       {
         mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
@@ -3497,7 +3497,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         globals$currentEditCmp$kwds = input$freeEdit
         if (!is.null(input$cmdTitle) && nchar(input$cmdTitle)) 
           globals$currentEditCmp$title = input$cmdTitle
-        idx = pasteComponent(globals$fvsRun,input$simCont[1],globals$currentEditCmp)
+        idx = pasteComponent(globals,input$simCont[1],globals$currentEditCmp)
         if (!is.null(idx))
         { 
           mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
@@ -5305,7 +5305,7 @@ cat ("delete all runs and outputs\n")
         fvsPgms = paste0("FVSbin","/",fvsPgms)
         flst = c(flst,fvsPgms)
       } 
-      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%d-%m_%H_%M_%S"),".zip")
+      zfile=paste0("ProjectBackup_",format(Sys.time(),"%Y-%m-%d_%H_%M_%S"),".zip")
       # close the input and output databases if they are openned
       ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
       icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)

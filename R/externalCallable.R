@@ -730,19 +730,25 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     '" in (select getStds from temp.getStds);')
   fvsInit = try(dbGetQuery(dbcon,qry))
   if (class(fvsInit)=="try-error") stop("stdinit query error")
-  fvsInit=na.omit(fvsInit)
   if (nrow(fvsInit) == 0) return(nadd)
   names(fvsInit) = toupper(names(fvsInit))
   grpAddKey=try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
   if (class(grpAddKey)=="try-error" || nrow(grpAddKey)==0) grpAddKey=NULL else
-    names(grpAddKey) = toupper(names(grpAddKey))
- 
+    names(grpAddKey) = toupper(names(grpAddKey)) 
   for (row in 1:nrow(fvsInit))  # the selectInput list               
   {                                                      
-    sid = fvsInit[row,toupper(sidid)]  
-    newstd <- fvsOL:::mkfvsStd(sid=sid,uuid=uuidgen(),rep=0,repwt=1)
+    sid = fvsInit[row,toupper(sidid)] 
+    invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
+    if (is.na(invyr)) 
+    {
+      cat ("Inv_Year is not defined for stand ",sid," and it is skipped.")
+      next
+    }
+    if (invyr > as.numeric(fvsRun$startyr)) fvsRun$startyr <- as.character(invyr)
+    newstd <- mkfvsStd(sid=sid,uuid=uuidgen(),rep=0,repwt=1,invyr=as.character(invyr))
+    
     addfiles = fvsInit[row,"ADDFILES"]
-    for (addf in names(addfiles))                            
+    if (!is.na(addfiles)) for (addf in names(addfiles))                            
     {                                                  
       nadd$ncmps=nadd$ncmps+1
       newstd$cmps <- append(newstd$cmps,
@@ -792,9 +798,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
       }
       fvsRun$grps <- append(fvsRun$grps,newgrp)
     }
-    invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
-    if (invyr > as.numeric(fvsRun$startyr)) fvsRun$startyr <- as.character(invyr)
-    newstd$invyr <- as.character(invyr)
+    
     have <- unlist(lapply(fvsRun$grps,function(x) if (x$grp != "") x$grp else NULL))
     newstd$grps <- fvsRun$grps[sort(match(grps,have))]    
     fvsRun$stands <- append(fvsRun$stands,newstd)
