@@ -914,8 +914,9 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   }
   rscript=paste0(runUUID,".Rscript")
   pidStat=paste0(runUUID,".pidStatus")
-  cat ('cat (Sys.getpid()," Running ',fvsRun$title,' on ',ncpu,' processes; started ",',
-       'date(),"\\n",sep="",file="',pidStat,'")\n',sep="",file=rscript)
+  cat ('cat (Sys.getpid()," ',fvsRun$title,'; ',ncpu,' CPUs; ",',
+       'format(Sys.time(),"%Y-%m-%d_%H_%M_%S"),"\\n",sep="",file="',
+       pidStat,'")\n',sep="",file=rscript)
   cat('require(fvsOL)\n',file=rscript,append=TRUE)
   cat('fvsprocs = makePSOCKcluster(',ncpu,')\n',sep="",file=rscript,append=TRUE)
   cat('pids = unlist(clusterEvalQ(fvsprocs,Sys.getpid()))\n',sep="",file=rscript,append=TRUE)
