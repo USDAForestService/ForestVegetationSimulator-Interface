@@ -91,7 +91,26 @@ getBkgRunList = function ()
   theList = unlist(lapply(pidfiles,function (x)
     readLines(x,n=1)))
   pidfiles=as.list(pidfiles)
-#  runuuid=strsplit(pidfiles,split=".",fixed=TRUE)[[1]][1]
+  for (i in 1:length(pidfiles))
+  {
+    runuuid=strsplit(pidfiles[[i]],split=".",fixed=TRUE)[[1]][1]
+    cat ("runuuid=",runuuid,"\n")
+    rundirs = dir (pattern=paste0(runuuid,".set"))
+    sumRuns = 0
+    for (rdir in rundirs)
+    {
+      dbfile = file.path(rdir,paste0(runuuid,".db"))
+      if (file.exists(dbfile))
+      {
+        db = dbConnect(SQLite(), dbname = dbfile)
+        nrun = try(dbGetQuery(db,"select count(*) as NRun from FVS_Cases"))
+        dbDisconnect(db)
+        nrun = if (class(nrun)=="try-error") 0 else nrun[1,1]
+        sumRuns = sumRuns+nrun
+      }
+    }
+    theList[i] = paste0(theList[i],"; Complete+Started = ",sumRuns)
+  }
   names(pidfiles) = theList
   pidfiles 
 }
