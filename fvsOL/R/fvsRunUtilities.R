@@ -89,8 +89,9 @@ getBkgRunList = function ()
   pidfiles=dir(pattern="pidStatus$")
   if (length(pidfiles) == 0) return (list())
   theList = unlist(lapply(pidfiles,function (x)
-    readLines(x)[1]))
+    readLines(x,n=1)))
   pidfiles=as.list(pidfiles)
+#  runuuid=strsplit(pidfiles,split=".",fixed=TRUE)[[1]][1]
   names(pidfiles) = theList
   pidfiles 
 }
