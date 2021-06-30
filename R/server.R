@@ -7486,8 +7486,9 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
   })                                                                                   
            
   observe({
-    if (input$doImpRuns > 0 && !is.null(input$impRuns)) 
-    {
+    if (input$doImpRuns > 0) 
+    {isolate({
+      if (is.null(input$impRuns)) return()
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7507,12 +7508,13 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
        ' is named "',theRun$title,'" in your current project.'))
       updateSelectInput(session=session, inputId="runSel", 
                         choices=globals$FVS_Runs,selected=globals$fvsRun$uuid)
-    }
+    })}
   })
 
   observe({
-    if (input$doImpCustomCmps > 0  && !is.null(input$impCustomCmps))
-    {
+    if (input$doImpCustomCmps > 0)
+    {isolate({
+      if (is.null(input$impCustomCmps)) return()
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7524,12 +7526,13 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       storeOrUpdateObject(dbGlb$prjDB,customCmps)
       output$impCustomCmpsMsg = renderText(paste0('Component "',curTitle,'" imported and ',
        ' is named "',newtitle,'" in your current project.'))      
-    }
+    })}
   })
 
   observe({
-    if (input$doImpGraphSettings > 0 && !is.null(input$impGraphSettings))
-    {
+    if (input$doImpGraphSettings > 0) 
+    {isolate({
+      if (is.null(input$impGraphSettings)) return()
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7541,12 +7544,13 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       storeOrUpdateObject(dbGlb$prjDB,GraphSettings)
       output$impGraphSettingsMsg = renderText(paste0('Graph setting "',curTitle,'" imported and ',
        ' is named "',newtitle,'" in your current project.'))      
-    }
+    })}
   })
 
   observe({
-    if (input$doImpCustomQueries > 0 && !is.null(input$impCustomQueries))
-    {
+    if (input$doImpCustomQueries > 0) 
+    {isolate({
+      if (is.null(input$impCustomQueries)) return()
       prjDir=attr(globals$importItems,"dir")
       pDB=connectFVSProjectDB(prjDir)
       on.exit(dbDisconnect(pDB))
@@ -7558,7 +7562,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       storeOrUpdateObject(dbGlb$prjDB,customQueries)
       output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
        ' is named "',newtitle,'" in your current project.'))      
-    }
+    })}
   })
   observe({
     if (input$impFVS_Data > 0)

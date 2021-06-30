@@ -214,7 +214,7 @@ FVSOnlineUI <- fixedPage(
                 textInput("defMgmtID","MgmtID (4 chars)",""),h5(),
                 radioButtons("runwaitback", NULL, 
                   c("Wait for run (1 CPU)","Run in background")),
-                myInlineNumericInput("bkgNcpu","Max CPUs",
+                myInlineNumericInput("bkgNcpu","Background CPUs",
                     value=as.character(detectCores()), min="1", 
                     max=as.character(detectCores()), 
                     step="1",size=10,labelstyle="font-weight:normal;"),h5(),
