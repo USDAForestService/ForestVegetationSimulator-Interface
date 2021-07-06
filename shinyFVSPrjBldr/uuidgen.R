@@ -20,7 +20,7 @@ uuidgen <- function (n=1)
   {
     .uuid.seedpid <<- cp
     if (file.exists("/dev/random")) {
-      rn <- file ("/dev/random",open="rb")
+      rn <- file ("/dev/random",open="rb",raw=TRUE)
       set.seed(readBin(rn,"integer"))
       close(rn)
     } else 
