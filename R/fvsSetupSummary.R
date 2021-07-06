@@ -1,6 +1,14 @@
-# modifies the "summary" statistics so that it is ready to plot. This is done by adding a row
-# for post thin so that variables like "TPA" show the trace over time with the removals being 
-# as sharp dip.
+#' Modifies the "summary" statistics so that it is ready to plot
+#'
+#' The modification is done by adding a row for post thin statistics so that 
+#' variables like "TPA" show the trace over time with the removals being 
+#' shown as a vertical drop to the post thin level.
+#'
+#' @param asum as returned from [fvsGetSummary()]
+#' @return A reorganized version of [`asum`].
+#' @export
+#' @examples
+#' fvsSetupSummary(fvsGetSummary())
 fvsSetupSummary <- 
 function(asum)
 {
