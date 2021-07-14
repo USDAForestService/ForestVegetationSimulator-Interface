@@ -887,7 +887,12 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     # make the run script
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
     cat ("library(rFVS)\n",file=opnout)
-    cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)    
+    if(.Platform$OS.type == "windows" && isLocal()){
+      cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,"')\n",sep="",file=opnout) 
+    }else{
+      cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)   
+    }
+ 
     if (fvsRun$runScript != "fvsRun")
     {   
        # if the custom run script exists in the project dir, use it, otherwise
@@ -950,6 +955,10 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   file=rscript,append=TRUE) 
   cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)
   rsloc = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
+  if(.Platform$OS.type == "windows" && isLocal()){
+    rsloc="C:/Users/Public/Documents/R/R-4.0.5/bin/Rscript.exe"
+    .libPaths("C:/Users/Public/Documents/R/R-4.0.5/library") 
+  }
   cmd = paste0(rsloc," --no-restore --no-save --no-init-file ",rscript,
                        " > ",rscript,".Rout")
   if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
