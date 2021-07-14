@@ -7417,7 +7417,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
   ## Upload zip file.                  
   observe({ 
     if (is.null(input$uploadRunsRdat)) return()
-    if (input$uploadRunsRdat$type != "application/zip") {                                 
+    if (!length(grep("zip",input$uploadRunsRdat$type))) {                                 
       output$uploadRunsRdatMsg  <- renderText("Uploaded file is not a .zip")
     } else { 
       isolate({
@@ -7739,6 +7739,10 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
         {
           rscript = if (exists("RscriptLocation")) RscriptLocation else 
             commandArgs(trailingOnly=FALSE)[1]
+          if(.Platform$OS.type == "windows"){
+            rscript="C:/Users/Public/Documents/R/R-4.0.5/bin/Rscript.exe"
+           Sys.setenv(R_LIBS="C:/Users/Public/Documents/R/R-4.0.5/library")
+          }
           cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
                        "',fvsBin='",fvsBin,"');quit()$")
           cmd = gsub('$','"',cmd,fixed=TRUE)
