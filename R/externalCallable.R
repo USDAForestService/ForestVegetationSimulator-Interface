@@ -319,7 +319,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
         x = extnFromRaw(cmps[[i]])
         if (class(x) != "fvsCmp") stop(paste0("A member of 'cmps' of type 'raw'",
                                        " could not be converted to a component"))
-        x
+        mkfvsCmp(x,uuid=uuidgen())
       },                                                          
       "character" = 
       {
@@ -451,8 +451,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 #'
 #' Given a project directory and a run uuid, get the keyword components in the run. 
 #' The keyword components can be returned as a raw vector, an fvsOL keyword component,
-#' or just the text of the keywords depending on the returnType parameter value. Note that
-#' the original components are never returned, copies are generated and returned.
+#' or just the text of the keywords depending on the returnType parameter value. 
 #'
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
@@ -484,7 +483,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
   for (grp in fvsRun$grps) for (ocmp in grp$cmps) 
   { 
     cmp = switch(returnType,
-      "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
+      "fvsCmp"= mkfvsCmp(ocmp),
       "raw" =  I(list(extnToRaw(ocmp))), 
       "character" = ocmp$kwds
     )
@@ -497,7 +496,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
   for (std in fvsRun$stands) for (ocmp in std$cmps) 
   {
     cmp = switch(returnType,
-      "fvsCmp"= mkfvsCmp(ocmp,uuid=uuidgen()),
+      "fvsCmp"= mkfvsCmp(ocmp),
       "raw" =  I(list(extnToRaw(ocmp))), 
       "character" = ocmp$kwds
     )
