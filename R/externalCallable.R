@@ -952,12 +952,19 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     }
     dbDisconnect(dbcon)\n',
   file=rscript,append=TRUE) 
+  
   cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)
-  rsloc = if (exists("RscriptLocation")) RscriptLocation else "Rscript"
-  if(.Platform$OS.type == "windows" && isLocal()){
-    rsloc="C:/Users/Public/Documents/R/R-4.0.5/bin/Rscript.exe"
-    .libPaths("C:/Users/Public/Documents/R/R-4.0.5/library") 
+ 
+  rsloc = if (exists("RscriptLocation")) RscriptLocation else
+  {
+    exefile=normalizePath(commandArgs(trailingOnly=FALSE)[1])
+    bin = if(.Platform$OS.type == "windows") 
+      regexpr("\\\\bin\\\\",exefile) else regexpr("/bin/",exefile)
+    bin = substr(exefile,1,bin+attr(bin,"match.length")-2)
+    if(.Platform$OS.type == "windows") 
+       file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
   }
+  
   cmd = paste0(rsloc," --no-restore --no-save --no-init-file ",rscript,
                        " > ",rscript,".Rout")
   if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
