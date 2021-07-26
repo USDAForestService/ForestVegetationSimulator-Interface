@@ -7737,11 +7737,14 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
       { 
         if (isLocal()) 
         {
-          rscript = if (exists("RscriptLocation")) RscriptLocation else 
-            commandArgs(trailingOnly=FALSE)[1]
-          if(.Platform$OS.type == "windows"){
-            rscript="C:/Users/Public/Documents/R/R-4.0.5/bin/Rscript.exe"
-           Sys.setenv(R_LIBS="C:/Users/Public/Documents/R/R-4.0.5/library")
+          rscript = if (exists("RscriptLocation")) RscriptLocation else
+          {
+            exefile=normalizePath(commandArgs(trailingOnly=FALSE)[1])
+            bin = if(.Platform$OS.type == "windows") 
+              regexpr("\\\\bin\\\\",exefile) else regexpr("/bin/",exefile)
+            bin = substr(exefile,1,bin+attr(bin,"match.length")-2)
+            if(.Platform$OS.type == "windows") 
+               file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
           }
           cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
                        "',fvsBin='",fvsBin,"');quit()$")
