@@ -3731,6 +3731,16 @@ cat ("changeind=",globals$changeind,"\n")
     globals$changeind <- 1
     output$contChange <- renderText(HTML("<b>*Run*</b>"))
   })
+  
+  
+  ##  runwaitback
+  observe(
+    output$bkgCpuPrompt <- renderUI(if (input$runwaitback=="Wait for run") NULL else
+      list(myInlineNumericInput("bkgNcpu","Background processes",
+        value=as.character(detectCores()), min="1", max=as.character(detectCores()), 
+        step="1",size=10,labelstyle="font-weight:normal;"),h4())
+  ))
+
 
   ## Save and Run
   observe({
@@ -3853,7 +3863,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
           detail = "Write .key file and prepare program", value = 3)
 cat ("runwaitback=",input$runwaitback,"\n")
           
-        if (input$runwaitback!="Wait for run (1 CPU)")
+        if (input$runwaitback!="Wait for run")
         {
           ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
                as.numeric(input$bkgNcpu))
