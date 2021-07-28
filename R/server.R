@@ -107,7 +107,7 @@ mkGlobals <- setRefClass("globals",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
-    explorePass="numeric")) 
+    explorePass="numeric",lastNewPrj="character")) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -1476,7 +1476,7 @@ cat ("OPsave hit, OPname=",input$OPname,"\n")
         attr(GraphSettings[[setName]],"setTime")=as.integer(Sys.time())
         GraphSettings <- GraphSettings[order(unlist(lapply(GraphSettings,
           function(x) attr(x,"setTime"))),decreasing = TRUE)]
-        storeOrUpdateObject(dbGlb$prjDB,"GraphSettings")        
+        storeOrUpdateObject(dbGlb$prjDB,GraphSettings)        
         updateSelectInput(session=session, inputId="OPsettings", choices=
           names(GraphSettings),selected=setName)
       })
@@ -1500,7 +1500,7 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
         } else {
           updateSelectInput(session=session, inputId="OPsettings", choices=
             names(GraphSettings),selected="None")
-          storeOrUpdateObject(dbGlb$prjDB,"GraphSettings")
+          storeOrUpdateObject(dbGlb$prjDB,GraphSettings)
         }
         updateTextInput(session=session, "OPname", value = "") 
       })
@@ -2973,14 +2973,14 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       },
       "Editor"   =                                                   
       {
+        customCmps = NULL
         if(length(globals$currentEditCmp$kwds) > 0) closeCmp()
-        loadObject(dbGlb$prjDB,"customCmps")
-        globals$customCmps = if (exists("customCmps")) customCmps else list()
-        if (length(globals$customCmps)) updateSelectInput(session=session,
-        inputId="kcpSel",choices=as.list(names(customCmps)), 
-        selected=names(customCmps)[1]) else
-        updateSelectInput(session=session,inputId="kcpSel",choices=list())
-        
+        if (length(globals$customCmps) == 0)loadObject(dbGlb$prjDB,"customCmps")
+        if (!is.null(customCmps)){
+          globals$customCmps = customCmps
+          updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)), 
+          selected=names(customCmps)[1])
+        }
         eltList <- mkFreeformEltList(globals,input,prms,globals$currentEditCmp$title,
                             globals$currentEditCmp$kwds)
         output$condBuild <- renderUI(NULL)
@@ -7531,11 +7531,19 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       loadObject(pDB,"customCmps",asName="source")
       loadObject(dbGlb$prjDB,"customCmps")
       curTitle = input$impCustomCmps
-      newtitle = mkNameUnique(curTitle,names(customCmps))
+      if(exists("customCmps")){
+        newtitle = mkNameUnique(curTitle,names(customCmps))
+        } else{
+        customCmps = list()
+        newtitle = mkNameUnique(curTitle,customCmps)
+      }
       customCmps[newtitle] = source[curTitle]
       storeOrUpdateObject(dbGlb$prjDB,customCmps)
       output$impCustomCmpsMsg = renderText(paste0('Component "',curTitle,'" imported and ',
-       ' is named "',newtitle,'" in your current project.'))      
+       ' is named "',newtitle,'" in your current project.'))
+      globals$customCmps = customCmps
+      updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(customCmps)), 
+      selected=names(customCmps)[1])    
     })}
   })
 
@@ -7549,11 +7557,18 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       loadObject(pDB,"GraphSettings",asName="source")
       loadObject(dbGlb$prjDB,"GraphSettings")
       curTitle = input$impGraphSettings
-      newtitle = mkNameUnique(curTitle,names(GraphSettings))
+      if(exists("GraphSettings")){
+        newtitle = mkNameUnique(curTitle,names(GraphSettings))
+        } else{
+        GraphSettings = list()
+        newtitle = mkNameUnique(curTitle,GraphSettings)
+      }
       GraphSettings[newtitle] = source[curTitle]
       storeOrUpdateObject(dbGlb$prjDB,GraphSettings)
       output$impGraphSettingsMsg = renderText(paste0('Graph setting "',curTitle,'" imported and ',
-       ' is named "',newtitle,'" in your current project.'))      
+       ' is named "',newtitle,'" in your current project.'))  
+      updateSelectInput(session=session,inputId="OPsettings",choices=as.list(names(GraphSettings)), 
+      selected=names(GraphSettings)[1])    
     })}
   })
 
@@ -7567,11 +7582,18 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       loadObject(pDB,"customQueries",asName="source")
       loadObject(dbGlb$prjDB,"customQueries")
       curTitle = input$impCustomQueries
-      newtitle = mkNameUnique(curTitle,names(customQueries))
+      if(exists("customQueries")){
+        newtitle = mkNameUnique(curTitle,names(customQueries))
+        } else{
+        customQueries = list()
+        newtitle = mkNameUnique(curTitle,customQueries)
+      }
       customQueries[newtitle] = source[curTitle]
       storeOrUpdateObject(dbGlb$prjDB,customQueries)
       output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
-       ' is named "',newtitle,'" in your current project.'))      
+       ' is named "',newtitle,'" in your current project.'))   
+      updateSelectInput(session=session,inputId="sqlSel",choices=as.list(names(customQueries)), 
+      selected=names(customQueries)[1]) 
     })}
   })
   observe({
@@ -7663,7 +7685,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   {
     selChoices = getProjectList() 
     nsel = charmatch(basename(getwd()),selChoices)
-    nsel = if(is.na(nsel)) NULL else nsel[1]
+    if(length(globals$lastNewPrj)) nsel = charmatch(globals$lastNewPrj,selChoices)
     sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
     updateSelectInput(session=session, inputId="PrjSelect", 
         choices=selChoices,selected=sel)
@@ -7731,6 +7753,7 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       write(file="projectId.txt",prjid)
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       setwd(curdir)
+      globals$lastNewPrj=newTitle
       updateProjectSelections()
     })
   }) 
