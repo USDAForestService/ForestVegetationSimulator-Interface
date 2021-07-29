@@ -242,7 +242,7 @@ cat ("Project is locked.\n")
 
     if (nruns==0)
     {   
-      globals$fvsRun <- mkfvsRun$new(uuid=uuidgen(),title="Run 1")
+      globals$fvsRun <- mkfvsRun$new(uuid=uuidgen(),title="Run 1",defMgmtID="A001")
       resetGlobals(globals,FALSE)
       storeFVSRun(dbGlb$prjDB,globals$fvsRun)
     } 
@@ -427,13 +427,12 @@ cat ("View Outputs & Load\n")
           tabs = read.xlsx(xlsxFile=dbd,sheet="OutputTableDescriptions")[,1]
         tableList <- as.list(sort(c("",tabs)))
       }
-
       updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
       updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
   })
 
-    ## runs output run selection
+  ## runs output run selection
   observe({
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
