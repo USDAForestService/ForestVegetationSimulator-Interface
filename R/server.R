@@ -4527,21 +4527,20 @@ cat ("SVS3d hit\n")
       if (dirname(fn)!=".") ind[,2]=file.path(dirname(fn),ind[,2])
       index = rbind(index,ind)
     }
-    ix=sort(index[,1],index.return=TRUE)$ix
-    index=index[ix,]
-    dups = duplicated(index[,1])
-    if (any(dups))
+    inv=grep ("Inventory conditions",index[,1])
+    firsts=substr(index[inv,1],1,regexpr(" ",index[inv,1])-1)
+    dups=table(firsts)
+    dups=dups[dups>1]
+    if (length(dups))
     {
-      dupTab = table(index[dups,1])
-      for (id in names(dupTab))
+      rptrs = cbind(inv,c(inv[2:length(inv)]-1,nrow(index)))
+      rptrs=rptrs[sort(firsts,index.return=TRUE)$ix,]
+      rptrs=cbind(rptrs,unlist(lapply(dups,function(x) 1:x)))
+      rownames(rptrs)=NULL
+      for (i in 1:nrow(rptrs))
       {
-        idxs = grep(id,index[,1],fixed=TRUE)
-        rep = 1
-        for (idx in idxs) 
-        {
-          index[idx,1] = sub("Year",paste0("rep ",rep," Year"),index[idx,1])
-          rep = rep+1
-        }
+        index[rptrs[i,1]:rptrs[i,2],1]=sub(" ",sprintf(" rep %03i ",
+              rptrs[i,3]),index[rptrs[i,1]:rptrs[i,2],1])
       }
     }
     choices = as.list(index[,2])
