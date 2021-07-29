@@ -2404,6 +2404,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
     if (input$dupRun > 0)
     {
       if (length(globals$FVS_Runs) == 0) return()
+      isolate(if (is.null(input$runSel)) return())
       saveRun(input,session)
       globals$fvsRun$title <- mkNameUnique(globals$fvsRun$title,names(globals$FVS_Runs))
       globals$fvsRun$uuid  <- uuidgen()
