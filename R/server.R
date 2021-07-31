@@ -4530,20 +4530,27 @@ cat ("SVS3d hit\n")
     }
     inv=grep ("Inventory conditions",index[,1])
     firsts=substr(index[inv,1],1,regexpr(" ",index[inv,1])-1)
+    names(inv)=firsts
     dups=table(firsts)
-    dups=dups[dups>1]
-    if (length(dups))
+    if (any(dups>1))
     {
+      dups=dups[dups>1]
+      d2 = rep(1,length(dups))
       rptrs = cbind(inv,c(inv[2:length(inv)]-1,nrow(index)))
-      rptrs=rptrs[sort(firsts,index.return=TRUE)$ix,]
-      rptrs=cbind(rptrs,unlist(lapply(dups,function(x) 1:x)))
-      rownames(rptrs)=NULL
+      rptrs = data.frame(ids=rownames(rptrs),start=rptrs[,1],stop=rptrs[,2])
+      rptrs = rptrs[order(rptrs[,1],rptrs[,2],decreasing=c(TRUE,FALSE),method="radix"),]
       for (i in 1:nrow(rptrs))
       {
-        index[rptrs[i,1]:rptrs[i,2],1]=sub(" ",sprintf(" rep %03i ",
-              rptrs[i,3]),index[rptrs[i,1]:rptrs[i,2],1])
+        id=grep(rptrs[i,1],names(dups))
+        if (length(id))
+        {         
+          index[rptrs[i,2]:rptrs[i,3],1]=
+            sub(" ",sprintf(" r%03i ",d2[id]),index[rptrs[i,2]:rptrs[i,3],1])
+          d2[id]=d2[id]+1
+        }
       }
     }
+    index  = index[unlist(c(apply(rptrs,1,function (x) x[2]:x[3]))),]
     choices = as.list(index[,2])
     names(choices) = index[,1]
     choices
