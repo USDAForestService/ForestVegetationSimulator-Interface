@@ -107,7 +107,7 @@ mkGlobals <- setRefClass("globals",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
-    explorePass="numeric",lastNewPrj="character")) 
+    explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical")) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -5394,10 +5394,11 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
     cnts = zip_list(input$pickBackup)
     if (length(cnts)==0) return()
-    if(length(grep("FVSbin",cnts$filename)) || length(grep("^FVS[a-z]*.so$",cnts$filename)))
+    if(length(grep("FVSbin",cnts$filename)) || length(grep("^FVS[a-z]*.so$",cnts$filename)) ||
+       length(grep("^FVS[a-z]*.dll$",cnts$filename)))
     {
-      output$btnA <-renderUI(HTML("Project files and FVS software"))
-      output$btnB <-renderUI(HTML("Project files only"))
+      output$btnA <-renderUI(HTML("Project files only"))
+      output$btnB <-renderUI(HTML("Project files and FVS software"))
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restorePrjBackupDlg",
           message = paste0("WARNING: restoring this project backup will overwrite",
@@ -5406,9 +5407,11 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
           " project instead. This backup also contains FVS software that will",
           " overwrite your currently installed version with the software in the",
           " backup, if selected.  What contents would you like to restore?")))
+      globals$prjFilesOnly = FALSE
     } else {
-      output$btnA <-renderUI(HTML("Yes"))
-      output$btnB <-renderUI(HTML("Yes"))
+      output$btnA <- renderUI(HTML("Yes"))
+      output$btnB <-renderUI(HTML("No"))
+      globals$prjFilesOnly = TRUE
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restorePrjBackupDlg",
           message = paste0("WARNING: restoring this project backup will overwrite", 
@@ -5420,7 +5423,55 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
   
   observeEvent(input$restorePrjBackupDlgBtnA,{  
     isolate({
+       if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
+        progress <- shiny::Progress$new(session,min=1,max=5)
+        progress$set(message = "Unzipping project backup",value = 2)
+        fvsWorkBackup = input$pickBackup
+cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")    
+        if (file.exists(fvsWorkBackup)) 
+        {
+          progress$set(message = "Checking backup contents",value = 3)
+          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
+          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
+          if (ocon) dbDisconnect(dbGlb$dbOcon)
+          if (icon) dbDisconnect(dbGlb$dbIcon)
+          td <- tempdir()
+          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
+                    overwrite=TRUE,junkpaths=FALSE))
+          if (class(rtn)=="try-error") return()
+          zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
+          del=NULL
+          for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
+                          "^FVSbin","prms.RData",".log$")) del = c(del,grep (todel,zipConts))
+          if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
+          pgms=if(.Platform$OS.type == "windows") dir(td,pattern="^FVS[a-z]*.dll$") else dir(td,pattern="^FVS[a-z]*.so$")
+          if (length(pgms)) lapply(paste0(td,"/",pgms),unlink,recursive=TRUE)
+          curcnts=dir()
+          tokeep = grep("^ProjectBackup",curcnts)
+          tokeep = c(tokeep,grep("^projectId",curcnts))
+          curcnts = curcnts[tokeep]
+          lapply(paste0(td,"/",curcnts),unlink,recursive=TRUE)
+          progress$set(message = "Copying backup contents",value = 4)
+          zipConts <- dir(td,recursive=TRUE)    
+          lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          unlink(td,recursive=TRUE)
+        } 
+        if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
+        if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
+        globals$reloadAppIsSet=1
+        globals$saveOnExit=FALSE
+        progress$close()
+        session$reload()
+      })
+  })    
+      
+  observeEvent(input$restorePrjBackupDlgBtnB,{  
+    isolate({
         if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
+        if(globals$prjFilesOnly){
+          globals$prjFilesOnly = FALSE
+          return()
+        }
         progress <- shiny::Progress$new(session,min=1,max=5)
         progress$set(message = "Unzipping project backup",value = 2)
         fvsWorkBackup = input$pickBackup
@@ -5451,7 +5502,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
           mkFVSProjectDB()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
-          pgms=dir(td,pattern="^FVS[a-z]*.so$")
+          pgms=if(.Platform$OS.type == "windows") dir(td,pattern="^FVS[a-z]*.dll$") else dir(td,pattern="^FVS[a-z]*.so$")
           if (length(pgms)) 
           {
             frompgms=paste0(td,"/",pgms)
@@ -5459,58 +5510,28 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
             dir.create(todir)
             topgms=paste0(todir,"/",pgms)
             file.rename(from=frompgms,to=topgms)
-            dir.create("FVSbin")
           }
           setwd(curdir)
           curcnts=dir()
           tokeep = grep("^ProjectBackup",curcnts)
           tokeep = c(tokeep,grep("^projectId",curcnts))
-          curcnts = curcnts[-tokeep]
-          lapply(paste0(td,"/",curcnts),unlink,recursive=TRUE)          
-          progress$set(message = "Copying backup contents",value = 4)
-          zipConts <- dir(td,recursive=TRUE)    
-          lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          curcnts = curcnts[tokeep]
+          lapply(paste0(td,"/",curcnts),unlink,recursive=TRUE)
+          if (globals$fvsBin != "FVSbin" && length(topgms))
+          {
+            progress$set(message = "Copying backup contents",value = 4)
+            zipContsFVS <- dir(paste0(td,"/FVSbin"),pattern="^FVS[a-z]*.dll$")
+            zipContsPrj <- zipConts[-(match(zipContsFVS,zipConts))]
+            lapply(zipContsFVS,function(x,td) file.copy(from=paste0(td,"/",x),to=globals$fvsBin,overwrite=TRUE),globals$fvsBin)
+            lapply(zipContsPrj,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          } else {
+            progress$set(message = "Copying backup contents",value = 4)
+            dir.create("FVSbin")
+            zipConts <- dir(td,recursive=TRUE)    
+            lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
+          }
           unlink(td,recursive=TRUE)
         } 
-        globals$reloadAppIsSet=1
-        globals$saveOnExit=FALSE
-        progress$close()
-        session$reload()
-      })
-  })
-                 
-  observeEvent(input$restorePrjBackupDlgBtnB,{  
-    isolate({
-        if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
-        progress <- shiny::Progress$new(session,min=1,max=5)
-        progress$set(message = "Unzipping project backup",value = 2)
-        fvsWorkBackup = input$pickBackup
-cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")    
-        if (file.exists(fvsWorkBackup)) 
-        {
-          progress$set(message = "Checking backup contents",value = 3)
-          ocon = class(dbGlb$dbOcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbOcon)
-          icon = class(dbGlb$dbIcon) == "SQLiteConnection" && dbIsValid(dbGlb$dbIcon)
-          if (ocon) dbDisconnect(dbGlb$dbOcon)
-          if (icon) dbDisconnect(dbGlb$dbIcon)
-          td <- tempdir()
-          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
-                    overwrite=TRUE,junkpaths=FALSE))
-          if (class(rtn)=="try-error") return()
-          zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
-          del=NULL
-          for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
-                          "^FVSbin","prms.RData",".log$")) del = c(del,grep (todel,zipConts))
-          if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
-          pgms=dir(td,pattern="^FVS[a-z]*.so$")
-          if (length(pgms)) lapply(paste0(td,"/",pgms),unlink,recursive=TRUE)
-          progress$set(message = "Copying backup contents",value = 4)
-          zipConts <- dir(td,recursive=TRUE)    
-          lapply(zipConts,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
-          unlink(td,recursive=TRUE)
-        } 
-        if (ocon) dbGlb$dbOcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbOcon@dbname)   
-        if (icon) dbGlb$dbIcon <- dbConnect(dbDriver("SQLite"),dbGlb$dbIcon@dbname)
         globals$reloadAppIsSet=1
         globals$saveOnExit=FALSE
         progress$close()
