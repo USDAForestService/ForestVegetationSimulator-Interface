@@ -3,7 +3,8 @@
 keyword.base.Compute.Win <- function(title, prms, globals, input, output)
 { 
   globals$currentCmdDefs <- c(f1=" ",freeEdit="")
-  if (!identical(globals$currentEditCmp,globals$NULLfvsCmp))
+  if (length(globals$currentEditCmp$reopn) && 
+    !identical(globals$currentEditCmp,globals$NULLfvsCmp))
     for (name in names(globals$currentCmdDefs)) if(globals$currentEditCmp$reopn[name] != "")  
       globals$currentCmdDefs[name] = globals$currentEditCmp$reopn[name]
   ans = list( 
