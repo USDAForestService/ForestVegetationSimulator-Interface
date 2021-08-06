@@ -2542,6 +2542,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                       value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat",  
                       value=globals$fvsRun$cycleat)
+            updateVarSelection(globals,session,input)
       progress$set(message = paste0("Setting simulation contents for run ", 
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
@@ -2553,7 +2554,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
         length(globals$fvsRun$grps)," group(s)")))
       updateStandTableSelection(session,input,globals)
       loadVarData(globals,input,dbGlb$dbIcon)                                              
-      updateVarSelection(globals,session,input)
+      updateVarSelection(globals,session,input)                                           
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
@@ -2562,7 +2563,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                    globals$fvsRun$runScript == input$runScript
       updateSelectInput(session=session, inputId="runScript", 
           selected=globals$fvsRun$runScript)
-      if (callCustom) customRunOps()
+      if (!is.na(callCustom) && callCustom) customRunOps()
       progress$close()
     })
   })
@@ -4549,8 +4550,8 @@ cat ("SVS3d hit\n")
           d2[id]=d2[id]+1
         }
       }
+      index  = index[unlist(c(apply(rptrs,1,function (x) x[2]:x[3]))),]
     }
-    index  = index[unlist(c(apply(rptrs,1,function (x) x[2]:x[3]))),]
     choices = as.list(index[,2])
     names(choices) = index[,1]
     choices
@@ -5399,11 +5400,13 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     {
       output$btnA <-renderUI(HTML("Project files only"))
       output$btnB <-renderUI(HTML("Project files and FVS software"))
+      session$sendCustomMessage(type="jsCode",
+                          list(code= "$('#restorePrjBackupDlgBtnC').show()"))
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restorePrjBackupDlg",
           message = paste0("WARNING: restoring this project backup will overwrite",
           " any existing project files in this current project. If you don't",
-          " want to lose exiting project files, consider restoring to a new empty",
+          " want to lose existing project files, consider restoring to a new empty",
           " project instead. This backup also contains FVS software that will",
           " overwrite your currently installed version with the software in the",
           " backup, if selected.  What contents would you like to restore?")))
@@ -5411,12 +5414,14 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     } else {
       output$btnA <- renderUI(HTML("Yes"))
       output$btnB <-renderUI(HTML("No"))
+      session$sendCustomMessage(type="jsCode",
+                          list(code= "$('#restorePrjBackupDlgBtnC').hide()"))
       globals$prjFilesOnly = TRUE
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restorePrjBackupDlg",
           message = paste0("WARNING: restoring this project backup will overwrite", 
           " any existing project files in this current project. If you don't", 
-          " want to lose exiting project files, consider restoring to a new",
+          " want to lose existing project files, consider restoring to a new",
           " empty project instead. Are you sure?")))
     }
   })
@@ -5522,7 +5527,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
             progress$set(message = "Copying backup contents",value = 4)
             zipContsFVS <- dir(paste0(td,"/FVSbin"),pattern="^FVS[a-z]*.dll$")
             zipContsPrj <- zipConts[-(match(zipContsFVS,zipConts))]
-            lapply(zipContsFVS,function(x,td) file.copy(from=paste0(td,"/",x),to=globals$fvsBin,overwrite=TRUE),globals$fvsBin)
+            lapply(zipContsFVS,function(x,td) file.copy(from=paste0(td,"/FVSbin/",x),to=globals$fvsBin,overwrite=TRUE),td)
             lapply(zipContsPrj,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
           } else {
             progress$set(message = "Copying backup contents",value = 4)
@@ -5739,7 +5744,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
   
   ##### data upload code  
   observe({
-    if(input$topPan == "Import Input Data")
+    if(input$toolsPan == "Import Input Data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Upload inventory data")
@@ -6776,7 +6781,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   })  
   
   observe({
-    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Import Input Data") 
+    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Project Tools") 
     {
 cat ("dataEditor View and edit existing tables\n")
       tbs <- myListTables(dbGlb$dbIcon)
