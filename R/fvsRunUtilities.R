@@ -134,8 +134,8 @@ cat ("killIfRunning, fn=",fn,"\n")
       cmd = if (.Platform$OS.type == "windows") paste("taskkill /pid",pid) else 
         paste("kill ",pid)    
 cat ("kill cmd =",cmd,"\n")
-      system (cmd)
-      Sys.sleep(.2)
+      if (.Platform$OS.type == "windows") shell(cmd) else system (cmd)
+      Sys.sleep(.1)
     }
     unlink(fn)
   }
