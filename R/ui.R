@@ -521,7 +521,7 @@ FVSOnlineUI <- fixedPage(
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg2Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg2Top")),
-              column(width=4,offset=0,uiOutput("SVSqImg2Side"))),h2()
+              column(width=4,offset=0,uiOutput("SVSqImg2Side"))),h2(),
             actionButton(inputId="svsCopy2","Copy dynamic plot to clipboard"),
             rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
       )), #END SVS3d
