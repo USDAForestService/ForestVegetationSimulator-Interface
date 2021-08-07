@@ -4502,10 +4502,14 @@ cat ("SVS3d hit\n")
         selected=0) 
       updateSelectInput(session=session, inputId="SVSImgList2", choices=list(),
         selected=0)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm1').hide();$('#svsCopy1').hide();"))
       output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
       output$SVSImg1      = renderRglwidget(NULL)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm2').hide();$('#svsCopy2').hide();"))
       output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
@@ -4570,6 +4574,8 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
       choices = mkSVSchoices(input$SVSRunList1)
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm1').hide();$('#svsCopy1').hide();"))
       output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
@@ -4583,6 +4589,8 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       choices = mkSVSchoices(input$SVSRunList2)
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm2').hide();$('#svsCopy2').hide();"))
       output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
@@ -4838,6 +4846,8 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
         plotColor=input$svsPlotColor1)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm1').show();$('#svsCopy1').show();"))
     }
   })
   observe({
@@ -4854,6 +4864,8 @@ cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n")
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
         plotColor=input$svsPlotColor2)
+      session$sendCustomMessage(type="jsCode",
+              list(code= "$('#SVSstaIm2').show();$('#svsCopy2').show();"))
     }
   })
   ## Maps processing
