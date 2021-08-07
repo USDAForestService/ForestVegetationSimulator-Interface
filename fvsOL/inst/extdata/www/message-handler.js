@@ -110,9 +110,11 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
   function(eltIds)                      
   { 
     var eltid=eltIds[0];            
-    var topid=eltIds[1];                                                                     
-    var sidid=eltIds[2];
+    var persid=eltIds[1];                                                                     
+    var topid=eltIds[2];                                                                     
+    var sidid=eltIds[3];
     const elt  = document.getElementById(eltid);                        
+    const pers = document.getElementById(persid);  
     const top  = document.getElementById(topid);  
     const ssid = document.getElementById(sidid); 
     var rglinst = elt.rglinstance;
@@ -141,7 +143,7 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
     rglinst.getObj(sid).par3d = cpy3d;
     rglinst.drawScene();                                                   
     var imageData = elt.firstChild.toDataURL('image/png', 1.0);            
-    top.setAttribute("src", imageData);                                     
+    ssid.setAttribute("src", imageData);                                     
     cpy3d.userMatrix.m22=1;
     cpy3d.userMatrix.m23=0;
     cpy3d.userMatrix.m32=0;                                             
@@ -149,9 +151,11 @@ Shiny.addCustomMessageHandler("makeTopSideImages",
     rglinst.getObj(sid).par3d = cpy3d;
     rglinst.drawScene();                                               
     imageData = elt.firstChild.toDataURL('image/png', 1.0);
-    ssid.setAttribute("src", imageData);
+    top.setAttribute("src", imageData);
     rglinst.getObj(sid).par3d = p3d;
     rglinst.drawScene(); 
+    var imageData = elt.firstChild.toDataURL('image/png', 1.0);            
+    pers.setAttribute("src", imageData);                                     
   } 
 );
 

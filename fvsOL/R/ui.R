@@ -517,7 +517,7 @@ FVSOnlineUI <- fixedPage(
                             value = "#C5FAC6"))),
             selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-            fixedRow(column(width=12,offset=0,h5("Static images (draggable to documents)"))),
+            fixedRow(column(width=12,offset=0,h4("Static images (draggable to documents)"))),
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg2Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg2Top")),
