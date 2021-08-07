@@ -2542,7 +2542,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                       value=globals$fvsRun$cyclelen)
       updateTextInput(session=session, inputId="cycleat",  
                       value=globals$fvsRun$cycleat)
-            updateVarSelection(globals,session,input)
+      updateVarSelection(globals,session,input)
       progress$set(message = paste0("Setting simulation contents for run ", 
         globals$fvsRun$title),value = 3)
       updateSelectInput(session=session, inputId="simCont", 
@@ -2554,7 +2554,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
         length(globals$fvsRun$grps)," group(s)")))
       updateStandTableSelection(session,input,globals)
       loadVarData(globals,input,dbGlb$dbIcon)                                              
-      updateVarSelection(globals,session,input)                                           
+      updateVarSelection(globals,session,input)
       # if the update causes a change in the runscript selection, then
       # customRunOps will get called automatically. If it is the same
       # script then it needs to be called here to update/set the settings.
@@ -3738,8 +3738,12 @@ cat ("changeind=",globals$changeind,"\n")
   observe(
     output$bkgCpuPrompt <- renderUI(if (input$runwaitback=="Wait for run") NULL else
       list(myInlineNumericInput("bkgNcpu","Background processes",
-        value=as.character(detectCores()), min="1", max=as.character(detectCores()), 
-        step="1",size=10,labelstyle="font-weight:normal;"),h4())
+        value=as.character(max(1,floor(detectCores()/2))), min="1", 
+        max=as.character(detectCores()), step="1",size=10,labelstyle="font-weight:normal;"),
+        HTML(paste0("<p><small>A background run is divided into sets of ",
+         "separate processes that are run at once. The max ",
+         "number of processes is limited to ",detectCores(),", the number of CPUs ",
+         "cores in this computer.</small></p>")))
   ))
 
 
@@ -3846,7 +3850,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
         progress <- shiny::Progress$new(session,min=1,
                            max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
-          detail = "Saving FVS Runs", value = 1)
+          detail = "Saving FVS Run", value = 1)
         saveRun(input,session)
         updateSelectInput(session=session, inputId="runSel", 
             choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]]) 
@@ -3868,7 +3872,7 @@ cat ("runwaitback=",input$runwaitback,"\n")
         {
           ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
                as.numeric(input$bkgNcpu))
-          if (is.na(ncpu)) ncpu=detectCores()
+          if (is.na(ncpu)) ncpu=1
           progress$set(message = "Run preparation: ", 
              detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
           updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
@@ -3982,7 +3986,7 @@ cat ("rtn,class=",class(rtn),"\n")
         progress$set(message = "Scanning output for errors", detail = "", 
                     value = length(globals$fvsRun$stands)+4)
         outf=paste0(globals$fvsRun$uuid,".out")
-        errScan = try(errorScan(outf))
+        errScan = try(extnErrorScan(outf))
         if (class(errScan) == "try-error") errScan = 
           "Error scan failed likely due to invalid multibyte strings in output"
         output$uiErrorScan <- renderUI(list(
@@ -4498,9 +4502,11 @@ cat ("SVS3d hit\n")
         selected=0) 
       updateSelectInput(session=session, inputId="SVSImgList2", choices=list(),
         selected=0)
+      output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
       output$SVSImg1      = renderRglwidget(NULL)
+      output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
       output$SVSImg2      = renderRglwidget(NULL)
@@ -4529,17 +4535,17 @@ cat ("SVS3d hit\n")
       if (dirname(fn)!=".") ind[,2]=file.path(dirname(fn),ind[,2])
       index = rbind(index,ind)
     }
-    inv=grep ("Inventory conditions",index[,1])
+    inv=grep ("Inventory conditions",index[,1])   
     firsts=substr(index[inv,1],1,regexpr(" ",index[inv,1])-1)
     names(inv)=firsts
+    rptrs = cbind(inv,c(inv[2:length(inv)]-1,nrow(index)))
+    rptrs = data.frame(ids=rownames(rptrs),start=rptrs[,1],stop=rptrs[,2])
+    rptrs = rptrs[order(rptrs[,1],rptrs[,2],decreasing=c(FALSE,FALSE),method="radix"),]
     dups=table(firsts)
     if (any(dups>1))
     {
       dups=dups[dups>1]
       d2 = rep(1,length(dups))
-      rptrs = cbind(inv,c(inv[2:length(inv)]-1,nrow(index)))
-      rptrs = data.frame(ids=rownames(rptrs),start=rptrs[,1],stop=rptrs[,2])
-      rptrs = rptrs[order(rptrs[,1],rptrs[,2],decreasing=c(TRUE,FALSE),method="radix"),]
       for (i in 1:nrow(rptrs))
       {
         id=grep(rptrs[i,1],names(dups))
@@ -4550,8 +4556,8 @@ cat ("SVS3d hit\n")
           d2[id]=d2[id]+1
         }
       }
-      index  = index[unlist(c(apply(rptrs,1,function (x) x[2]:x[3]))),]
-    }
+    } 
+    index  = index[unlist(c(apply(rptrs,1,function (x) x[2]:x[3]))),]
     choices = as.list(index[,2])
     names(choices) = index[,1]
     choices
@@ -4564,6 +4570,7 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
       choices = mkSVSchoices(input$SVSRunList1)
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
+      output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
       output$SVSImg1      = renderRglwidget(NULL)
@@ -4576,6 +4583,7 @@ cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
       choices = mkSVSchoices(input$SVSRunList2)
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
+      output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
       output$SVSImg2      = renderRglwidget(NULL)
@@ -4807,10 +4815,13 @@ cat("Residual length of svs=",length(svs),"\n")
     output[[id]] <- renderRglwidget(rglwidget(scene3d())) 
     # this code forces the scene to be loaded prior to calling the custom message
     # and that is critical to getting all this to work.
-    callBack <- function() session$sendCustomMessage(type="makeTopSideImages", 
-                           c(id,paste0(id,"Top"),paste0(id,"Side")))      
+    callBack <- function() 
+    {
+      session$sendCustomMessage(type="makeTopSideImages", 
+              c(id,paste0(id,"Pers"),paste0(id,"Top"),paste0(id,"Side"))) 
+      progress$close()
+    }
     session$onFlushed(callBack, once = TRUE)
-    progress$close()
   }
 
   observe({
@@ -4820,8 +4831,9 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
       fn=input$SVSImgList1
       if (!file.exists(fn)) return()
       # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
-      output$SVSqImg1Top  <- renderUI(HTML('<img id="SVSImg1Top"  alt="Top View"   width="200" height="200"</img>'))
-      output$SVSqImg1Side <- renderUI(HTML('<img id="SVSImg1Side" alt="Side View"  width="200" height="200"</img>'))
+      output$SVSqImg1Pers <- renderUI(HTML('<img id="SVSImg1Pers" alt="Perspective View" width="160" height="160"</img>'))
+      output$SVSqImg1Top  <- renderUI(HTML('<img id="SVSImg1Top"  alt="Top View"         width="160" height="160"</img>'))
+      output$SVSqImg1Side <- renderUI(HTML('<img id="SVSImg1Side" alt="Side View"        width="160" height="160"</img>'))
       renderSVSImage('SVSImg1',fn,
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
@@ -4835,8 +4847,9 @@ cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n")
       fn=input$SVSImgList2
       if (!file.exists(fn)) return()
       # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
-      output$SVSqImg2Top  <- renderUI(HTML('<img id="SVSImg2Top"  alt="Top View"   width="200" height="200"</img>'))
-      output$SVSqImg2Side <- renderUI(HTML('<img id="SVSImg2Side" alt="Side View"  width="200" height="200"</img>'))
+      output$SVSqImg2Pers <- renderUI(HTML('<img id="SVSImg2Pers" alt="Perspective View" width="160" height="160"</img>'))
+      output$SVSqImg2Top  <- renderUI(HTML('<img id="SVSImg2Top"  alt="Top View"         width="160" height="160"</img>'))
+      output$SVSqImg2Side <- renderUI(HTML('<img id="SVSImg2Side" alt="Side View"        width="160" height="160"</img>'))
       renderSVSImage('SVSImg2',fn,
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
@@ -5401,7 +5414,7 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
       output$btnA <-renderUI(HTML("Project files only"))
       output$btnB <-renderUI(HTML("Project files and FVS software"))
       session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#restorePrjBackupDlgBtnC').show()"))
+                 list(code= "$('#restorePrjBackupDlgBtnC').show()"))
       session$sendCustomMessage(type = "dialogContentUpdate",
         message = list(id = "restorePrjBackupDlg",
           message = paste0("WARNING: restoring this project backup will overwrite",
