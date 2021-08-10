@@ -2361,6 +2361,9 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                         selected="Management")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
+      updateCheckboxGroupInput(session=session, "autoSVS", choices=list("SVS:"="autoSVS"))
+      updateRadioButtons(session=session,inputId="svsPlotShape",selected="Round")
+      updateNumericInput(session=session,inputId="svsNFire",value=4)
       updateCheckboxGroupInput(session=session, "autoOut", choices=list(
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
@@ -2380,7 +2383,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                         "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
                          AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
-                        ), selected=list())   
+                        ), selected=list())                       
       isolate ({
         loadStandTableData(globals, dbGlb$dbIcon)
         updateSelectInput(session=session, inputId="inTabs", choices=globals$selStandTableList,
@@ -2427,7 +2430,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
   updateAutoOut <- function(session,autoOut)
   {
 cat ("updateAutoOut called\n")
-     if (is.null(names(autoOut))) # block is for backward compatibility, after 2021 it can be deleted.
+     if (!is.null(autoOut) && is.null(names(autoOut))) # block is for backward compatibility, after 2021 it can be deleted.
      { 
        updateCheckboxGroupInput(session=session, inputId="autoOut",
           selected=autoOut)
