@@ -7798,6 +7798,8 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       curdir = getwd()
       setwd("../")
       newTitle = input$PrjNewTitle
+      newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
+      ntit=paste0("title= ",newTitle)
       fn = if (isLocal()) 
       {       
         basedir = basename(curdir)
@@ -7806,19 +7808,20 @@ cat ("Make new project, input$PrjNewTitle=",input$PrjNewTitle,"\n")
       } else uuidgen()
       dir.create(fn)
       setwd(fn)
+      newdir=getwd()
       if (dirname(fvsBin) == ".")  #fvsBin points to an entry in the current dir.
       {
         if (nchar(fbin) && .Platform$OS.type=="unix") file.symlink(fbin, "FVSbin") else 
           file.copy(paste0(normalizePath(curdir),"/FVSbin"), getwd(), recursive = TRUE,
             copy.mode = TRUE, copy.date = TRUE)
       }
-      if (!isLocal()) newTitle=mkNameUnique(newTitle,setOfNames=names(getProjectList(includeLocked=TRUE)))
-      ntit=paste0("title= ",newTitle)
       idrow = grep("title=",prjid)
-      if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit  
+      if (length(idrow)==0) prjid=c(prjid,ntit) else prjid[idrow]=ntit
+cat ("new project dir=",getwd()," prjid=",prjid,"\n") 
       write(file="projectId.txt",prjid)
       updateTextInput(session=session, inputId="PrjNewTitle",value="")
       setwd(curdir)
+      file.copy(from="app.R",to=paste0(normalizePath(newdir),"/app.R"))
       globals$lastNewPrj=newTitle
       updateProjectSelections()
     })
