@@ -972,4 +972,67 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   system (cmd,wait=wait) 
 }  
   
-  
+
+#' Scan an FVS output file for errors
+#'
+#' Given the name of an FVS output file, the routine makes a list of character
+#' vectors that contain error messages found in the output. 
+#' @param outfile name of the output file.
+#' @return the list of errors found
+#' @export
+extnErrorScan <- function (outfile)
+{
+  if (missing(outfile)) return("outfile not specified")
+  if (!file.exists(outfile)) return("outfile does not exist") 
+  fout<-file(outfile,"rt")
+  on.exit(close(fout))
+  errs<-list()
+  sid<-line<-l1<-""
+  foundSum = FALSE  
+  ln = 0
+  pgmRV = NA
+  repeat
+  {
+    l1<-line
+    line=scan(fout,what="character",sep="\n",n=1,quiet=TRUE,
+         blank.lines.skip = FALSE)
+    if (length(line) == 0) break
+    ln = ln+1
+    if (is.na(pgmRV))
+    {
+      hit=grep("     FOREST VEGETATION SIMULATOR   ",line,fixed=TRUE)
+      if (length(hit)) 
+      {
+        hit=scan(text=line,what="character",quiet=TRUE)
+        pgmRV=grep("RV:",hit,fixed=TRUE)
+        pgmRV=if(is.na(pgmRV)) NA else hit[pgmRV]
+      }
+    }         
+    hit=grep("STAND ID= ",line,fixed=TRUE)
+    if (!foundSum) foundSum = length(grep("START OF SIMULATION PERIOD",
+                                     line,fixed=TRUE))>0
+    if (length(hit))
+    {
+      sid = scan(text=line,what="character",quiet=TRUE)[3]
+      next
+    }
+    hit=grep("ERROR",toupper(line),fixed=TRUE)    
+    if (length(hit)) 
+    {
+      if (length(grep("STANDARD ERRORS",toupper(line),fixed=TRUE))) next
+      if (length(grep("SAMPLING",toupper(line),fixed=TRUE))) next
+      err <- c(l1,line)
+      names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-1,ln)))
+      errs<-append(errs,err)
+    }
+  }
+  outerrs <- list()
+  outerrs <- append(outerrs,if (length(errs)) 
+    {    
+      errs[unlist(lapply(errs,nchar)) == 0] <- NULL
+      paste0(paste0(names(unlist(errs)),": ",unlist(errs)),collapse="<br>")
+    } else "No errors found")
+  if (!foundSum) outerrs <- append(errs,"Run failure")
+  attr(outerrs,"pgmRV")=if (is.na(pgmRV)) " " else pgmRV
+  outerrs
+}
