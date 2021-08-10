@@ -2437,6 +2437,7 @@ cat ("updateAutoOut called\n")
        if ("autoSVS" %in% unlist(autoOut)) updateCheckboxGroupInput(session=session, 
           inputId="autoSVS",selected="autoSVS")
      } else {
+       if (is.null(autoOut)) return()
        updateCheckboxGroupInput(session=session, inputId="autoOut",
           selected=autoOut[["autoOut"]])
        updateCheckboxGroupInput(session=session,inputId="autoSVS",selected=autoOut[["svsOut"]][["svs"]])
@@ -2573,8 +2574,10 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
   
   ##autoOut
   observe({
-    if(length(input$autoOut) || length(input$autoSVS))
+    input$autoOut
+    input$autoSVS
     {
+cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
       out<-list(svsOut=list(svs=input$autoSVS,shape=input$svsPlotShape,nfire=input$svsNFire),
                 autoOut=as.list(input$autoOut))
       if (identical(out,globals$fvsRun$autoOut)) return()
