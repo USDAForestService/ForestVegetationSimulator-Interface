@@ -390,6 +390,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   observe({
     if (!is.null(input$exitNow) && input$exitNow>0)
     {
+cat ("exit now\n")
       globals$saveOnExit=FALSE
       session$sendCustomMessage(type = "closeWindow"," ")
     }
