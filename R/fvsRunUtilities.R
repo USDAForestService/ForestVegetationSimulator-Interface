@@ -1532,6 +1532,7 @@ cat ("in updateReps, num stands=",length(fvsRun$stands),"\n")
 
 getProjectList <- function(includeLocked=FALSE)
 {
+cat ("getProjectList, includeLocked=",includeLocked,"\n") 
   if (isLocal())
   {  
     selChoices = unlist(lapply (dir(".."), function (x,inc) {
@@ -1546,28 +1547,35 @@ getProjectList <- function(includeLocked=FALSE)
       selChoices = as.list(selChoices)
     } else selChoices=NULL
   } else {
-    curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
-    curEmail=toupper(trim(sub("email=","",curEmail[1]))) 
-    data = lapply (dir(".."), function (x,inc) {         
-      if (!inc) if (file.exists(
-        paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
-      fn = paste0("../",x,"/projectId.txt") 
-      if (file.exists(fn))
-      {
-        prj = scan (fn,what="character",sep="\n",quiet=TRUE)
-        ans = c(prj=x,email=trim(sub("email=","",prj[1])),
-          title=trim(sub("title=","",prj[2])))
-        ans
-      } else NULL
-    },includeLocked) 
-    if (length(data))
+    curEmail=NULL
+    if (file.exists("projectId.txt"))
     {
-      data = as.data.frame(do.call(rbind,data),stringsAsFactors=FALSE)
-      names(data)=c("prj","email","title")
-      data$email=toupper(data$email)
-      data = data[data$email == curEmail,,drop=FALSE]
-      selChoices=as.list(data$prj)
-      names(selChoices)=data$title 
+      curEmail=scan(file="projectId.txt",what="character",sep="\n",quiet=TRUE)
+      curEmail=toupper(trim(sub("email=","",curEmail[1])))
+cat ("curEmail=",curEmail,"\n")
+      if (is.null(curEmail)) return(NULL)
+      kdata = lapply (dir(".."), function (x,inc) {         
+        if (!inc) if (file.exists(
+          paste0("../",x,"/projectIsLocked.txt"))) return(NULL)
+        fn = paste0("../",x,"/projectId.txt") 
+        if (file.exists(fn))
+        {
+          prj = scan (fn,what="character",sep="\n",quiet=TRUE)
+          ans = c(prj=x,email=trim(sub("email=","",prj[1])),
+            title=trim(sub("title=","",prj[2])))
+          ans
+        } else NULL
+      },includeLocked) 
+    } else return(NULL)
+cat ("length(kdata)=",length(kdata),"\n")
+    if (length(kdata))
+    {
+      kdata = as.data.frame(do.call(rbind,kdata),stringsAsFactors=FALSE)
+      names(kdata)=c("prj","email","title")
+      kdata$email=toupper(kdata$email)
+      kdata = kdata[kdata$email == curEmail,,drop=FALSE]
+      selChoices=as.list(kdata$prj)
+      names(selChoices)=kdata$title 
     } else selChoices=NULL
   }                                                 
   selChoices
