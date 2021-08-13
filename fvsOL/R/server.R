@@ -37,8 +37,8 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
     system.file("srcjs",package="colourpicker"))
   addResourcePath("FVSlogo.png", 
     system.file("extdata","www/FVSlogo.png",package="fvsOL"))
-  addResourcePath("displayLogo.png", 
-    system.file("extdata","www/displayLogo.png",package="fvsOL"))
+  addResourcePath("USDAFS.png", 
+    system.file("extdata","www/USDAFS.png",package="fvsOL"))
   addResourcePath("message-handler.js", 
     system.file("extdata","www/message-handler.js",package="fvsOL"))
   if (!dir.exists ("www")) dir.create("www")
@@ -262,8 +262,15 @@ cat ("Project is locked.\n")
 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    output$serverDate=renderText(HTML(paste0("Release date<br>",serverDate,"<br>",
-        if (isLocal()) "Local" else "Online"," configuration"))) 
+    serverDate = paste0("Release date: ",serverDate,"<br>")
+    serverDate = if (isLocal()) paste0(serverDate,"Local configuration<br>") else
+    {
+      hostedByLogo=system.file("extdata","www/hostedByLogo.png",package="fvsOL")
+      addResourcePath("hostedByLogo.png",hostedByLogo) 
+      paste0(serverDate, if (file.exists(hostedByLogo)) paste0("Hosted by<br>",
+        '<img src="hostedByLogo.png"</img><br>') else "Online configuration<br>")
+    }
+    output$serverDate=renderUI(HTML(serverDate))
     tit=NULL
     pfexists = file.exists("projectId.txt")
     if (!pfexists || (pfexists && file.size("projectId.txt") < 2))
@@ -2159,7 +2166,7 @@ cat ("copyToClipboard copyplot\n")
   
   ## Stands tab 
   observe({    
-    if (input$topPan == "Runs" || input$rightPan == "Stands") 
+    if (input$topPan == "Simulate" || input$rightPan == "Stands") 
     {
 cat ("Stands\n")
       f1=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
@@ -2247,7 +2254,7 @@ cat ("in reloadStandSelection\n")
 
   ## inGrps, inAnyAll, or inStdFindBut has changed
   observe({
-    if (input$topPan == "Runs" || input$rightPan == "Stands")
+    if (input$topPan == "Simulate" || input$rightPan == "Stands")
     {
 cat ("inGrps inAnyAll inStdFindBut\n")
       # insure reactivity to inStdFindBut
@@ -2344,8 +2351,8 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       updateTextInput(session=session, inputId="defMgmtID",
                       value=globals$fvsRun$defMgmtID)
       updateSelectInput(session=session, inputId="simCont",choices=list())
-      output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-        length(globals$fvsRun$stands)," stand(s)<br>",
+      output$contCnts <- renderUI(HTML(paste0("Run contents: ",
+        length(globals$fvsRun$stands)," stand(s), ",
         length(globals$fvsRun$grps)," group(s)")))
       updateSelectInput(session=session, inputId="addMgmtCats",choices=list())
       updateSelectInput(session=session, inputId="addMgmtCmps",choices=list())
@@ -2558,8 +2565,8 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       loadVarData(globals,input,dbGlb$dbIcon)
       updateVarSelection(globals,session,input)
-      output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-        length(globals$fvsRun$stands)," stand(s)<br>",
+      output$contCnts <- renderUI(HTML(paste0("Run contents: ",
+        length(globals$fvsRun$stands)," stand(s), ",
         length(globals$fvsRun$grps)," group(s)")))
       updateStandTableSelection(session,input,globals)
       loadVarData(globals,input,dbGlb$dbIcon)                                              
@@ -2841,8 +2848,8 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
         mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
         updateSelectInput(session=session, inputId="simCont", 
           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)                 
-        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-          length(globals$fvsRun$stands)," stand(s)<br>",
+        output$contCnts <- renderUI(HTML(paste0("Run contents: ",
+          length(globals$fvsRun$stands)," stand(s), ",
           length(globals$fvsRun$grps)," group(s)")))
         updateSelectInput(session=session, inputId="selpaste", 
           choices=globals$pastelistShadow,
@@ -2906,8 +2913,8 @@ cat("paste, class(topaste)=",class(topaste),"\n")
         mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
         updateSelectInput(session=session, inputId="simCont", 
            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-          length(globals$fvsRun$stands)," stand(s)<br>",
+        output$contCnts <- renderUI(HTML(paste0("Run contents: ",
+          length(globals$fvsRun$stands)," stand(s), ",
           length(globals$fvsRun$grps)," group(s)")))
       }
       globals$foundStand=0L 
@@ -4490,9 +4497,9 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       }, contentType="text")
 
   observe({
-    if (input$topPan == "SVS3d")
+    if (input$topPan == "Visualize")
     {
-cat ("SVS3d hit\n")
+cat ("Visualize hit\n")
       allRuns = globals$FVS_Runs
       runChoices = list()
       for (has in names(allRuns))
@@ -4584,7 +4591,7 @@ cat ("SVS3d hit\n")
   observe({
     if (length(input$SVSRunList1))
     {
-cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
+cat ("Visualize input$SVSRunList1=",input$SVSRunList1,"\n")
       choices = mkSVSchoices(input$SVSRunList1)
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
@@ -4599,7 +4606,7 @@ cat ("SVS3d input$SVSRunList1=",input$SVSRunList1,"\n")
   observe({
     if (length(input$SVSRunList2))
     {
-cat ("SVS3d input$SVSRunList2=",input$SVSRunList2,"\n")
+cat ("Visualize input$SVSRunList2=",input$SVSRunList2,"\n")
       choices = mkSVSchoices(input$SVSRunList2)
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
@@ -4842,6 +4849,10 @@ cat("Residual length of svs=",length(svs),"\n")
       session$sendCustomMessage(type="makeTopSideImages", 
               c(id,paste0(id,"Pers"),paste0(id,"Top"),paste0(id,"Side"))) 
       progress$close()
+      if (id=="SVSImg1") session$sendCustomMessage(type="jsCode",
+           list(code= "$('#SVSstaIm1').show();$('#svsCopy1').show();")) else
+                         session$sendCustomMessage(type="jsCode",
+           list(code= "$('#SVSstaIm2').show();$('#svsCopy2').show();"))
     }
     session$onFlushed(callBack, once = TRUE)
   }
@@ -4849,7 +4860,7 @@ cat("Residual length of svs=",length(svs),"\n")
   observe({
     if (length(input$SVSImgList1))
     {
-cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
+cat ("Visualize SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
       fn=input$SVSImgList1
       if (!file.exists(fn)) return()
       # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
@@ -4860,14 +4871,12 @@ cat ("SVS3d SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n")
         subplots="subplots" %in% input$SVSdraw1,downTrees="downTrees" %in% input$SVSdraw1,
         fireLine="fireLine" %in% input$SVSdraw1,rangePoles="rangePoles" %in% input$SVSdraw1,
         plotColor=input$svsPlotColor1)
-      session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm1').show();$('#svsCopy1').show();"))
     }
   })
   observe({
     if (length(input$SVSImgList2))
     {
-cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
+cat ("Visualize SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n") 
       fn=input$SVSImgList2
       if (!file.exists(fn)) return()
       # actual images are loaded into these two img items in the browser when CustomMessage makeTopSideImages is sent
@@ -4878,8 +4887,6 @@ cat ("SVS3d SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n")
         subplots="subplots" %in% input$SVSdraw2,downTrees="downTrees" %in% input$SVSdraw2,
         fireLine="fireLine" %in% input$SVSdraw2,rangePoles="rangePoles" %in% input$SVSdraw2,
         plotColor=input$svsPlotColor2)
-      session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm2').show();$('#svsCopy2').show();"))
     }
   })
   ## Maps processing
@@ -5643,7 +5650,7 @@ cat("delete project button.")
 
   ##topHelp
   observe({
-    if (input$topPan == "Help")
+    if (input$topPan == "Get Help")
     {
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Loading Help File", value = 2)
@@ -5653,11 +5660,15 @@ cat("delete project button.")
       fr = "fvsOnlineHelpRender.RData"
       fn =  system.file("extdata", "fvsOnlineHelp.html", package = "fvsOL")
       xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
-      info=file.info(c(fr,fn,xlsxfile))
-      if (which.max(info[,4]) != 1) 
+      loadNew = if (file.exists(fr))
+      {
+        info=file.info(c(fr,fn,xlsxfile))
+        which.max(as.integer(info[,"mtime"])) != 1
+      } else TRUE
+      if (loadNew) 
       {
         unlink(fr)
-        help = readChar(fn, info[2,1]) 
+        help = readChar(fn, file.size(fn)) 
         progress$set(message = "Compiling the help file for this project", 
                      detail = "Loading Output Table Descriptions",value = 5)
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
@@ -5672,8 +5683,7 @@ cat("delete project button.")
           if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
                   pattern="**OUTPUTHTML**",replacement=morehtml)
         }
-        progress$set(message = "Compiling the help file for this project", 
-                     detail = "Loading Input Table Descriptions",value = 8)
+        progress$set(detail = "Loading Input Table Descriptions",value = 8)
         tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
         if (class(tabs)!="try-error")                                                         
         {
@@ -5786,7 +5796,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     if (input$uploadData > 0)
     {
       updateTabsetPanel(session=session, inputId="topPan",
-        selected="Project Tools")
+        selected="Manage Projects")
       updateTabsetPanel(session=session, inputId="toolsPan",
         selected="Import input data")
       updateTabsetPanel(session=session, inputId="inputDBPan", 
@@ -6833,7 +6843,7 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
   })  
   
   observe({
-    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Project Tools") 
+    if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Manage Projects") 
     {
 cat ("dataEditor View and edit existing tables\n")
       tbs <- myListTables(dbGlb$dbIcon)
@@ -7795,7 +7805,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
 
    ## Projects hit
   observe({    
-    if (input$topPan == "Project Tools" && input$toolsPan == "Manage project") 
+    if (input$topPan == "Manage Projects" && input$toolsPan == "Manage project") 
     {
 cat ("Manage project hit\n")
       updateProjectSelections()

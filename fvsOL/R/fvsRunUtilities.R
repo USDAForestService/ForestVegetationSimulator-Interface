@@ -1787,7 +1787,6 @@ mkFVSProjectDB <- function (prjDir=getwd())
   }   
   unlink("prms.RData")
   unlink("treeforms.RData")
-  unlink("fvsOnlineHelpRender.RData")
   ########################
   cnt = dbGetQuery(db,"select count(*) from FVSRuns")
   dbDisconnect(db)

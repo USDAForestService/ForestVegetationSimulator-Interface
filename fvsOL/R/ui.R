@@ -21,24 +21,22 @@ FVSOnlineUI <- fixedPage(
     ),       
   tags$head(tags$script(HTML(
       'Shiny.addCustomMessageHandler("jsCode",function(message) {eval(message.code);});'))),
+  tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
+             "background-color: #eef8ff; color: black; ",
+             "position: absolute; left: 30px;",            
+             "opacity: .8; height: 35px; width: 50%;}")),
   fixedRow(column(width=4,offset=0,
       HTML(paste0('<h4 style="margin-top: 1px; margin-bottom: 0px;"><img src="FVSlogo.png"</img>',
                   '&nbsp;Forest Vegetation Simulator</h4><br>',
-                  '<img style="margin-top: -18px; margin-bottom: 2px;" src="displayLogo.png" </img>'))),
-    column(width=4,offset=.5,uiOutput("projectTitle")),
-    column(width=2,
-      tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
-             "background-color: #eef8ff; color: black; ",
-             "position: absolute; left: 30px;",            
-             "opacity: .9; height: 35px; width: 50%;}")),
-      uiOutput("contCnts")),
-    column(width=2,uiOutput("serverDate"))
+                  '<img style="margin-top: -18px; margin-bottom: 2px;" src="USDAFS.png" </img>'))),
+    column(width=4,offset=.5,uiOutput("projectTitle"),uiOutput("contCnts")),
+    column(width=4,uiOutput("serverDate"))
   ), #End of Header
   fixedRow(column(width=12,offset=0,
     tags$style(type="text/css","#topPan {background-color: rgb(227,227,255);}"),
     uiOutput("appLocked"),
     tabsetPanel(id="topPan",
-      tabPanel("Runs",
+      tabPanel("Simulate",
         fixedRow(column(width=4,offset=0,h6(),
           tags$style(type="text/css", "#runSel { width: 100%; }"),
           selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
@@ -484,7 +482,7 @@ FVSOnlineUI <- fixedPage(
                 choices=list(),multiple=FALSE,selectize=FALSE)))),
             h5(),uiOutput("tabDesc2"))
       ) ) ), # END View Outputs
-      tabPanel("SVS3d",
+      tabPanel("Visualize",
         h6(),
         fixedRow(
           column(width=6,offset=0,         
@@ -501,7 +499,7 @@ FVSOnlineUI <- fixedPage(
                             value = "#C5FAC6"))),
             selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-            fixedRow(column(width=12,offset=0,h4(id="SVSstaIm1","Static images (draggable to documents)"))),
+            fixedRow(column(width=12,offset=0,h4(id="SVSstaIm1","Static images"))),
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg1Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg1Top")),
@@ -522,15 +520,15 @@ FVSOnlineUI <- fixedPage(
                             value = "#C5FAC6"))),
             selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
-            fixedRow(column(width=12,offset=0,h4(id="SVSstaIm2","Static images (draggable to documents)"))),
+            fixedRow(column(width=12,offset=0,h4(id="SVSstaIm2","Static images"))),
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg2Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg2Top")),
               column(width=4,offset=0,uiOutput("SVSqImg2Side"))),h2(),
             actionButton(inputId="svsCopy2","Copy dynamic plot to clipboard"),
             rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
-      )), #END SVS3d
-      tabPanel("Maps",
+      )), #END Visualize
+      tabPanel("View On Maps",
         h6(),
         fixedRow(
         column(width=3,offset=0,
@@ -554,11 +552,11 @@ FVSOnlineUI <- fixedPage(
          fixedRow(column(width=12,offset=0,
            textOutput("leafletMessage"),
            leafletOutput("leafletMap",height="800px",width="100%")))
-      ), #END Maps
-        tabPanel("Project Tools",
+      ), #END View On Maps
+        tabPanel("Manage Projects",
         tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
-        tabsetPanel(id="toolsPan",
-                    tabPanel("Manage project",   
+        tabsetPanel(id="toolsPan", 
+          tabPanel("Manage project",   
               h4(),h4("Start another project"), 
               selectInput("PrjSelect", "Select project", multiple=FALSE,
                  choices = list(), selectize=FALSE),       
@@ -668,7 +666,7 @@ FVSOnlineUI <- fixedPage(
               fixedRow(column(width=12,offset=0,h6(),uiOutput("inputTabDesc")))
             ),              
             tabPanel("Upload Map data", 
-              h4("Upload a stand layer to use in the Maps feature."),       
+              h4('Upload a stand layer to use in the "View On Maps" feature.'),       
               h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
               fileInput("mapUpload","Step 1: Upload polygon or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
@@ -781,8 +779,8 @@ FVSOnlineUI <- fixedPage(
             downloadButton("dlFVSRunZip","Download FVSProjectData.zip") 
           ) #END Downloads tabPanel                                        
         )  #END  tabsetPanel for toolsPan
-      ),  ## END Project Tools          
-      tabPanel("Help",
+      ),  ## END Manage Projects          
+      tabPanel("Get Help",
        fixedRow(column(width=12,offset=0,
           h5(),div(style = 'overflow-y:scroll;height:550px;',uiOutput("uiHelpText"))))  
       ) #END help tab  
