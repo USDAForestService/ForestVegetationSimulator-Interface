@@ -1868,7 +1868,18 @@ mergeProjects <- function(masterdbfile,addondbfile)
   cnt
 }  
   
+
+areFilesIdentical <- function (f1=NULL, f2=NULL)
+{
+  # returns true if the one file is the same as another (not just the same size)
+  if (is.null(f1) || is.null(f2)) return(FALSE)
+  if (!file.exists(f1)) return(FALSE)
+  if (!file.exists(f2)) return(FALSE)
+  f1sz=file.size(f1)
+  f2sz=file.size(f2)
+  if (f1sz != f2sz) return(FALSE)
+  f1bin=readBin(f1,what="raw",size=1,n=f1sz)
+  f2bin=readBin(f2,what="raw",size=1,n=f2sz)
+  identical(f1bin,f2bin)
+}
   
-      
-
-

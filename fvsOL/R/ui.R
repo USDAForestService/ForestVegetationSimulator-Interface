@@ -78,6 +78,11 @@ FVSOnlineUI <- fixedPage(
           tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
           tabsetPanel(id = "rightPan",
             tabPanel("Stands",
+              div(id="usingTraining",class="row", 
+                column(width=5,
+                  h5("You are using the training input database")),
+                column(width=3,h6(),
+                  actionButton("uploadData","Upload inventory database"))),
               selectInput("inTabs","Inventory Data Tables", NULL, NULL, 
                         multiple=FALSE, selectize=FALSE),
               selectInput("inVars","Variants", NULL, NULL, 
@@ -617,7 +622,7 @@ FVSOnlineUI <- fixedPage(
                             'data-dismiss' = "modal", "No")))),
             h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
           ),  # END Manage Project   
-        tabPanel("Import Input Data", 
+        tabPanel("Import input data", 
         fixedRow(column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
