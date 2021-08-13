@@ -2161,7 +2161,11 @@ cat ("copyToClipboard copyplot\n")
   observe({    
     if (input$topPan == "Runs" || input$rightPan == "Stands") 
     {
-cat ("Stands\n")     
+cat ("Stands\n")
+      f1=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      if (areFilesIdentical(f1=f1,f2="FVS_Data.db"))
+        session$sendCustomMessage(type="jsCode",list(code= "$('#usingTraining').show();")) else
+        session$sendCustomMessage(type="jsCode",list(code= "$('#usingTraining').hide();"))
       initNewInputDB(session,output,dbGlb)
       loadStandTableData(globals, dbGlb$dbIcon)
       updateStandTableSelection(session,input,globals)
@@ -5777,9 +5781,22 @@ cat ("tabDescSel2, tab=",tab,"\n")
     output$tabDesc2 <- renderUI(mkTableDescription(tab))
   })
   
+  ## uploadData button
+  observe({
+    if (input$uploadData > 0)
+    {
+      updateTabsetPanel(session=session, inputId="topPan",
+        selected="Project Tools")
+      updateTabsetPanel(session=session, inputId="toolsPan",
+        selected="Import input data")
+      updateTabsetPanel(session=session, inputId="inputDBPan", 
+        selected="Upload inventory data")
+    }
+  })
+  
   ##### data upload code  
   observe({
-    if(input$toolsPan == "Import Input Data")
+    if(input$toolsPan == "Import input data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
         selected="Upload inventory data")
