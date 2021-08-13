@@ -263,12 +263,15 @@ cat ("Project is locked.\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     serverDate = paste0("Release date: ",serverDate,"<br>")
-    serverDate = if (isLocal()) paste0(serverDate,"Local configuration<br>") else
+    if (isLocal()) serverDate = paste0(serverDate,"Local configuration<br>") else
     {
       hostedByLogo=system.file("extdata","www/hostedByLogo.png",package="fvsOL")
-      addResourcePath("hostedByLogo.png",hostedByLogo) 
-      paste0(serverDate, if (file.exists(hostedByLogo)) paste0("Hosted by<br>",
-        '<img src="hostedByLogo.png"</img><br>') else "Online configuration<br>")
+      if (file.exists(hostedByLogo)) 
+      {
+        addResourcePath("hostedByLogo.png",hostedByLogo) 
+        serverDate = paste0(serverDate,
+                     "Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
+      } else serverDate = paste0(serverDate, "Online configuration<br>")
     }
     output$serverDate=renderUI(HTML(serverDate))
     tit=NULL
@@ -285,7 +288,7 @@ cat ("Project is locked.\n")
            "<br>Last accessed: <b>",
            format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
 cat ("tstring=",tstring,"\n")    
-    output$projectTitle = renderText(HTML(paste0("<p>",tstring,"<p/>")))
+    output$projectTitle = renderText(HTML(tstring))
     mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim)
     resetGlobals(globals,TRUE)
     selChoices = globals$FVS_Runs
