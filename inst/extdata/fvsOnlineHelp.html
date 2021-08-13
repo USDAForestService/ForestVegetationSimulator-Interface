@@ -5,17 +5,17 @@
 	<li><p style="margin-bottom: 0in"><a href="#topmenu">Top menu items</a> 
 	</p>
 	<ul>
-		<li><p style="margin-bottom: 0in"><a href="#tmruns">Runs</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmruns">Simulate</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmout">View Outputs</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#outputTables">Output Table Descriptions</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmsvs">SVS3d</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmsvs">Visualize</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmmaps">Maps</a> 
+		<li><p style="margin-bottom: 0in"><a href="#tmmaps">View On Maps</a> 
 		</p>
-		<li><p style="margin-bottom: 0in"><a href="#tmin">Import Input Data</a>
+		<li><p style="margin-bottom: 0in"><a href="#tmin">Manage Projects</a>
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#inputTables">Input Table Descriptions</a> 
 		</p>
@@ -54,7 +54,7 @@ wiki about FVSOnline software</a>.</p>
 <ul>
 	<li><p style="margin-bottom: 0in">Use the default input database
 	while learning, load your own data once you're comfortable using the
-	interface. Note that there is a command under the <b>Tools</b> menu
+	interface. Note that there is a command under the <b>Project Tools</b> menu
 	that lets you delete all runs and related outputs so you can easily
 	start fresh with your own data. 
 	</p>
@@ -69,31 +69,32 @@ wiki about FVSOnline software</a>.</p>
 </p>
 <h4><a name="topmenu"></a>Top menu items</h4>
 <ul>
-	<li><p style="margin-bottom: 0in"><b>Runs: </b>Set up and make FVS
-	simulations; the outputs go to an output database. 
+	<li><p style="margin-bottom: 0in"><b>Simulate: </b>Set up and make FVS
+	simulations; the outputs go to an output database which contains all
+	the output for all the runs in a project. If you rerun a simulation, this
+	database is updated to reflect the most recent outputs. 
 	</p>
 	<li><p style="margin-bottom: 0in"><b>View Outputs: </b>Make
 	tables and graphs using the outputs stored in the output
 	database. 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>SVS3d: </b>Display 3d images of stands.
+	<li><p style="margin-bottom: 0in"><b>Visualize: </b>Display 3d images of stands.
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Import Input Data: </b>Load (or
-	edit) the input database. 
+	<li><p style="margin-bottom: 0in"><b>View On Maps: </b>Display some outputs in a spatial context
+	  if your stand locations are loaded. 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Project Tools: </b>Access commands to
-	import runs and other items from other projects or backup files. Manage projects
-	by creating create new projects, open other projects, deleted outputs or entire projects,
-	make and manage backup files. Create and download data from a project. 
+	<li><p style="margin-bottom: 0in"><b>Project Tools: </b>Access commands to manage projects,
+	import input data, and import runs and other items from other projects or backup files, and
+	download data from project. Under "Manage projects", you can 
+	create new projects, open other projects, deleted outputs or entire projects,
+	make and manage backup files. 
 	</p>
-	<li><p><b>Help: </b>Display this help. 
+	<li><p><b>Get Help: </b>Display this help. 
 	</p>
 </ul>
-<h4><a name="tmruns"></a>Runs</h4>
-<p>When the <b>Runs</b>
-menu is selected the screen is divided into two regions, left and
-right. The left side contains the <b>Selected
-run</b>
+<h4><a name="tmruns"></a>Simulate</h4>
+<p>When the <b>Simulate</b> menu is selected the screen is divided into two regions, 
+left and right. The left side contains the <b>Selected run</b>
 list and buttons to create new runs, reload a selected run, save it, duplicate it 
 (more on that later), or delete it. The title of the selected run is displayed in a text box
 (you can change it to whatever you wish) and the run <b>Contents</b>
@@ -109,7 +110,9 @@ FVS keywords</a> (also called commands) that that instruct FVS to invoke
 options or to simulate management activities. The stands and
 components will be added to the <b>Contents</b> list on the left. 
 </p>
-<p>The first step in building a run is to select the FVS variant you wish to
+<p>The first step in building a run is to select the initialization table
+you wish to use in the input database (generally, FVS_StandInit is used). The
+second step is to pick FVS variant you wish to
 use. Only those stands that can be run with the selected variant will be listed
 as possible choices. Select one or more groups and then select the stands from
 the selected groups. You can add individually selected stands or all the stands
@@ -374,7 +377,7 @@ on the image and rotate it, flip it, and zoom in and out using your mouse.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
-<h4><a name="tmmaps"></a>Maps</h4>
+<h4><a name="tmmaps"></a>View On Maps</h4>
 <p>You can display stand polygon boundaries of the stands in the <b>Selected Run</b> 
 over a Google satellite or other map. Select an <b>Output Table</b> and a <b>Variable</b> 
 from the table. When you point your mouse at a stand, a small table is displayed 
@@ -385,7 +388,7 @@ time to generate the graphs.
 Note that the spatial polygons of the stand boundaries are 
 required to display boundaries. However, spatial points can alternatively be loaded and
 when points are provided, a red dot is displayed at the point location. 
-See <b>Map data</b> under <a href="#tmin">Import Data</a>
+See <b>Map data</b> under <a href="#tmin">Project Tools</a>
 to see now to load this spatial data.
 </p><p>
 If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
@@ -394,8 +397,10 @@ assuming WGS84 geographic coordinates are used.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
-<h4><a name="tmin"></a>Import Data</h4>
-<p>You can <b>Upload inventory database</b> by selecting an 
+<h4><a name="tmin"></a>Manage Projects</h4>
+<p>Under "Manage project", you can create new projects, open other projects, 
+deleted outputs or entire projects, make and manage backup files.</p> 
+<p><b>Import input data</b> provides tools for loading an 
 FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
 database (use the file suffix .db), as a Microsoft Access database
 (.mdb or .accdb), or as an Excel (.xlsx) database where the sheet names are
@@ -420,7 +425,7 @@ in the
 <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
 Users Guide to the Database Extension.</a></p>
 <p>You can upload <b>Map data</b> that is used to display stand polygons on top of reference
-maps using the <a href="#tmmaps">Maps</a> menu item. Many file formats are
+maps using the <a href="#tmmaps">View On Maps</a> menu item. Many file formats are
 supported, <a href="http://www.gdal.org/ogr_formats.html" target="_blank">see this
 list</a>. To upload a map, first create a .zip file that contains a single directory (folder) 
 where the coverages are stored. Then upload the .zip file and let FVSOnline try to
@@ -441,7 +446,7 @@ Any reprojection needed to display the data is done automatically.</p>
 </p>
 <h4><a name="inputTables"></a>Input tables</h4>
 **INPUTHTML**
-<h4><a name="tmtool"></a>Project Tools</h4>
+<h4><a name="tmtool"></a>Manage Projects</h4>
 <p>The <b>Import runs and other items</b> tab allows you to import runs,
 custom components (.kcp), graph settings, custom queries, FVS_Data.db (input data bases), 
 Spatial Data, or any combination of these from 1) an existing project, or 2) a backup
