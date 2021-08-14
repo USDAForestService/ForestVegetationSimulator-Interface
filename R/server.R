@@ -4892,11 +4892,11 @@ cat ("Visualize SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n"
         plotColor=input$svsPlotColor2)
     }
   })
-  ## Maps processing
+  ## "View On Maps" processing
   observe({
-    if (input$topPan == "Maps")
+    if (input$topPan == "View On Maps")
     {
-cat ("Maps hit\n")
+cat ("View On Maps hit\n")
       require(rgdal) 
       theRuns = try(dbGetQuery(dbGlb$dbOcon,
                 paste0("select distinct RunTitle, KeywordFile from FVS_Cases",
@@ -4916,7 +4916,7 @@ cat ("Maps hit\n")
     }
    })
   observe({
-    if (length(input$mapDsRunList) && input$topPan == "Maps")
+    if (length(input$mapDsRunList) && input$topPan == "View On Maps")
     {
 cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n") 
       cases = try(dbGetQuery(dbGlb$dbOcon,
