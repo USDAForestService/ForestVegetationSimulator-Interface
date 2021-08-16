@@ -780,7 +780,7 @@ FVSOnlineUI <- fixedPage(
           ) #END Downloads tabPanel                                        
         )  #END  tabsetPanel for toolsPan
       ),  ## END Manage Projects          
-      tabPanel("Get Help",
+      tabPanel("Help",
        fixedRow(column(width=12,offset=0,
           h5(),div(style = 'overflow-y:scroll;height:550px;',uiOutput("uiHelpText"))))  
       ) #END help tab  

@@ -5653,7 +5653,7 @@ cat("delete project button.")
 
   ##topHelp
   observe({
-    if (input$topPan == "Get Help")
+    if (input$topPan == "Help")
     {
       progress <- shiny::Progress$new(session,min=1,max=12)
       progress$set(message = "Loading Help File", value = 2)
