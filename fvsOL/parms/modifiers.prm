@@ -1,0 +1,206 @@
+//start merch_vol
+
+description{ls ne cs}:
+{Change the merchantability specification for sawlog volume and pulpwood volume 
+
+With the LS, NE, and CS variants, default minimum DBH for sawlog and pulpwood
+volumes vary by Forest. See the FVS Keyword Guide for defaults. 
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{sn}:
+{Change the merchantability specification for sawlog volume and pulpwood volume 
+
+With the SN variant: The default sawlog minimum DBH is 10" for
+softwoods and 12.0" for hardwoods. The default pulpwood minimum DBH is 4.0" for 
+hardwoods and softwoods.
+
+The default minimum top diameter for sawlogs is 7.0" for softwoods and 9.0" 
+for hardwoods. These values are fixed. Changing them will cause an error.
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{ni ie kt em}:
+{Change the merchantability limits for board-foot volume and cubic foot volume 
+
+With the NI, IE, KT, and EM variants: Board-foot and cubic foot, minimum 
+merchantable DBH is 7.0", except for lodgepole pine which is 6.0" DBH
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{ci tt ut}:
+{Change the merchantability limits for board-foot volume and cubic foot volume
+
+With the CI, UT, and UT variants: Board-foot and cubic foot, minimum 
+merchantable DBH is 8.0", except for lodgepole pine which is 7.0" DBH
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{cr sw sp bp sf lp}:
+{Change the merchantability limits for board-foot volume and cubic foot volume
+
+See variant overview for default specifications.
+}
+
+description{ws nc ca}:
+{Change the merchantability limits for board-foot volume and cubic foot volume.
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{ak}:
+{Change the merchantability limits for board-foot volume and cubic foot volume
+
+Board-foot defaults:
+Minimum merchantable DBH is 9.0", except for sitka spruce which is 8.0".
+Cubic foot defaults:
+Minimum merchantable DBH for hardwoods is 11.0".
+Minimum top diameter for hardwoods is 9.0"
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+description{bm ec so wc pn oc op}:
+{Change the merchantability limits for board-foot volume and cubic foot volume
+
+For BM, EC, WC, and PN varaints, minimum merchantable board-foot and cubic foot 
+DBH is 7.0", except for lodgepole pine which is 6.0".
+
+Form class default by forest, species, and size classes.  See "Region
+6 Form Class Defaults used in the Forest Vegetation Simulator (FVS)
+Variants", Gary Dixon, Forest Management Service Center, Fort Collins,
+CO. 8/13/96. 17p.
+
+CAUTION:
+Species specific defaults are not yet supported within Suppose.}
+
+f1title:
+{Year/Cycle must be "0" for changes to effect inventory year}
+f1:{scheduleBox}
+f2:{speciesSelection Species}
+
+f3title{ls ne cs sn}:
+{-------------SET SAWLOG MERCHANTIBILITY LIMITS-------------}
+f3title{ni ie ut tt ak em ws ci cr bp sw sp sf lp kt nc so bm ec wc pn ca oc op}:
+{-------------SET BOARDFOOT MERCHANTIBILITY LIMITS-------------}
+
+f3:{numberBox Minimum merchantable DBH}
+f3v{ni ie em bm ec kt wc pn ca oc op}:{7}
+f3v{so ak nc}:{9}
+f3v{ut tt ci}:{8}
+f3v{ws}:{10}
+f3v{cr sw sp sf lp bp}:{blank}
+f3v{ne ls cs sn}:{blank}
+
+f4:{numberBox Minimum top diameter inside bark}
+f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+f4v{ni ie em bm ec kt wc pn ca oc op}:{4.5}
+f4v{so ut tt ak ws ci nc}:{6}
+f4v{cr sw sp sf lp bp}:{blank}
+f4v{ls ne cs}:{blank}
+
+f5:{numberBox Stump height}
+f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+f5v:{1}
+
+f6:{numberBox Form class}
+f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{80}
+f6v{nc so bm ec wc pn ca oc op}:{0}
+
+f7:{longListButton Volume calculation method}
+f7v{cs ls ne}:{\
+1 = Kemp equations with Allen adjustments
+2 = User defined equation via BFVOLEQU keyword
+3 = not currently used with this variant
+4 = not currently used with this variant
+5 = Gevorkiantz Volume Equations
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Original TWIGS volume equations
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+f7v{cr bp sw sp sf lp sn}:{\
+1 = Kemp equations with Allen adjustments
+2 = User defined equation via BFVOLEQU keyword
+3 = not currently used with this variant
+4 = not currently used with this variant
+5 = Western Sierra Nevada log rules previously in FVS
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+f7v:{\
+1 = Kemp equations with Allen adjustments
+2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
+3 = Region 6 eastside taper equations previously in FVS
+4 = Region 6 westside taper equations previously in FVS
+5 = Western Sierra Nevada log rules previously in FVS
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+
+f8title{ls ne cs sn}:
+{-------------SET PULPWOOD MERCHANTIBILITY LIMITS-------------}
+f8title{ni ie ut tt ak em ws ci cr bp sw sp sf lp kt nc so bm ec wc pn ca oc op}:
+{-------------SET CUBIC FOOT MERCHANTIBILITY LIMITS-------------}
+
+f8:{numberBox Minimum DBH}
+f8v{ls cs ne sn cr sw sp sf lp bp}:{blank}
+f8v{ni ie em ws bm ec kt wc pn ca oc op}:{7}
+f8v{ut tt ci}:{8}
+f8v{so ak nc}:{9}
+
+f9:{numberBox Minimum top diameter}
+f9{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+f9v{ni ie em ws bm ec kt wc pn ca oc op}:{4.5}
+f9v{so ut tt ak ci nc}:{6}
+f9v{ls ne cs cr sw sp sf lp bp}:{blank}
+
+f10:{numberBox Stump height (feet)}
+f10{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+f10v:{1}
+
+f11:{numberBox Form class}
+f11v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{80}
+f11v{ni ie so bm ec wc pn nc ca oc op}:{0}
+
+f12:{longListButton Method of volume calculation}
+f12v{ls cs ne}:{\
+1 = User defined equation via CFVOLEQU keyword
+2 = not used in this variant
+3 = not used in this variant
+4 = not used in this variant
+5 = Gevorkiantz volume equations
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Original TWIGS volume equations}
+f12v{ni ie so ut tt ak em ws bm ec ci nc}:{\
+1 = Regression model equations. Wykoff, Allen, et.al.
+2 = Region 6 eastside taper equations previously in FVS
+3 = Region 6 westside taper equations previously in FVS
+4 = not currently used
+5 = not currently used
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)}
+f12v:{\
+1 = User defined equation via CFVOLEQU keyword
+2 = Region 6 eastside taper equations previously in FVS
+3 = Region 6 westside taper equations previously in FVS
+4 = not currently used
+5 = not currently used
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)}
+
+answerForm:{\
+BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!
+Volume    !1,10!!2,10!!8,10!!9,10!!10,10!!11,10!!12,10,numbers!
+}
+numbers:{1 2 3 4 5 6 7 8 9}
+
+//end merch_vol
+

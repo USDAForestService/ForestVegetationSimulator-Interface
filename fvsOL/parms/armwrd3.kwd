@@ -1,0 +1,780 @@
+//start keyword.armwrd3.BBClear
+
+description:
+{Deactivate the default bark beetle events. The model will automatically
+schedule bark beetle events for bark beetle types 1, 3, and 4 using the
+default values unless BBClear, BBType1, BBType2, BBType3, or BBType4 are 
+used.}
+
+answerForm:{BBClear}
+
+//end keyword.armwrd3.BBClear
+
+//start keyword.armwrd3.BBOut
+
+description:
+{Instructs the model to write a table of bark beetle output.}
+
+answerForm:{BBOut}
+parmsForm=answerForm
+
+//end keyword.armwrd3.BBOut
+
+
+//start keyword.armwrd3.BBType1
+
+description:
+{Specify a type 1 bark beetle outbreak.  A beetle outbreak of type 1
+occurs when the density and diameter of trees of a given species exceed
+user-defined minimums;  at this point both root disease infected and
+uninfected trees in the stand may potentially be killed.
+
+Examples of type 1 bark beetles are mountain pine beetle (Dendroctonus   
+ponderosae) on lodgepole pine and western pine beetle (D. brevicomis) on
+ponderosa pine.}
+
+f1title:{Earliest date that an outbreak can occur}
+f1:{scheduleBox}
+f2:{listButton Number of outbreaks}
+f2v:{Multiple outbreaks
+1 outbreak}
+f3:{speciesSelection Tree species to infest}
+f3v:{deleteAll PP}
+f4:{sliderBox Mininimum DBH to infest (inches)}  
+f4v:{8.0 0.0 100.0 0.0 100.0}
+f5:{sliderBox Minimum density of eligible trees (trees/acre)}
+f5v:{150.0 0.0 500.0 0.0 500.0}
+f6:{sliderBox Mortality rate applied to all eligible trees if an outbreak \
+occurs}
+f6v:{0.10 0.0 1.0 0.0 1.0}
+
+answerForm:
+{BBType1   !1,10!!3,10!!4,10!!5,10!!6,10!!2,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.BBType1
+
+
+//start keyword.armwrd3.BBType2
+
+description:
+{Specify a type 2 bark beetle outbreak.  A beetle outbreak of type 2
+occurs when the number of windfallen trees/acre exceeds a 
+user-defined minimum;  at this point both root disease infected and
+uninfected trees in the stand may potentially be killed.
+
+An example of a type 2 bark beetle is the Douglas-fir beetle 
+(D. psuedotsugae) on Douglas-fir.} 
+
+f1title:{Earliest date that an outbreak can occur}
+f1:{scheduleBox}
+f2:{listButton Number of outbreaks}
+f2v:{Multiple outbreaks
+1 outbreak}
+f3:{speciesSelection Tree species to infest}
+f3v:{deleteAll DF}
+f4:{sliderBox Mininimum DBH to infest (inches)}
+f4v:{0.0 0.0 100.0 0.0 100.0}
+f5:{sliderBox Minimum density of windthrown trees (trees/acre)}
+f5v:{10.0 0.0 100.0 0.0 100.0}
+f6:{sliderBox Mortality rate applied to all eligible trees if an outbreak \
+occurs}
+f6v:{0.88 0.0 1.0 0.0 1.0}
+
+answerForm:
+{BBType2   !1,10!!3,10!!4,10!!5,10!!6,10!!2,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.BBType2
+
+
+//start keyword.armwrd3.BBType3
+
+description:
+{Specify a type 3 bark beetle outbreak.  A beetle outbreak of type 3
+occurs when the density of trees of a given species with a sufficient
+proportion of their root systems infected exceeds a user-defined minimum;
+at this point only trees infected by root disease may potentially be killed.
+
+An example of a type 3 bark beetle is fir engraver (Scolytus ventralis) on
+grand fir.}
+
+f1title:{Earliest date that an outbreak can occur}
+f1:{scheduleBox}
+f2:{listButton Number of outbreaks}
+f2v:{Multiple outbreaks
+1 outbreak}
+f3:{speciesSelection Tree species to infest}
+f3v{bm}:{deleteAll GF}
+f3v{ci}:{deleteAll GF}
+f3v{ec}:{deleteAll SF}
+f3v{em}:{deleteAll GF}
+f3v{ni}:{deleteAll GF}
+f3v{so}:{deleteAll WF}
+f3v{ws}:{deleteAll WF}
+f4:{sliderBox Mininimum DBH to infest (inches)}
+f4v:{10.0 0.0 100.0 0.0 100.0}
+f5:{sliderBox Minimum density of eligible trees (trees/acre)}
+f5v:{10.0 0.0 100.0 0.0 100.0}
+f6:{sliderBox Minimum proportion of roots infected}
+f6v:{0.30 0.0 1.0 0.0 1.0}
+f7:{sliderBox Mortality rate applied to all eligible trees if an outbreak \
+occurs}
+f7v:{0.88 0.0 1.0 0.0 1.0}
+
+answerForm:
+{BBType3   !1,10!!3,10!!4,10!!5,10!!6,10!!2,10!!7,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.BBType3
+
+
+//start keyword.armwrd3.BBType4
+
+description:
+{Specify a type 4 bark beetle outbreak.  A beetle outbreak of type 4
+occurs when the density of trees of a given species with a sufficient
+proportion of their root systems infected exceeds a user-defined minimum;
+at this point trees infected or not infected by root disease may potentially
+be killed.
+
+An example of a type 4 bark beetle is mountain pine beetle 
+on ponderosa pine (Dendroctonus ponderosae).}
+
+f1title:{Earliest date that an outbreak can occur}
+f1:{scheduleBox}
+f2:{listButton Number of outbreaks}
+f2v:{Multiple outbreaks
+1 outbreak}
+f3:{speciesSelection Tree species to infest}
+f3v:{deleteAll PP}
+f4:{sliderBox Mininimum DBH to infest (inches)}
+f4v:{4.0 0.0 100.0 0.0 100.0}
+f5:{sliderBox Minimum density of eligible trees (trees/acre)}
+f5v:{1.0 0.0 100.0 0.0 100.0}
+f6:{sliderBox Minimum proportion of roots infected}
+f6v:{0.40 0.0 1.0 0.0 1.0}
+f7:{sliderBox Mortality rate applied to all eligible trees if an outbreak \
+occurs}
+f7v:{0.75 0.0 1.0 0.0 1.0}
+f8:{sliderBox Mortality rate applied to all eligible trees with little or \
+no infection}
+f8v:{0.3 0.0 1.0 0.0 1.0}
+f9:{sliderBox Mortality rate applied to all uninfected trees in the fringe \
+area around the center}
+f9v:{0.15 0.0 1.0 0.0 1.0}
+f10:{sliderBox Mortality rate applied to all uninfected trees outside the \
+center}
+f10v:{0.01 0.0 1.0 0.0 1.0}
+
+answerForm:{BBType4   !1,10!!3,10!!4,10!!5,10!!6,10!!2,10!!7,10!
+!8,10!!9,10!!10,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.BBType4
+
+
+//start keyword.armwrd3.DNSCalc
+
+description:
+{Alters the method by which the outbreak stand density threshold is computed
+for bark beetle type 1.  The default outbreak density is calculated by 
+determining the trees/acre of all trees that exceed a user-defined minimum
+DBH.  
+
+Note:
+If the SDI method is used to calculate the outbreak density threshod, then
+field 3 of the BBType1 keyword is no longer used for tree density calculation,
+but is still used to deternime which trees are subject to beetle attack.}
+
+f1:{listButton Method of calculating outbreak density}
+f1v:{trees/acre
+SDI}
+f2:{listButton Area used to calculate density}
+f2v:{entire stand
+area outside root disease patches}
+f3:{listButton Tree type to use to calculate density}
+f3v:{only living trees
+living trees and standing dead trees} 
+f4:{sliderBox Slope of the SDI function}
+f4v:{-1.605 -2.500 -0.500 -2.500 -0.500}
+
+parmsForm:{
+DNSCalc   !1,10!!2,10!!3,10!!4,10!}
+
+//end keyword.armwrd3.DNSCalc
+
+
+//start keyword.armwrd3.InfColo
+
+description:
+{Modifies the proportion of root system which is colonized after death.
+The spread of root disease is assumed to reach a maximum amount within 
+5 years of tree death.}
+
+f1:{speciesSelection Tree species to modify}
+f1v:{deleteAll}
+f2:{sliderBox Maximum proportion of root system colonized after death}
+f2v:{blank 0.0 1.0 0.0 1.0}
+
+answerForm:{\
+InfColo   !1,10!!2,10!         3}
+parmsForm=answerForm
+
+//end keyword.armwrd3.InfColo
+
+
+//start keyword.armwrd3.InfKill
+
+description:
+{Modify the proportion of the root system that must be infected before
+tree death occurs.}
+
+f1:{speciesSelection Tree species to change}
+f1v:{deleteAll}
+f2:{sliderBox Proportion of the root system infected}
+f2v:{0.0 0.0 1.0 0.0 1.0} 
+
+answerForm:{\
+InfKill            3!1,10!!2,10!} 
+parmsForm=answerForm
+
+//end keyword.armwrd3.InfKill
+
+
+//start keyword.armwrd3.InfMult
+
+description:
+{Change the probability of root disease transmission}
+
+f1title:{Date (calendar year) in which the probability of infection will
+be modified.  A 0 implies the probability will take effect at the beginning
+of the simulation.} 
+f1:{intNumberBox Date}
+f1v:{0}
+f2:{speciesSelection Tree species to change}
+f2v:{deleteAll}
+f3:{sliderBox Probability of infection}
+f3v:{0.0 0.0 1.0 0.0 1.0}
+
+answerForm:{\
+InfMult   !1,10!         3!2,10!!3,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.InfMult
+
+
+//start keyword.armwrd3.InfSims
+
+description:
+{Change the number of times to simulate the inside-center infection
+dynamics.  Print results of inside-center simulation.}
+
+f1:{intSliderBox Number of times to simulate inside-center dynamics}
+f1v:{1 1 50 1 50}
+f2:{listButton Print output}
+f2v:{No \n Yes}
+f3:{longTextEdit Name of file}
+f3v:{ }
+
+answerForm:{InfSims   !1,10!!2,10!        25
+Open              25         0         3       132
+!3!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.InfSims
+
+//start keyword.armwrd3.InocLife
+
+description:
+{Changes the default rate and patterns of decay of the inoculum in the
+infected roots of dead stumps and trees.
+
+An example for a 12 inch DBH infected dead tree (stump) using the 
+default values above for both P-Type and S-Type Annosus root disease is:
+
+Annual decay rate of 1.2474 feet 
+  (decay = F1 * radius + F2 = 0.02212 * 2.0004 + 1.2032 = 1.2474)
+Root radius decay stalls at 2.0004 feet 
+  (radius = F3 *dbh + F4 = 0.1667 * 12 + 0.0 = 2.0004)
+Inoculum remains in stalled root radius for 24 years 
+  (years = F5 * dbh + F6 = 2.0 * 12 + 0.0 = 24.0)
+
+Stump and dead tree infected root system information is stored 
+(and decayed) in five DBH size classes (upper boundaries of: 
+12", 24", 48",  100", >100").}
+
+f1title:{Decay rate per year factor on root radius (feet)}
+f1:{textEdit}
+f1v:{0.02212}
+f2title:{Static feet per year decay rate regardless of root radius}
+f2:{textEdit}
+f2v:{1.2032}
+f3title:{Radius factor (for feet) on DBH inches at which}
+f3:{textEdit root radius decay stalls}
+f3v:{0.16667}
+f4title:{Static number of feet added regardless of DBH}
+f4:{textEdit}
+f4v:{0.0}
+f5title:{Number of years per inch of DBH inoculum remains in stump}
+f5:{textEdit}
+f5v:{2.0}
+f6title:{Static number of years added regardless of DBH}
+f6:{textEdit}
+f6v:{0.0}
+
+answerForm:{InocLife  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!         3}
+parmsForm=answerForm
+
+//end keyword.armwrd3.InocLife
+
+
+//start keyword.armwrd3.InocSpan
+
+description:
+{Specify the minimum life span of inoculum for Armillaria.}
+
+f1:{intNumberBox Minimum life span for Armillaria, in years}
+f1v:{0 0 100}
+
+answerForm:{InocSpan                      !1,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.InocSpan
+
+
+//start keyword.armwrd3.PlotInf
+
+description:
+{Identifies which sub-plots are inside Armillaria root disease centers, and
+specifies the proportion of the trees in each plot which are infected.}
+
+f1title:{Enter up to 10 diseased sub-plot numbers. The last number must
+be -999.}
+f1:{intNumberBox 1) Enter diseased sub-plot number}
+f1v:{blank -999 9999}
+f2:{intNumberBox 1) Enter proportion of trees in plot infected}
+f2v:{blank 0.0 1.0}
+f3:{intNumberBox 2) Enter diseased sub-plot number}
+f3v:{blank -999 9999}
+f4:{intNumberBox 2) Enter proportion of trees in plot infected}
+f4v:{blank 0.0 1.0}
+f5:{intNumberBox 3) Enter diseased sub-plot number}
+f5v:{blank -999 9999}
+f6:{intNumberBox 3) Enter proportion of trees in plot infected}
+f6v:{blank 0.0 1.0}
+f7:{intNumberBox 4) Enter diseased sub-plot number}
+f7v:{blank -999 9999}
+f8:{intNumberBox 4) Enter proportion of trees in plot infected}
+f8v:{blank 0.0 1.0}
+f9:{intNumberBox 5) Enter diseased sub-plot number}
+f9v:{blank -999 9999}
+f10:{intNumberBox 5) Enter proportion of trees in plot infected}
+f10v:{blank 0.0 1.0}
+f11:{intNumberBox 6) Enter diseased sub-plot number}
+f11v:{blank -999 9999}
+f12:{intNumberBox 6) Enter proportion of trees in plot infected}
+f12v:{blank 0.0 1.0}
+f13:{intNumberBox 7) Enter diseased sub-plot number}
+f13v:{blank -999 9999}
+f14:{intNumberBox 7) Enter proportion of trees in plot infected}
+f14v:{blank 0.0 1.0}
+f15:{intNumberBox 8) Enter diseased sub-plot number}
+f15v:{blank -999 9999}
+f16:{intNumberBox 8) Enter proportion of trees in plot infected}
+f16v:{blank 0.0 1.0}
+f17:{intNumberBox 9) Enter diseased sub-plot number}
+f17v:{blank -999 9999}
+f18:{intNumberBox 9) Enter proportion of trees in plot infected}
+f18v:{blank 0.0 1.0}
+f19:{intNumberBox 10) Enter diseased sub-plot number}
+f19v:{blank -999 9999}
+f20:{intNumberBox 10) Enter proportion of trees in plot infected}
+f20v:{blank 0.0 1.0}
+f21:{intNumberBox 11) Enter diseased sub-plot number}
+f21v:{blank -999 9999}
+f22:{intNumberBox 11) Enter proportion of trees in plot infected}
+f22v:{blank 0.0 1.0}
+
+answerForm:{PlotInf            3
+!1,4!!2,5!
+!3,4!!4,5!
+!5,4!!6,5!
+!7,4!!8,5!
+!9,4!!10,5!
+!11,4!!12,5!
+!13,4!!14,5!
+!15,4!!16,5!
+!17,4!!18,5!
+!19,4!!20,5!
+!21,4!!22,5!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.PlotInf
+
+
+//start keyword.armwrd3.PlRead
+
+Description:
+{Specify which sub-plots within the stand contain root disease}
+
+f1title:{Enter up to 10 diseased sub-plot numbers.  The last number must
+be -999.}
+f1:{intNumberBox Enter diseased sub-plot number}
+f1v:{blank -999 9999}
+f2:{intNumberBox Enter diseased sub-plot number}
+f2v:{blank -999 9999}
+f3:{intNumberBox Enter diseased sub-plot number}
+f3v:{blank -999 9999}
+f4:{intNumberBox Enter diseased sub-plot number}
+f4v:{blank -999 9999}
+f5:{intNumberBox Enter diseased sub-plot number}
+f5v:{blank -999 9999}
+f6:{intNumberBox Enter diseased sub-plot number}
+f6v:{blank -999 9999}
+f7:{intNumberBox Enter diseased sub-plot number}
+f7v:{blank -999 9999}
+f8:{intNumberBox Enter diseased sub-plot number}
+f8v:{blank -999 9999}
+f9:{intNumberBox Enter diseased sub-plot number}
+f9v:{blank -999 9999}
+f10:{intNumberBox Enter diseased sub-plot number}
+f10v:{blank -999 9999}
+f11:{intNumberBox Enter diseased sub-plot number}
+f11v:{blank -999 9999}
+
+answerForm:{\
+PlRead             3
+!1,4!
+!2,4!
+!3,4!
+!4,4!
+!5,4!
+!6,4!
+!7,4!
+!8,4!
+!9,4!
+!10,4!
+!11,4!}
+parmsForm=answerForm
+ 
+//end keyword.armwrd3.PlRead
+
+
+//start keyword.armwrd3.PStump
+
+description:
+{Specify a stump pushing management action}
+
+f1title:{Date in which stump pushing is to occur}
+f1:{scheduleBox}
+f2:{sliderBox Proportion of stumps to be removed}
+f2v:{1.0 0.0 1.0 0.0 1.0}
+f3:{sliderBox Minimum stump diameter (inches) for stump pushing}
+f3v:{0.0 0.0 100.0 0.0 100.0}
+
+parmsForm:{
+PStump    !1,10!!2,10!!3,10!}
+
+//end keyword.armwrd3.PStump
+
+
+//start keyword.armwrd3.RRComp
+
+description:
+{Modify the maximum size of the tree list.  Compression (of the
+tree list) will occur whenever the tree list length is about to
+exceed the user defined maximum or automatically at the default
+size (500).}
+
+f1:{intSliderBox Number of records to which tree list is compressed}
+f1v:{400 1 500 1 500}
+
+parmsForm:{
+RRComp    !1,10!}
+
+//end keyword.armwrd3.RRComp
+
+
+//start keyword.armwrd3.RRDOut
+
+description:
+{Instructs the model to print detailed root disease information
+to the main FVS output file.} 
+
+//end keyword.armwrd3.RRDOut
+
+
+//start keyword.armwrd3.RREcho
+
+description:
+{Instructs the model to print machine readable output of the Root
+Disease Summary Table.}
+
+f1:{longTextEdit Name of file}
+f1v:{ }
+
+answerForm:
+{Open              24         0         3       132
+!1!
+RREcho            24}
+parmsForm=answerForm
+
+//end keyword.armwrd3.RREcho
+
+
+//start keyword.armwrd3.RRInit
+
+description:
+{Specifies the configuration of root disease centers.}
+
+f1:{longListButton \
+Disease center configuration}
+f1v:{Disease centers randomly distributed  
+      Disease centers placed using supplemental records}
+f2:{intNumberBox Number of root disease centers to be located in the stand}
+f2v:{20 1 100}
+f3:{intNumberBox Number of infected trees/arcre in the root disease centers}
+f3v:{blank 1 100000}
+f4:{intNumberBox Number of uninfected trees/arcre in the root disease centers}
+f4v:{blank 1 100000}
+f5:{sliderBox Average proportion of root infection}
+f5v:{0.1 0.0 1.0 0.0 1.0}
+f6:{numberBox Total root disease area (acres)}
+f6v:{blank 0 100000}
+
+answerForm:{RRInit    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!         3}
+parmsForm=answerForm
+
+//end keyword.armwrd3.RRInit
+
+
+//start keyword.armwrd3.RRJump
+
+description:
+{Specify the extent to which root disease centers will expand through
+uninfected trees when the stand is thinned or clearcut.}
+
+f1:{numberBox Average root-system diameter multiplier for Armillaria}
+f1v:{1.0 0.0 1000.0}
+
+answerForm:{RRJump                        !1,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.RRJump
+
+
+//start keyword.armwrd3.RRMinK
+
+description:
+{Change the time-to-death value (time from root infection until death
+of the tree) below which multipliers entered with the TTDMult keyword
+will not influence mortality.}
+
+f1:{intSliderBox Time to death in years for Armillaria}
+f1v:{0 0 100 0 100}
+
+answerForm:{RRMink                        !1,10!}
+parmsForm=answerForm
+
+//end  keyword.armwrd3.RRMinK
+
+
+//start keyword.armwrd3.RRTreIn
+
+description:
+{Indicates that root disease conditions will be initialized from the 
+inventory tree list.}
+
+//end keyword.armwrd3.RRTreIn 
+
+
+//start keyword.armwrd3.RSeed
+
+description:
+{Change the random number generator seed value.}
+
+f1:{intNumberBox Random number generator seed value}
+f1v:{889347}
+
+parmsForm:{
+RSeed     !1,10!}
+
+//end keyword.armwrd3.RSeed
+
+
+//start keyword.armwrd3.SArea
+
+description:
+{Specify the stand area to be simulated.}     
+
+f1:{numberBox Stand area in acres}
+f1v:{100 0 100000}
+
+parmsForm:{
+SArea     !1,10!}
+
+//end keyword.armwrd3.SArea
+
+
+//start keyword.armwrd3.SDIRMult
+
+description:
+{Modifies the calculation of root radius based on SDI.  The root radius
+is multiplied by a value between 0.5 and 1.5 that is calculate from a 
+function of SDI.}
+
+f1:{intSliderBox The "normal" SDI (SDI at which the multiplier is 1)}
+f1v:{369 0 1000 0 1000}
+f2:{intSliderBox Slope of the relationship between SDI and multiplier}
+f2v:{-0.0033 -10.0 10.0 -10.0 10.0}
+
+parmsForm:{
+SDIRMult  !1,10!!2,10!}
+
+//end keyword.armwrd3.SDIRMult
+
+
+//start keyword.armwrd3.SMCOut
+
+description:
+{Instructs the model to write a table of root disease center spread
+rates from the Monte Carlo Simulation to a seperate file.}
+
+f1:{longTextEdit Name of file}
+f1v:{ }
+
+answerForm:{SMCout            26
+Open              26         0         3       132
+!1!}
+
+parmsForm=answerForm
+
+//end keyword.armwrd3.SMCOut
+
+
+//start keyword.armwrd3.Spread
+
+description:
+{Specify the type of spread model to be simulated}
+
+f1title:{Date when parameters will take effect}
+f1:{scheduleBox}
+f2:{longListButton Type of spread model}
+f2v:{Static spread model
+Dynamic spread model, different spread rates for each center
+Dynamic spread model, average spread rate for each center}
+f3:{sliderBox Static spread rate; Fixed annual spread rate for Laminated Root Rot}
+f3v:{1.0 0.0 10.0 0.0 10.0}
+f4:{intSliderBox Number of times to simulate the Monte Carlo spread model}
+f4v:{1.0 1.0 50.0 1.0 50.0}
+
+answerForm:{Spread    !1,10!!2,10!!3,10!          !4,10!         3}
+parmsForm=answerForm
+
+//end keyword.armwrd3.Spread
+
+
+//start keyword.armwrd3.STRead
+
+description:
+{Initialize stumps within root disease areas of the stand.  These stumps 
+will serve as inoculum sources from which infection will spread.}
+
+f1:{speciesSelection Tree species of stump}
+f1v:{deleteAll}
+f2:{longListButton  \
+Stump diameter class} 
+f2v:{ 0.0 to  12.0 inches
+      12.1 to  24.0 inches
+      24.1 to  48.0 inches
+      48.1 to 100.0 inches
+      larger than 100.0 inches}
+f3:{intNumberBox Number of stumps of given species and diameter class}
+f3v:{blank,1,100000}
+f4:{intSliderBox Number of years since death}
+f4v:{0.0 0.0 20.0 0.0 20.0}
+
+answerForm:{STRead    !1,10!!2,10,classes!!3,10!         3!4,10!}
+parmsForm=answerForm
+classes:{1 2 3 4 5}
+
+//end keyword.armwrd3.STRead
+
+
+//start keyword.armwrd3.TDistn
+
+description:
+{Specify the type of spatial distribution in the stand}
+
+f1:{intNumberBox Year in which distribution changes to other type}
+f1v:{0}
+f2:{listButton Current tree spatial distribution}
+f2v:{Random tree distribution \n Gridded tree spacing}
+f3:{numberBox Standard deviation of mean distance between trees}
+f3v:{1.0}
+
+parmsForm:{
+TDistn    !1,10!!2,10!!3,10!}
+
+//end keyword.armwrd3.TDistn
+
+
+//start keyword.armwrd3.TimeDead
+
+description:
+{Changes the time since death for dead infected trees and stumps in the
+inventory.}
+
+f1:{intSliderBox Number of years since death for size class  0-12"}
+f1v:{5 0 20 0 20}
+f2:{intSliderBox Number of years since death for size class 12-24"}
+f2v:{10 0 20 0 20}
+f3:{intSliderBox Number of years since death for size class 24-48"}
+f3v:{15 0 20 0 20}
+f4:{intSliderBox Number of years since death for size class 48-100"}
+f4v:{15 0 20 0 20}
+f5:{intSliderBox Number of years since death for size class > 100"}
+f5v:{15 0 20 0 20}
+
+parmsForm:{
+TimeDead    !1,10!!2,10!!3,10!!4,10!!5,10!}
+
+//end keyword.armwrd3.TimeDead
+
+
+//start keyword.armwrd3.TTDMult
+
+description:
+{Change the time-to-death (time from root infection to death of the tree)
+multipliers for root disease mortality.}
+
+f1:{intNumberBox Year value takes effect} 
+f1v:{0}
+f2:{speciesSelection Tree species to modify} 
+f2v:{deleteAll}
+f3:{numberBox Time-to-death multiplier}
+f3v:{blank}
+
+answerForm:{TTDMult   !1,10!         3!2,10!!3,10!}
+parmsForm=answerForm
+
+//end keyword.armwrd3.TTDMult
+
+
+//start keyword.armwrd3.WindThr
+
+description:
+{Specify a windthrow event.}
+
+f1title:{Earliest date that a windthrow can occur}
+f1:{scheduleBox}
+f2:{sliderBox Proportion of eligible trees to be windthrown}
+f2v:{0.0 0.0 1.0 0.0 1.0}
+f3:{sliderBox Minimum number of eligible trees/acre necessary for windthrow} 
+f3v:{0.0 0.0 1000.0 0.0 1000.0}
+
+parmsForm:{
+WindThr   !1,10!!2,10!!3,10!}
+
+//end keyword.armwrd3.WindThr

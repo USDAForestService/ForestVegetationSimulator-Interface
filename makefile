@@ -1,5 +1,8 @@
 all: fvsOLmadeTag rFVSmadeTag
 
+fvsOL/data/prms.RData: $(shell find fvsOL/parms)
+	R -e source\(\"fvsOL/parms/mkpkeys.R\"\)
+
 fvsOLmadeTag: $(shell find fvsOL | grep -F \. | grep  -v -F /\. | grep  -v -F man/)
 	R -e devtools::document\(pkg=\"fvsOL\"\)
 	R -e devtools::build\(pkg=\"fvsOL\"\)

@@ -1,0 +1,5318 @@
+
+//start keyword.base.AddFile
+
+description:{
+USAGE:
+Use the Open keyword, prior to this keyword, to Open the file refered
+to with the data set reference number.
+
+WARNING:
+When you used this keyword, you specify a number that refers to a
+data set that FVS will read.  Suppose does not insure that the file is
+present nor that it contains correct FVS input.}
+
+f1title:{FVS input will be read from the data set you refer to below:}
+f1:{numberBox Data set reference number}
+f1v:{50}
+
+parmsForm:{
+AddFile   !1,10!}
+
+//end keyword.base.AddFile
+
+
+//start keyword.base.ATRTList
+
+description:
+{Prints a list of tree records representing stand conditions after a
+scheduled treatment to an output treelist file
+
+Do not use this keyword when using the R1 Existing Vegetation Classifier 
+or Elk Hiding Cover post processors.}
+
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+f2:{numberBox Database reference number for the output tree record file}
+f2v:{3}
+f3:{longListButton Heading option}
+f3v:{Print heading that describes each table column
+     Print encoded (machine readable) header
+     Suppress all headings}
+
+answerForm:{ATRTList  !1,10!!2,10!!3,10,header!}
+parmsForm:{ATRTList  !1,10!!2,10!!3,10,header!}
+header:{0 1 -1}
+
+//end keyword.base.ATRTList
+
+
+//start keyword.base.BAIMult
+
+description:
+{BAIMult is a multiplier to change the large tree basal area increment
+prediction.
+
+This keyword remains in effect until replaced by a subsequent multiplier.}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f2:{speciesSelection Species to which multiplier is applied}
+f3:{sliderBox Multiplier value}
+f3v:{1 0 20 0 10}
+
+expressionContents{always after}:{}
+
+parmsForm:{* Args: Species, Multiplier
+BAIMult   !1,10!   Parms(!2!, !3!)\n}
+
+//end keyword.base.BAIMult
+
+
+//start keyword.base.BAMax
+
+description:
+{BAMax modifies the maximum density for the stand and the
+mortality distribution pattern.
+
+NI, IE, KT, and CI maximum basal area are assigned by habitat type.  Default is
+for default habitat type (habitat type 260 for NI, IE, KT, and CI).}
+
+f1:{sliderBox Maximum basal area (sq. ft.) per acre}
+f1v:{310 150 650 200 550}
+f1v{ci}:{220 155 465 155 465}
+
+parmsForm:{
+BAMax     !1,10!}
+
+//end keyword.base.BAMax
+
+
+//start keyword.base.BFDefect
+
+description:
+{Specifies species specific board foot volume defect corrections for
+board foot volume estimates.  In the eastern US this also specifies
+sawlog cubic foot volume defect.  Defect proportions are specified by
+species for the following five DBH's: 5, 10, 15, 20, 25+ inches.  A
+linear interpolation function calculates the defect proportion for the
+specified DBH of the tree.
+
+For each of the DBH classes, enter a defect correction proportion
+between 0 and 1.  For example, if the expected defect correction for a
+5 inch tree was 35 percent, a value of .35 would be entered.
+
+For trees greater than 25 inches DBH, a constant value for defect
+correction is applied.}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f2:{speciesSelection Species that will be affected by this keyword}
+f3:{sliderBox Board foot volume defect proportion for a 5-inch tree}
+f3v:{0 0 1 0 1}
+f4:{sliderBox Board foot volume defect proportion for a 10-inch tree}
+f4v:{0 0 1 0 1}
+f5:{sliderBox Board foot volume defect proportion for a 15-inch tree}
+f5v:{0 0 1 0 1}
+f6:{sliderBox Board foot volume defect proportion for a 20-inch tree}
+f6v:{0 0 1 0 1}
+f7:{sliderBox Board foot volume defect proportion for 25-inch tree and greater}
+f7v:{0 0 1 0 1}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, 5" defect, 10", 15", 20", 25+"
+BFDefect  !1,10!   Parms(!2!, !3!, !4!,     &
+!5!, !6!, !7!)\n}
+
+//end keyword.base.BFDefect
+
+
+//start keyword.base.BFFDLN
+
+description:
+{Enter the species specific parameters for log-linear form and defect
+correction equation for board foot volume estimates.  In the eastern US
+this also affects sawlog cubic foot volume.}
+
+f1:{speciesSelection Species whose equation is to be changed}
+f2:{numberBox Intercept terms for log-linear equation}
+f2v:{0}
+f3:{numberBox Slope coefficient for log-linear equation}
+f3v:{1}
+
+parmsForm:{
+BFFDLN    !1,10!!2,10!!3,10!}
+
+//end keyword.base.BFFDLN
+
+
+//start keyword.base.BFVolEqu
+
+description:
+{Adjusts the board foot volume equations by inserting new
+coefficients in this equation:
+
+V =  Coeff0 +
+     Coeff1 * DBH +
+     Coeff2 * DBH*Height +
+     Coeff3 * DBH*DBH*Height +
+     Coeff4 * (DBH**Coeff5)*(Height**Coeff6)}
+
+answerForm:{\
+BFVolEqu  !1,10!!2,10!!3,10!
+!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
+!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
+
+parmsForm:{\
+BFVolEqu  !1,10!!2,10!!3,10!
+!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
+!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
+
+f1:{speciesSelection Species to which equation is applied}
+
+f2:{longListButton Transition code}
+f2v:{Transition size is based on DBH
+     Transition size is based on DBH*DBH*Height}
+
+f3:{sliderBox Transition size}
+f3v{pn wc}:{0}
+f3v:{20.5}
+
+f4title:{-------------------- Small-Tree Coefficients --------------------}
+f4:{numberBox Coeff0}
+f4v:{0}
+f5:{numberBox Coeff1 * DBH}
+f5v:{0}
+f6:{numberBox Coeff2 * DBH*Height}
+f6v:{0}
+f7:{numberBox Coeff3 * DBH*DBH*Height}
+f7v:{0}
+f8:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
+f8v:{0}
+f9:{numberBox DBH ** Coeff5}
+f9v:{0}
+f10:{numberBox Height ** Coeff6}
+f10v:{0}
+
+f11title:{------------------- Large-Tree Coefficients --------------------}
+f11:{numberBox Coeff0}
+f11v:{0}
+f12:{numberBox Coeff1 * DBH}
+f12v:{0}
+f13:{numberBox Coeff2 * DBH*Heigth}
+f13v:{0}
+f14:{numberBox Coeff3 * DBH*DBH*Height}
+f14v:{0}
+f15:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
+f15v:{0}
+f16:{numberBox DBH ** Coeff5}
+f16v:{0}
+f17:{numberBox Height ** Coeff6}
+f17v:{0}
+
+//end keyword.base.BFVolEqu
+
+
+//start keyword.base.BFVolume
+
+description{ls ne cs sn}:
+{This keyword pertains to merchantability limits for sawlogs.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+}
+
+description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
+{Change the merchantability limits for board-foot volume equations.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+}
+
+description{bm ec so wc pn ca op oc nc}:
+{Change the merchantability limits for board-foot volume equations.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+
+If you change to a different log length equation (with the VOLEQNUM keyword),
+you will need to modify form class in this window.
+}
+
+f1title:
+{Enter 0 (zero) in the 'Schedule by Year/Cycle' input box to modify
+volumes for the inventory year and following cycles.}
+f1:{scheduleBox}
+f2:{speciesSelection Species whose limits are to be changed}
+
+f3:{numberBox Minimum merchantable DBH}
+f3v{ni ie em bm ec kt wc pn ca}:{7}
+f3v{so ak nc}:{9}
+f3v{ut tt ci}:{8}
+f3v{ws}:{10}
+f3v{cr sw sp sf lp bp}:{blank}
+f3v{ne ls cs sn}:{blank}
+
+f4{ne ls cs}:{numberBox Minimum top diameter inside bark}
+f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+f4:{numberBox Minimum top diameter outside bark}
+f4v{ni ie em bm ec kt wc pn ca}:{4.5}
+f4v{so ut tt ak ws ci nc}:{6}
+f4v{cr sw sp sf lp bp}:{blank}
+f4v{ne ls cs}:{blank}
+
+f5:{numberBox Stump height}
+f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+f5v:{1}
+
+f6:{numberBox Form class}
+f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{80}
+f6v{nc so bm ec wc pn ca}:{0}
+
+f7:{longListButton Volume calculation method}
+f7v{cs ls ne}:{\
+1 = Kemp equations with Allen adjustments
+2 = User defined equation via BFVOLEQU keyword
+3 = not currently used with this variant
+4 = not currently used with this variant
+5 = Gevorkiantz Volume Equations
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Original TWIGS volume equations
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+f7v{sn cr bp sw sp sf lp}:{\
+1 = Kemp equations with Allen adjustments
+2 = User defined equation via BFVOLEQU keyword
+3 = not currently used with this variant
+4 = not currently used with this variant
+5 = not currently used with this variant
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+f7v:{\
+1 = Kemp equations with Allen adjustments
+2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
+3 = Region 6 eastside taper equations previously in FVS
+4 = Region 6 westside taper equations previously in FVS
+5 = Western Sierra Nevada log rules previously in FVS
+>6 = National Volume Estimator library equations
+7 = User defined equation via BFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+
+answerForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
+parmsForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
+numbers:{1 2 3 4 5 6 7 8 9}
+
+//end keyword.base.BFVolume
+
+
+//start keyword.base.Volume
+
+
+description{ls ne cs sn}:
+{This keyword pertains to pulpwood merchantability limits.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+}
+
+description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
+{Change the merchantability limits for cubic-foot volume.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+}
+
+description{bm ec so wc pn ca op oc nc}:
+{Change the merchantability limits for cubic-foot volume.
+
+Once the limits are in effect, they remain in effect until
+replaced by subsequent limits.
+
+See the variant overview for default specifications.
+
+If you change to a different log length equation (with the VOLEQNUM keyword),
+you will need to modify form class in this window.
+}
+
+
+f1title:
+{Enter 0 (zero) in the 'Schedule by Year/Cycle' input box to modify
+volumes for the inventory year and following cycles.}
+f1:{scheduleBox}
+f2:{speciesSelection Species whose limits are to be changed}
+
+f3:{numberBox Minimum DBH}
+f3v{sn}:{blank}
+f3v{cr sw sp sf lp}:{5}
+f3v{ls cs ne}:{blank}
+f3v{ni ie em ws bm ec kt wc pn ca}:{7}
+f3v{ut tt ci}:{8}
+f3v{so ak nc bp}:{9}
+
+f4:{numberBox Minimum top diameter}
+f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+f4v{cr sw sp sf lp}:{4}
+f4v{ni ie em ws bm ec kt wc pn ca}:{4.5}
+f4v{so ut tt ak ci nc bp}:{6}
+f4v{ne ls cs}:{blank}
+
+f5:{numberBox Stump height (feet)}
+f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+f5v:{1}
+
+f6:{numberBox Form class}
+f6v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{80}
+f6v{ni ie so bm ec wc pn nc ca}:{0}
+
+f7:{longListButton Method of volume calculation}
+f7v{ni ie so ut tt ak em ws bm ec ci nc}:{\
+1 = Regression model equations. Wykoff, Allen, et.al.
+2 = Region 6 eastside taper equations previously in FVS
+3 = Region 6 westside taper equations previously in FVS
+4 = not currently used
+5 = not currently used
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)}
+f7v{ls cs ne}:{\
+1 = User defined equation via CFVOLEQU keyword
+2 = not used in this variant
+3 = not used in this variant
+4 = not used in this variant
+5 = Gevorkiantz volume equations
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Original TWIGS volume equations}
+f7v:{\
+1 = User defined equation via CFVOLEQU keyword
+2 = Region 6 eastside taper equations previously in FVS
+3 = Region 6 westside taper equations previously in FVS
+4 = not currently used
+5 = not currently used
+>6 = National Volume Estimator library equations
+7 = User defined equation via CFVOLEQU keyword
+8 = Other volume calculation method (varies by Region)}
+
+answerForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
+parmsForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
+numbers:{1 2 3 4 5 6 7 8 9}
+
+//end keyword.base.Volume
+ 
+//start keyword.base.CCAdj
+f1title:
+{Once this adjustement is in effect, it remains in effect until replaced by a subsequent 
+adjustment.}
+f1:{scheduleBox}
+f1v:{0}
+f2:{longListButton Overlap Coefficient (Distribution Type)}
+f2v:{0.13 (Extremely Clumpy)
+ 0.33 (Very Clumpy)
+ 0.60 (Moderately Clumpy)
+ 0.93 (Slightly Clumpy)
+>1.0 (Random)
+ 1.15 (Slightly Uniform)
+ 1.52 (Moderately Uniform)		 
+ 2.11 (Very Uniform)
+ 3.77 (Extremely Uniform)}		 		  			 
+answerForm:{\
+CCAdj     !1,10!!2,10,dist1!}
+parmsForm=answerForm
+dist1:{0.1301 0.3328 0.6035 0.9296 1.0000 1.1502 1.5199 2.1129 3.7703} 
+			  
+description:
+{Adjusts the percent canopy cover (PCC) overlap correction coefficient  
+for different non-random spatial distributions. The FVS-default overlap 
+correction assumes randomly distributed trees (coefficient=0.01). 
+
+This keyword can also be used with the "Thin to a Residual Percent Canopy Cover" 
+management action (ThinCC keyword) for changing the %CC target calculation.
+
+NOTE: If used to change the distribution following a management or
+disturbance event, the schedule year should be the same year as the event.
+}			  
+//end keyword.base.CCAdj
+
+//start keyword.base.CFVolEqu
+
+description:
+{Adjusts the cubic foot volume equations by inserting new
+coefficients in this equation:
+
+V =  Coeff0 +
+     Coeff1 * DBH +
+     Coeff2 * DBH*Height +
+     Coeff3 * DBH*DBH*Height +
+     Coeff4 * (DBH**Coeff5)*(Height**Coeff6)}
+
+answerForm:{\
+CFVolEqu  !1,10!!2,10!!3,10!
+!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
+!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
+
+parmsForm:{\
+CFVolEqu  !1,10!!2,10!!3,10!
+!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
+!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
+
+f1:{speciesSelection Species to which equation is applied}
+
+f2:{longListButton Transition code}
+f2v:{Transition size is based on DBH
+     Transition size is based on DBH*DBH*Height}
+
+f3:{sliderBox Transition size}
+f3v:{0}
+
+f4title:{-------------------- Small-Tree Coefficients --------------------}
+f4:{numberBox Coeff0}
+f4v:{0}
+f5:{numberBox Coeff1 * DBH}
+f5v:{0}
+f6:{numberBox Coeff2 * DBH*Height}
+f6v:{0}
+f7:{numberBox Coeff3 * DBH*DBH*Height}
+f7v:{0}
+f8:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
+f8v:{0}
+f9:{numberBox DBH ** Coeff5}
+f9v:{0}
+f10:{numberBox Height ** Coeff6}
+f10v:{0}
+
+f11title:{------------------- Large-Tree Coefficients --------------------}
+f11:{numberBox Coeff0}
+f11v:{0}
+f12:{numberBox Coeff1 * DBH}
+f12v:{0}
+f13:{numberBox Coeff2 * DBH*Heigth}
+f13v:{0}
+f14:{numberBox Coeff3 * DBH*DBH*Height}
+f14v:{0}
+f15:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
+f15v:{0}
+f16:{numberBox DBH ** Coeff5}
+f16v:{0}
+f17:{numberBox Height ** Coeff6}
+f17v:{0}
+
+//end keyword.base.CFVolEqu
+
+
+//start keyword.base.Compute
+
+description:
+{Use:
+1.  Specify the scheduling option above.
+2.  Click the 'Use Editor' button, below, to create the Compute expressions.}
+
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+
+parmsForm:{\
+Compute   !1,10!
+
+End
+}
+
+answerForm=parmsForm
+
+expressionContents{always after}:{}
+
+//end   keyword.base.Compute
+
+//start keyword.base.CHEAPO
+
+description:
+{Used to generate a FVS output file required for subsequent
+execution of the CHEAPO economic analysis program}
+
+f1:{numberBox Dataset reference number}
+f1v:{13}
+
+parmsForm:{
+CHEAPO    !1,10!}
+
+//end keyword.base.CHEAPO
+
+
+//start keyword.base.Compress
+
+f1:{scheduleBox}
+f2:{sliderBox Target number of tree records}
+f2v:{675 50 3000 50 3000}
+
+f3title:
+{New tree records are formed by two methods:
+1. By finding the largest-differences between trees; and,
+2. By finding the groups defined by the first method that have the
+largest amount-class variance.
+You can specify the percentage found using each method.}
+
+f3:{sliderBox Percent defined by largest-difference method}
+f3v:{50 0 100 0 100}
+
+
+f4:{listButton Generate a lot of debug output}
+f4v:{>No \n Yes}
+
+description:
+{Compress is used to reduce the number of tree records stored inside
+the FVS.  It is done automatically when room is needed to store new
+trees  created by the Regneration Establishment process.  You can use
+this  keyword to manually schedule the tree compression process.
+
+When there are many records in the tree list, the record compression
+algorithm can reduce the number or records while minimizing loss of
+within-stand variation in tree attributes that are important for
+increment prediction. As a result, the number of calculations required
+for the projection, and the cost of the projection, can be reduced
+without significant bias.
+
+CAUTION:  If Compress is specified for the first or second cycle, the
+tree records will be subsequently tripled unless NoTriple or NumTrip is
+used to suppress the record tripling feature. Compression causes trees
+to lose their plot specific identity, as they may be combined with
+"like" trees from another plot.}
+
+parmsForm:{
+Compress  !1,10!!2,10!!3,10!!4,10!}
+
+//end keyword.base.Compress
+
+
+//start keyword.base.CrnMult
+
+description:
+{Alters the change in crown by a specified proportion, or in the case
+of dubbing adjusts the dubbed crown by the specified proportion.
+
+This keyword not applicable in NI, IE, CI, and KT variants.
+
+Once keyword is in effect, it remains in effect until replaced by
+another multiplier.
+
+A multiplier value of 1.1 will make crown change 10% greater, a tree with
+a crown ratio going from 90% to 80% would now have a crown of 79%.}
+
+f1:{noInput Not applicable to the variant you are using.}
+f1title{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{scheduleBox}
+f2{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{speciesSelection Species number to which multiplier is applied}
+f3{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{sliderBox Multiplier value}
+f3v{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{1 0 10 0 10}
+f4{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{numberBox Smallest DBH to which multiplier is applied (greater than/equal)}
+f4v{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{0}
+f5{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{numberBox Largest DBH to which multiplier is applied (less than)}
+f5v{ak bm cr sw sp bp sf lp ec em nc so tt ut wc ws cs ls ne sn pn ca}:
+{999}
+
+f6:{longListButton Application of multiplier}
+f6v:{Apply multiplier to crown change and dubbed crowns
+Apply multiplier to dubbed crowns only}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, min DBH, Max DBH
+CrnMult   !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.base.CrnMult
+
+
+//start keyword.base.CutEff
+
+f1:{sliderBox Proportion of sample trees to be removed}
+f1v:{1.0 0.0 1.0 0.0 1.0}
+
+description:
+{Keyword is used to change the cutting efficiency for all thinnings.
+The proportion of sample trees represented by a record that is
+eliminated if a tree is designated for removal.
+
+NOTES:
+
+1. Keyword order is important; the cutting efficiency specified on
+a CutEff keyword only applies to thinning keywords which follow the
+CutEff keyword.
+
+2. Multiple CutEff keywords can be included in a keyword set.
+
+3. There also is a cutting efficiency parameter on each thinning
+request keyword. If a value is specified as part of a thinning request,
+it only applies to that thinning request. If a value is not supplied with
+the thinning request, the cutting efficiency parameter associated with
+the CutEff keyword will be used.}
+
+parmsForm:{
+CutEff    !1,10!}
+
+//end keyword.base.CutEff
+
+
+//start keyword.base.CalbStat
+
+description:
+{Used to specify the minimum number of observations required for calibration.}
+
+f1:{noInput}
+f1v:{13}
+f2:{numberBox Min. number of lrg tree dbh grwth measurements per species needed}
+f2v:{5}
+f3:{numberBox Min. number of sm tree ht grwth measurements per species needed}
+f3v:{5}
+
+parmsForm:{
+Calbstat  !1,10!!2,10!!3,10!}
+
+//end keyword.base.CalbStat
+
+
+//start keyword.base.Close
+
+description:
+{Close a file that is related to the data set reference number
+coded in the first field.}
+
+f1:{numberBox File reference number for the input or output file.}
+f1v:{50}
+
+parmsForm:{
+Close     !1,10!}
+
+//end keyword.base.Close
+
+
+//start keyword.base.CutList
+
+description:
+{Print a list of all harvested tree records or place a copy in a
+retrievable mass storage file.
+
+If a zero is specified for the year, the output will be generated for all
+cycles in the projection.
+
+Do not use this keyword when using the R1 Existing Vegetation Classifier
+or Elk Hiding Cover post processors.}
+
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+f2:{numberBox Database reference number for the output tree record file}
+f2v:{3}
+f3:{longListButton Heading option}
+f3v:{Print heading that describes each table column
+     Output heading used by post processing programs
+     Suppress all headings}
+f4:{listButton Listing format}
+f4v:{Generate output in current format
+     Generate output in pre-1993 format}
+
+answerForm:{CutList   !1,10!!2,10!!3,10!                    !4,10!}
+parmsForm=answerForm
+
+//end keyword.base.CutList
+
+
+//start keyword.base.CWEqn
+
+description:
+{Sets species specific parameters crown width equations:
+
+CW = Coeff0 +
+     Coeff1 * DBH +
+     Coeff2 * (DBH**Coeff3) }
+
+answerForm:{\
+CWEqn     !1,10!!2,10!
+!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!}
+parmsForm=answerForm
+
+f1:{speciesSelection Species to which equation is applied}
+
+f2:{sliderBox Transition DBH between small and large tree coefficients}
+f2v:{0}
+
+f3title:{-------------------- Small-Tree Coefficients --------------------}
+f3:{numberBox Coeff0}
+f3v:{0}
+f4:{numberBox Coeff1 * DBH}
+f4v:{0}
+f5:{numberBox Coeff2 * f(DBH,Coeff3)}
+f5v:{0}
+f6:{numberBox DBH**Coeff3}
+f6v:{0}
+
+f7title:{-------------------- Large-Tree Coefficients --------------------}
+f7:{numberBox Coeff0}
+f7v:{0}
+f8:{numberBox Coeff1 * DBH}
+f8v:{0}
+f9:{numberBox Coeff2 * f(DBH,Coeff3)}
+f9v:{0}
+f10:{numberBox DBH**Coeff3}
+f10v:{0}
+
+
+//end keyword.base.CWEqn
+
+//start keyword.base.CycleAt
+
+description:
+{Insures a cycle boundary exists at specified year.}
+
+f1:{intNumberBox Year to insert a cycle (if not present)}
+f1v:{blank}
+
+parmsForm:{
+CycleAt   !1,10!}
+
+//end keyword.base.CycleAt
+
+//start keyword.base.DataScrn
+
+description:
+{Allows users to screen input data based on specified diameter limits.
+
+NOTE: The DataScrn keyword needs to precede any TREEDATA keyword or 
+if data is being read from a database it must precede the DSNIN,
+STANDSQL, and TREESQL keywords.}
+
+f1:{numberBox Lower diameter limit for trees to be included (greater than/equal)}
+f1v:{0}
+f2:{numberBox Upper diameter limit for trees to be included (less than)}
+f2v:{999}
+f3title:{Species or species group to which the diameter}
+f3:{speciesSelection range applies}
+
+answerForm:{\
+DataScrn  !1,10!!2,10!!3,10!}
+parmsForm=answerForm
+
+//end keyword.base.DataScrn
+
+
+//start keyword.base.Debug
+
+description:{Generate FVS debug output.
+
+If cycle is kept blank, debug information will be printed for all
+cycles.
+
+WARNING:
+A great deal of output can be generated using this keyword.}
+
+f1:{intNumberBox Cycle number for debug output:}
+f1v:{blank 0 40}
+f2title:{If debugs are desired for specific subroutines, and entry is needed
+and subroutines are listed on supplemental records.  A blank or no entry will
+result in debugs for all subroutines.}
+f2:{intNumberBox Integer if debug required for specific subroutine.}
+f2v:{1 blank}
+f3:{intNumberBox Output data set reference number:}
+f3v:{16 1 100}
+f4:{longTextEdit List of FVS subroutines for which debug is desired:}
+f4v:{main tregro}
+
+answerForm:{Debug    !1,10!!2,10!!3,10!
+!4!}
+parmsForm=answerForm
+
+//end keyword.base.Debug
+
+
+//start keyword.base.Defect
+
+description{ls ne cs sn}:
+{Specifies species-specific defect corrections for pulpwood and/or sawtimber
+volume estimates. Defect proportions are specified by species for the
+following eight DBH classes: 5, 10, 15, 20, 25, 30, 35, 40+ inches. A
+linear interpolation function calculates the defect proportion for the
+specified DBH of the tree.  This keywords effects all cycles. To schedule
+defect by cycle use the MCDEFECT or BFDEFECT keywords.  This keyword may
+be used multiple times in the same simulation.
+
+For each of the DBH classes, enter a defect correction proportion
+between 0 and 1.  For example, if the expected defect correction for a
+5 inch tree was 35 percent, a value of .35 would be entered.
+
+For trees greater than 40 inches DBH, a constant value for defect
+correction is applied.
+
+Note:  The DEFECT keyword can not be used with in the Event Monitor.}
+
+description:
+{Specifies species-specific defect corrections for merchantable cubic
+and/or board foot volume estimates. Defect proportions are specified
+by species for the following eight DBH classes: 5, 10, 15, 20, 25, 30,
+35, 40+ inches. A linear interpolation function calculates the defect
+proportion for the specified DBH of the tree.  This keywords effects
+all cycles. To schedule defect by cycle use the MCDEFECT or BFDEFECT
+keywords. This keyword maybe used multiple times in the same simulation.
+
+For each of the DBH classes, enter a defect correction proportion
+between 0 and 1.  For example, if the expected defect correction for a
+5 inch tree was 35 percent, a value of .35 would be entered.
+
+For trees greater than 40 inches DBH, a constant value for defect
+correction is applied.
+
+Note:  The DEFECT keyword can not be used with in the Event Monitor.}
+answerForm:{\
+Defect    !1,10!!2,10!!3,10!
+!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!!11,10!}
+
+
+f1:{listButton Volume type affected}
+f1v{ls ne cs sn}:{Pulpwood and Sawlog
+Pulpwood only
+Sawlog only}
+f1v:{Merchantable cubic and Board foot
+Merchantable cubic only
+Board foot only}
+f2:{speciesSelection Species that will be affected by this keyword}
+f3:{longListButton Specify whether to use defect from the input tree record}
+f3v:{Use defect specified on the input tree record
+     Ignore defect specified on the input tree record}
+f4:{sliderBox Volume defect proportion for a 5-inch tree}
+f4v:{0 0 1 0 1}
+f5:{sliderBox Volume defect proportion for a 10-inch tree}
+f5v:{0 0 1 0 1}
+f6:{sliderBox Volume defect proportion for a 15-inch tree}
+f6v:{0 0 1 0 1}
+f7:{sliderBox Volume defect proportion for a 20-inch tree}
+f7v:{0 0 1 0 1}
+f8:{sliderBox Volume defect proportion for a 25-inch tree}
+f8v:{0 0 1 0 1}
+f9:{sliderBox Volume defect proportion for a 30-inch tree}
+f9v:{0 0 1 0 1}
+f10:{sliderBox Volume defect proportion for a 35-inch tree}
+f10v:{0 0 1 0 1}
+f11:{sliderBox Volume defect proportion for 40 inch and larger trees}
+f11v:{0 0 1 0 1}
+
+expressionContents{always after}:{}
+
+parmsForm = answerForm
+
+
+//end keyword.base.Defect
+
+
+//start keyword.base.DelOTab
+
+description:
+{Selectively deletes portions of the main FVS output file (.out extenstion).  
+Multiple selections are required to delete two or more portions of the FVS
+output.}
+
+f1:{longListButton Output to be deleted}
+f1v:{Delete the stand composition table.
+    >Delete the selected sample tree table.
+     Delete the summary statistics table.
+     Delete the activity schedule table}
+
+answerForm:{DelOTab   !1,10,numbers!}
+parmsForm=answerForm
+numbers:{1 2 3 4}
+
+
+//end keyword.base.DelOTab
+
+
+//start keyword.base.Design
+
+description:
+{Specify information about the sampling design used to collect tree
+data.
+
+NOTE:
+Most Design cards are built for you by Suppose based on stand and plot
+data.  To override any field of the generated Design card, only enter
+values in the fields to be overridden.}
+
+f1title:
+{1.  Basal area factor:  A positive value is interpreted as a basal area
+factor for horizontal angle gauge. A negative value is interpreted as
+the inverse of a large-tree fixed area plot.}
+f1:{numberBox Basal area factor (or inverse of plot size)}
+f1v:{blank -999 999}
+f2title:
+{2.  Fixed plot size:  Enter the inverse of the small-tree fixed area plot
+(i.e. if the fixed area plot is 1/100 acre, enter 100 in this field).}
+f2:{numberBox Inverse of the small-tree fixed area plot.}
+f2v:{blank}
+f3title:
+{3.  Break point diameter:  Any trees smaller than this diameter were
+sampled using the fixed area plots.  Trees with diameters greater than
+or equal to this diameter were sampled using the specified BAF.}
+f3:{numberBox Enter the break point diameter in inches.}
+f3v:{blank}
+f4title:
+{4.  Plot count:  If blank or zero, the number of plots in the stand is
+determined by counting the numbers of unique plot identification
+codes on the tree record data.}
+f4:{numberBox Number of plots in the stand.}
+f4v:{blank}
+f5title:
+{5.  Non stockable count: Number of nonstockable plots in the stand.
+If blank, count nonstockable plots on tree records.}
+f5:{numberBox Number of nonstockable plots in the stand.}
+f5v:{blank}
+f6title:
+{6.  Sampling weight for the stand:  This weight does not affect the
+projection, but is used in programs that aggregate projections to
+produce a composite yield table.}
+f6:{numberBox Sampling weight for the stand.}
+f6v:{blank}
+f7title:
+{7.  Proportion of the stand considered stockable:  A value entered in
+this field will override the calculation based on number of plots
+stockable vs total number of plots.}
+f7:{sliderBox Proportion of the stand considered stockable}
+f7v:{blank 0 1.0 0 1.0}
+
+parmsForm:{
+Design    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!}
+
+//end keyword.base.Design
+
+
+//start keyword.base.DgStDev
+
+description:
+{Change the limits of the normal distribution from which random
+errors are drawn for diameter increment predictions.}
+
+f1:{numberBox Number of standard deviations defining the bounds of \
+distribution}
+f1v:{2 0 3}
+
+parmsForm:{
+DgStDev   !1,10!}
+
+//end keyword.base.DgStDev
+
+//start keyword.base.Echo
+
+f1:{noInput Echo keywords to the OPTIONS SELECTED BY INPUT TABLE}
+
+parmsForm:{
+Echo}
+
+//end keyword.base.Echo
+
+
+//start keyword.base.EchoSum
+
+description:
+{Specifies the summary statistics tables from the main output file be 
+written to a separate output file (.sum extension).  This file is used by the 
+Average Summary Table post processor.}
+
+f1:{numberBox Data set reference number}
+f1v:{4}
+
+parmsForm:{
+EchoSum   !1,10!}
+
+//end keyword.base.EchoSum
+
+
+//start keyword.base.Fertiliz
+
+description:
+{Simulate the application of fertilizer.  Currently, only treatments
+with 200 lb/acre of nitrogen can be represented.  The effects are
+based on data from northern Idaho.}
+
+f1:{scheduleBox}
+
+f2:{sliderBox Proportion of model-predicted effects actually achievied}
+
+f2title:{Simulate the application of 200 lb/acre nitrogen.}
+f2v:{1 0 1 0 1}
+
+expressionContents{always after}:{}
+
+parmsForm:{* Arg: Proportion of effects.
+Fertiliz  !1,10!   Parms(200, 0, 0, !2!)\n}
+
+answerForm:
+{Fertiliz  !1,10!                              !2,10!}
+
+defaultCondition:removal
+
+//end keyword.base.Fertiliz
+
+//start keyword.base.FixCW
+
+description:
+{Used to override crown width estimates for specified species and
+diameter classes.}
+
+f1title:{Enter a "0" in Year/Cycle to effect all cycles}
+f1:{scheduleBox}
+f2:{speciesSelection Species to which multiplier is applied}
+f3:{sliderBox Multiplier value}
+f3v:{1.0 0.0 999.0 0.0 100.0}
+f4:{numberBox Minimum DBH to which multiplier will be applied (greater than/equal)}
+f4v:{0.0}
+f5:{numberBox Maximum DBH to which multiplier will be applied (less than)}
+f5v:{999.0}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, min DBH, Max DBH
+FixCW     !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.base.FixCW
+
+//start keyword.base.FixDG
+
+description:
+{Used to override diameter growth rates for specified species and
+diameter classes.
+
+NOTE:
+Adjusting the diameter growth will not affect the height growth for that
+cycle, however, the changed diameter growth and resulting basal area will
+affect mortality that cycle.}
+
+f1title:{Enter a "0" in Year/Cycle to effect all cycles}
+f1:{scheduleBox}
+f2:{speciesSelection Species to which multiplier is applied}
+f3:{sliderBox Diameter growth multiplier value}
+f3v:{1.0 0.0 999.0 0.0 100.0}
+f4:{numberBox Minimum DBH to which multiplier will be applied (greater than/equal)}
+f4v:{0.0}
+f5:{numberBox Maximum DBH to which multiplier will be applied (less than)}
+f5v:{999.0}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, min DBH, Max DBH
+FixDG     !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.base.FixDG
+
+//start keyword.base.FixHtG
+
+description:
+{Used to override height growth rates for specified species and
+diameter classes.
+
+NOTE:
+Adjusting the height growth will not affect the diameter growth for that
+cycle, however, the changed height growth will affect mortality that cycle.}
+
+f1title:{Enter a "0" in Year/Cycle to effect all cycles}
+f1:{scheduleBox}
+f2:{speciesSelection Species to which multiplier is applied}
+f3:{sliderBox Height growth multiplier value}
+f3v:{1.0 0.0 999.0 0.0 100.0}
+f4:{numberBox Minimum DBH to which multiplier will be applied (greater than/equal)}
+f4v:{0.0}
+f5:{numberBox Maximum DBH to which multiplier will be applied (less than)}
+f5v:{999.0}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, min DBH, Max DBH
+FixHtG    !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.base.FixHtG
+
+
+//start keyword.base.FixMort
+
+description:
+{Used to override mortality rates for specified diameter classes and
+species.
+
+CAUTION:
+This keyword overrides BaMax and SDIMax induced mortality.}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species to which mortality is applied}
+f3:{sliderBox Proportion of the tree record that will be killed}
+f3v:{0.0 0.0 999.0 0.0 1.0}
+f4:{numberBox Smallest DBH to which mortality rate will be applied (greater than/equal)}
+f4v:{0.0}
+f5:{numberBox Largest DBH to which mortality rate will be applied (less than)}
+f5v:{999.0}
+f6:{longListButton}
+f6v:{Defined proportion replaces mortality rate calculated in the model
+Defined proportion is added to the mortality rate calculated in the model
+The larger of the defined proportion and the calculated one is used
+Multiply model calculated mortality by the proportion specified in field 3}
+f7:{longListButton}
+f7v:{Distribute mortality uniformly across the stand
+Concentrate mortality on points within the stand
+Concentrate mortality by size, smallest to largest
+Concentrate mortality by point and size, smallest to largest
+Concentrate mortality by size, largest to smallest
+Concentrate mortality by point and size, largest to smallest}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, Min DBH, Max DBH, Distribution
+* 0=don't 1=add mortality to base model estimate.
+FixMort   !1,10!   Parms(!2!, !3!, !4!, !5!, !6!, !7,,header!)\n}
+
+answerForm:{FixMort   !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,header!}
+header:{0 1 10 11 20 21}
+
+//end keyword.base.FixMort
+
+
+//start keyword.base.FvsStand
+
+description:
+{Creates a support file of sample tree records for the post processing
+program FVSSTAND Alone.  Survivor, mortality, and harvest tree records
+are written to a retrievable mass storage file.
+
+This keyword has two fields: Field 1 is the date/cycle request for the
+FvsStand list.  If a zero is specified for the year, the output will be
+generated for all cycles in the projection.
+
+Field 2 is used when Field 1 equals one to either suppress Cycle 0
+information and record Cycle 1 (Field 2 = 1), or vice versa, suppress
+Cycle 1 information and record Cycle 0 (Field 2 = 2).
+
+FvsStand lists will use the first four digits of the batch file run to
+name its output file.  The ending extension is always "*.fst".  Users
+can also specify a MgmtID keyword to name the FvsStand list.
+
+FvsStand lists are similar to Treelist and Cutlist output files.  In
+addition, FvsStand output files contain stand structure and age data
+as well as past tree measure information.}
+
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+f2title:{Select cycle 1 output.}
+f2:{longListButton (Ignored unless output is scheduled only for cycle 1, or for all cycles.)}
+f2v:{Print output for the inventory year and end of cycle 1
+     Print output only for the end of cycle 1
+     Print output only for the inventory year}
+
+answerForm:{FvsStand  !1,10!!2,10!}
+parmsForm=answerForm
+
+//end keyword.base.FvsStand
+
+
+//start keyword.base.Growth
+
+description:
+{Identify the methods used to measure and input mortality, height and
+diameter growth data.
+
+Growth estimates can be either directly measured or computed as the
+difference between two successive diameter or height measurements.
+Furthermore, the values for DBH and HT can describe the tree at
+either the start of the end of the growth period.}
+
+f1:{longListButton Diameter growth measured}
+f1v:{Measured directly as growth prior to current diameter measure
+     Subtract "growth" diameter from current diameter
+     Measured directly as growth since current diameter measure
+     Subtract current diameter from "growth" diameter}
+f2:{numberBox Length of diameter growth measurement period in years}
+f2v{nc sn}:{5}
+f2v{ni ie so ut tt ak em ws bm ec ci bp ne wc ls cs kt cr sw sp sf lp ca pn}
+:{10}
+f3:{longListButton Height growth measured}
+f3v:{Measured directly as growth prior to current height measure
+     Subtract "growth" height from current height
+     Measured directly as growth since current height measure
+     Subtract current height from "growth" height}
+f4:{intNumberBox Length of height growth measurement period in years}
+f4v:{5}
+f5:{intNumberBox Length of the mortality observation period}
+f5v:{5}
+
+parmsForm:{
+Growth    !1,10!!2,10!!3,10!!4,10!!5,10!}
+
+//end keyword.base.Growth
+
+
+//start keyword.base.HtgMult
+
+description:
+{A growth multiplier for the large tree height growth model.  Once
+set, the multiplier remains until replaced by a subsequent multiplier.}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f2:{speciesSelection Species to which multiplier is applied}
+f3title:{Multiplier value (e.g. 0.9 will decrease predicted height growth
+to 90% of the predicted value)}
+f3:{sliderBox Multiplier value}
+f3v:{1 0 20 0 5}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier
+HtgMult   !1,10!   Parms(!2!, !3!)\n}
+
+
+//end keyword.base.HtgMult
+
+
+//start keyword.base.HtgStop
+
+description:
+{Stop the height growth to reflect temporary damage.
+
+NOTE:
+Using the defaults, no trees will have height growth affected.
+Field 6, the proportion of height growth retained, must be greater than 0}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species}
+f3:{numberBox Height of shortest tree affected (greater than/equal)}
+f3v:{0}
+f4:{numberBox Height of tallest tree affected (less than)}
+f4v:{0}
+f5:{sliderBox Probability of no height growth on a tree}
+f5v:{0 0 1 0 1}
+f6:{sliderBox Mean of the distribution of the proportion of height growth \
+retained}
+f6v:{1.0 0 4.0 0 2.0}
+f7:{sliderBox Standard deviation of the distribution of height growth \
+retained}
+f7v:{0 0 4.0 0 2.0}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Min Ht, Max Ht, Prob(noGrowth), Proportion, SD
+HtgStop   !1,10!   Parms(!2!, !3!, !4!, !5!, !6!, !7!)\n}
+
+
+//end keyword.base.HtgStop
+
+
+//start keyword.base.TopKill
+
+description:
+{Kill a portion of the top of a tree to reflect damage from logging or
+insects.}
+
+f1:{scheduleBox}
+f1v:{1}
+f2:{speciesSelection Species}
+f3:{numberBox Shortest tree affected (greater than/equal)}
+f3v:{0}
+f4:{numberBox Tallest tree affected (less than)}
+f4v:{0}
+f5:{sliderBox Probability of damage occurring}
+f5v:{0 0 1 0 1}
+f6title:{Average proportion of height lost to topkill ( a value of .2 causes
+20% of the tree to be topkilled)}
+f6:{sliderBox Average proportion of height lost to topkill}
+f6v:{0 0 1 0 1}
+f7:{numberBox Standard deviation of the proportion height lost}
+f7v:{0}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args:Species,Min Ht,Max Ht,Probability,Prop lost,Std Dev
+TopKill   !1,10!   Parms(!2!, !3!, !4!, !5!, !6!, !7!)\n}
+
+
+//end keyword.base.TopKill
+
+
+//start keyword.base.InvYear
+
+description:
+{Specify the starting date for a projection.
+
+CAUTION:
+The default inventory year is read from your data.  This default is
+used by Suppose to insure that the simulation starting year is not set
+to a year prior to this default inventory year.  This version of
+Suppose does not insure that the value you enter using this keyword is
+correct, nor does Suppose recognize that this value may cause an
+incorrect result.}
+
+f1:{numberBox Starting date for the stand projection (eg. 1991).}
+f1v:{0}
+
+parmsForm:{
+InvYear   !1,10!}
+
+//end keyword.base.InvYear
+
+
+//start keyword.base.Locate
+
+description:
+{Specifies the location of the stand in terms of latitude, longitude,
+plus state and county codes.}
+
+f1:{numberBox Latitude in decimal degrees.}
+f1v{ak}:{56}
+f1v{bm}:{45}
+f1v{ca}:{42}
+f1v{ci}:{44}
+f1v{cr sw sp}:{38}
+f1v{bp}:{44}
+f1v{sf lp}:{40}
+f1v{cs}:{40}
+f1v{ec}:{47}
+f1v{em}:{46}
+f1v{kt}:{48.5}
+f1v{ls}:{45}
+f1v{nc}:{42}
+f1v{ne}:{41}
+f1v{ni ie}:{46}
+f1v{pn}:{46}
+f1v{sn}:{34}
+f1v{so}:{42}
+f1v{tt}:{44}
+f1v{ut}:{40}
+f1v{wc}:{46}
+f1v{ws}:{39}
+
+f2:{numberBox Longitude in decimal degrees.}
+f2v{ak}:{132}
+f2v{bm}:{118}
+f2v{ca}:{124}
+f2v{ci}:{114}
+f2v{cr sw sp bp sf lp}:{107}
+f2v{cs}:{90}
+f2v{ec}:{121}
+f2v{em}:{111}
+f2v{kt}:{116}
+f2v{ls}:{90}
+f2v{nc}:{123}
+f2v{ne}:{76}
+f2v{ni ie}:{116}
+f2v{pn}:{123}
+f2v{sn}:{86}
+f2v{so}:{121}
+f2v{tt}:{111}
+f2v{ut}:{112}
+f2v{wc}:{122}
+f2v{ws}:{120}
+
+f3:{numberBox State code.}
+f3v:{blank}
+f4:{numberBox County code.}
+f4v:{blank}
+
+parmsForm:{
+Locate    !1,10!!2,10!!3,10!!4,10!}
+
+//end keyword.base.Locate
+
+
+//start keyword.base.Managed
+
+description:
+{This keyword signals FVS that the stand is managed or unmanaged.  It affects
+the growth-rates of the following variants:
+
+    Eastern Montana (EM)            large-tree diameter-growth
+    Kookantl (KT)                   large-tree diameter-growth and
+                                    small-tree height-growth
+    Pacific Northwest Coast (PN)    small-tree diameter-growth
+    West Cascades (WC)              small-tree diameter-growth
+    Southeast Twigs (SE)            large-tree diameter-growth of loblolly
+                                    shortleaf, and longleaf pine stands
+    Southern (SN)                   large-tree diameter-growth of sand, slash,
+                                    longleaf, loblolly, and eastern white pine
+
+Note:
+     The management flag will have a default value of 1 if the MANAGED
+     keyword is present; if the keyword is not present the stand is
+     considered unmanaged.}
+
+f1:{noInput Not applicable to the variant you are using.}
+f1{em kt pn wc sn}:{scheduleBox}
+f2{em kt pn wc sn}:{listButton Management Flag}
+f2v:{flag is off
+    >flag is on}
+
+parmsForm:{
+Managed   !1,10!!2,10!}
+
+//end keyword.base.Managed
+
+
+//start keyword.base.MCDefect
+
+description:
+{Specifies species-specific cubic-foot volume defect corrections for
+cubic foot volume estimates.  In the eastern US this affects only the
+pulpwood cubic foot volume.  Defect proportions are specified by
+species for the following five DBH classes: 5, 10, 15, 20, 25+ inches.  A
+linear interpolation function calculates the defect proportion for the
+specified DBH of the tree.
+
+For each of the DBH classes, enter a defect correction proportion
+between 0 and 1.  For example, if the expected defect correction for a
+5 inch tree was 35 percent, a value of .35 would be entered.
+
+For trees greater than 25 inches DBH, a constant value for defect
+correction is applied.
+
+Note:  If used inside an Event Monitor sequence, MCDEFECT will not affect
+       cycle 0 volumes.}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species that will be affected by this keyword}
+f3:{sliderBox Cubic foot volume defect proportion for a 5-inch tree}
+f3v:{0 0 1 0 1}
+f4:{sliderBox Cubic foot volume defect proportion for a 10-inch tree}
+f4v:{0 0 1 0 1}
+f5:{sliderBox Cubic foot volume defect proportion for a 15-inch tree}
+f5v:{0 0 1 0 1}
+f6:{sliderBox Cubic foot volume defect proportion for a 20-inch tree}
+f6v:{0 0 1 0 1}
+f7:{sliderBox Cubic foot volume defect proportion for a 25-inch tree and greater}
+f7v:{0 0 1 0 1}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, 5" defect, 10", 15", 20", 25+"
+MCDefect  !1,10!   Parms(!2!, !3!, !4!,              &
+!5!, !6!, !7!)\n}
+parmsForm=answerForm
+
+//end keyword.base.MCDefect
+
+
+//start keyword.base.MCFDLN
+
+description:
+{Enter species-specific parameters for log-linear form and defect
+correction equations for merchantable cubic-foot volume estimates.
+In the eastern US this affects only pulpwood cubic foot volume.}
+
+f1title:{Species number for which the equation is to be changed.  The
+default equation supplies a multiplier of 1.0 for each species.}
+f1:{speciesSelection Species for which the equation is to be changed.}
+f2:{numberBox Intercept terms for log-linear equation}
+f2v:{0}
+f3:{numberBox Slope coefficient for log-linear equation}
+f3v:{1}
+
+parmsForm:{
+MCFDLN    !1,10!!2,10!!3,10!}
+
+//end keyword.base.MCFDLN
+
+
+//start keyword.base.MinHarv
+
+description{ak bm ci cr sw sp bp sf lp ec em nc ni so tt ut wc ws kt pn ca}:
+{Specify minimum acceptable harvest standards for board-foot
+volume, cubic-foot volume, or basal area per acre by cycle.
+
+Once this keyword is in effect, it remains in effect until it is replaced
+by a subsequent multiplier.}
+
+description{cs ls ne sn}:
+{Specify minimum acceptable harvest standards for sawlog merchantable
+cubic-foot volume, sawlog board-foot volume, or basal area per acre
+by cycle.
+
+Once this keyword is in effect, it remains in effect until it is replaced
+by a subsequent multiplier.}
+
+f1title:
+{Once this restriction is in effect, it remains in effect until\
+ replaced by a subsequent restriction.}
+f1:{scheduleBox}
+f2{cs ls ne sn}:
+{numberBox Minimum acceptable harvest volume in sawlog cubic-feet per acre.}
+f2:{numberBox Minimum acceptable harvest volume in merchantable cubic-\
+feet per acre.}
+f2v:{0}
+f3:{numberBox Minimum acceptable harvest volume in board feet per acre.}
+f3{cs ls ne sn}:
+{numberBox Minimum acceptable harvest volume in sawlog board-foot volume\
+ per acre.}
+f3v:{0}
+f4:{numberBox Minimum acceptable harvest volume in square feet of basal\
+ area per acre.}
+f4v:{0}
+f5{cs ls ne sn}:
+{numberBox Minimum acceptable harvest volume in merchantable cubic-\
+feet per acre.}
+f5:{numberBox Minimum acceptable harvest volume in total cubic-\
+feet per acre.}
+f5v:{0}
+
+parmsForm:{\
+* Arguments: Merch Cubic, Bdft, Ba, Total Cubic
+MinHarv   !1,10!     Parms(!2!, !3!, !4!, !5!)
+}
+parmsForm=answerForm
+
+//end keyword.base.MinHarv
+
+
+//start keyword.base.ModType
+
+description:
+{Field 1 is used to set model type in the CR variant while field 3 is used to set 
+the FIA forest type in all variants. If the three digit forest type is selected, 
+FVS will use the forest type for the first cycle and recalculate forest type for 
+subsequent cycles. If the four digit forest type, prepended with a "9", is chosen, 
+FVS will maintain the specified forest type for the entire simulation.
+}
+
+f1:{noInput Field 1 is not used with your variant.}
+f1{cr}:{listButtonString Model type}
+f1v{cr sw sp bp sf lp}:{\n
+>
+1 = Southwest mixed conifer
+2 = Southwest ponderosa pine
+3 = Black Hills ponderosa pine
+4 = Spruce-fir
+5 = Lodgepole pine}
+
+f2:{noInput Field 2 is not used with your variant.}
+
+f3:{longListButtonString Forest type:}
+f3v:{\n
+>
+101 = Jack pine
+102 = Red pine
+103 = Eastern white pine
+104 = White pine-hemlock
+105 = Eastern hemlock
+121 = Balsam fir
+122 = White spruce
+123 = Red spruce
+124 = Red spruce-balsam fir
+125 = Black spruce
+126 = Tamarack
+127 = Northern white cedar
+141 = Longleaf pine
+142 = Slash pine
+161 = Loblolly pine
+162 = Shortleaf pine
+163 = Virginia pine
+164 = Sand pine
+165 = Table-mountain pine
+166 = Pond pine
+167 = Pitch pine
+168 = Spruce pine
+181 = Eastern redcedar
+182 = Rocky mountain juniper
+183 = Western Juniper
+184 = Juniper-woodland
+185 = Pinyon-juniper woodland
+201 = Douglas-fir
+202 = Port orford cedar
+221 = Ponderosa pine
+222 = Incense cedar
+223 = Jeffrey-Coulter-bigcone Douglas-fir
+224 = Sugar pine
+241 = Western white pine
+261 = White fir
+262 = Red fir
+263 = Noble fir
+264 = Pacific silver fir
+265 = Engelmann spruce
+266 = Engelmann spruce-subalpine fir
+267 = Grand fir
+268 = Subalpine fir
+269 = Blue spruce
+270 = Mountain hemlock
+271 = Alaska yellow cedar
+281 = Lodgepole pine
+301 = Western hemlock
+304 = Western redcedar
+305 = Sitka spruce
+321 = Western larch
+341 = Redwood
+342 = Giant sequoia
+361 = Knobcone pine
+362 = Southwest white pine
+363 = Bishop pine
+364 = Monterey pine
+365 = Foxtail-bristlecone pine
+366 = Limber pine
+367 = Whitebark pine
+368 = Misc. western softwoods
+371 = California mixed conifer
+381 = Scotch pine
+383 = Other exotic softwoods
+401 = White pine-red oak-white ash
+402 = Eastern redcedar-hardwood
+403 = Longleaf pine-oak
+404 = Shortleaf pine-oak
+405 = Virginia pine-southern red oak
+406 = Loblolly pine-hardwood
+407 = Slash pine-hardwood
+409 = Other pine-hardwood
+501 = Post-blackjack oak
+502 = Chestnut oak
+503 = White oak-red oak-hickory
+504 = White oak
+505 = Northern red oak
+506 = Yellow poplar-white oak-red oak
+507 = Sassafras-persimmon
+508 = Sweetgum-yellow poplar
+509 = Bur oak
+510 = Scarlet oak
+511 = Yellow poplar
+512 = Black walnut
+513 = Black locust
+514 = Southern scrub oak
+515 = Chestnut-black-scarlet oak
+519 = Red maple-oak
+520 = Mixed upland hardwoods
+601 = Swamp chestnut-cherrybark oak
+602 = Sweetgum-Nuttall-willow oak
+605 = Overcup oak-water hickory
+606 = Atlantic white-cedar
+607 = Bald cypress-water tupelo
+608 = Sweetbay-swamp tupelo-red maple
+701 = Black ash-American elm-red maple
+702 = River birch-sycamore
+703 = Cottonwood
+704 = Willow
+705 = Sycamore-pecan-American elm
+706 = Sugarberry-hackberry-elm-green ash
+707 = Silver maple-American elm
+708 = Red maple-lowland
+709 = Cottonwood-willow
+722 = Oregon ash
+801 = Sugar maple-beech-yellow birch
+802 = Black cherry
+803 = Cherry-ash-yellow poplar
+805 = Hard maple-basswood
+807 = Elm-ash-locust
+809 = Red maple-upland
+901 = Aspen
+902 = Paper birch
+904 = Balsam poplar
+911 = Red alder
+912 = Bigleaf maple
+921 = Gray pine
+922 = California black oak
+923 = Oregon white oak
+924 = Blue oak
+925 = Deciduous oak woodland
+926 = Evergreen oak woodland
+931 = Coast live oak
+932 = Canyon-interior live oak
+941 = Tan oak
+942 = California laurel
+943 = Giant chinkapin
+951 = Pacific madrone
+952 = Mesquite woodland
+953 = Mountain brush woodland
+954 = Intermountain maple woodland
+955 = Misc. western hardwoods
+981 = Sable palm
+982 = Mangrove
+991 = Paulownia
+992 = Melaluca
+993 = Eucalyptus
+995 = Other exotic hardwoods
+996 = FVS other softwoods
+997 = FVS other hardwoods
+998 = FVS other species
+999 = Nonstocked
+9101 = Jack pine
+9102 = Red pine
+9103 = Eastern white pine
+9104 = White pine-hemlock
+9105 = Eastern hemlock
+9121 = Balsam fir
+9122 = White spruce
+9123 = Red spruce
+9124 = Red spruce-balsam fir
+9125 = Black spruce
+9126 = Tamarack
+9127 = Northern white cedar
+9141 = Longleaf pine
+9142 = Slash pine
+9161 = Loblolly pine
+9162 = Shortleaf pine
+9163 = Virginia pine
+9164 = Sand pine
+9165 = Table-mountain pine
+9166 = Pond pine
+9167 = Pitch pine
+9168 = Spruce pine
+9181 = Eastern redcedar
+9182 = Rocky mountain juniper
+9183 = Western Juniper
+9184 = Juniper-woodland
+9185 = Pinyon-juniper woodland
+9201 = Douglas-fir
+9202 = Port orford cedar
+9221 = Ponderosa pine
+9222 = Incense cedar
+9223 = Jeffry-Coulter-bigcone Douglas-fir
+9224 = Sugar pine
+9241 = Western white pine
+9261 = White fir
+9262 = Red fir
+9263 = Noble fir
+9264 = Pacific silver fir
+9265 = Engelmann spruce
+9266 = Engelmann spruce-subalpine fir
+9267 = Grand fir
+9268 = Subalpine fir
+9269 = Blue spruce
+9270 = Mountain hemlock
+9271 = Alaska yellow cedar
+9281 = Lodgepole pine
+9301 = Western hemlock
+9304 = Western redcedar
+9305 = Sitka spruce
+9321 = Western larch
+9341 = Redwood
+9342 = Giant sequoia
+9361 = Knobcone pine
+9362 = Southwest white pine
+9363 = Bishop pine
+9364 = Monterey pine
+9365 = Foxtail-bristlecone pine
+9366 = Limber pine
+9367 = Whitebark pine
+9368 = Misc. western softwoods
+9371 = California mixed conifer
+9381 = Scotch pine
+9383 = Other exotic softwoods
+9401 = White pine-red oak-white ash
+9402 = Eastern redcedar-hardwood
+9403 = Longleaf pine-oak
+9404 = Shortleaf pine-oak
+9405 = Virginia pine-southern red oak
+9406 = Loblolly pine-hardwood
+9407 = Slash pine-hardwood
+9409 = Other pine-hardwood
+9501 = Post-blackjack oak
+9502 = Chestnut oak
+9503 = White oak-red oak-hickory
+9504 = White oak
+9505 = Northern red oak
+9506 = Yellow poplar-white oak-red oak
+9507 = Sassafras-persimmon
+9508 = Sweetgum-yellow poplar
+9509 = Bur oak
+9510 = Scarlet oak
+9511 = Yellow poplar
+9512 = Black walnut
+9513 = Black locust
+9514 = Southern scrub oak
+9515 = Chestnut-black-scarlet oak
+9519 = Red maple-oak
+9520 = Mixed upland hardwoods
+9601 = Swamp chestnut-cherrybark oak
+9602 = Sweetgum-Nuttall-willow oak
+9605 = Overcup oak-water hickory
+9606 = Atlantic white-cedar
+9607 = Bald cypress-water tupelo
+9608 = Sweetbay-swamp tupelo-red maple
+9701 = Black ash-American elm-red maple
+9702 = River birch-sycamore
+9703 = Cottonwood
+9704 = Willow
+9705 = Sycamore-pecan-American elm
+9706 = Sugarberry-hackberry-elm-green ash
+9707 = Silver maple-American elm
+9708 = Red maple-lowland
+9709 = Cottonwood-willow
+9722 = Oregon ash
+9801 = Sugar maple-beech-yellow birch
+9802 = Black cherry
+9803 = Cherry-ash-yellow poplar
+9805 = Hard maple-basswood
+9807 = Elm-ash-locust
+9809 = Red maple-upland
+9901 = Aspen
+9902 = Paper birch
+9904 = Balsam poplar
+9911 = Red alder
+9912 = Bigleaf maple
+9921 = Gray pine
+9922 = California black oak
+9923 = Oregon white oak
+9924 = Blue oak
+9925 = Deciduous oak woodland
+9926 = Evergreen oak woodland
+9931 = Coast live oak
+9932 = Canyon-interior live oak
+9941 = Tan oak
+9942 = California laurel
+9943 = Giant chinkapin
+9951 = Pacific madrone
+9952 = Mesquite woodland
+9953 = Mountain brush woodland
+9954 = Intermountain maple woodland
+9955 = Misc. western hardwoods
+9981 = Sable palm
+9982 = Mangrove
+9991 = Paulownia
+9992 = Melaluca
+9993 = Eucalyptus
+9995 = Other exotic hardwoods
+9996 = FVS other softwoods
+9997 = FVS other hardwoods
+9998 = FVS other species
+9999 = Nonstocked}
+
+parmsForm:{
+ModType   !1,10!!2,10!!3,10!!4,10!}
+
+//end keyword.base.ModType
+
+
+
+//start keyword.base.MortMSB
+
+description:
+{Adds additional mortality based on the Mature Stand Boundary Concept
+
+The slope of the alternate mortality line refers to the 
+relationship where x = ln(qmd) and y = ln(tpa). This keyword
+only works in variants using an SDI-based mortality model.
+}
+
+f1:{numberBox QMD at which the Mature Stand Boundary will be invoked}
+f1v:{999}
+f2:{numberBox Slope of the alternate mortality line}
+f2v:{-1.605 -10.0 -1.605}
+f3:{sliderBox Proportion of the tree record that will be killed}
+f3v:{0.90 0 1 0 1}
+f4:{numberBox Minimum dbh to which the increased mortality will be applied (GE)}
+f4v:{0}
+f5:{numberBox Maximum dbh to which the increased mortality will be applied (LT)}
+f5v:{999}
+f6title: {Distribution of the increased mortality}
+f6:{longListButton}
+f6v:{Start with the largest diameter tree and continues downward
+Start with the smallest diameter tree and work upward
+Apply mortality in an equal proportion to all tree records}
+
+answerForm:{MortMSB  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10,numbers!}
+parmsForm=answerForm
+numbers:{1 2 3}
+
+//end keyword.base.MortMSB
+
+//start keyword.base.MortMult
+
+description:
+{A multiplier used to alter mortality distribution.
+
+NOTE:
+If mortality is based on Stand Density Index, MortMult applies only to
+background mortality rates (i.e. 55% SDI and less).}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f1v:{1}
+f2:{speciesSelection Species to which multiplier is applied.}
+f3:{sliderBox Multiplier value for mortality}
+f3v:{1 0 10 0 5}
+f4:{numberBox Smallest DBH to which multiplier is applied (greater than/equal)}
+f4v:{0}
+f5:{numberBox Largest DBH to which multiplier is applied (less than)}
+f5v:{999}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, min DBH, Max DBH, Efficiency
+MortMult  !1,10!   Parms(!2!, !3!, !4!, !5!)\n}
+
+//end keyword.base.MortMult
+
+
+//start keyword.base.NoAutoES
+
+f1:{noInput Suppress all natural regeneration and ingrowth features}
+
+parmsForm:{
+NoAutoEs  !1,10!}
+
+//end keyword.base.NoAutoES
+
+
+//start keyword.base.NoCalib
+
+description:
+{Suppresses calculation of scale factors for large tree diameter
+increment model and small tree height increment model.  It can
+suppress the calculated scale factors for all species, or for
+individual species.
+
+Calibration is the default mode of the system.  This keyword acts
+as a toggle switch to turn it off. Non-calibration is appropriate when
+growth measured in your sample is not typical.  This event might
+occur during insect epidemics or prolonged drought.}
+
+f1title:{Species for which calculation of scale factors is to be \
+suppressed.}
+f1:{speciesSelection Species}
+
+parmsForm:{
+NoCalib   !1,10!}
+
+//end keyword.base.NoCalib
+
+//start keyword.base.NoEcho
+
+f1:{noInput Suppresses keyword echo to the OPTIONS SELECTED BY INPUT TABLE}
+
+parmsForm:{
+NoEcho    !1,10!}
+
+//end keyword.base.NoEcho
+
+//start keyword.base.NoHtDReg
+
+description:
+{Suppresses the calculation of parameters for a local height-diameter
+equation when dubbing heights. When the calculation of local coefficients 
+for the height dubbing process is suppressed, heights are dubbed using
+region-wide default coefficients. There must be at least
+3 non-top damaged heights measured per species for the calibration 
+to occur. Calibrating using local coefficients can be suppressed 
+when the NoHtDReg keyword is used.}
+
+f1title:
+{Species for which the coefficients of the local height-diameter
+relationship will be suppressed.}
+f1:{speciesSelection Species}
+f1v:{1}
+
+f2:{longListButton Toggle to turn calibration on or off.}
+f2v{so ec wc pn bm}:{Turn OFF calibration of height-dbh function
+Turn ON calibration of height-dbh function}
+f2v:{Turn OFF calibration of height-dbh function
+>Turn ON calibration of height-dbh function}
+
+parmsForm:{
+NoHtDReg  !1,10!!2,10!}
+
+//end keyword.base.NoHtDReg
+
+
+//start keyword.base.NoScreen
+
+description:
+{Suppresses printing of an abbreviated copy of the summary statistics
+table to the terminal screen or a file during program execution.  In
+other words, cancels the effect of the SCREEN keyword.}
+
+f1:{noInput Output not printed to screen.}
+
+parmsForm:{
+NoScreen  !1,10!}
+
+//end keyword.base.NoScreen
+
+
+//start keyword.base.NoTrees
+
+f1:{noInput No projectable tree records are required as input}
+parmsForm:{
+NoTrees}
+
+//end keyword.base.NoTrees
+
+
+//start keyword.base.NoTriple
+
+description:
+{Tripling is the default mode of the system.  Use of this keyword acts
+like a toggle switch to turn it off.  For a small data set (less than 100
+observations) tripling helps stabilize the random effects (see
+DgStDev).}
+
+f1:{noInput Record tripling is turned off}
+parmsForm:{
+NoTriple}
+
+//end keyword.base. NoTriple
+
+
+//start keyword.base.NumCycle
+
+description:
+{Specify the number of cycles to run the projection.
+
+CAUTION:
+The number of cycles needed for a run is computed by Suppose.  This
+version of Suppose does not insure that the value you enter using the
+NumCycle keyword is correct, nor does Suppose recognize that this
+value may cause an incorrect result.}
+
+f1:{numberBox Number of cycles to be projected.}
+f1v:{1 1 40}
+
+parmsForm:{
+NumCycle  !1,10!}
+
+//end keyword.base.NumCycle
+
+
+//start keyword.base.NumTrip
+
+description:
+{Change the number of times tree records will be tripled.
+
+Tripling will not occur if the number of tree records will exceed 1350
+following tripling.
+
+In a bare ground projection, the number of times that records will be
+tripled is one less than this value because tripling occurs before the
+addition of regeneration records to the treelist. (i.e., if you want the
+tree records to be tripled twice in a bare ground projection, set the
+value in field 1 to 3)}
+
+f1:{numberBox Number of triples}
+f1v:{2}
+parmsForm:{
+NumTrip   !1,10!}
+
+//end keyword.base.NumTrip
+
+
+//start keyword.base.Open
+
+description:
+{Request a Fortran OPEN for an input or output file.  A supplemental
+record is required to specify a filename for the unit that is to be
+opened.
+
+NOTE:
+File reference numbers between 1 and 30 are reserved for files that
+are currently accessed by the FVS or extensions.}
+
+f1:{numberBox File reference number for the input or output file.}
+f1v:{50}
+f2:
+{longListButton \
+Code for specifying the meaning of blanks in numeric fields}
+f2v:{Blanks are to be treated as zeroes
+     Blanks are to be treated as null characters}
+f3:{listButton File status code}
+f3v:{Unknown \n New \n Old}
+f4:{numberBox Maximum number of characters per record}
+f4v:{80}
+f5:{listButton File format switch}
+f5v:{Formatted
+     Unformatted}
+f6:{longTextEdit File name (Suppose does not insure this file exists):}
+
+answerForm:
+{Open      !1,10!!2,10!!3,10!!4,10!!5,10!
+!6!}
+parmsForm=answerForm
+
+//end keyword.base.Open
+
+
+//start keyword.base.PrmFrost
+
+description:
+{Include/exclude a growth modifier in the diameter and height growth 
+calculations based on the presence of permafrost in the stand.
+
+This keyword remains in effect until replaced by a subsequent multiplier.}
+
+f1:{scheduleBox}
+
+f2:{noInput Note: The variant you are using does not include a permafrost modifier}
+f2{ak}:{longListButton Turn permafrost modifier on or off.}
+f2v{ak}:{\
+0 = Off
+1 = On}
+
+parmsForm:{
+PrmFrost  !1,10!!2,10!}
+
+//end keyword.base.PrmFrost
+
+
+//start keyword.base.Prune
+
+description:
+{Schedule the removal of a portion of a trees crown as part of a
+stand treatment scenario.
+
+CAUTIONS:
+Pruning is always done the first year of the cycle in which it is
+scheduled.
+
+All thinnings scheduled within a cycle are done before any pruning.
+
+If no trees remain after thinning, all pruning requests will be cancelled.
+
+If the combination of parameters on a pruning keyword result in no trees
+being pruned, the pruning requests will be cancelled.}
+
+f1:{scheduleBox}
+f2:{longListButton Method of pruning}
+f2v:{\
+1 = Prune to height; no regard to proportion of crown to be left
+>2 = Prune to height; cut no more than specified proportion of crown
+3 = Prune to height; if specified proportion of crown not left, do not prune
+4 = Remove specified proportion of the live crown
+5 = Remove length; no regard to proportion of crown to be left
+6 = Remove length; cut no more than specified proportion of crown
+7 = Remove length; if specified proportion of crown not left, do not prune}
+f3title:{Height to base of live crown, or length of crown to be removed.}
+f3:{numberBox Height or length}
+f3v:{0}
+f4title:{Maximum proportion of live crown that can be removed, or
+threshold which determines whether the tree can be pruned,
+or proportion of live crown to be removed.}
+f4:{sliderBox Maximum proportion}
+f4v:{0.5 0 1 0 1}
+f5:{speciesSelection Species to be pruned}
+f6:{numberBox Smallest DBH to be considered for pruning (greater than/equal)}
+f6v:{0}
+f7:{numberBox Largest DBH to be considered for pruning (less than)}
+f7v:{99}
+
+parmsForm:{\
+*Arguments: Method, Ht/Length, Proportion, Species, MinDBH, MaxDBH
+Prune     !1,10!     Parms(!2,,method!, !3!, !4!, !5!, !6!, !7!)
+}
+
+answerForm:{Prune     !1,10!!2,10,method!!3,10!!4,10!!5,10!!6,10!!7,10!}
+method:{1 2 3 4 5 6 7}
+
+//end keyword.base.Prune
+
+//start keyword.base.PointGrp
+
+description:
+{Defines a group of points that can be referenced by a single name or number,
+which will be treated as a group in management actions or event monitor
+functions.}
+
+f1:{textEdit Specify a 3-10 character Point Group}
+f1:{}
+
+f2:{numberBox Point Number}
+f2v:{blank}
+f3:{numberBox Point Number}
+f3v:{blank}
+f4:{numberBox Point Number}
+f4v:{blank}
+f5:{numberBox Point Number}
+f5v:{blank}
+f6:{numberBox Point Number}
+f6v:{blank}
+f7:{numberBox Point Number}
+f7v:{blank}
+f8:{numberBox Point Number}
+f8v:{blank}
+f9:{numberBox Point Number}
+f9v:{blank}
+f10:{numberBox Point Number}
+f10v:{blank}
+f11:{numberBox Point Number}
+f11v:{blank}
+f12:{numberBox Point Number}
+f12v:{blank}
+f13:{numberBox Point Number}
+f13v:{blank}
+f14:{numberBox Point Number}
+f14v:{blank}
+f15:{numberBox Point Number}
+f15v:{blank}
+f16:{numberBox Point Number}
+f16v:{blank}
+f17:{numberBox Point Number}
+f17v:{blank}
+f18:{numberBox Point Number}
+f18v:{blank}
+f19:{numberBox Point Number}
+f19v:{blank}
+f20:{numberBox Point Number}
+f20v:{blank}
+f21:{numberBox Point Number}
+f21v:{blank}
+f22:{numberBox Point Number}
+f22v:{blank}
+f23:{numberBox Point Number}
+f23v:{blank}
+f24:{numberBox Point Number}
+f24v:{blank}
+f25:{numberBox Point Number}
+f25v:{blank}
+f26:{numberBox Point Number}
+f26v:{blank}
+f27:{numberBox Point Number}
+f27v:{blank}
+f28:{numberBox Point Number}
+f28v:{blank}
+f29:{numberBox Point Number}
+f29v:{blank}
+f30:{numberBox Point Number}
+f30v:{blank}
+f31:{numberBox Point Number}
+f31v:{blank}
+f32:{numberBox Point Number}
+f32v:{blank}
+f33:{numberBox Point Number}
+f33v:{blank}
+f34:{numberBox Point Number}
+f34v:{blank}
+f35:{numberBox Point Number}
+f35v:{blank}
+f36:{numberBox Point Number}
+f36v:{blank}
+f37:{numberBox Point Number}
+f37v:{blank}
+f38:{numberBox Point Number}
+f38v:{blank}
+f39:{numberBox Point Number}
+f39v:{blank}
+f40:{numberBox Point Number}
+f40v:{blank}
+f41:{numberBox Point Number}
+f41v:{blank}
+f42:{numberBox Point Number}
+f42v:{blank}
+f43:{numberBox Point Number}
+f43v:{blank}
+f44:{numberBox Point Number}
+f44v:{blank}
+f45:{numberBox Point Number}
+f45v:{blank}
+f46:{numberBox Point Number}
+f46v:{blank}
+f47:{numberBox Point Number}
+f47v:{blank}
+f48:{numberBox Point Number}
+f48v:{blank}
+f49:{numberBox Point Number}
+f49v:{blank}
+f50:{numberBox Point Number}
+f50v:{blank}
+f51:{numberBox Point Number}
+f51v:{blank}
+
+answerForm:{\
+PTGROUP   !1,10!
+!2! !3! !4! !5! !6! !7! !8! !9! !10! !11! !12! !13! !14! !15! !16! !17! !18! !19! !20! !21! !22! !23! !24! !25! !26! !27! !28! !29! !30! !31! !32! !33! !34! !35! !36! !37! !38! !39! !40! !41! !42! !43! !44! !45! !46! !47! !48! !49! !50! !51!}
+parmsForm=answerForm
+
+//end keyword.base.PointGrp
+
+
+//start keyword.base.PointRef
+
+description:
+{Specifies whether the point number entered on an keyword or Event Monitor function,
+refers to the inventory point number or FVS sequential point number}
+
+f1:{longListButton Point reference Code}
+f1v:{\
+1 = point numbers will be as entered in the input data
+2 = Point numbers will be the FVS sequential point numbers}
+
+answerForm:{PointRef  !1,10,numbers!}
+parmsForm=answerForm
+numbers:{1 2}
+
+//end keyword.base.PointRef
+
+
+//start keyword.base.RANNSeed
+
+description:
+{Reseeds the pseudorandom number generators used in FVS.
+Implications of Random Variation in the Stand Prognosis Model are
+discussed in detail in GTR INT-394.}
+
+f1title:{Replacement value for the seed (should be an odd integer value)}
+f1:{intNumberBox Replacement value}
+f1v:{55329}
+
+parmsForm:{
+RANNSeed  !1,10!}
+
+//end keyword.base.RANNSeed
+
+
+//start keyword.base.ReadCorD
+
+description:
+{Enter multiplier for large tree diameter growth model.  The model is
+adjusted prior to calibration.}
+
+f1:{numberBox Multiplier for species 1}
+f1v:{1.0}
+f2:{numberBox Multiplier for species 2}
+f2v:{1.0}
+f3:{numberBox Multiplier for species 3}
+f3v:{1.0}
+f4:{numberBox Multiplier for species 4}
+f4v:{1.0}
+f5:{numberBox Multiplier for species 5}
+f5v:{1.0}
+f6:{numberBox Multiplier for species 6}
+f6v:{1.0}
+f7:{numberBox Multiplier for species 7}
+f7v:{1.0}
+f8:{numberBox Multiplier for species 8}
+f8v:{1.0}
+f9:{numberBox Multiplier for species 9}
+f9v:{1.0}
+f10:{numberBox Multiplier for species 10}
+f10v:{1.0}
+f11:{numberBox Multiplier for species 11}
+f11v:{1.0}
+
+f12{ak bm ne nc ls cs wc pn op ws sn ca oc ie ci em so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 12}
+f12v:{1.0}
+f13{ak bm ne ls cs wc pn op ws sn ca oc ie ci em so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 13}
+f13v:{1.0}
+f14{ak bm ne ls cs wc pn op ws sn ca oc ie em ci so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 14}
+f14v:{1.0}
+f15{ak bm ne ls cs wc pn op ws ws sn ca oc ie em ci so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 15}
+f15v:{1.0}
+f16{ak bm ne ls cs wc pn op ws sn ca oc ie em ci so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 16}
+f16v:{1.0}
+f17{ak bm ne ls cs wc pn op ws sn ca oc ie em ci so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 17}
+f17v:{1.0}
+f18{ak bm ne ls cs wc pn op ws sn ca oc ie em ci so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 18}
+f18v:{1.0}
+f19{ak ne ls cs wc pn op ws sn ca oc ie em ci so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 19}
+f19v:{1.0}
+f20{ak ne ls cs wc pn op ws sn ca oc ie so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 20}
+f20v:{1.0}
+f21{ak ne ls cs wc pn op ws sn ca oc ie so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 21}
+f21v:{1.0}
+f22{ak ne ls cs wc pn op ws sn ca oc ie so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 22}
+f22v:{1.0}
+f23{ak ne ls cs wc pn op ws sn ca oc ie so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 23}
+f23v:{1.0}
+f24{ne ls cs wc pn op ws sn ca oc so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 24}
+f24v:{1.0}
+f25{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 25}
+f25v:{1.0}
+f26{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 26}
+f26v:{1.0}
+f27{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 27}
+f27v:{1.0}
+f28{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 28}
+f28v:{1.0}
+f29{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 29}
+f29v:{1.0}
+f30{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 30}
+f30v:{1.0}
+f31{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 31}
+f31v:{1.0}
+f32{ne ls cs wc pn op ws sn ca oc so ec cr sw sp bp sf lp}:{numberBox Multiplier for species 32}
+f32v:{1.0}
+f33{ne ls cs wc pn op ws sn ca oc so cr sw sp bp sf lp}:{numberBox Multiplier for species 33}
+f33v:{1.0}
+f34{ne ls cs wc pn op ws sn ca oc cr sw sp bp sf lp}:{numberBox Multiplier for species 34}
+f34v:{1.0}
+f35{ne ls cs wc pn op ws sn ca oc cr sw sp bp sf lp}:{numberBox Multiplier for species 35}
+f35v:{1.0}
+f36{ne ls cs wc pn op ws sn ca oc cr sw sp bp sf lp}:{numberBox Multiplier for species 36}
+f36v:{1.0}
+f37{ne ls cs wc pn op ws sn ca oc cr sw sp bp sf lp}:{numberBox Multiplier for species 37}
+f37v:{1.0}
+f38{ne ls cs wc pn op ws sn ca oc cr sw sp bp sf lp}:{numberBox Multiplier for species 38}
+f38v:{1.0}
+f39{ne ls cs wc pn op ws sn ca oc}:{numberBox Multiplier for species 39}
+f39v:{1.0}
+f40{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 40}
+f40v:{1.0}
+f41{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 41}
+f41v:{1.0}
+f42{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 42}
+f42v:{1.0}
+f43{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 43}
+f43v:{1.0}
+f44{ne ls cs sn ca oc}:{numberBox Multiplier for species 44}
+f44v:{1.0}
+f45{ne ls cs sn ca oc}:{numberBox Multiplier for species 45}
+f45v:{1.0}
+f46{ne ls cs sn ca oc}:{numberBox Multiplier for species 46}
+f46v:{1.0}
+f47{ne ls cs sn ca oc}:{numberBox Multiplier for species 47}
+f47v:{1.0}
+f48{ne ls cs sn ca oc}:{numberBox Multiplier for species 48}
+f48v:{1.0}
+f49{ne ls cs sn ca oc}:{numberBox Multiplier for species 49}
+f49v:{1.0}
+f50{ne ls cs sn ca oc}:{numberBox Multiplier for species 50}
+f50v:{1.0}
+f51{ne ls cs sn}:{numberBox Multiplier for species 51}
+f51v:{1.0}
+f52{ne ls cs sn}:{numberBox Multiplier for species 52}
+f52v:{1.0}
+f53{ne ls cs sn}:{numberBox Multiplier for species 53}
+f53v:{1.0}
+f54{ne ls cs sn}:{numberBox Multiplier for species 54}
+f54v:{1.0}
+f55{ne ls cs sn}:{numberBox Multiplier for species 55}
+f55v:{1.0}
+f56{ne ls cs sn}:{numberBox Multiplier for species 56}
+f56v:{1.0}
+f57{ne ls cs sn}:{numberBox Multiplier for species 57}
+f57v:{1.0}
+f58{ne ls cs sn}:{numberBox Multiplier for species 58}
+f58v:{1.0}
+f59{ne ls cs sn}:{numberBox Multiplier for species 59}
+f59v:{1.0}
+f60{ne ls cs sn}:{numberBox Multiplier for species 60}
+f60v:{1.0}
+f61{ne ls cs sn}:{numberBox Multiplier for species 61}
+f61v:{1.0}
+f62{ne ls cs sn}:{numberBox Multiplier for species 62}
+f62v:{1.0}
+f63{ne ls cs sn}:{numberBox Multiplier for species 63}
+f63v:{1.0}
+f64{ne ls cs sn}:{numberBox Multiplier for species 64}
+f64v:{1.0}
+f65{ne ls cs sn}:{numberBox Multiplier for species 65}
+f65v:{1.0}
+f66{ne ls cs sn}:{numberBox Multiplier for species 66}
+f66v:{1.0}
+f67{ne ls cs sn}:{numberBox Multiplier for species 67}
+f67v:{1.0}
+f68{ne ls cs sn}:{numberBox Multiplier for species 68}
+f68v:{1.0}
+f69{ne cs sn}:{numberBox Multiplier for species 69}
+f69v:{1.0}
+f70{ne cs sn}:{numberBox Multiplier for species 70}
+f70v:{1.0}
+f71{ne cs sn}:{numberBox Multiplier for species 71}
+f71v:{1.0}
+f72{ne cs sn}:{numberBox Multiplier for species 72}
+f72v:{1.0}
+f73{ne cs sn}:{numberBox Multiplier for species 73}
+f73v:{1.0}
+f74{ne cs sn}:{numberBox Multiplier for species 74}
+f74v:{1.0}
+f75{ne cs sn}:{numberBox Multiplier for species 75}
+f75v:{1.0}
+f76{ne cs sn}:{numberBox Multiplier for species 76}
+f76v:{1.0}
+f77{ne cs sn}:{numberBox Multiplier for species 77}
+f77v:{1.0}
+f78{ne cs sn}:{numberBox Multiplier for species 78}
+f78v:{1.0}
+f79{ne cs sn}:{numberBox Multiplier for species 79}
+f79v:{1.0}
+f80{ne cs sn}:{numberBox Multiplier for species 80}
+f80v:{1.0}
+f81{ne cs sn}:{numberBox Multiplier for species 81}
+f81v:{1.0}
+f82{ne cs sn}:{numberBox Multiplier for species 82}
+f82v:{1.0}
+f83{ne cs sn}:{numberBox Multiplier for species 83}
+f83v:{1.0}
+f84{ne cs sn}:{numberBox Multiplier for species 84}
+f84v:{1.0}
+f85{ne cs sn}:{numberBox Multiplier for species 85}
+f85v:{1.0}
+f86{ne cs sn}:{numberBox Multiplier for species 86}
+f86v:{1.0}
+f87{ne cs sn}:{numberBox Multiplier for species 87}
+f87v:{1.0}
+f88{ne cs sn}:{numberBox Multiplier for species 88}
+f88v:{1.0}
+f89{ne cs sn}:{numberBox Multiplier for species 89}
+f89v:{1.0}
+f90{ne cs sn}:{numberBox Multiplier for species 90}
+f90v:{1.0}
+f91{ne cs}:{numberBox Multiplier for species 91}
+f91v:{1.0}
+f92{ne cs}:{numberBox Multiplier for species 92}
+f92v:{1.0}
+f93{ne cs}:{numberBox Multiplier for species 93}
+f93v:{1.0}
+f94{ne cs}:{numberBox Multiplier for species 94}
+f94v:{1.0}
+f95{ne cs}:{numberBox Multiplier for species 95}
+f95v:{1.0}
+f96{ne cs}:{numberBox Multiplier for species 96}
+f96v:{1.0}
+f97{ne}:{numberBox Multiplier for species 97}
+f97v:{1.0}
+f98{ne}:{numberBox Multiplier for species 98}
+f98v:{1.0}
+f99{ne}:{numberBox Multiplier for species 99}
+f99v:{1.0}
+f100{ne}:{numberBox Multiplier for species 100}
+f100v:{1.0}
+f101{ne}:{numberBox Multiplier for species 101}
+f101v:{1.0}
+f102{ne}:{numberBox Multiplier for species 102}
+f102v:{1.0}
+f103{ne}:{numberBox Multiplier for species 103}
+f103v:{1.0}
+f104{ne}:{numberBox Multiplier for species 104}
+f104v:{1.0}
+f105{ne}:{numberBox Multiplier for species 105}
+f105v:{1.0}
+f106{ne}:{numberBox Multiplier for species 106}
+f106v:{1.0}
+f107{ne}:{numberBox Multiplier for species 107}
+f107v:{1.0}
+f108{ne}:{numberBox Multiplier for species 108}
+f108v:{1.0}
+
+answerForm:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!}
+parmsForm=answerForm
+
+answerForm{ak}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ak}=answerForm{ak}
+
+answerForm{bm tt}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!}
+parmsForm{bm tt}=answerForm{bm tt}
+
+answerForm{em ci}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!}
+parmsForm{em ci}=answerForm{em ci}
+
+answerForm{ie}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ie}=answerForm{ie}
+
+answerForm{ut}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!}
+parmsForm{ut}=answerForm{ut}
+
+answerForm{cr sw sp bp sf lp}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!}
+parmsForm{cr sw sp bp sf lp}=answerForm{cr sw sp bp sf lp}
+
+answerForm{ec}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!}
+parmsForm{ec}=answerForm{ec}
+
+answerForm{so}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!}
+parmsForm{so}=answerForm{so}
+
+answerForm{pn wc op}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!}
+parmsForm{pn wc op}=answerForm{pn wc op}
+
+answerForm{ws}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!}
+parmsForm{ws}=answerForm{ws}
+
+answerForm{ls}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!}
+parmsForm{ls}=answerForm{ls}
+
+answerForm{cs}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!}
+parmsForm{cs}=answerForm{cs}
+
+answerForm{ne}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!
+!97,10!!98,10!!99,10!!100,10!!101,10!!102,10!!103,10!!104,10!
+!105,10!!106,10!!107,10!!108,10!}
+parmsForm{ne}=answerForm{ne}
+
+answerForm{nc}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!}
+parmsForm{nc}=answerForm{nc}
+
+answerForm{sn}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!}
+parmsForm{sn}=answerForm{sn}
+
+answerForm{ca oc}:
+{ReadCorD
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!}
+parmsForm{ca oc}=answerForm{ca oc}
+
+//end keyword.base.ReadCorD
+
+
+//start keyword.base.ReadCorH
+
+description:
+{Enter multiplier for large tree height growth model.  The model is
+adjusted prior to calibration.}
+
+f1:{numberBox Multiplier for species 1}
+f1v:{1.0}
+f2:{numberBox Multiplier for species 2}
+f2v:{1.0}
+f3:{numberBox Multiplier for species 3}
+f3v:{1.0}
+f4:{numberBox Multiplier for species 4}
+f4v:{1.0}
+f5:{numberBox Multiplier for species 5}
+f5v:{1.0}
+f6:{numberBox Multiplier for species 6}
+f6v:{1.0}
+f7:{numberBox Multiplier for species 7}
+f7v:{1.0}
+f8:{numberBox Multiplier for species 8}
+f8v:{1.0}
+f9:{numberBox Multiplier for species 9}
+f9v:{1.0}
+f10:{numberBox Multiplier for species 10}
+f10v:{1.0}
+f11:{numberBox Multiplier for species 11}
+f11v:{1.0}
+
+f12{ak bm ne nc ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 12}
+f12v:{1.0}
+f13{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 13}
+f13v:{1.0}
+f14{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 14}
+f14v:{1.0}
+f15{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 15}
+f15v:{1.0}
+f16{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 16}
+f16v:{1.0}
+f17{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 17}
+f17v:{1.0}
+f18{ak bm ne ls cs wc pn op sn ca oc ws ie em ci  so ec tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 18}
+f18v:{1.0}
+f19{ak ne ls cs wc pn op sn ca oc ws ie em ci  so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 19}
+f19v:{1.0}
+f20{ak ne ls cs wc pn op sn ca oc ws ie  so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 20}
+f20v:{1.0}
+f21{ak ne ls cs wc pn op sn ca oc ws ie  so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 21}
+f21v:{1.0}
+f22{ak ne ls cs wc pn op sn ca oc ws ie  so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 22}
+f22v:{1.0}
+f23{ak ne ls cs wc pn op sn ca oc ws ie  so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 23}
+f23v:{1.0}
+f24{ne ls cs wc pn op sn ca oc ws so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 24}
+f24v:{1.0}
+f25{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 25}
+f25v:{1.0}
+f26{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 26}
+f26v:{1.0}
+f27{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 27}
+f27v:{1.0}
+f28{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 28}
+f28v:{1.0}
+f29{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 29}
+f29v:{1.0}
+f30{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 30}
+f30v:{1.0}
+f31{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 31}
+f31v:{1.0}
+f32{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 32}
+f32v:{1.0}
+f33{ne ls cs wc pn op so sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 33}
+f33v:{1.0}
+f34{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 34}
+f34v:{1.0}
+f35{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 35}
+f35v:{1.0}
+f36{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 36}
+f36v:{1.0}
+f37{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 37}
+f37v:{1.0}
+f38{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 38}
+f38v:{1.0}
+f39{ne ls cs wc pn op sn ca oc ws}:{numberBox Multiplier for species 39}
+f39v:{1.0}
+f40{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 40}
+f40v:{1.0}
+f41{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 41}
+f41v:{1.0}
+f42{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 42}
+f42v:{1.0}
+f43{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 43}
+f43v:{1.0}
+f44{ne ls cs sn ca oc}:{numberBox Multiplier for species 44}
+f44v:{1.0}
+f45{ne ls cs sn ca oc}:{numberBox Multiplier for species 45}
+f45v:{1.0}
+f46{ne ls cs sn ca oc}:{numberBox Multiplier for species 46}
+f46v:{1.0}
+f47{ne ls cs sn ca oc}:{numberBox Multiplier for species 47}
+f47v:{1.0}
+f48{ne ls cs sn ca oc}:{numberBox Multiplier for species 48}
+f48v:{1.0}
+f49{ne ls cs sn ca oc}:{numberBox Multiplier for species 49}
+f49v:{1.0}
+f50{ne ls cs sn ca oc}:{numberBox Multiplier for species 50}
+f50v:{1.0}
+f51{ne ls cs sn}:{numberBox Multiplier for species 51}
+f51v:{1.0}
+f52{ne ls cs sn}:{numberBox Multiplier for species 52}
+f52v:{1.0}
+f53{ne ls cs sn}:{numberBox Multiplier for species 53}
+f53v:{1.0}
+f54{ne ls cs sn}:{numberBox Multiplier for species 54}
+f54v:{1.0}
+f55{ne ls cs sn}:{numberBox Multiplier for species 55}
+f55v:{1.0}
+f56{ne ls cs sn}:{numberBox Multiplier for species 56}
+f56v:{1.0}
+f57{ne ls cs sn}:{numberBox Multiplier for species 57}
+f57v:{1.0}
+f58{ne ls cs sn}:{numberBox Multiplier for species 58}
+f58v:{1.0}
+f59{ne ls cs sn}:{numberBox Multiplier for species 59}
+f59v:{1.0}
+f60{ne ls cs sn}:{numberBox Multiplier for species 60}
+f60v:{1.0}
+f61{ne ls cs sn}:{numberBox Multiplier for species 61}
+f61v:{1.0}
+f62{ne ls cs sn}:{numberBox Multiplier for species 62}
+f62v:{1.0}
+f63{ne ls cs sn}:{numberBox Multiplier for species 63}
+f63v:{1.0}
+f64{ne ls cs sn}:{numberBox Multiplier for species 64}
+f64v:{1.0}
+f65{ne ls cs sn}:{numberBox Multiplier for species 65}
+f65v:{1.0}
+f66{ne ls cs sn}:{numberBox Multiplier for species 66}
+f66v:{1.0}
+f67{ne ls cs sn}:{numberBox Multiplier for species 67}
+f67v:{1.0}
+f68{ne ls cs sn}:{numberBox Multiplier for species 68}
+f68v:{1.0}
+f69{ne cs sn}:{numberBox Multiplier for species 69}
+f69v:{1.0}
+f70{ne cs sn}:{numberBox Multiplier for species 70}
+f70v:{1.0}
+f71{ne cs sn}:{numberBox Multiplier for species 71}
+f71v:{1.0}
+f72{ne cs sn}:{numberBox Multiplier for species 72}
+f72v:{1.0}
+f73{ne cs sn}:{numberBox Multiplier for species 73}
+f73v:{1.0}
+f74{ne cs sn}:{numberBox Multiplier for species 74}
+f74v:{1.0}
+f75{ne cs sn}:{numberBox Multiplier for species 75}
+f75v:{1.0}
+f76{ne cs sn}:{numberBox Multiplier for species 76}
+f76v:{1.0}
+f77{ne cs sn}:{numberBox Multiplier for species 77}
+f77v:{1.0}
+f78{ne cs sn}:{numberBox Multiplier for species 78}
+f78v:{1.0}
+f79{ne cs sn}:{numberBox Multiplier for species 79}
+f79v:{1.0}
+f80{ne cs sn}:{numberBox Multiplier for species 80}
+f80v:{1.0}
+f81{ne cs sn}:{numberBox Multiplier for species 81}
+f81v:{1.0}
+f82{ne cs sn}:{numberBox Multiplier for species 82}
+f82v:{1.0}
+f83{ne cs sn}:{numberBox Multiplier for species 83}
+f83v:{1.0}
+f84{ne cs sn}:{numberBox Multiplier for species 84}
+f84v:{1.0}
+f85{ne cs sn}:{numberBox Multiplier for species 85}
+f85v:{1.0}
+f86{ne cs sn}:{numberBox Multiplier for species 86}
+f86v:{1.0}
+f87{ne cs sn}:{numberBox Multiplier for species 87}
+f87v:{1.0}
+f88{ne cs sn}:{numberBox Multiplier for species 88}
+f88v:{1.0}
+f89{ne cs sn}:{numberBox Multiplier for species 89}
+f89v:{1.0}
+f90{ne cs sn}:{numberBox Multiplier for species 90}
+f90v:{1.0}
+f91{ne cs}:{numberBox Multiplier for species 91}
+f91v:{1.0}
+f92{ne cs}:{numberBox Multiplier for species 92}
+f92v:{1.0}
+f93{ne cs}:{numberBox Multiplier for species 93}
+f93v:{1.0}
+f94{ne cs}:{numberBox Multiplier for species 94}
+f94v:{1.0}
+f95{ne cs}:{numberBox Multiplier for species 95}
+f95v:{1.0}
+f96{ne cs}:{numberBox Multiplier for species 96}
+f96v:{1.0}
+f97{ne}:{numberBox Multiplier for species 97}
+f97v:{1.0}
+f98{ne}:{numberBox Multiplier for species 98}
+f98v:{1.0}
+f99{ne}:{numberBox Multiplier for species 99}
+f99v:{1.0}
+f100{ne}:{numberBox Multiplier for species 100}
+f100v:{1.0}
+f101{ne}:{numberBox Multiplier for species 101}
+f101v:{1.0}
+f102{ne}:{numberBox Multiplier for species 102}
+f102v:{1.0}
+f103{ne}:{numberBox Multiplier for species 103}
+f103v:{1.0}
+f104{ne}:{numberBox Multiplier for species 104}
+f104v:{1.0}
+f105{ne}:{numberBox Multiplier for species 105}
+f105v:{1.0}
+f106{ne}:{numberBox Multiplier for species 106}
+f106v:{1.0}
+f107{ne}:{numberBox Multiplier for species 107}
+f107v:{1.0}
+f108{ne}:{numberBox Multiplier for species 108}
+f108v:{1.0}
+
+answerForm:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!}
+parmsForm=answerForm
+
+answerForm{ak}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ak}=answerForm{ak}
+
+answerForm{bm tt}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!}
+parmsForm{bm tt}=answerForm{bm tt}
+
+answerForm{em ci}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!}
+parmsForm{em ci}=answerForm{em ci}
+
+answerForm{ie}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ie}=answerForm{ie}
+
+answerForm{ut}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!}
+parmsForm{ut}=answerForm{ut}
+
+answerForm{cr sw sp bp sf lp}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!}
+parmsForm{cr sw sp bp sf lp}=answerForm{cr sw sp bp sf lp}
+
+answerForm{ec}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!}
+parmsForm{ec}=answerForm{ec}
+
+answerForm{so}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!}
+parmsForm{so}=answerForm{so}
+
+answerForm{pn wc op}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!}
+parmsForm{pn wc op}=answerForm{pn wc op}
+
+answerForm{ws}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!}
+parmsForm{ws}=answerForm{ws}
+
+answerForm{ls}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!}
+parmsForm{ls}=answerForm{ls}
+
+answerForm{cs}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!}
+parmsForm{cs}=answerForm{cs}
+
+answerForm{ne}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!
+!97,10!!98,10!!99,10!!100,10!!101,10!!102,10!!103,10!!104,10!
+!105,10!!106,10!!107,10!!108,10!}
+parmsForm{ne}=answerForm{ne}
+
+answerForm{nc}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!}
+parmsForm{nc}=answerForm{nc}
+
+answerForm{sn}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!}
+parmsForm{sn}=answerForm{sn}
+
+answerForm{ca oc}:
+{ReadCorH
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!}
+parmsForm{ca oc}=answerForm{ca oc}
+
+//end keyword.base.ReadCorH
+
+
+//start keyword.base.ReadCorR
+
+description:
+{Enter multiplier for small tree height growth model.  The model is
+adjusted prior to calibration.}
+
+f1:{numberBox Multiplier for species 1}
+f1v:{1.0}
+f2:{numberBox Multiplier for species 2}
+f2v:{1.0}
+f3:{numberBox Multiplier for species 3}
+f3v:{1.0}
+f4:{numberBox Multiplier for species 4}
+f4v:{1.0}
+f5:{numberBox Multiplier for species 5}
+f5v:{1.0}
+f6:{numberBox Multiplier for species 6}
+f6v:{1.0}
+f7:{numberBox Multiplier for species 7}
+f7v:{1.0}
+f8:{numberBox Multiplier for species 8}
+f8v:{1.0}
+f9:{numberBox Multiplier for species 9}
+f9v:{1.0}
+f10:{numberBox Multiplier for species 10}
+f10v:{1.0}
+f11:{numberBox Multiplier for species 11}
+f11v:{1.0}
+
+f12{ak bm ne nc ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 12}
+f12v:{1.0}
+f13{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 13}
+f13v:{1.0}
+f14{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 14}
+f14v:{1.0}
+f15{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 15}
+f15v:{1.0}
+f16{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 16}
+f16v:{1.0}
+f17{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 17}
+f17v:{1.0}
+f18{ak bm ne ls cs wc pn op sn ie em ci so ec ca oc ws tt ut cr sw sp bp sf lp}:{numberBox Multiplier for species 18}
+f18v:{1.0}
+f19{ak ne ls cs wc pn op sn ie em ci so ec ca oc ws ut cr sw sp bp sf lp}:{numberBox Multiplier for species 19}
+f19v:{1.0}
+f20{ak ne ls cs wc pn op sn ie so ec ca oc ws ut cr sw sp bp sf lp}:{numberBox Multiplier for species 20}
+f20v:{1.0}
+f21{ak ne ls cs wc pn op sn ie so ec ca oc ws ut cr sw sp bp sf lp}:{numberBox Multiplier for species 21}
+f21v:{1.0}
+f22{ak ne ls cs wc pn op sn ie so ec ca oc ws ut cr sw sp bp sf lp}:{numberBox Multiplier for species 22}
+f22v:{1.0}
+f23{ak ne ls cs wc pn op sn ie so ec ca oc ws ut cr sw sp bp sf lp}:{numberBox Multiplier for species 23}
+f23v:{1.0}
+f24{ne ls cs wc pn op sn ca oc ws so ec ut cr sw sp bp sf lp}:{numberBox Multiplier for species 24}
+f24v:{1.0}
+f25{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 25}
+f25v:{1.0}
+f26{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 26}
+f26v:{1.0}
+f27{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 27}
+f27v:{1.0}
+f28{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 28}
+f28v:{1.0}
+f29{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 29}
+f29v:{1.0}
+f30{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 30}
+f30v:{1.0}
+f31{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 31}
+f31v:{1.0}
+f32{ne ls cs wc pn op so ec sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 32}
+f32v:{1.0}
+f33{ne ls cs wc pn op so sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 33}
+f33v:{1.0}
+f34{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 34}
+f34v:{1.0}
+f35{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 35}
+f35v:{1.0}
+f36{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 36}
+f36v:{1.0}
+f37{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 37}
+f37v:{1.0}
+f38{ne ls cs wc pn op sn ca oc ws cr sw sp bp sf lp}:{numberBox Multiplier for species 38}
+f38v:{1.0}
+f39{ne ls cs wc pn op sn ca oc ws}:{numberBox Multiplier for species 39}
+f39v:{1.0}
+f40{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 40}
+f40v:{1.0}
+f41{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 41}
+f41v:{1.0}
+f42{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 42}
+f42v:{1.0}
+f43{ne ls cs sn ca oc ws}:{numberBox Multiplier for species 43}
+f43v:{1.0}
+f44{ne ls cs sn ca oc}:{numberBox Multiplier for species 44}
+f44v:{1.0}
+f45{ne ls cs sn ca oc}:{numberBox Multiplier for species 45}
+f45v:{1.0}
+f46{ne ls cs sn ca oc}:{numberBox Multiplier for species 46}
+f46v:{1.0}
+f47{ne ls cs sn ca oc}:{numberBox Multiplier for species 47}
+f47v:{1.0}
+f48{ne ls cs sn ca oc}:{numberBox Multiplier for species 48}
+f48v:{1.0}
+f49{ne ls cs sn ca oc}:{numberBox Multiplier for species 49}
+f49v:{1.0}
+f50{ne ls cs sn ca oc}:{numberBox Multiplier for species 50}
+f50v:{1.0}
+f51{ne ls cs sn}:{numberBox Multiplier for species 51}
+f51v:{1.0}
+f52{ne ls cs sn}:{numberBox Multiplier for species 52}
+f52v:{1.0}
+f53{ne ls cs sn}:{numberBox Multiplier for species 53}
+f53v:{1.0}
+f54{ne ls cs sn}:{numberBox Multiplier for species 54}
+f54v:{1.0}
+f55{ne ls cs sn}:{numberBox Multiplier for species 55}
+f55v:{1.0}
+f56{ne ls cs sn}:{numberBox Multiplier for species 56}
+f56v:{1.0}
+f57{ne ls cs sn}:{numberBox Multiplier for species 57}
+f57v:{1.0}
+f58{ne ls cs sn}:{numberBox Multiplier for species 58}
+f58v:{1.0}
+f59{ne ls cs sn}:{numberBox Multiplier for species 59}
+f59v:{1.0}
+f60{ne ls cs sn}:{numberBox Multiplier for species 60}
+f60v:{1.0}
+f61{ne ls cs sn}:{numberBox Multiplier for species 61}
+f61v:{1.0}
+f62{ne ls cs sn}:{numberBox Multiplier for species 62}
+f62v:{1.0}
+f63{ne ls cs sn}:{numberBox Multiplier for species 63}
+f63v:{1.0}
+f64{ne ls cs sn}:{numberBox Multiplier for species 64}
+f64v:{1.0}
+f65{ne ls cs sn}:{numberBox Multiplier for species 65}
+f65v:{1.0}
+f66{ne ls cs sn}:{numberBox Multiplier for species 66}
+f66v:{1.0}
+f67{ne ls cs sn}:{numberBox Multiplier for species 67}
+f67v:{1.0}
+f68{ne ls cs sn}:{numberBox Multiplier for species 68}
+f68v:{1.0}
+f69{ne cs sn}:{numberBox Multiplier for species 69}
+f69v:{1.0}
+f70{ne cs sn}:{numberBox Multiplier for species 70}
+f70v:{1.0}
+f71{ne cs sn}:{numberBox Multiplier for species 71}
+f71v:{1.0}
+f72{ne cs sn}:{numberBox Multiplier for species 72}
+f72v:{1.0}
+f73{ne cs sn}:{numberBox Multiplier for species 73}
+f73v:{1.0}
+f74{ne cs sn}:{numberBox Multiplier for species 74}
+f74v:{1.0}
+f75{ne cs sn}:{numberBox Multiplier for species 75}
+f75v:{1.0}
+f76{ne cs sn}:{numberBox Multiplier for species 76}
+f76v:{1.0}
+f77{ne cs sn}:{numberBox Multiplier for species 77}
+f77v:{1.0}
+f78{ne cs sn}:{numberBox Multiplier for species 78}
+f78v:{1.0}
+f79{ne cs sn}:{numberBox Multiplier for species 79}
+f79v:{1.0}
+f80{ne cs sn}:{numberBox Multiplier for species 80}
+f80v:{1.0}
+f81{ne cs sn}:{numberBox Multiplier for species 81}
+f81v:{1.0}
+f82{ne cs sn}:{numberBox Multiplier for species 82}
+f82v:{1.0}
+f83{ne cs sn}:{numberBox Multiplier for species 83}
+f83v:{1.0}
+f84{ne cs sn}:{numberBox Multiplier for species 84}
+f84v:{1.0}
+f85{ne cs sn}:{numberBox Multiplier for species 85}
+f85v:{1.0}
+f86{ne cs sn}:{numberBox Multiplier for species 86}
+f86v:{1.0}
+f87{ne cs sn}:{numberBox Multiplier for species 87}
+f87v:{1.0}
+f88{ne cs sn}:{numberBox Multiplier for species 88}
+f88v:{1.0}
+f89{ne cs sn}:{numberBox Multiplier for species 89}
+f89v:{1.0}
+f90{ne cs sn}:{numberBox Multiplier for species 90}
+f90v:{1.0}
+f91{ne cs}:{numberBox Multiplier for species 91}
+f91v:{1.0}
+f92{ne cs}:{numberBox Multiplier for species 92}
+f92v:{1.0}
+f93{ne cs}:{numberBox Multiplier for species 93}
+f93v:{1.0}
+f94{ne cs}:{numberBox Multiplier for species 94}
+f94v:{1.0}
+f95{ne cs}:{numberBox Multiplier for species 95}
+f95v:{1.0}
+f96{ne cs}:{numberBox Multiplier for species 96}
+f96v:{1.0}
+f97{ne}:{numberBox Multiplier for species 97}
+f97v:{1.0}
+f98{ne}:{numberBox Multiplier for species 98}
+f98v:{1.0}
+f99{ne}:{numberBox Multiplier for species 99}
+f99v:{1.0}
+f100{ne}:{numberBox Multiplier for species 100}
+f100v:{1.0}
+f101{ne}:{numberBox Multiplier for species 101}
+f101v:{1.0}
+f102{ne}:{numberBox Multiplier for species 102}
+f102v:{1.0}
+f103{ne}:{numberBox Multiplier for species 103}
+f103v:{1.0}
+f104{ne}:{numberBox Multiplier for species 104}
+f104v:{1.0}
+f105{ne}:{numberBox Multiplier for species 105}
+f105v:{1.0}
+f106{ne}:{numberBox Multiplier for species 106}
+f106v:{1.0}
+f107{ne}:{numberBox Multiplier for species 107}
+f107v:{1.0}
+f108{ne}:{numberBox Multiplier for species 108}
+f108v:{1.0}
+
+
+answerForm:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!}
+parmsForm=answerForm
+
+answerForm{ak}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ak}=answerForm{ak}
+
+answerForm{bm tt}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!}
+parmsForm{bm tt}=answerForm{bm tt}
+
+answerForm{em ci}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!}
+parmsForm{em ci}=answerForm{em ci}
+
+answerForm{ie}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!}
+parmsForm{ie}=answerForm{ie}
+
+answerForm{ut}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!}
+parmsForm{ut}=answerForm{ut}
+
+answerForm{ec}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!}
+parmsForm{ec}=answerForm{ec}
+
+answerForm{so}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!}
+parmsForm{so}=answerForm{so}
+
+answerForm{cr sw sp bp sf lp}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!}
+parmsForm{cr sw sp bp sf lp}=answerForm{cr sw sp bp sf lp}
+
+answerForm{pn wc op}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!}
+parmsForm{pn wc op}=answerForm{pn wc op}
+
+answerForm{ws}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!}
+parmsForm{ws}=answerForm{ws}
+
+answerForm{ls}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!}
+parmsForm{ls}=answerForm{ls}
+
+answerForm{cs}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!}
+parmsForm{cs}=answerForm{cs}
+
+answerForm{ne}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!!91,10!!92,10!!93,10!!94,10!!95,10!!96,10!
+!97,10!!98,10!!99,10!!100,10!!101,10!!102,10!!103,10!!104,10!
+!105,10!!106,10!!107,10!!108,10!}
+parmsForm{ne}=answerForm{ne}
+
+answerForm{nc}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!}
+parmsForm{nc}=answerForm{nc}
+
+answerForm{sn}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!!51,10!!52,10!!53,10!!54,10!!55,10!!56,10!
+!57,10!!58,10!!59,10!!60,10!!61,10!!62,10!!63,10!!64,10!
+!65,10!!66,10!!67,10!!68,10!!69,10!!70,10!!71,10!!72,10!
+!73,10!!74,10!!75,10!!76,10!!77,10!!78,10!!79,10!!80,10!
+!81,10!!82,10!!83,10!!84,10!!85,10!!86,10!!87,10!!88,10!
+!89,10!!90,10!}
+parmsForm{sn}=answerForm{sn}
+
+answerForm{ca oc}:
+{ReadCorR
+!1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!
+!9,10!!10,10!!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!
+!17,10!!18,10!!19,10!!20,10!!21,10!!22,10!!23,10!!24,10!
+!25,10!!26,10!!27,10!!28,10!!29,10!!30,10!!31,10!!32,10!
+!33,10!!34,10!!35,10!!36,10!!37,10!!38,10!!39,10!!40,10!
+!41,10!!42,10!!43,10!!44,10!!45,10!!46,10!!47,10!!48,10!
+!49,10!!50,10!}
+parmsForm{ca oc}=answerForm{ca oc}
+
+//end keyword.base.ReadCorR
+
+
+//start keyword.base.RegDMult
+
+description:
+{A growth multiplier for the small tree diameter growth model}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f1v:{1}
+f2:{speciesSelection Species to which multiplier is applied}
+f3title:{Multiplier value (e.g. a value of 1.2 will increase the predicted
+small tree diameter growth by 20%)}
+f3:{numberBox Multiplier value}
+f3v:{1}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier
+RegDMult  !1,10!   Parms(!2!, !3!)\n}
+
+//end keyword.base.RegDMult
+
+
+//start keyword.base.RegHMult
+
+description:
+{A growth multiplier for the small tree height model.}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+f1v:{1}
+f2:{speciesSelection Species to which multiplier is applied}
+f3title:{Multiplier value (e.g. a value of 1.2 will increase the predicted
+small tree height growth by 20%)}
+f3:{numberBox Multiplier value}
+f3v:{1}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier
+RegHMult  !1,10!   Parms(!2!, !3!)\n}
+
+//end keyword.base.RegHMult
+
+
+//start keyword.base.ResetAge
+
+description:
+{Resets the stand age to make FVS model output correspond to the
+age of the stand.  This keyword is useful when average stand age has
+changed due to thinnings and plantings.}
+
+f1:{scheduleBox}
+f1v:{0}
+f2:{numberBox New stand age}
+f2v:{0}
+
+parmsForm:{
+ResetAge  !1,10!!2,10!}
+
+//end keyword.base.ResetAge
+
+
+//start keyword.base.Screen
+
+description:
+{Allows printing of the summary output table to the terminal, during
+program execution.
+
+NOTE:
+You can direct the output to an alternative output file by utilizing the
+Open keyword in conjunction with the Screen keyword.  Make sure
+the same unit number is used for both keywords.}
+
+f1:{numberBox Unit number where the Screen output will be directed}
+f1v:6
+
+parmsForm:{
+Screen    !1,10!}
+
+//end keyword.base.Screen
+
+//start keyword.base.SDICalc
+
+description:
+{Allows the selection of either Reineke SDI (Reineke 1933) using Stage's 
+Summation Method (Stage, 1968) or Zeide's SDI (Zeide 1983) using the Long and
+Daniel, Shaw Summation Method (Long and Daniel 1990,Shaw 2000). For more 
+information on these computations see section 7.3.4 of the Essential
+FVS: A User's Guide to the Forest Vegetation Simulator.
+
+For variants that use SDI-based mortality selecting Zeide and/or modifying 
+Fields 1 or 2 will affect mortality. In all variants the SDICALC keyword 
+affects, SDI thinning targets, stand SDIMAX reset calculations at the beginning
+of a simulation, SDI values reported in the Summary Statistics Table,
+and the Event Monitor variables BSDI, ASDI, BSDI2, and ASDI2.}
+
+f1:{numberBox Minimum DBH for including in Reineke SDI calculation (GE)}
+f1v:{0}
+
+f2:{numberBox Minimum DBH for including in Zeide SDI calculation (GE)}
+f2v:{0}
+
+f3:{longListButton SDI Calculation Method}
+f3v:{Reineke SDI
+     Zeide SDI}
+
+parmsForm:{
+SDICalc    !1,10!!2,10!!3,10!}
+
+//end keyword.base.SDICalc
+
+//start keyword.base.SDIMax
+
+description:
+{Specifies the maximum stand density index by species.  The value of
+the maximum stand density index is an important variable in determining
+stand mortality, and the normal stocking for automatic thinnings.
+
+Maximum SDI for a stand is computed as a weighted average of the SDI maximums
+for each species in the stand.  The weight for a species is calculated as
+the total basal area for the species divided by total basal area in the stand.
+
+Maximum stand SDI is used in all variants to determine normal stocking for
+automatic thinnings.  See the variant overview to determine if SDI maximums are used 
+to determine mortality in the variant you are using. 
+
+Specifically, SDI is computed as follows:
+     T = b1*(QMD**(-1.605))
+Where:
+     T = trees per acre
+     b1 = constant derived from user entered SDI maximum.
+     QMD = quadratic mean stand diameter.(If QMD = 10.0, then T = SDI)
+
+CAUTION:
+Changing SDIMax values can drastically change predicted yields.}
+
+f1:{speciesSelection Species to which the index applies}
+f1v{so}:{PP}
+f1v{bm}:{GF}
+
+f2:{numberBox Maximum stand density index value}
+f2v:{blank}
+f2v{so}:{251}
+f2v{bm}:{546}
+f2v{ec}:{237}
+f3:{noInput  }
+f4:{noInput  }
+f5title:{----The following fields are stand level (not species specific)----}
+f5:{sliderBox Percentage of max SDI where density-related mortality begins}
+f5v:{55 0 95 0 95}
+
+f6:{sliderBox Percentage of max SDI where stand reaches maximum density}
+f6v:{85 5 100 5 100}
+
+f7{cr sw sp bp sf lp}:{longListButton Stagnation indicator}
+f7v{cr sw sp bp sf lp}:{\
+No stagnation effect
+Include stagnation effect when stand SDI is above 70% of maximum SDI}
+
+parmsForm:{
+SDIMax    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!}
+
+//end keyword.base.SDIMax
+
+
+//start keyword.base.SerlCorr
+
+description:
+{Replaces parameters for the serial correlation function of the
+autoregressive moving-average model, ARMA(1,1), that produces serial
+correlation between errors for successive diameter increment predictions.
+
+The primary use of this keyword is to turn off the autocorrelation by
+setting both parameters to 0 (zero).  Use of other values is strongly
+discouraged unless the user understands well the implications on the model.
+
+CAUTION:
+Many of the predictions in FVS are based on diameter increment.
+Changing the diameter increment prediction also changes many of the
+other predictions made in the model.}
+
+f1:{noInput Not applicable to the variant you are using.}
+f1{cs ls ne}:{numberBox Autoregressive operator phi}
+f1v:{0.74}
+
+f2:{noInput Not applicable to the variant you are using.}
+f2{cs ls ne}:{numberBox Moving-average operator theta}
+f2v:{0.42}
+
+parmsForm:{
+SerlCorr  !1,10!!2,10!}
+
+//end keyword.base.SerlCorr
+
+
+//start keyword.base.SetPThin
+
+description:
+{Sets the parameters for a thinning by point (used with the ThinPt Keyword)
+}
+
+f1:{scheduleBox}
+f2:{textEdit Point Number or Group}
+f2v:{}
+f3:{longListButton Point thinning residual attribute}
+f3v:{1 = trees per acre
+2 = basal area
+3 = stand density index
+4 = percent canopy cover
+5 = Curtis' relative density
+6 = SILVAH's relative density}
+
+answerForm:{\
+SetPThin  !1,10!!2,10!!3,10,numbers!}
+numbers:{1 2 3 4 5 6}
+
+parmsForm:{\
+* Arguments: PtNo, Attrib
+SetPthin  !1,10!     Parms(!2!, !3,,numbers!)}
+//end keyword.base.SetPThin
+
+
+//start keyword.base.SetSite
+
+description:
+{Changes the habitat type, plant association, ecological unit, 
+and/or site index over the projection cycle.
+}
+
+f1:{scheduleBox}
+
+f2:{noInput Note: The variant you are using does not use habitat type, plant association or ecological classification codes }
+
+f2{cr sw bp sp sf lp}:{numberBox Numeric stand habitat type preceded by region number:}
+f2v{cr sw bp sp sf lp}:{blank}
+
+f2{ni ie em ci kt}:{habPaSelection Change habitat type to:}
+f2v{ni ie em ci kt}:{blank}
+
+f2{bm ec so ca ut pn wc}:{habPaSelection Change plant association code to:}
+f2v{bm ec so ca ut pn wc}:{blank}
+
+f2{sn}:{habPaSelection Change ecological classification code to:}
+f2v{sn}:{blank}
+
+f2{ls}:{habPaSelection Change native plant community code to:}
+f2v{ls}:{blank}
+
+f3:{numberBox Basal area maximum}
+f3v:{blank -999 999}
+
+f4:{speciesSelection Species whose site index will change:}
+
+f5:{numberBox Site index value or percent change:}
+f5v:{blank -999 999}
+
+f6:{longListButton Site index value code:}
+f6v:{The value in the previous field is a site index value
+     The value in the previous field is a percent change}
+
+f7:{numberBox Stand Density Index maximum for species specified}
+f7v:{blank}
+
+answerForm:{\
+SetSite   !1,10!!2,10!!3,10!!4,10!!5,10!!6,10,numbers!!7,10!}
+numbers:{0 1}
+
+parmsForm:{\
+* Arguments: HabType/PlantAssoc/EcoUnit, BAMAX, Species,
+* SI or %Change, 0=SI or 1=%change,SDIMAX
+SetSite   !1,10!     Parms(!2!, !3!, !4!, !5!, !6,,numbers!, !7!)
+}
+
+//end keyword.base.SetSite
+
+
+//start keyword.base.SiteCode
+
+description:
+{Used to enter species specific site index values.
+
+If field 1 is blank, all species will be assigned the value in field 2.
+
+The species site index specified in the input database or on the first 
+SITECODE keyword with a non-zero, non-blank species code determines the 
+site species unless field 3 is used to specifically designate a site species.
+
+See section 3.4 of the Variant Overviews for species specific site index information. 
+
+}
+
+f1:{noInput Not applicable to the variant you are using}
+f1{nc cr sw sp tt pn wc so bm ec bp ne cs ls em sn lp ut sf ak ws ca ie ci}:
+{speciesSelection Site index for species:}
+f1v{nc sw sp tt pn ca}:{DF}
+f1v{wc}:{ES}
+f1v{bm}:{GF}
+f1v{so ec bp ws}:{PP}
+f1v{ne}:{SM}
+f1v{cs}:{WO}
+f1v{ls}:{RN}
+f1v{em sn cr ie ci}:{blank}
+f1v{lp ut}:{LP}
+f1v{sf}:{ES}
+f1v{ak}:{WH}
+
+f2{nc cr sw sp tt pn wc so bm ec bp ne cs ls em sn lp ut sf ak ws ca ie ci}:
+{numberBox Site index:}
+f2v{nc}:{90}
+f2v{ut}:{30}
+f2v{em sw sp sn wc so}:{70}
+f2v{cr ie ci}:{blank}
+f2v{bp}:{57}
+f2v{bm}:{63}
+f2v{sf ec}:{75}
+f2v{lp cs}:{65}
+f2v{ak ca}:{80}
+f2v{ws pn}:{100}
+f2v{tt}:{50}
+f2v{ls}:{60}
+f2v{ne}:{56}
+
+f3{ie nc cr sw sp tt pn wc so bm ec bp ne cs ls em sn lp ut sf ak ws ca ci}:
+{numberBox Site species override code, a nonzero designates site species}
+f3v{ie nc cr sw sp tt pn wc so bm ec bp ne cs ls em sn lp ut sf ak ws ca ci}:
+{0}
+
+parmsForm:{
+SiteCode  !1,10!!2,10!!3,10!}
+
+//end keyword.base.SiteCode
+
+
+//start keyword.base.SpCodes
+
+description:
+{Change the species codes used in your input tree data.
+
+You must type the new 4 character long code exactly as you want it,
+including blanks.  Note that " WP " (blank, WP, followed by one blank)
+is a different than "WP  " or "  WP".
+
+You can only change one species code with each use of this keyword
+using Suppose.  FVS supports an additional form of this keyword that
+allows you to change all the codes at once.  If you need this
+additional capability, code your SpCodes keyword outside of Suppose
+and add it to the run using the Edit Simulation window.}
+
+f1:{speciesSelection Species to be identified with a new code}
+f1v:{deleteAll}
+
+f2:{textEdit New species code:}
+
+answerForm:{\
+SpCodes   !1,10!
+!2,-4!}
+parmsForm=answerForm
+
+//end keyword.base.SpCodes
+
+
+//start keyword.base.SpecPref
+
+description:
+{Change the species preference (SP) for removal in the formula:
+
+P = (Fd * DBH) + SP + (Ft * IMC) + Fm + (Fs * STS) + (Fpba * PBAi) + (Fpccf * PCCFi)
+  + (Fptpa * PTPAi)
+
+where:
+ Fd is equal to 1 if thinning from above, or -1 if thinning from below
+ DBH is tree diameter at breast height
+ SP is a user-specified species preference
+ Ft is a user-specified multiplier for the tree value class code
+ IMC is tree value class code 
+ Fm is a user-specified dwarf mistletoe preference
+ Fs is a user-specified multiplier for the tree special status code
+ STS is tree special status code 
+ Fpba is a user-specified multiplier for the point estimate of stand basal area
+ PBAi is stand basal area estimate for the inventory point where the tree is located
+ Fpccf is a user specified multiplier for the point estimate of stand crown 
+ competition factor
+ PCCFi is the estimate of the stand crown competition factor for the inventory point 
+ where the tree is located
+ Fptpa is a user-specified multiplier for the point estimate of stand trees per acre
+ PTPAi is stand trees per acre estimate for the inventory point where the tree is
+ located
+
+For any particular species, this keyword remains in effect until a 
+subsequent use of the keyword changes the priority for that species.
+Keyword order may be important.  If a SPECPREF keyword is specified for
+the same year as a thinning, the species preference will affect the 
+thinning only if the SPECPREF keyword appears before the thinning keyword
+in the keyword sequence.
+
+This keyword has no effect on thinning done with ThinDBH.}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species whose removal priority will be changed}
+f3title:
+{A positive value increases the chance for tree removal and a
+negative value increases the chance of tree retention.}
+f3:{sliderBox Preference for removal of the selected species}
+f3v:{0 -999 999 -999 999}
+
+parmsForm:{\
+* Arguments: Sp, Pref
+SpecPref  !1,10!     Parms(!2!, !3!)
+}
+
+//end keyword.base.SpecPref
+
+//start keyword.base.SpGroup
+
+description:
+{Defines a group of species that can be referenced by a single name,
+which will be treated as a group in management actions or event monitor
+functions.}
+
+f1:{textEdit Specify an 2-10 character Species Group}
+f1:{}
+
+f2:{speciesSelection Species included in the group:}
+f2v:{deleteAll}
+f3:{speciesSelection Species included in the group:}
+f3v:{deleteAll}
+f4:{speciesSelection Species included in the group:}
+f4v:{deleteAll}
+f5:{speciesSelection Species included in the group:}
+f5v:{deleteAll}
+f6:{speciesSelection Species included in the group:}
+f6v:{deleteAll}
+f7:{speciesSelection Species included in the group:}
+f7v:{deleteAll}
+f8:{speciesSelection Species included in the group:}
+f8v:{deleteAll}
+f9:{speciesSelection Species included in the group:}
+f9v:{deleteAll}
+f10:{speciesSelection Species included in the group:}
+f10v:{deleteAll}
+f11:{speciesSelection Species included in the group:}
+f11v:{deleteAll}
+f12:{speciesSelection Species included in the group:}
+f12v:{deleteAll}
+f13{ak bm em ie ci cr so ec pn op wc ws ca oc cs ls ne sn tt ut nc}:{speciesSelection Species included in the group:}
+f13v:{deleteAll}
+f14{ak bm em ie ci cr so ec pn op wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f14v:{deleteAll}
+f15{ak bm em ie cr ci so ec pn op wc ws ca oc ws cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f15v:{deleteAll}
+f16{ak bm em ie cr ci so ec pn op wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f16v:{deleteAll}
+f17{ak bm em ie cr ci so ec pn op wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f17v:{deleteAll}
+f18{ak bm em ie cr ci so ec pn op wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f18v:{deleteAll}
+f19{ak em ie cr ci so ec pn op wc ca oc ws cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f19v:{deleteAll}
+f20{ak ie cr so ec pn op wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f20v:{deleteAll}
+f21{ak ie cr so ec pn op wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f21v:{deleteAll}
+f22{ak ie cr so ec pn op wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f22v:{deleteAll}
+f23{ak ie cr so ec pn op wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f23v:{deleteAll}
+f24{ak ie cr so ec pn op wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f24v:{deleteAll}
+f25{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f25v:{deleteAll}
+f26{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f26v:{deleteAll}
+f27{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f27v:{deleteAll}
+f28{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f28v:{deleteAll}
+f29{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f29v:{deleteAll}
+f30{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f30v:{deleteAll}
+f31{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f31v:{deleteAll}
+f32{cr so ec pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f32v:{deleteAll}
+f33{cr so pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f33v:{deleteAll}
+f34{cr so pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f34v:{deleteAll}
+f35{cr pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f35v:{deleteAll}
+f36{cr pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f36v:{deleteAll}
+f37{cr pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f37v:{deleteAll}
+f38{cr pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f38v:{deleteAll}
+f39{pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f39v:{deleteAll}
+f40{pn op wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f40v:{deleteAll}
+f41{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f41v:{deleteAll}
+f42{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f42v:{deleteAll}
+f43{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f43v:{deleteAll}
+f44{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f44v:{deleteAll}
+f45{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f45v:{deleteAll}
+f46{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f46v:{deleteAll}
+f47{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f47v:{deleteAll}
+f48{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f48v:{deleteAll}
+f49{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f49v:{deleteAll}
+f50{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f50v:{deleteAll}
+f51{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f51v:{deleteAll}
+f52{cs ls ne sn}:{speciesSelection Species included in the group:}
+f52v:{deleteAll}
+f53{cs ls ne sn}:{speciesSelection Species included in the group:}
+f53v:{deleteAll}
+f54{cs ls ne sn}:{speciesSelection Species included in the group:}
+f54v:{deleteAll}
+f55{cs ls ne sn}:{speciesSelection Species included in the group:}
+f55v:{deleteAll}
+f56{cs ls ne sn}:{speciesSelection Species included in the group:}
+f56v:{deleteAll}
+f57{cs ls ne sn}:{speciesSelection Species included in the group:}
+f57v:{deleteAll}
+f58{cs ls ne sn}:{speciesSelection Species included in the group:}
+f58v:{deleteAll}
+f59{cs ls ne sn}:{speciesSelection Species included in the group:}
+f59v:{deleteAll}    
+f60{cs ls ne sn}:{speciesSelection Species included in the group:}
+f60v:{deleteAll}                                                  
+f61{cs ls ne sn}:{speciesSelection Species included in the group:}
+f61v:{deleteAll}
+f62{cs ls ne sn}:{speciesSelection Species included in the group:}
+f62v:{deleteAll}
+f63{cs ls ne sn}:{speciesSelection Species included in the group:}
+f63v:{deleteAll}
+f64{cs ls ne sn}:{speciesSelection Species included in the group:}
+f64v:{deleteAll}
+f65{cs ls ne sn}:{speciesSelection Species included in the group:}
+f65v:{deleteAll}
+f66{cs ne sn}:{speciesSelection Species included in the group:}
+f66v:{deleteAll}
+f67{cs ne sn}:{speciesSelection Species included in the group:}
+f67v:{deleteAll}
+f68{cs ne sn}:{speciesSelection Species included in the group:}
+f68v:{deleteAll}
+f69{cs ne sn}:{speciesSelection Species included in the group:}
+f69v:{deleteAll}
+f70{cs ne sn}:{speciesSelection Species included in the group:}
+f70v:{deleteAll}                                                  
+f71{cs ne sn}:{speciesSelection Species included in the group:}
+f71v:{deleteAll}                                                  
+f72{cs ne sn}:{speciesSelection Species included in the group:}
+f72v:{deleteAll}                                                  
+f73{cs ne sn}:{speciesSelection Species included in the group:}
+f73v:{deleteAll}                                                  
+f74{cs ne sn}:{speciesSelection Species included in the group:}
+f74v:{deleteAll}                                                  
+f75{cs ne sn}:{speciesSelection Species included in the group:}   
+f75v:{deleteAll}                                                  
+f76{cs ne sn}:{speciesSelection Species included in the group:}   
+f76v:{deleteAll}                                                  
+f77{cs ne sn}:{speciesSelection Species included in the group:}   
+f77v:{deleteAll}                                                  
+f78{cs ne sn}:{speciesSelection Species included in the group:}   
+f78v:{deleteAll}                                                  
+f79{cs ne sn}:{speciesSelection Species included in the group:}   
+f79v:{deleteAll}
+f80{cs ne sn}:{speciesSelection Species included in the group:}
+f80v:{deleteAll}                                                  
+f81{cs ne sn}:{speciesSelection Species included in the group:}
+f81v:{deleteAll}                                                  
+f82{cs ne sn}:{speciesSelection Species included in the group:}
+f82v:{deleteAll}                                                  
+f83{cs ne sn}:{speciesSelection Species included in the group:}
+f83v:{deleteAll}                                                  
+f84{cs ne sn}:{speciesSelection Species included in the group:}
+f84v:{deleteAll}                                                  
+f85{cs ne sn}:{speciesSelection Species included in the group:}   
+f85v:{deleteAll}                                                  
+f86{cs ne sn}:{speciesSelection Species included in the group:}   
+f86v:{deleteAll}                                                  
+f87{cs ne sn}:{speciesSelection Species included in the group:}   
+f87v:{deleteAll}                                                  
+f88{cs ne sn}:{speciesSelection Species included in the group:}   
+f88v:{deleteAll}                                                  
+f89{cs ne sn}:{speciesSelection Species included in the group:}   
+f89v:{deleteAll} 
+f90{cs ne sn}:{speciesSelection Species included in the group:}
+f90v:{deleteAll}    
+f91{cs ne sn}:{speciesSelection Species included in the group:}
+f91v:{deleteAll}                                                                                              
+
+answerForm:{\
+SpGroup   !1,10!
+!2! !3! !4! !5! !6! !7! !8! !9! !10! !11! !12! !13! !14! !15! !16! !17! !18! !19! !20! !21! !22! !23! !24! !25! !26! !27! !28! !29! !30! !31! !32! !33! !34! !35! !36! !37! !38! !39! !40! !41! !42! !43! !44! !45! !46! !47! !48! !49! !50! !51! !52! !53! !54! !55! !56! !57! !58! !59! !60! !61! !62! !63! !64! !65! !66! !67! !68! !69! !70! !71! !72! !73! !74! !75! !76! !77! !78! !79! !80! !81! !82! !83! !84! !85! !86! !87! !88! !89! !90! !91!}
+parmsForm=answerForm
+
+//end keyword.base.SpGroup
+
+//start keyword.base.SpLeave
+
+description:
+{Allows species to be excluded or re-included from scheduled harvesting 
+activities.
+
+For any particular species, this keyword remains in effect until a 
+subsequent keyword changes the exlusion of a species from harvest.
+
+Keyword order may be important.  If the keyword is specified for
+the same year as a thinning, it will only effect the thinning if
+it appears before the thinning keyword.
+
+Residual may be larger than the residual thinning target due to 
+the species you excluded.
+}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species or species group}
+f3:{longListButton}
+f3v:{Exclude the species from harvest
+     Include the species in the harvest}
+
+answerForm:
+{SpLeave   !1,10!!2,10!!3,10,header!}
+parmsForm=answerForm
+header:{1 0}
+
+//end keyword.base.SpLeave
+
+//start keyword.base.StandCN
+
+description:
+{Allows you to a use a variable called STAND_CN, which is used as a primary key 
+in the database extension 
+}
+
+f1:{longTextEdit Stand_CN:}
+
+answerForm:
+{StandCN
+!1!}
+parmsForm=answerForm
+
+//end keyword.base.StandCN
+
+
+//start keyword.base.StrClass
+
+description:
+{Requests an output table that calculates structural class be written to the main 
+output file and defines Event Monitor structural class variables.}
+
+f1:{longListButton Report generation option:}
+f1v:{Do not print structural class report
+   >  Print structural class report}
+f2title:{Percentage of tree height that must be exceeded in finding a \
+gap in height distribution.}
+f2:{sliderBox Percentage of tree height:}
+f2v:{30.0 0 100.0 0 100.0}
+f3:{numberBox DBH break between seeling/saplings and pole-sized trees.}
+f3v:{5.0}
+f4:{numberBox DBH break between pole-sized and large, older, trees.}
+f4v:{25.0}
+f5title:{Minimum cover percent to qualify a potential stratum as an actual \
+stratum.}
+f5:{sliderBox Minimum cover percent:}
+f5v:{5.0 0 100.0 0 100.0}
+f6:{numberBox Minimum trees/acre needed to be classifed "Stand Initiation"}
+f6v:{200 0 Fmax 0 500}
+f7:{sliderBox Minimum percent of MAXSDI to be classified "Stem Exclusion"}
+f7v:{30.0 0 100.0 0 100.0}
+
+parmsForm:{
+StrClass  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!}
+
+//end keyword.base.StrClass
+
+
+//start keyword.base.Stats
+
+description:
+{Requests output tables that show a statistical description of the input
+(inventory) data for a projection be written to the main output file.}
+
+f1:{sliderBox Significance level for computing the confidence limits}
+f1v:{.05 .01 .5 .01 .2}
+
+parmsForm:{
+Stats     !1,10!}
+
+//end keyword.base.Stats
+
+
+//start keyword.base.StdIdent
+
+f1:{textEdit Specify an 26 character stand id:}
+f1v:{}
+
+answerForm:{\
+StdIdent
+!1,-26!}
+parmsForm=answerForm
+
+description:{\
+It is best to use the Suppose "Change Group Membership" window to
+specify the stand and management identifications.}
+
+//end keyword.base.StdIdent
+
+
+//start keyword.base.MgmtId
+
+f1:{textEdit Specify an 4 character management id:}
+f1v:{}
+answerForm:{\
+MgmtId
+!1,-4!}
+
+parmsForm=answerForm
+
+description:{\
+It is best to use the Suppose "Change Group Membership" window to
+specify the stand and management identifications.}
+
+//end keyword.base.MgmtId
+
+
+//start keyword.base.StdInfo
+
+description:
+{Used to describe the site characteristics where the stand is
+located.}
+
+f1:{forestSelection National Forest where stand is located.}
+f1v:{blank}
+
+f2:{noInput Note: Your variant does not use plant community types}
+
+f2{ws tt cr sw bp sp sf lp}:{numberBox Habitat Type or Plant Community code, refer to documentation}
+f2v{ws tt cr sw bp sp sf lp}:{blank}
+
+f2{ni ie em ci kt}:{habPaSelection Stand habitat type}
+f2v{ni ie em ci kt}:{blank}
+
+f2{bm ec so ca ut pn wc}:{habPaSelection Plant Association}
+f2v{bm ec so ca ut pn wc}:{blank}
+
+f2{sn}:{habPaSelection Ecological classification}
+f2v{sn}:{blank}
+
+f2{ls}:{habPaSelection Native plant community}
+f2v{ls}:{blank}
+
+f3:{numberBox Stand age}
+f3v:{blank}
+f4:{sliderBox Stand aspect in degrees}
+f4v:{blank 0 360 0 360}
+f5:{sliderBox Stand slope in percent}
+f5v:{blank 0 100 0 100}
+
+f6:{numberBox Stand elevation in 100's of feet}
+f6v:{blank}
+
+f6{ak}:{numberBox Stand elevation in 10's of feet}
+f6v{ak}:{blank}
+
+f7:{numberBox Potential vegetation reference code}
+f7v:{blank}
+
+answerForm:{StdInfo   !1,10!!2,10,numbers!!3,10!!4,10!!5,10!!6,10!!7,10!}
+parmsForm=answerForm
+numbers:{1 2 3 4 5}
+
+//end keyword.base.StdInfo
+
+//start keyword.base.SVS
+
+description:
+{Create output files for use by the Stand Visualization System (SVS).
+SVS was created by Robert J. McGaughey, Pacific Northwest Station.
+
+Output files are created automatically by FVS.
+
+An image is created of all FVS cycles in the run.
+
+NOTE:
+Specification of this keyword does not start the SVS post procssor.}
+
+f1:{longListButton Plot geometry and tree placement:}
+f1v:{Square plot, ignore subplot identifications
+   > Subdivided square plot, place trees in subplots
+     Round plot, ignore subplot identifications
+     Subdivided round plot, place trees in subplots}
+
+f2:{sliderBox Ground file grid size (zero = no ground files):}
+f2v:{100 0 256 0 256}
+
+f3:{listButton Draw range poles:}
+f3v:{No\nYes}
+
+f4:{listButton Draw subplot boundaries:}
+f4v:{No\nYes}
+
+f5:{listButtonString Ground color codes:}
+f5v:{\
+1 = Red/orange
+>2 = Tan
+3 = Reddish brown
+4 = Light grey
+5 = Lime green
+6 = Dark green
+7 = Medium bluegreen
+8 = Dark green
+9 = Dark grey
+10 = Light brown
+11 = Khaki/brown
+12 = Light green
+13 = Dark bluegreen
+14 = Chocolate brown
+15 = Dark tan
+16 = Yellow
+17 = Medium grey
+18 = Brown
+19 = Green
+20 = Dark brown
+-1 = Solid Red/orange
+-2 = Solid Tan
+-3 = Solid Reddish brown
+-4 = Solid Light grey
+-5 = Solid Lime green
+-6 = Solid Dark green
+-7 = Solid Medium bluegreen
+-8 = Solid Dark green
+-9 = Solid Dark grey
+-10 = Solid Light brown
+-11 = Solid Khaki/brown
+-12 = Solid Light green
+-13 = Solid Dark bluegreen
+-14 = Solid Chocolate brown
+-15 = Solid Dark tan
+-16 = Solid Yellow
+-17 = Solid Medium grey
+-18 = Solid Brown
+-19 = Solid Green
+-20 = Solid Dark brown}
+
+f6:{listButtonString Units:}
+f6v:{\
+0 = Imperial
+1 = Metric}
+
+parmsForm:{
+SVS       !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!}
+
+//end keyword.base.SVS
+
+//start keyword.base.TCondMLT
+
+description:
+{Change the impacts of the tree value class, the special
+tree status code, point basal area, crown competition factor, and point estimate 
+of trees per acre on the determination of removal priority.
+
+  This formula is used to change the priority of tree removal:
+
+P = (Fd * DBH) + SP + (Ft * IMC) + Fm + (Fs * STS) + (Fpba * PBAi) + (Fpccf * PCCFi)
+  + (Fptpa * PTPAi)
+
+where:
+ Fd is equal to 1 if thinning from above, or -1 if thinning from below
+ DBH is tree diameter at breast height
+ SP is a user-specified species preference
+ Ft is a user-specified multiplier for the tree value class code
+ IMC is tree value class code 
+ Fm is a user-specified dwarf mistletoe preference
+ Fs is a user-specified multiplier for the tree special status code
+ STS is tree special status code 
+ Fpba is a user-specified multiplier for the point estimate of stand basal area
+ PBAi is stand basal area estimate for the inventory point where the tree is located
+ Fpccf is a user specified multiplier for the point estimate of stand crown 
+ competition factor
+ PCCFi is the estimate of the stand crown competition factor for the inventory point 
+ where the tree is located
+ Fptpa is a user-specified multiplier for the point estimate of stand trees per acre
+ PTPAi is stand trees per acre estimate for the inventory point where the tree is
+ located
+
+NOTE:
+This keyword is ineffective with ThinDBH}
+
+f1title:
+{Once this multiplier is in effect, it remains in effect until\
+ replaced by a subsequent multiplier.}
+f1:{scheduleBox}
+
+f2title:
+{A positive value increases the chance for tree removal and a
+negative value increases the chance of tree retention.}
+f2:{sliderBox Tree condition class multiplier}
+f2v:{0 -200 200 -200 200}
+
+f3:{sliderBox Special tree status multiplier}
+f3v:{0 -200 200 -200 200}
+
+f4:{sliderBox Point basal area multiplier}
+f4v:{0 -200 200 -200 200}
+
+f5:{sliderBox Point crown competition factor multiplier}
+f5v:{0 -200 200 -200 200}
+
+f6:{sliderBox Point tree per acre multiplier}
+f6v:{0 -200 200 -200 200}
+
+parmsForm:{\
+* Arguments: CondClassMult, SpecialTreeMult, BAMult, CCFMult, TPAMult
+TCondMLT  !1,10!     Parms(!2!, !3!, !4!, !5!, !6!)
+}
+
+//end keyword.base.TCondMLT
+
+
+//start keyword.base.TFixArea
+
+description:
+{Specifies the total fixed-plot area for small-tree plots.
+This ensures that the trees per acre expansions are representative
+of the sampling design.  This is useful when multiple small-tree
+plots are used at each of the plots specified in the tree data.
+
+For example, if at every point in a survey three 1/300-acre plots
+are installed for small trees, the total fixed area for the
+small-tree plots is 3/300 acre, which reduces to 1/100 acre.
+The value entered on this keyword is then is 100 (the inverse of
+1/100).  Trees per acre expansions for small trees will use a factor
+of 100 instead of 300.
+
+Caution: Do not confuse multiple small-tree plots with a sampling
+design where different size small trees are recorded using different
+size fixed-plots.  In the latter case the areas should NOT be added
+together.  Instead, the tree counts for all small trees in the tree
+data will need to be modified to represent a single plot size, and
+the DESIGN keyword will specify the size of the new representative
+plot size used for the modified tree counts.}
+
+f1:{numberBox Inverse of total small-tree fixed plot area}
+f1v:{300}
+
+parmsForm:{
+TFixArea  !1,10!}
+
+//end keyword.base.TFixArea
+
+
+//start keyword.base.ThinABA
+
+description:
+{Schedule thinning from above to a basal area per acre target.
+
+The target residual refers to that within the specified
+diameter and height range.
+
+Thinnings are always done the first year of the cycle in which
+they are scheduled.}
+
+f1:{scheduleBox}
+f1v:{1}
+f2:{numberBox Residual basal area (within specified tree size range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f4v:{0}
+f5:{numberBox Largest DBH to be considered for removal (less than)}
+f5v:{999}
+f6:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f6v:{0}
+f7:{numberBox Tallest tree to be considered for removal (less than)}
+f7v:{999}
+
+parmsForm:{\
+* Arguments: ResBA, CutEff, SmDBH, LgDBH, SmHt, LgHt
+ThinABA   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinABA
+
+
+//start keyword.base.ThinBBA
+
+description:
+{Schedule thinning from below to a basal area per acre target.
+
+The target residual refers to that within the specified
+diameter and height range.
+
+Thinnings are always done the first year of the cycle in which it is
+scheduled.}
+
+f1:{scheduleBox}
+f1v:{1}
+f2:{numberBox Residual basal area (within specified tree size range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f4v:{0}
+f5:{numberBox Largest DBH to be considered for removal (less than)}
+f5v:{999}
+f6:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f6v:{0}
+f7:{numberBox Tallest tree to be considered for removal (less than)}
+f7v:{999}
+
+parmsForm:{\
+* Arguments: ResBA, CutEff, SmDBH, LgDBH, SmHt, LgHt
+ThinBBA   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinBBA
+
+
+//start keyword.base.ThinATA
+
+description:
+{Schedule thinning from above to a trees-per-acre target.
+
+The target residual refers to that within the specified
+diameter and height range.
+
+Thinnings are always done the first year of the cycle in
+which it is scheduled.}
+
+f1:{scheduleBox}
+f2:{numberBox Residual trees per acre (within specified tree size range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter for this thinning request.}
+f3v:{1 0 1 0 1}
+f4:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f4v:{0}
+f5:{numberBox Largest DBH to be considered for removal (less than)}
+f5v:{999}
+f6:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f6v:{0}
+f7:{numberBox Tallest tree to be considered for removal (less than)}
+f7v:{999}
+
+parmsForm:{\
+* Arguments: ResTPA, CutEff, SmDBH, LgDBH, SmHt, LgHt
+ThinATA   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinATA
+
+
+//start keyword.base.ThinBTA
+
+description:
+{Schedule thinning from below to a trees-per-acre target.
+
+The target residual refers to that within the specified
+diameter and height range.
+
+Thinnings are always done the first year of the cycle in
+which it is scheduled.}
+
+f1:{scheduleBox}
+f2:{numberBox Residual trees per acre (within specified tree size range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter for this thinning request.}
+f3v:{1 0 1 0 1}
+f4:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f4v:{0}
+f5:{numberBox Largest DBH to be considered for removal (less than)}
+f5v:{999}
+f6:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f6v:{0}
+f7:{numberBox Tallest tree to be considered for removal (less than)}
+f7v:{999}
+
+parmsForm:{\
+* Arguments: ResTPA, CutEff, SmDBH, LgDBH, SmHt, LgHt
+ThinBTA   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinBTA
+
+
+//start keyword.base.ThinAuto
+
+description:
+{Schedule automatic stocking control.  As nearly as possible, stand
+density will be maintained within a range determined by the
+minimum and maximum percentage of normal stocking entered in
+fields 2 and 3.
+
+CAUTIONS:
+Check the stocking guide used by the growth model to be sure it is
+appropriate in your area.
+
+Thinnings are always done in the first year of the cycle in which it
+is scheduled.
+
+If you are using NI or KT variants, you must include an SDIMAX keyword
+in your keyword file and set SDI maximums for all species in your file
+or else this keyword will result in a clearcut.}
+
+f1:{scheduleBox}
+f2:{sliderBox Lower limit of percentage of normal stocking}
+f2v:{45 0 100 0 100}
+f3:{sliderBox Upper limit of percentage of normal stocking}
+f3v:{60 0 100 0 100}
+f4:{sliderBox Cutting efficiency}
+f4v:{1 0 1 0 1}
+
+parmsForm:{\
+* Arguments: Low%stk Up%stk Eff
+ThinAuto  !1,10!     Parms(!2!, !3!, !4!)
+}
+
+//end keyword.base.ThinAuto
+
+
+//start keyword.base.ThinDBH
+
+description:
+{Schedule the removal of a segment of the DBH distribution.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+Trees are thinned in the order they appear in the treelist.
+
+SpecPref keyword does not work with ThinDBH.
+
+If tree/acre or basal area targets are used, the cutting efficiency
+provided is ignored and the model calculates a cutting efficiency
+which removes a portion of all eligible trees.}
+
+f1:{scheduleBox}
+f2:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f2v:{0}
+f3:{numberBox Largest DBH to be considered for removal (less than)}
+f3v:{999}
+f4:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f4v:{1 0 1 0 1}
+f5:{speciesSelection Species to be removed in this cut}
+f6:{numberBox Residual trees per acre (within specified DBH range)}
+f6v:{0}
+f7:{numberBox Residual basal area (within specified DBH range)}
+f7v:{0}
+
+parmsForm:{\
+* Arguments: SmDBH, LgDBH, CutEff, Species, ResTPA, ResBA
+ThinDBH   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinDBH
+
+
+//start keyword.base.ThinHt
+
+description:
+{Schedule the removal of a segment of the height distribution.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+Trees are thinned in the order they appear in the treelist.
+
+SpecPref keyword does not work with ThinHt.
+
+If tree/acre or basal area targets are used, the cutting efficiency
+provided is ignored and the model calculates a cutting efficiency
+which removes a portion of all eligible trees.}
+
+f1:{scheduleBox}
+f2:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f2v:{0}
+
+f3:{numberBox Tallest tree to be considered for removal (less than)}
+f3v:{999}
+
+f4:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f4v:{1 0 1 0 1}
+
+f5:{speciesSelection Species to be removed in this cut}
+
+f6:{numberBox Residual trees per acre (within specified height range)}
+f6v:{0}
+
+f7:{numberBox Residual basal area (within specified height range)}
+f7v:{0}
+
+parmsForm:{\
+* Arguments: SmHt, LgHT, CutEff, Species, ResTPA, ResBA
+ThinHt    !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinHt
+
+//start keyword.base.ThinMist
+
+description:
+{Schedule the removal of trees with Dwarf Mistletoe Rating
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.}
+
+f1:{scheduleBox}
+f2:{numberBox DMR code for trees that are to be removed in this thinning}
+f2v:{0}
+f3:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f3v:{0}
+f4:{numberBox Largest DBH to be considered for removal (less than)}
+f4v:{999}
+f5:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f5v:{1 0 1 0 1}
+
+parmsForm:{\
+* Arguments: DMR, SmDBH, LgDBH, CutEff
+ThinMist   !1,10!     Parms(!2!, !3!, !4!)
+}
+
+//end keyword.base.ThinMist
+
+//start keyword.base.ThinPRSC
+
+description:
+{Schedule prescription thinning. Harvest trees that were marked
+for removal on the input tree records. To set these values in the 
+input database, use the Prescription column in the TreeInit Table.
+If cut code is blank, all trees coded with a value between 2 and 9
+will be cut.}
+
+f1:{scheduleBox}
+f2:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f2v:{1 0 1 0 1}
+f3:{numberBox Cut code for trees you want removed in this harvest}
+f3v:{blank}
+
+parmsForm:{\
+* Arguments: CutEff, CutCode
+ThinPRSC  !1,10!     Parms(!2!, !3!)
+}
+
+//end keyword.base.ThinPRSC
+
+
+//start keyword.base.ThinPt
+
+description:
+{Schedule a thinning by plot or point number, the SetPThin keyword must
+preceed the ThinPt keyword
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+}
+
+f1:{scheduleBox}
+f2title:{The SetPThin keyword must preceed the ThinPt keyword.}
+f2:{numberBox Residual target for the attribute specified on the SetPThin keyword}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{speciesSelection Species to be removed in this cut}
+f5:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f5v:{0}
+f6:{numberBox Largest DBH to be considered for removal (less than)}
+f6v:{999}
+f7:{longListButton Cutting control}
+f7v:{Thin throughout the specified diameter range
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+
+parmsForm:{\
+* Arguments: Resid, CutEff, Species, SmDBH, LgDBH, CutCtrl
+ThinPt    !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinPt
+
+//start keyword.base.ThinQFA
+
+description:
+{Schedules uneven-aged thinning from throughout a specified diameter range 
+for any or all species to a specified basal area, trees per acre or 
+stand density index target. The distribution of the thinning throughout 
+the specified diameter range is based on a user specified q-factor, 
+where the q-factor value is the ratio of trees in a diameter class 
+to the number of trees in the next larger class. 
+}
+
+f1:{scheduleBox}
+f2:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f2v:{0}
+f3:{numberBox Largest DBH to be considered for removal (less than)}
+f3v:{24}
+f4:{speciesSelection Species to be removed in this cut}
+f5:{numberBox Value for Q-factor}
+f5v:{1.4}
+f6:{numberBox Diameter class width in inches}
+f6v:{2}
+f7:{numberBox Residual density for the diameter distribution and species specified}
+f7v:{0}
+f8:{listButton Units for residual density}
+f8v:{Basal area per acre
+     Trees per acre
+     Stand Density Index}
+     
+
+answerForm:{\
+ThinQFA   !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!
+!8,1!}
+
+parmsForm:{\
+* Arguments: SmDBH, LgDBH, Species, Q-Factor, D-class, ResDensity, DensityUnits)
+ThinQFA   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!, !8!)}
+
+//end keyword.base.ThinQFA
+
+
+//start keyword.base.ThinRDen
+
+description:
+{Schedule a thinning with a residual Curtis' Relative Density target.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+If the target Curtis' Relative Density is nonzero and the cutting control
+flag is zero, thinning occurs uniformly throughout the specified dbh
+range until the target is met (the cutting efficiency parameter is
+ignored and the cutting efficiency needed to complete the thinning is
+automatically computed by the program).
+
+If the target relative is nonzero and the cutting control
+flag is nonzero, then the cutting efficiency parameter is used.}
+
+f1:{scheduleBox}
+f2:{numberBox Residual Curtis' Relative Density (within specified DBH range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{speciesSelection Species to be removed in this cut}
+f5:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f5v:{0}
+f6:{numberBox Largest DBH to be considered for removal (less than)}
+f6v:{999}
+f7:{longListButton Cutting control}
+f7v:{Thin throughout the specified diameter range
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+
+parmsForm:{\
+* Arguments: ResRD, CutEff, Species, SmDBH, LgDBH, CutCtrl
+ThinRDen  !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinRDen
+
+
+//start keyword.base.ThinRDSL
+
+description{ne}:
+{Schedule a thinning with a residual Relative Density target following
+the SILVAH forest types; Northern Hardwood, Northern hardwood-hemlock
+Allegheny hardwood, Oak-hickory, Transition.
+
+This keyword can only be used in the Northeast variant.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+If the target relative density is nonzero and the cutting control
+flag is zero, thinning occurs uniformly throughout the specified dbh
+range until the target is met (the cutting efficiency parameter is
+ignored and the cutting efficiency needed to complete the thinning is
+automatically computed by the program).
+
+If the target relative is nonzero and the cutting control
+flag is nonzero, then the cutting efficiency parameter is used.}
+
+description:
+{This keyword can only be used in the Northeast variant.}
+
+f1{ne}:{scheduleBox}
+f2{ne}:{numberBox Residual Relative Density (within specified DBH range)}
+f2v{ne}:{0}
+f3{ne}:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v{ne}:{1 0 1 0 1}
+f4{ne}:{speciesSelection Species to be removed in this cut}
+f5{ne}:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f5v{ne}:{0}
+f6{ne}:{numberBox Largest DBH to be considered for removal (less than)}
+f6v{ne}:{999}
+f7{ne}:{longListButton Cutting control}
+f7v{ne}:{Thin throughout the specified diameter range
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+
+parmsForm:{\
+* Arguments: ResRD, CutEff, Species, SmDBH, LgDBH, CutCtrl
+ThinRDSL  !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinRDSL
+
+
+//start keyword.base.ThinSDI
+
+description:
+{Schedule a thinning with a residual stand density index target.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+If the target stand density index is nonzero and the cutting control
+flag is zero, thinning occurs uniformly throughout the specified dbh
+range until the target is met (the cutting efficiency parameter is
+ignored and the cutting efficiency needed to complete the thinning is
+automatically computed by the program).
+
+If the target stand density index is nonzero and the cutting control
+flag is nonzero, then the cutting efficiency parameter is used.}
+
+f1:{scheduleBox}
+f2:{numberBox Residual stand density index (within specified DBH range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{speciesSelection Species to be removed in this cut}
+f5:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f5v:{0}
+f6:{numberBox Largest DBH to be considered for removal (less than)}
+f6v:{999}
+f7:{longListButton Cutting control}
+f7v:{Thin throughout the specified diameter range
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+
+parmsForm:{\
+* Arguments: ResSDI, CutEff, Species, SmDBH, LgDBH, CutCtrl
+ThinSDI   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinSDI
+
+
+//start keyword.base.ThinCC
+
+description:
+{Schedule a thinning with a residual canopy cover target.
+
+CAUTIONS:
+Thinnings are always done the first year of the cycle in which it is
+scheduled.
+
+If the target canopy cover percent is nonzero and the cutting control
+flag is zero, thinning occurs uniformly throughout the specified dbh
+range until the target is met (the cutting efficiency parameter is
+ignored and the cutting efficiency needed to complete the thinning is
+automatically computed by the program).
+
+If the target canopy cover percent is nonzero and the cutting control
+flag is nonzero, then the cutting efficiency parameter is used.}
+
+f1:{scheduleBox}
+f2:{numberBox Residual canopy cover percent (within specified DBH range)}
+f2v:{0}
+f3:{sliderBox Cutting efficiency parameter specific to this thinning request}
+f3v:{1 0 1 0 1}
+f4:{speciesSelection Species to be removed in this cut}
+f5:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f5v:{0}
+f6:{numberBox Largest DBH to be considered for removal (less than)}
+f6v:{999}
+f7:{longListButton Cutting control}
+f7v:{Thin throughout the specified diameter range
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+
+parmsForm:{\
+* Arguments: ResCC, CutEff, Species, SmDBH, LgDBH, CutCtrl
+ThinCC   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!, !7!)
+}
+
+//end keyword.base.ThinCC
+
+
+//start keyword.base.TimeInt
+
+f1:{numberBox FVS cycle number:}
+f1v:{1 0 40}
+
+f2:{numberBox Cycle length:}
+f2v:{10 1 25}
+f2v{sn nc}:{5 1 25}
+
+description:
+{Specify the length of specific cycles.
+
+CAUTION:
+The number and length of cycles needed for a run is computed by
+Suppose.  This version of Suppose does not insure that the value you
+enter using the TimeInt keyword is correct, nor does Suppose recognize
+that this value may cause an incorrect result.}
+
+parmsForm:{
+TimeInt   !1,10!!2,10!}
+
+//end keyword.base.TimeInt
+
+
+//start keyword.base.TreeData
+
+description:
+{TreeData keyword is used to specify a logical unit for reading in
+tree data records.
+
+CAUTION:
+If tree records are inserted directly into the keyword file (ie. as
+supplemental records following a TreeData keyword with 15
+specified in field 1), a special tree record with variable ITRE equal
+to -999 must be added to the end of the tree records to signal the
+end of tree record input.}
+
+f1:{numberBox Data set reference number for tree record input file}
+f1v:{2}
+
+f2:{listButton Plot site descriptors input option}
+f2v:{Plot site descriptors are not read
+Plot site descriptors are read}
+
+f3title:{Lower DBH limit in inches used as screen input data. All
+tree records with DBH greater than or equal to this value will be
+read.}
+f3:{numberBox Lower DBH limit in inches}
+f3v:{0}
+f4title:{Upper DBH limit in inches used to screen input data. All
+tree records with a DBH less than this value will be read.}
+f4:{numberBox Upper DBH limit in inches}
+f4v:{999}
+f5title:{Species or species group to which the diameter}
+f5:{speciesSelection range applies}
+
+parmsForm:{
+TreeData  !1,10!!2,10!!3,10!!4,10!}
+
+//end keyword.base.TreeData
+
+//start keyword.base.TreeFmt
+
+description:
+{Provides a FORTRAN format statement that describes the layout of 
+the tree data record. 
+
+The following is the default tree format used to read the input 
+tree variables from a text file.
+
+(I2,T1,I6,T10,F7.1,I1,T8,A2,T16,F5.2,F3.1,
+2F3.0,F4.1,I1,T80,6I2,2I1,I2,2I3,2I1,F3.0)
+
+VARIABLE                   FORMAT  COLUMNS
+Plot ID                       I4       1-4
+Tree Number                   I7       1-7
+Tree Count                   F6.0      8-13
+Tree History                   I1      14
+Species                        A3      15-17
+Diameter at Breast Height    F4.1      18-21
+DBH Increment                F3.1      22-24
+Live Height                  F3.0      25-27
+Height to Top Kill           F3.0      28-30
+Height Increment             F4.1      31-34
+Crown Ratio Code               I1      35
+Damage Code 1                  I2      36-37
+Severity Code 1                I2      38-39
+Damage Code 2                  I2      40-41
+Severity Code 2                I2      42-43
+Damage Code 3                  I2      44-45
+Severity Code 3                I2      46-47
+Tree Value Class Code          I1      48
+Cut/Leave Prescription Code    I1      49
+Plot slope percent             I2      50-51
+Plot aspect in degrees         I3      52-54
+Plot habitat type code         I3      55-57
+Plot topographic position code I1      58
+Plot site preparation code     I1      59
+Tree Age                     F3.0      60-62
+}
+f1title:
+{Enter tree format into two supplemental records each less than 80 characters long}
+f1:{longTextEdit line 1:}
+f1v:{(}
+f2:{longTextEdit line 2:}
+f2v:{)}
+
+answerForm:{TreeFmt
+!1!
+!2!
+}
+parmsForm=answerForm
+
+//end keyword.base.TreeFmt
+
+//start keyword.base.TreeList
+
+description:
+{Print a list of sample tree records or place a copy in a retrievable
+mass storage file.
+
+Output is generated for the END of the specified cycle.  If a zero is specified
+for the year, the output will be generated for all cycles in the projection.}
+
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+f2:{numberBox Database reference number for the output tree record file}
+f2v:{3}
+f3:{longListButton Heading option}
+f3v:{Print heading that describes each table column
+     Print encoded (machine readable) header
+     Suppress all headings}
+f4title:{Do not change this field unless a "1" or the inventory year
+is specified in the Year/Cycle box above.}
+f4:{longListButton Select for cycle 1 output.}
+f4v:{Print output for the inventory year and end of cycle 1
+     Print output only for the end of cycle 1
+     Print output only for the inventory year}
+f5:{longListButton Type of treelist}
+f5v:{Treelist for live trees
+     Treelist for dead trees}
+f6:{longListButton Printing of diameter growth data for cycle 0}
+f6v:{Print only input (measured) diameter growth rates
+     Print both input and estimated diameter growth rates}
+
+answerForm:{TreeList  !1,10!!2,10!!3,10,header!!4,10!!5,10!!6,20!}
+parmsForm=answerForm
+header:{0 1 -1}
+
+//end keyword.base.TreeList
+
+//start keyword.base.TreeSzCp
+
+description:
+{Sets morphological limits for maximum tree diameter and height for a given
+species, and specifies a minimum mortality rate to be used when tree diameter
+exceeds the specified limit.  Diameter growth or height growth will be greatly
+reduced for individual trees that exceed the specified diameter or height,
+respectively.}
+
+f1:{speciesSelection Species to which limits apply}
+f2:{numberBox Morphological maximum diameter for this species}
+f2v:{999.0}
+f3:{sliderBox Minumum proportion of the tree record that will be killed}
+f3v:{1.0 0 1.0 0 1.0}
+f4:{longListButton Maximum diameter use code}
+f4v:{Use diameter for affecting both dbh growth and tree mortality
+     Use diameter for affecting growth only
+     Use diameter for affecting tree mortality only}
+f5:{numberBox Morphological maximum height for this species}
+f5v:{999.0}
+
+answerForm:{TreeSZCP  !1,10!!2,10!!3,10!!4,10,header!!5,10!}
+parmsForm=answerForm
+header:{0 1 2}
+
+//end keyword.base.TREESzCp
+
+//start keyword.base.YardLoss
+
+description{sn ls ne cs}:
+{YardLoss allows the user to designate a portion of a harvest to be
+left in the woods. It is used in conjunction with the Fire and Fuels
+Extension to compute fuel loadings and dead tree statistics.
+
+You create a YardLoss keyword followed by a Thin keyword or management
+action.  The YardLoss applies to "cuts" that follow and are scheduled
+for the same year.
+
+Using this keyword, you change the models assumptions regarding the
+amount of "cut" that is left in the stand.  For example, if you specify
+that all of the cut stems are left, then the cut trees will be removed
+from the live tree list, those trees will be reported as "removed
+trees", but their biomass will be included in the dead surface fuel
+estimates.
+
+Of trees that are not removed, you can specify the proportion that are
+felled.  If none are felled, then the trees are deemed snags.
+Therefore, you can create snags by "cutting" trees, leaving them in
+the stand, and then specifying that they are not "down".
+
+You can control the proportion of unmerchantable material (small trees,
+topwood, branchwood) that is left in the stand.  This biomass becomes
+surface fuel for the Fire and Fuels Extension.}
+
+description:
+{YardLoss allows the user to designate a portion of a harvest to be
+left in the woods. It is used in conjunction with the Fire and Fuels
+Extension to compute fuel loadings and dead tree statistics.
+
+You create a YardLoss keyword followed by a Thin keyword or management
+action.  The YardLoss applies to "cuts" that follow and are scheduled
+for the same year.
+
+Using this keyword, you change the models assumptions regarding the
+amount of "cut" that is left in the stand.  For example, if you specify
+that all of the cut stems are left, then the cut trees will be removed
+from the live tree list, those trees will be reported as "removed
+trees", and "removed total volume", but they will not count as "removed
+merchantable volume".
+
+Of trees that are not removed, you can specify the proportion that are
+felled.  If none are felled, then the trees are deemed snags.
+Therefore, you can create snags by "cutting" trees, leaving them in
+the stand, and then specifying that they are not "down".
+
+You can control the proportion of branchwood that is left in the stand.
+This crown biomass becomes fine fuel for the Fire and Fuels Extension.}
+
+f1:{scheduleBox}
+f2:{sliderBox Proportion of cut stems left in the stand.}
+f2v:{0 0 1 0 1}
+f3:{sliderBox Proportion of left stems that are down.}
+f3v:{0 0 1 0 1}
+f4{sn ls ne cs}:{sliderBox Proportion of unmerch. wood left from removed stems.}
+f4:{sliderBox Proportion of branchwood left from removed stems.}
+f4v:{1 0 1 0 1}
+
+parmsForm:{\
+* Arguments: PropStemsLeft, PropLeftStemsDown, PropBranchLeft
+YardLoss  !1,10!     Parms(!2!, !3!, !4!)
+}
+
+//end keyword.base.YardLoss
+
+

@@ -1,0 +1,2482 @@
+
+
+
+//start uneven-aged_Q
+
+defaultCondition:periodicyrs
+
+description:
+{Schedules uneven-aged thinning from throughout a specified diameter range 
+for any or all species to a specified basal area, trees per acre or 
+stand density index target. The distribution of the thinning throughout 
+the specified diameter range is based on a user specified q-factor, 
+where the q-factor value is the ratio of trees in a diameter class 
+to the number of trees in the next larger class. If you do not specify to 
+retain legacy trees it will cut all trees above the largest diamater specified.
+Note: If a thinning is scheduled and the thinning target on the uneven age
+thinning is greater than the stand density in the diameter range it will delete the
+uneven-age thinning activity but may still remove the legacy trees if you have 
+specified to cut them.}
+f1title:{For recurring entries select Schedule by Condition}
+f1:{scheduleBox}
+f2:{listButton Units for Residual Density}
+f2v:{Basal area per acre
+     Trees per acre
+     Stand Density Index}
+f3:{numberBox Residual density for the diameter distribution and species specified}
+f3v:{50}
+f4:{numberBox Value for Q-factor}
+f4v:{1.4}
+f5:{speciesSelection Species to be removed in this cut}
+f6:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f6v:{2}
+f7:{numberBox Largest DBH to be considered for removal (less than)}
+f7v:{24}
+f8:{numberBox Diameter Class width in inches}
+f8v:{2}
+f9title:
+{-----If managing for Legacy Trees specify criteria-----}
+f9:{numberBox Number of Legacy Trees}
+f9v:{0}
+f10title:{OR}
+f10:{numberBox Basal Area of Legacy Trees}
+f10v:{0}
+
+answerForm:{\
+* Arguments: SmDBH, LgDBH, Species, Q-Factor, D-class, ResDensity, DensityUnits
+ThinQFA   !1,10!     Parms(!6!,!7!,!5!,!4!,!8!,!3!,!2!)
+* Arguments: SmDBH, LgDBH, CutEff, Species, ResTPA, ResBA
+ThinDBH   !1,10!     Parms(!7!,999,1,!5!,!9!,!10!)
+}
+
+parmsForm=answerForm
+
+//end uneven-aged_Q
+
+//start uneven-aged_ba_target_wo
+
+description:
+{Designed to simulate an uneven-aged management scenario given a user 
+specified target basal area per acre.  Excess basal area is proportionally 
+distributed to deficit diameter classes to maintain the basal area target.
+
+Input parameters are Q-factor, minimum tree size, maximum tree size, 
+and diameter class interval.  Additional features include the ability 
+to specify remnant legacy trees and cutting cycle length. 
+
+Note 1: The number of diameter classes that can be specified for 
+regulation is limited to twenty.  To check, divide the maximum tree 
+size by the diameter class interval.  Make sure less than twenty 
+classes are rendered.
+
+Note 2: ThinDBH Keywords are used to remove surplus basal area per 
+diameter class.  ThinDBH applies a uniform thinning throughout the 
+dbh range.  SpecPref Keywords have no effect on ThinDBH Keywords.}
+
+f1:{numberBox Enter Beginning Cycle for implementing ITS-BA}
+f1v:{1}
+f2:{numberBox Enter Residual Basal Area/Acre Target}
+f2v:{50}
+f3:{numberBox Enter Diminution Quotient "q" Value}
+f3v:{1.40}
+f4title:
+{Enter Diamter Class Limits}
+f4:{numberBox    - Minimum DBH Class}
+f4v:{2}
+f5:{numberBox    - Maximum DBH Class (see Note 1 below)}
+f5v:{24}
+f6:{numberBox    - Diameter Class Width}
+f6v:{2}
+f7title:
+{Enter Remnant Legacy Trees Criteria}
+f7:{numberBox    - Number of Trees}
+f7v:{2}
+f8:{numberBox    - Average Diameter}
+f8v:{28}
+f9:{numberBox Enter Cutting Cycle Length}
+f9v:{20}
+
+answerForm:{\
+*  Beginning of: Individual Tree Selection - Basal Area Target w/o SpecPref
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: March 10, 2003
+
+*   This keyword set is designed to simulate uneven-aged management given
+*   a user specified target basal area per acre.  Excess basal area is
+*   proportionally distributed to deficit diameter classes to maintain the
+*   basal area target.  Input parameters are:
+*                          Q-factor
+*                          Minimum tree size
+*                          Maximum tree size
+*                          Diameter class interval
+*   Additional features include the ability to specify the number and size
+*   of remnant legacy trees and the cutting cycle length.
+
+*   -------
+*   Example -->      COMPUTATION OF TARGET BASAL AREA BASED ON
+*   -------       A DESIRED BASAL AREA OF 50, A "Q" OF 1.40 AND A
+*             DBH RANGE OF 2.0 THRU 24.0 FOR A BALANCED ALL-AGED STAND
+*
+*   DBH      TRIAL        BA/       TRIAL   CONVERSION    TARGET     DESIRED
+*  CLASS    TREES/AC      TREE       BA       FACTOR      BA/AC     TREES/AC
+*   2.0      40.50       0.022      0.88     0.97362      0.86        39.43
+*   4.0      28.93       0.087      2.52     0.97362      2.46        28.16
+*   6.0      20.66       0.196      4.06     0.97362      3.95        20.12
+*   8.0      14.76       0.349      5.15     0.97362      5.02        14.37
+*  10.0      10.54       0.545      5.75     0.97362      5.60        10.26
+*  12.0       7.53       0.785      5.91     0.97362      5.76         7.33
+*  14.0       5.38       1.069      5.75     0.97362      5.60         5.24
+*  16.0       3.84       1.396      5.36     0.97362      5.22         3.74
+*  18.0       2.74       1.767      4.85     0.97362      4.72         2.67
+*  20.0       1.96       2.182      4.28     0.97362      4.16         1.91
+*  22.0       1.40       2.640      3.70     0.97362      3.60         1.36
+*  24.0       1.00       3.142      3.14     0.97362      3.06         0.97
+
+* TOTALS:   139.23                 51.35                 50.00       135.56
+
+*   Definition of Compute Variables:
+*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*     _BC = Beginning Cycle       
+*     _BA = Target Basal Area/Acre
+*      _Q = Q-Factor
+*     _DB = Minimum Diameter Class
+*     _DE = Maximum Diameter Class
+*     _DI = Diameter Class Interval
+*    _LLT = Number of Legacy Trees
+*    _LLD = Diameter of Legacy Trees
+*    _CCY = Cutting Cycle Length
+*   > Computed within Key Component File
+*    _APC = Additive Projection Cycle Length
+*      _C = 0.00545415 (BA conversion constant)
+
+* Initialize Additive Projection Cycle Variable and BA converstion constant
+Compute            1
+_BC =!1!
+_BA =!2!
+_Q  =!3!
+_DB =!4!
+_DE =!5!
+_DI =!6!
+_LLT=!7!
+_LLD=!8!
+_CCY=!9!
+_APC=999.9
+_C  =0.00545415
+END
+
+* Sequence Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 0
+THEN
+COMPUTE
+_APC=_APC+(CENDYEAR-YEAR+1)
+END
+AGPLABEL
+   All
+ENDIF
+
+* Conditional 'IF' based on _BA and Cutting Cycle Length
+IF                 0
+CYCLE GE _BC AND &
+((SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0) GE _BA) OR &
+(SpMcDBH(2,All,0,_DB-(_DI/2),999.0,0.0,999.0,0) GE (_BA + _LLT*(_LLD**2)*_C))) & 
+AND _CCY LE _APC
+Then
+
+* Compute DBH Classes, Trial TPA, BA/Tree, Trial BA, and Conversion Factor
+Compute            0
+_X20=(LININT(LININT( &
+     MAX((_DE-(_DI*00)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*00),0,0,_DE-(_DI*00),MAX(_DE-(_DI*00),_DB/2)),0)))) &
+     **2*_Q**00*_C
+_X19=(LININT(LININT( &
+     MAX((_DE-(_DI*01)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*01),0,0,_DE-(_DI*01),MAX(_DE-(_DI*01),_DB/2)),0)))) &
+     **2*_Q**01*_C
+_X18=(LININT(LININT( &
+     MAX((_DE-(_DI*02)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*02),0,0,_DE-(_DI*02),MAX(_DE-(_DI*02),_DB/2)),0)))) &
+     **2*_Q**02*_C
+_X17=(LININT(LININT( &
+     MAX((_DE-(_DI*03)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*03),0,0,_DE-(_DI*03),MAX(_DE-(_DI*03),_DB/2)),0)))) &
+     **2*_Q**03*_C
+_X16=(LININT(LININT( &
+     MAX((_DE-(_DI*04)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*04),0,0,_DE-(_DI*04),MAX(_DE-(_DI*04),_DB/2)),0)))) &
+     **2*_Q**04*_C
+_X15=(LININT(LININT( &
+     MAX((_DE-(_DI*05)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*05),0,0,_DE-(_DI*05),MAX(_DE-(_DI*05),_DB/2)),0)))) &
+     **2*_Q**05*_C
+_X14=(LININT(LININT( &
+     MAX((_DE-(_DI*06)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*06),0,0,_DE-(_DI*06),MAX(_DE-(_DI*06),_DB/2)),0)))) &
+     **2*_Q**06*_C
+_X13=(LININT(LININT( &
+     MAX((_DE-(_DI*07)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*07),0,0,_DE-(_DI*07),MAX(_DE-(_DI*07),_DB/2)),0)))) &
+     **2*_Q**07*_C
+_X12=(LININT(LININT( &
+     MAX((_DE-(_DI*08)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*08),0,0,_DE-(_DI*08),MAX(_DE-(_DI*08),_DB/2)),0)))) &
+     **2*_Q**08*_C
+_X11=(LININT(LININT( &
+     MAX((_DE-(_DI*09)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*09),0,0,_DE-(_DI*09),MAX(_DE-(_DI*09),_DB/2)),0)))) &
+     **2*_Q**09*_C
+_X10=(LININT(LININT( &
+     MAX((_DE-(_DI*10)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*10),0,0,_DE-(_DI*10),MAX(_DE-(_DI*10),_DB/2)),0)))) &
+     **2*_Q**10*_C
+_X09=(LININT(LININT( &
+     MAX((_DE-(_DI*11)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*11),0,0,_DE-(_DI*11),MAX(_DE-(_DI*11),_DB/2)),0)))) &
+     **2*_Q**11*_C
+_X08=(LININT(LININT( &
+     MAX((_DE-(_DI*12)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*12),0,0,_DE-(_DI*12),MAX(_DE-(_DI*12),_DB/2)),0)))) &
+     **2*_Q**12*_C
+_X07=(LININT(LININT( &
+     MAX((_DE-(_DI*13)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*13),0,0,_DE-(_DI*13),MAX(_DE-(_DI*13),_DB/2)),0)))) &
+     **2*_Q**13*_C
+_X06=(LININT(LININT( &
+     MAX((_DE-(_DI*14)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*14),0,0,_DE-(_DI*14),MAX(_DE-(_DI*14),_DB/2)),0)))) &
+     **2*_Q**14*_C
+_X05=(LININT(LININT( &
+     MAX((_DE-(_DI*15)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*15),0,0,_DE-(_DI*15),MAX(_DE-(_DI*15),_DB/2)),0)))) &
+     **2*_Q**15*_C
+_X04=(LININT(LININT( &
+     MAX((_DE-(_DI*16)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*16),0,0,_DE-(_DI*16),MAX(_DE-(_DI*16),_DB/2)),0)))) &
+     **2*_Q**16*_C
+_X03=(LININT(LININT( &
+     MAX((_DE-(_DI*17)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*17),0,0,_DE-(_DI*17),MAX(_DE-(_DI*17),_DB/2)),0)))) &
+     **2*_Q**17*_C
+_X02=(LININT(LININT( &
+     MAX((_DE-(_DI*18)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*18),0,0,_DE-(_DI*18),MAX(_DE-(_DI*18),_DB/2)),0)))) &
+     **2*_Q**18*_C
+_X01=(LININT(LININT( &
+     MAX((_DE-(_DI*19)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*19),0,0,_DE-(_DI*19),MAX(_DE-(_DI*19),_DB/2)),0)))) &
+     **2*_Q**19*_C
+_CF=_BA/(_X20+_X19+_X18+_X17+_X16+_X15+_X14+_X13+_X12+_X11+ &
+    _X10+_X09+_X08+_X07+_X06+_X05+_X04+_X03+_X02+_X01)
+End
+
+** Compute Target BA/Ac
+Compute            0
+_Y20=_X20*_CF
+_Y19=_X19*_CF
+_Y18=_X18*_CF
+_Y17=_X17*_CF
+_Y16=_X16*_CF
+_Y15=_X15*_CF
+_Y14=_X14*_CF
+_Y13=_X13*_CF
+_Y12=_X12*_CF
+_Y11=_X11*_CF
+_Y10=_X10*_CF
+_Y09=_X09*_CF
+_Y08=_X08*_CF
+_Y07=_X07*_CF
+_Y06=_X06*_CF
+_Y05=_X05*_CF
+_Y04=_X04*_CF
+_Y03=_X03*_CF
+_Y02=_X02*_CF
+_Y01=_X01*_CF
+End
+
+** Calculate Excess BA/Ac = Actual BA/Ac - Desired BA/Ac
+Compute            0
+_Z20=LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*00))-_DI/2,0), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0))-_Y20,0)))
+_Z19=LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*01))-_DI/2,0), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0))-_Y19,0)))
+_Z18=LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*02))-_DI/2,0), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0))-_Y18,0)))
+_Z17=LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*03))-_DI/2,0), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0))-_Y17,0)))
+_Z16=LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*04))-_DI/2,0), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0))-_Y16,0)))
+_Z15=LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*05))-_DI/2,0), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0))-_Y15,0)))
+_Z14=LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*06))-_DI/2,0), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0))-_Y14,0)))
+_Z13=LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*07))-_DI/2,0), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0))-_Y13,0)))
+_Z12=LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*08))-_DI/2,0), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0))-_Y12,0)))
+_Z11=LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*09))-_DI/2,0), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0))-_Y11,0)))
+_Z10=LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*10))-_DI/2,0), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0))-_Y10,0)))
+_Z09=LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*11))-_DI/2,0), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0))-_Y09,0)))
+_Z08=LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*12))-_DI/2,0), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0))-_Y08,0)))
+_Z07=LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*13))-_DI/2,0), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0))-_Y07,0)))
+_Z06=LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*14))-_DI/2,0), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0))-_Y06,0)))
+_Z05=LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*15))-_DI/2,0), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0))-_Y05,0)))
+_Z04=LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*16))-_DI/2,0), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0))-_Y04,0)))
+_Z03=LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*17))-_DI/2,0), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0))-_Y03,0)))
+_Z02=LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*18))-_DI/2,0), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0))-_Y02,0)))
+_Z01=LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*19))-_DI/2,0), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0))-_Y01,0)))
+_ZBA=(SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_BA) &
+      /MAX(1,(_Z20+_Z19+_Z18+_Z17+_Z16+_Z15+_Z14+_Z13+_Z12+_Z11+ &
+       _Z10+_Z09+_Z08+_Z07+_Z06+_Z05+_Z04+_Z03+_Z02+_Z01))
+End
+
+** Compute Target BA/Ac for > _DE dbh classes + Legacy Trees
+Compute            0
+_Y21=LININT(LININT(MAX(_ZBA,0),0.001,0.001,0,1),0.001,0.001, &
+_BA-(SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_LLT*(_LLD**2)*_C), &
+(_LLT*(_LLD**2)*_C))
+End
+
+** ThinDBH
+
+** Sets Thinning through all DBH Classes
+*  Arguments: Min DBH, Max DBH, Cut Efficiency, Species, Residual TPA, Residual BA/Ac
+*
+* Min DBH           MAX((_DE-(_DI*01))-_DI/2,0)
+* Max DBH           MAX((_DE-(_DI*01))+_DI/2,0)
+* Cut Efficiency    1.00
+* Species           All
+* Residual TPA      LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0,(_Y20+(_Z20-_Z20*_ZSDI))/(_X20/_Q**00))
+* Residual BA/Ac    0
+
+* Legacy Trees
+ThinABA            0   Parms(_Y21,1.00,(_DE+(MAX((_LLD-_DE),_DI))-_DI/2), &
+(_DE+(MAX((_LLD-_DE),_DI))+_DI/2),0,999)
+ThinABA            0   Parms(_Y21,1.00,(_DE+(_DI*01)-_DI/2),999.0,0,999)
+* Managed DBH Classes
+ThinDBH            0   Parms(MAX((_DE-(_DI*00))-_DI/2,0), &
+MAX((_DE-(_DI*00))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0,_Y20+(_Z20-_Z20*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*01))-_DI/2,0), &
+MAX((_DE-(_DI*01))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y19,0.001,0.001,0,1),1,1,999.0,_Y19+(_Z19-_Z19*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*02))-_DI/2,0), &
+MAX((_DE-(_DI*02))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y18,0.001,0.001,0,1),1,1,999.0,_Y18+(_Z18-_Z18*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*03))-_DI/2,0), &
+MAX((_DE-(_DI*03))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y17,0.001,0.001,0,1),1,1,999.0,_Y17+(_Z17-_Z17*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*04))-_DI/2,0), &
+MAX((_DE-(_DI*04))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y16,0.001,0.001,0,1),1,1,999.0,_Y16+(_Z16-_Z16*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*05))-_DI/2,0), &
+MAX((_DE-(_DI*05))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y15,0.001,0.001,0,1),1,1,999.0,_Y15+(_Z15-_Z15*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*06))-_DI/2,0), &
+MAX((_DE-(_DI*06))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y14,0.001,0.001,0,1),1,1,999.0,_Y14+(_Z14-_Z14*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*07))-_DI/2,0), &
+MAX((_DE-(_DI*07))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y13,0.001,0.001,0,1),1,1,999.0,_Y13+(_Z13-_Z13*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*08))-_DI/2,0), &
+MAX((_DE-(_DI*08))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y12,0.001,0.001,0,1),1,1,999.0,_Y12+(_Z12-_Z12*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*09))-_DI/2,0), &
+MAX((_DE-(_DI*09))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y11,0.001,0.001,0,1),1,1,999.0,_Y11+(_Z11-_Z11*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*10))-_DI/2,0), &
+MAX((_DE-(_DI*10))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y10,0.001,0.001,0,1),1,1,999.0,_Y10+(_Z10-_Z10*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*11))-_DI/2,0), &
+MAX((_DE-(_DI*11))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y09,0.001,0.001,0,1),1,1,999.0,_Y09+(_Z09-_Z09*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*12))-_DI/2,0), &
+MAX((_DE-(_DI*12))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y08,0.001,0.001,0,1),1,1,999.0,_Y08+(_Z08-_Z08*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*13))-_DI/2,0), &
+MAX((_DE-(_DI*13))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y07,0.001,0.001,0,1),1,1,999.0,_Y07+(_Z07-_Z07*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*14))-_DI/2,0), &
+MAX((_DE-(_DI*14))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y06,0.001,0.001,0,1),1,1,999.0,_Y06+(_Z06-_Z06*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*15))-_DI/2,0), &
+MAX((_DE-(_DI*15))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y05,0.001,0.001,0,1),1,1,999.0,_Y05+(_Z05-_Z05*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*16))-_DI/2,0), &
+MAX((_DE-(_DI*16))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y04,0.001,0.001,0,1),1,1,999.0,_Y04+(_Z04-_Z04*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*17))-_DI/2,0), &
+MAX((_DE-(_DI*17))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y03,0.001,0.001,0,1),1,1,999.0,_Y03+(_Z03-_Z03*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*18))-_DI/2,0), &
+MAX((_DE-(_DI*18))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y02,0.001,0.001,0,1),1,1,999.0,_Y02+(_Z02-_Z02*_ZBA)))
+ThinDBH            0   Parms(MAX((_DE-(_DI*19))-_DI/2,0), &
+MAX((_DE-(_DI*19))+_DI/2,0),1.00,All,0,&
+LININT(LININT(_Y01,0.001,0.001,0,1),1,1,999.0,_Y01+(_Z01-_Z01*_ZBA)))
+AGPLABEL
+   All
+Endif
+
+** Reset Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 1 OR (_APC LT 999.9 AND _APC GE _CCY)
+THEN
+COMPUTE
+_APC=0
+END
+AGPLABEL
+   All
+ENDIF
+
+*     End of: Individual Tree Selection - Basal Area Target w/o SpecPref
+}
+
+parmsForm = answerForm
+
+//end uneven-aged_ba_target_wo
+
+
+//start uneven-aged_ba_target_wi
+
+description:
+{Designed to simulate an uneven-aged management scenario given a user 
+specified target basal area per acre.  Excess basal area is proportionally 
+distributed to deficit diameter classes to maintain the basal area target.
+
+Input parameters are Q-factor, minimum tree size, maximum tree size, 
+and diameter class interval.  Additional features include the ability 
+to specify remnant legacy trees and cutting cycle length. 
+
+Note 1: The number of diameter classes that can be specified for 
+regulation is limited to twenty.  To check, divide the maximum tree 
+size by the diameter class interval.  Make sure less than twenty 
+classes are rendered.
+
+Note 2: ThinBBA Keywords are used to remove surplus basal area per 
+diameter class.  ThinBBA thins from the smallest to largest diameter 
+trees within dbh range.  SpecPref Keywords have effect on ThinBBA Keywords.}
+
+f1:{numberBox Enter Beginning Cycle for implementing ITS-BA}
+f1v:{1}
+f2:{numberBox Enter Residual Basal Area/Acre Target}
+f2v:{50}
+f3:{numberBox Enter Diminution Quotient "q" Value}
+f3v:{1.40}
+f4title:
+{Enter Diamter Class Limits}
+f4:{numberBox    - Minimum DBH Class}
+f4v:{2}
+f5:{numberBox    - Maximum DBH Class (see Note 1 below)}
+f5v:{24}
+f6:{numberBox    - Diameter Class Width}
+f6v:{2}
+f7title:
+{Enter Remnant Legacy Trees Criteria}
+f7:{numberBox    - Number of Trees}
+f7v:{2}
+f8:{numberBox    - Average Diameter}
+f8v:{28}
+f9:{numberBox Enter Cutting Cycle Length}
+f9v:{20}
+
+answerForm:{\
+*  Beginning of: Individual Tree Selection - Basal Area Target w/i SpecPref
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: March 10, 2003
+
+*   This keyword set is designed to simulate uneven-aged management given
+*   a user specified target basal area per acre.  Excess basal area is
+*   proportionally distributed to deficit diameter classes to maintain the
+*   basal area target.  Input parameters are:
+*                          Q-factor
+*                          Minimum tree size
+*                          Maximum tree size
+*                          Diameter class interval
+*   Additional features include the ability to specify the number and size
+*   of remnant legacy trees and the cutting cycle length.
+
+*   -------
+*   Example -->      COMPUTATION OF TARGET BASAL AREA BASED ON
+*   -------       A DESIRED BASAL AREA OF 50, A "Q" OF 1.40 AND A
+*             DBH RANGE OF 2.0 THRU 24.0 FOR A BALANCED ALL-AGED STAND
+*
+*   DBH      TRIAL        BA/       TRIAL   CONVERSION    TARGET     DESIRED
+*  CLASS    TREES/AC      TREE       BA       FACTOR      BA/AC     TREES/AC
+*   2.0      40.50       0.022      0.88     0.97362      0.86        39.43
+*   4.0      28.93       0.087      2.52     0.97362      2.46        28.16
+*   6.0      20.66       0.196      4.06     0.97362      3.95        20.12
+*   8.0      14.76       0.349      5.15     0.97362      5.02        14.37
+*  10.0      10.54       0.545      5.75     0.97362      5.60        10.26
+*  12.0       7.53       0.785      5.91     0.97362      5.76         7.33
+*  14.0       5.38       1.069      5.75     0.97362      5.60         5.24
+*  16.0       3.84       1.396      5.36     0.97362      5.22         3.74
+*  18.0       2.74       1.767      4.85     0.97362      4.72         2.67
+*  20.0       1.96       2.182      4.28     0.97362      4.16         1.91
+*  22.0       1.40       2.640      3.70     0.97362      3.60         1.36
+*  24.0       1.00       3.142      3.14     0.97362      3.06         0.97
+
+* TOTALS:   139.23                 51.35                 50.00       135.56
+
+*   Definition of Compute Variables:
+*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*     _BC = Beginning Cycle       
+*     _BA = Target Basal Area/Acre
+*      _Q = Q-Factor
+*     _DB = Minimum Diameter Class
+*     _DE = Maximum Diameter Class
+*     _DI = Diameter Class Interval
+*    _LLT = Number of Legacy Trees
+*    _LLD = Diameter of Legacy Trees
+*    _CCY = Cutting Cycle Length
+*   > Computed within Key Component File
+*    _APC = Additive Projection Cycle Length
+*      _C = 0.00545415 (BA conversion constant)
+
+* Initialize Additive Projection Cycle Variable and BA converstion constant
+Compute            1
+_BC =!1!
+_BA =!2!
+_Q  =!3!
+_DB =!4!
+_DE =!5!
+_DI =!6!
+_LLT=!7!
+_LLD=!8!
+_CCY=!9!
+_APC=999.9
+_C  =0.00545415
+END
+
+* Sequence Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 0
+THEN
+COMPUTE
+_APC=_APC+(CENDYEAR-YEAR+1)
+END
+AGPLABEL
+   All
+ENDIF
+
+* Conditional 'IF' based on _BA and Cutting Cycle Length
+IF                 0
+CYCLE GE _BC AND &
+((SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0) GE _BA) OR &
+(SpMcDBH(2,All,0,_DB-(_DI/2),999.0,0.0,999.0,0) GE (_BA + _LLT*(_LLD**2)*_C))) & 
+AND _CCY LE _APC
+Then
+
+* Compute DBH Classes, Trial TPA, BA/Tree, Trial BA, and Conversion Factor
+Compute            0
+_X20=(LININT(LININT( &
+     MAX((_DE-(_DI*00)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*00),0,0,_DE-(_DI*00),MAX(_DE-(_DI*00),_DB/2)),0)))) &
+     **2*_Q**00*_C
+_X19=(LININT(LININT( &
+     MAX((_DE-(_DI*01)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*01),0,0,_DE-(_DI*01),MAX(_DE-(_DI*01),_DB/2)),0)))) &
+     **2*_Q**01*_C
+_X18=(LININT(LININT( &
+     MAX((_DE-(_DI*02)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*02),0,0,_DE-(_DI*02),MAX(_DE-(_DI*02),_DB/2)),0)))) &
+     **2*_Q**02*_C
+_X17=(LININT(LININT( &
+     MAX((_DE-(_DI*03)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*03),0,0,_DE-(_DI*03),MAX(_DE-(_DI*03),_DB/2)),0)))) &
+     **2*_Q**03*_C
+_X16=(LININT(LININT( &
+     MAX((_DE-(_DI*04)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*04),0,0,_DE-(_DI*04),MAX(_DE-(_DI*04),_DB/2)),0)))) &
+     **2*_Q**04*_C
+_X15=(LININT(LININT( &
+     MAX((_DE-(_DI*05)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*05),0,0,_DE-(_DI*05),MAX(_DE-(_DI*05),_DB/2)),0)))) &
+     **2*_Q**05*_C
+_X14=(LININT(LININT( &
+     MAX((_DE-(_DI*06)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*06),0,0,_DE-(_DI*06),MAX(_DE-(_DI*06),_DB/2)),0)))) &
+     **2*_Q**06*_C
+_X13=(LININT(LININT( &
+     MAX((_DE-(_DI*07)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*07),0,0,_DE-(_DI*07),MAX(_DE-(_DI*07),_DB/2)),0)))) &
+     **2*_Q**07*_C
+_X12=(LININT(LININT( &
+     MAX((_DE-(_DI*08)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*08),0,0,_DE-(_DI*08),MAX(_DE-(_DI*08),_DB/2)),0)))) &
+     **2*_Q**08*_C
+_X11=(LININT(LININT( &
+     MAX((_DE-(_DI*09)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*09),0,0,_DE-(_DI*09),MAX(_DE-(_DI*09),_DB/2)),0)))) &
+     **2*_Q**09*_C
+_X10=(LININT(LININT( &
+     MAX((_DE-(_DI*10)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*10),0,0,_DE-(_DI*10),MAX(_DE-(_DI*10),_DB/2)),0)))) &
+     **2*_Q**10*_C
+_X09=(LININT(LININT( &
+     MAX((_DE-(_DI*11)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*11),0,0,_DE-(_DI*11),MAX(_DE-(_DI*11),_DB/2)),0)))) &
+     **2*_Q**11*_C
+_X08=(LININT(LININT( &
+     MAX((_DE-(_DI*12)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*12),0,0,_DE-(_DI*12),MAX(_DE-(_DI*12),_DB/2)),0)))) &
+     **2*_Q**12*_C
+_X07=(LININT(LININT( &
+     MAX((_DE-(_DI*13)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*13),0,0,_DE-(_DI*13),MAX(_DE-(_DI*13),_DB/2)),0)))) &
+     **2*_Q**13*_C
+_X06=(LININT(LININT( &
+     MAX((_DE-(_DI*14)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*14),0,0,_DE-(_DI*14),MAX(_DE-(_DI*14),_DB/2)),0)))) &
+     **2*_Q**14*_C
+_X05=(LININT(LININT( &
+     MAX((_DE-(_DI*15)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*15),0,0,_DE-(_DI*15),MAX(_DE-(_DI*15),_DB/2)),0)))) &
+     **2*_Q**15*_C
+_X04=(LININT(LININT( &
+     MAX((_DE-(_DI*16)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*16),0,0,_DE-(_DI*16),MAX(_DE-(_DI*16),_DB/2)),0)))) &
+     **2*_Q**16*_C
+_X03=(LININT(LININT( &
+     MAX((_DE-(_DI*17)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*17),0,0,_DE-(_DI*17),MAX(_DE-(_DI*17),_DB/2)),0)))) &
+     **2*_Q**17*_C
+_X02=(LININT(LININT( &
+     MAX((_DE-(_DI*18)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*18),0,0,_DE-(_DI*18),MAX(_DE-(_DI*18),_DB/2)),0)))) &
+     **2*_Q**18*_C
+_X01=(LININT(LININT( &
+     MAX((_DE-(_DI*19)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*19),0,0,_DE-(_DI*19),MAX(_DE-(_DI*19),_DB/2)),0)))) &
+     **2*_Q**19*_C
+_CF=_BA/(_X20+_X19+_X18+_X17+_X16+_X15+_X14+_X13+_X12+_X11+ &
+    _X10+_X09+_X08+_X07+_X06+_X05+_X04+_X03+_X02+_X01)
+End
+
+** Compute Target BA/Ac
+Compute            0
+_Y20=_X20*_CF
+_Y19=_X19*_CF
+_Y18=_X18*_CF
+_Y17=_X17*_CF
+_Y16=_X16*_CF
+_Y15=_X15*_CF
+_Y14=_X14*_CF
+_Y13=_X13*_CF
+_Y12=_X12*_CF
+_Y11=_X11*_CF
+_Y10=_X10*_CF
+_Y09=_X09*_CF
+_Y08=_X08*_CF
+_Y07=_X07*_CF
+_Y06=_X06*_CF
+_Y05=_X05*_CF
+_Y04=_X04*_CF
+_Y03=_X03*_CF
+_Y02=_X02*_CF
+_Y01=_X01*_CF
+End
+
+** Calculate Excess BA/Ac = Actual BA/Ac - Desired BA/Ac
+Compute            0
+_Z20=LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*00))-_DI/2,0), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0))-_Y20,0)))
+_Z19=LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*01))-_DI/2,0), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0))-_Y19,0)))
+_Z18=LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*02))-_DI/2,0), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0))-_Y18,0)))
+_Z17=LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*03))-_DI/2,0), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0))-_Y17,0)))
+_Z16=LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*04))-_DI/2,0), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0))-_Y16,0)))
+_Z15=LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*05))-_DI/2,0), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0))-_Y15,0)))
+_Z14=LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*06))-_DI/2,0), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0))-_Y14,0)))
+_Z13=LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*07))-_DI/2,0), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0))-_Y13,0)))
+_Z12=LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*08))-_DI/2,0), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0))-_Y12,0)))
+_Z11=LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*09))-_DI/2,0), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0))-_Y11,0)))
+_Z10=LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*10))-_DI/2,0), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0))-_Y10,0)))
+_Z09=LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*11))-_DI/2,0), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0))-_Y09,0)))
+_Z08=LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*12))-_DI/2,0), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0))-_Y08,0)))
+_Z07=LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*13))-_DI/2,0), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0))-_Y07,0)))
+_Z06=LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*14))-_DI/2,0), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0))-_Y06,0)))
+_Z05=LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*15))-_DI/2,0), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0))-_Y05,0)))
+_Z04=LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*16))-_DI/2,0), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0))-_Y04,0)))
+_Z03=LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*17))-_DI/2,0), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0))-_Y03,0)))
+_Z02=LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*18))-_DI/2,0), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0))-_Y02,0)))
+_Z01=LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(2,All,0,MAX((_DE-(_DI*19))-_DI/2,0), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0))-_Y01,0)))
+_ZBA=(SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_BA) &
+      /MAX(1,(_Z20+_Z19+_Z18+_Z17+_Z16+_Z15+_Z14+_Z13+_Z12+_Z11+ &
+       _Z10+_Z09+_Z08+_Z07+_Z06+_Z05+_Z04+_Z03+_Z02+_Z01))
+End
+
+** Compute Target BA/Ac for > _DE dbh classes + Legacy Trees
+Compute            0
+_Y21=LININT(LININT(MAX(_ZBA,0),0.001,0.001,0,1),0.001,0.001, &
+_BA-(SpMcDBH(2,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_LLT*(_LLD**2)*_C), &
+(_LLT*(_LLD**2)*_C))
+End
+
+** ThinBBA
+
+** Sets Thinning through all DBH Classes
+*  Arguments: Residual BA/Ac, Cut Efficiency, Min DBH, Max DBH, Min Ht, Max Ht
+*
+* Residual BA/Ac    LININT(LININT(_Y19,0.001,0.001,0,1),1,1,999.0,_Y19+(_Z19-_Z19*_ZBA))
+* Cut Efficiency    1.00
+* Min DBH           MAX((_DE-(_DI*01))-_DI/2,0)
+* Max DBH           MAX((_DE-(_DI*01))+_DI/2,0)
+* Min HT            0
+* Max HT            999
+
+* Legacy Trees
+ThinABA            0   Parms(_Y21,1.00,(_DE+(MAX((_LLD-_DE),_DI))-_DI/2), &
+(_DE+(MAX((_LLD-_DE),_DI))+_DI/2),0,999)
+ThinABA            0   Parms(_Y21,1.00,(_DE+(_DI*01)-_DI/2),999.0,0,999)
+* Managed DBH Classes
+ThinBBA            0   Parms( &
+LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0,_Y20+(_Z20-_Z20*_ZBA)),1.00, &
+MAX((_DE-(_DI*00))-_DI/2,0),MAX((_DE-(_DI*00))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y19,0.001,0.001,0,1),1,1,999.0,_Y19+(_Z19-_Z19*_ZBA)),1.00, &
+MAX((_DE-(_DI*01))-_DI/2,0),MAX((_DE-(_DI*01))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y18,0.001,0.001,0,1),1,1,999.0,_Y18+(_Z18-_Z18*_ZBA)),1.00, &
+MAX((_DE-(_DI*02))-_DI/2,0),MAX((_DE-(_DI*02))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y17,0.001,0.001,0,1),1,1,999.0,_Y17+(_Z17-_Z17*_ZBA)),1.00, &
+MAX((_DE-(_DI*03))-_DI/2,0),MAX((_DE-(_DI*03))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y16,0.001,0.001,0,1),1,1,999.0,_Y16+(_Z16-_Z16*_ZBA)),1.00, &
+MAX((_DE-(_DI*04))-_DI/2,0),MAX((_DE-(_DI*04))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y15,0.001,0.001,0,1),1,1,999.0,_Y15+(_Z15-_Z15*_ZBA)),1.00, &
+MAX((_DE-(_DI*05))-_DI/2,0),MAX((_DE-(_DI*05))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y14,0.001,0.001,0,1),1,1,999.0,_Y14+(_Z14-_Z14*_ZBA)),1.00, &
+MAX((_DE-(_DI*06))-_DI/2,0),MAX((_DE-(_DI*06))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y13,0.001,0.001,0,1),1,1,999.0,_Y13+(_Z13-_Z13*_ZBA)),1.00, &
+MAX((_DE-(_DI*07))-_DI/2,0),MAX((_DE-(_DI*07))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y12,0.001,0.001,0,1),1,1,999.0,_Y12+(_Z12-_Z12*_ZBA)),1.00, &
+MAX((_DE-(_DI*08))-_DI/2,0),MAX((_DE-(_DI*08))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y11,0.001,0.001,0,1),1,1,999.0,_Y11+(_Z11-_Z11*_ZBA)),1.00, &
+MAX((_DE-(_DI*09))-_DI/2,0),MAX((_DE-(_DI*09))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y10,0.001,0.001,0,1),1,1,999.0,_Y10+(_Z10-_Z10*_ZBA)),1.00, &
+MAX((_DE-(_DI*10))-_DI/2,0),MAX((_DE-(_DI*10))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y09,0.001,0.001,0,1),1,1,999.0,_Y09+(_Z09-_Z09*_ZBA)),1.00, &
+MAX((_DE-(_DI*11))-_DI/2,0),MAX((_DE-(_DI*11))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y08,0.001,0.001,0,1),1,1,999.0,_Y08+(_Z08-_Z08*_ZBA)),1.00, &
+MAX((_DE-(_DI*12))-_DI/2,0),MAX((_DE-(_DI*12))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y07,0.001,0.001,0,1),1,1,999.0,_Y07+(_Z07-_Z07*_ZBA)),1.00, &
+MAX((_DE-(_DI*13))-_DI/2,0),MAX((_DE-(_DI*13))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y06,0.001,0.001,0,1),1,1,999.0,_Y06+(_Z06-_Z06*_ZBA)),1.00, &
+MAX((_DE-(_DI*14))-_DI/2,0),MAX((_DE-(_DI*14))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y05,0.001,0.001,0,1),1,1,999.0,_Y05+(_Z05-_Z05*_ZBA)),1.00, &
+MAX((_DE-(_DI*15))-_DI/2,0),MAX((_DE-(_DI*15))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y04,0.001,0.001,0,1),1,1,999.0,_Y04+(_Z04-_Z04*_ZBA)),1.00, &
+MAX((_DE-(_DI*16))-_DI/2,0),MAX((_DE-(_DI*16))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y03,0.001,0.001,0,1),1,1,999.0,_Y03+(_Z03-_Z03*_ZBA)),1.00, &
+MAX((_DE-(_DI*17))-_DI/2,0),MAX((_DE-(_DI*17))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y02,0.001,0.001,0,1),1,1,999.0,_Y02+(_Z02-_Z02*_ZBA)),1.00, &
+MAX((_DE-(_DI*18))-_DI/2,0),MAX((_DE-(_DI*18))+_DI/2,0),0,999)
+ThinBBA            0   Parms( &
+LININT(LININT(_Y01,0.001,0.001,0,1),1,1,999.0,_Y01+(_Z01-_Z01*_ZBA)),1.00, &
+MAX((_DE-(_DI*19))-_DI/2,0),MAX((_DE-(_DI*19))+_DI/2,0),0,999)
+AGPLABEL
+   All
+Endif
+
+** Reset Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 1 OR (_APC LT 999.9 AND _APC GE _CCY)
+THEN
+COMPUTE
+_APC=0
+END
+AGPLABEL
+   All
+ENDIF
+
+*     End of: Individual Tree Selection - Basal Area Target w/i SpecPref
+}
+
+parmsForm = answerForm
+
+//end uneven-aged_ba_target_wi
+
+
+//start uneven-aged_sdi_target_wo
+
+description:
+{Designed to simulate an uneven-aged management scenario given a user 
+specified target Stand Density Index.  Excess stocking is proportionally 
+distributed to deficit diameter classes to maintain the SDI target level.
+
+Input parameters are Q-factor, minimum tree size, maximum tree size, 
+and diameter class interval.  Additional features include the ability 
+to specify remnant legacy trees and cutting cycle length. 
+
+Note 1: The number of diameter classes that can be specified for 
+regulation is limited to twenty.  To check, divide the maximum tree 
+size by the diameter class interval.  Make sure less than twenty 
+classes are rendered.
+
+Note 2: ThinDBH Keywords are used to remove surplus stocking per 
+diameter class.  ThinDBH applies a uniform thinning throughout the 
+dbh range.  SpecPref Keywords have no effect on ThinDBH Keywords.}
+
+
+f1:{numberBox Enter Beginning Cycle for implementing ITS-SDI}
+f1v:{1}
+f2:{numberBox Enter Residual Stand Density Index Target}
+f2v:{130}
+f3:{numberBox Enter Diminution Quotient "q" Value}
+f3v:{1.40}
+f4title:
+{Enter Diamter Class Limits}
+f4:{numberBox    - Minimum DBH Class}
+f4v:{2}
+f5:{numberBox    - Maximum DBH Class (see Note 1 below)}
+f5v:{24}
+f6:{numberBox    - Diameter Class Width}
+f6v:{2}
+f7title:
+{Enter Remnant Legacy Trees Criteria}
+f7:{numberBox    - Number of Trees}
+f7v:{2}
+f8:{numberBox    - Average Diameter}
+f8v:{28}
+f9:{numberBox Enter Cutting Cycle Length}
+f9v:{20}
+
+answerForm:{\
+*  Beginning of: Individual Tree Selection - SDI Target w/o SpecPref
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: March 10, 2003
+
+*   This keyword set is designed to simulate uneven-aged management given
+*   a user specified target Stand Density Index.  Excess stocking is
+*   proportionally distributed to deficit diameter classes to maintain the
+*   SDI target level.  Input parameters are:
+*                          Q-factor
+*                          Minimum tree size
+*                          Maximum tree size
+*                          Diameter class interval
+*   Additional features include the ability to specify the number and size
+*   of remnant legacy trees and the cutting cycle length.
+
+*   -------
+*   Example -->  COMPUTATION OF TARGET STAND DENSITY INDEX BASED ON
+*   -------       A DESIRED SDI LEVEL OF 130, A "Q" OF 1.40 AND A
+*             DBH RANGE OF 2.0 THRU 24.0 FOR A BALANCED ALL-AGED STAND
+*
+*   DBH      TRIAL    TRIAL SDI/  CONVERSION    TARGET     DESIRED      TARGET
+*  CLASS    TREES/AC    DBH CL      FACTOR       SDI       TREES/AC       BA  
+*   2.0      40.50       3.059     1.45756       4.46       59.03        1.29    
+*   4.0      28.93       6.647     1.45756       9.69       42.17        3.68    
+*   6.0      20.66       9.100     1.45756      13.26       30.11        5.91    
+*   8.0      14.76      10.317     1.45756      15.04       21.51        7.51    
+*  10.0      10.54      10.540     1.45756      15.36       15.36        8.38    
+*  12.0       7.53      10.090     1.45756      14.71       10.98        8.62    
+*  14.0       5.38       9.232     1.45756      13.46        7.84        8.38    
+*  16.0       3.84       8.165     1.45756      11.90        5.60        7.81    
+*  18.0       2.74       7.038     1.45756      10.26        3.99        7.06    
+*  20.0       1.96       5.962     1.45756       8.69        2.86        6.23    
+*  22.0       1.40       4.963     1.45756       7.23        2.04        5.39    
+*  24.0       1.00       4.076     1.45756       5.94        1.46        4.58    
+                                                                                
+* TOTALS:   139.23      89.190                 130.00      202.95       74.84   
+
+*   Definition of Compute Variables:
+*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*     _BC = Beginning Cycle       
+*    _SDI = Target Stand Density Index
+*      _Q = Q-Factor
+*     _DB = Minimum Diameter Class
+*     _DE = Maximum Diameter Class
+*     _DI = Diameter Class Interval
+*    _LLT = Number of Legacy Trees
+*    _LLD = Diameter of Legacy Trees
+*    _CCY = Cutting Cycle Length
+*   > Computed within Key Component File
+*    _APC = Additive Projection Cycle Length
+*      _C = 0.00545415 (BA conversion constant)
+*      _E = 1.605 SDI Exponent
+
+* Initialize Additive Projection Cycle Variable and BA converstion constant
+Compute            1
+_BC =!1!
+_SDI=!2!
+_Q  =!3!
+_DB =!4!
+_DE =!5!
+_DI =!6!
+_LLT=!7!
+_LLD=!8!
+_CCY=!9!
+_APC=999.9
+_C  =0.00545415
+_E  =1.605
+End
+
+* Sequence Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 0
+THEN
+COMPUTE
+_APC=_APC+(CENDYEAR-YEAR+1)
+END
+AGPLABEL
+   All
+ENDIF
+
+* Compute Actual SDI for Diameter Class Range
+* Compute DBH Classes, Trial TPA, and Trial SDI/DBH CLASS
+IF                 0
+CYCLE GE _BC AND _CCY LE _APC
+Then
+Compute            0
+_X20=((LININT(LININT &
+     (MAX((_DE-(_DI*00)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*00),0,0,_DE-(_DI*00),MAX(_DE-(_DI*00),_DB/2)),0)))) &
+     /10)**_E*_Q**00
+_X19=((LININT(LININT &
+     (MAX((_DE-(_DI*01)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*01),0,0,_DE-(_DI*01),MAX(_DE-(_DI*01),_DB/2)),0)))) &
+     /10)**_E*_Q**01
+_X18=((LININT(LININT &
+     (MAX((_DE-(_DI*02)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*02),0,0,_DE-(_DI*02),MAX(_DE-(_DI*02),_DB/2)),0)))) &
+     /10)**_E*_Q**02
+_X17=((LININT(LININT &
+     (MAX((_DE-(_DI*03)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*03),0,0,_DE-(_DI*03),MAX(_DE-(_DI*03),_DB/2)),0)))) &
+     /10)**_E*_Q**03
+_X16=((LININT(LININT &
+     (MAX((_DE-(_DI*04)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*04),0,0,_DE-(_DI*04),MAX(_DE-(_DI*04),_DB/2)),0)))) &
+     /10)**_E*_Q**04
+_X15=((LININT(LININT &
+     (MAX((_DE-(_DI*05)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*05),0,0,_DE-(_DI*05),MAX(_DE-(_DI*05),_DB/2)),0)))) &
+     /10)**_E*_Q**05
+_X14=((LININT(LININT &
+     (MAX((_DE-(_DI*06)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*06),0,0,_DE-(_DI*06),MAX(_DE-(_DI*06),_DB/2)),0)))) &
+     /10)**_E*_Q**06
+_X13=((LININT(LININT &
+     (MAX((_DE-(_DI*07)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*07),0,0,_DE-(_DI*07),MAX(_DE-(_DI*07),_DB/2)),0)))) &
+     /10)**_E*_Q**07
+_X12=((LININT(LININT &
+     (MAX((_DE-(_DI*08)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*08),0,0,_DE-(_DI*08),MAX(_DE-(_DI*08),_DB/2)),0)))) &
+     /10)**_E*_Q**08
+_X11=((LININT(LININT &
+     (MAX((_DE-(_DI*09)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*09),0,0,_DE-(_DI*09),MAX(_DE-(_DI*09),_DB/2)),0)))) &
+     /10)**_E*_Q**09
+_X10=((LININT(LININT &
+     (MAX((_DE-(_DI*10)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*10),0,0,_DE-(_DI*10),MAX(_DE-(_DI*10),_DB/2)),0)))) &
+     /10)**_E*_Q**10
+_X09=((LININT(LININT &
+     (MAX((_DE-(_DI*11)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*11),0,0,_DE-(_DI*11),MAX(_DE-(_DI*11),_DB/2)),0)))) &
+     /10)**_E*_Q**11
+_X08=((LININT(LININT &
+     (MAX((_DE-(_DI*12)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*12),0,0,_DE-(_DI*12),MAX(_DE-(_DI*12),_DB/2)),0)))) &
+     /10)**_E*_Q**12
+_X07=((LININT(LININT &
+     (MAX((_DE-(_DI*13)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*13),0,0,_DE-(_DI*13),MAX(_DE-(_DI*13),_DB/2)),0)))) &
+     /10)**_E*_Q**13
+_X06=((LININT(LININT &
+     (MAX((_DE-(_DI*14)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*14),0,0,_DE-(_DI*14),MAX(_DE-(_DI*14),_DB/2)),0)))) &
+     /10)**_E*_Q**14
+_X05=((LININT(LININT &
+     (MAX((_DE-(_DI*15)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*15),0,0,_DE-(_DI*15),MAX(_DE-(_DI*15),_DB/2)),0)))) &
+     /10)**_E*_Q**15
+_X04=((LININT(LININT &
+     (MAX((_DE-(_DI*16)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*16),0,0,_DE-(_DI*16),MAX(_DE-(_DI*16),_DB/2)),0)))) &
+     /10)**_E*_Q**16
+_X03=((LININT(LININT &
+     (MAX((_DE-(_DI*17)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*17),0,0,_DE-(_DI*17),MAX(_DE-(_DI*17),_DB/2)),0)))) &
+     /10)**_E*_Q**17
+_X02=((LININT(LININT &
+     (MAX((_DE-(_DI*18)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*18),0,0,_DE-(_DI*18),MAX(_DE-(_DI*18),_DB/2)),0)))) &
+     /10)**_E*_Q**18
+_X01=((LININT(LININT &
+     (MAX((_DE-(_DI*19)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*19),0,0,_DE-(_DI*19),MAX(_DE-(_DI*19),_DB/2)),0)))) &
+     /10)**_E*_Q**19
+_T20=LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0)),0)))
+_T19=LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0)),0)))
+_T18=LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0)),0)))
+_T17=LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0)),0)))
+_T16=LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0)),0)))
+_T15=LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0)),0)))
+_T14=LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0)),0)))
+_T13=LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0)),0)))
+_T12=LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0)),0)))
+_T11=LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0)),0)))
+_T10=LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0)),0)))
+_T09=LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0)),0)))
+_T08=LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0)),0)))
+_T07=LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0)),0)))
+_T06=LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0)),0)))
+_T05=LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0)),0)))
+_T04=LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0)),0)))
+_T03=LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0)),0)))
+_T02=LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0)),0)))
+_T01=LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0)),0)))
+_S20=_T20*((LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S19=_T19*((LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S18=_T18*((LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S17=_T17*((LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S16=_T16*((LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S15=_T15*((LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S14=_T14*((LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S13=_T13*((LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S12=_T12*((LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S11=_T11*((LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S10=_T10*((LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S09=_T09*((LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S08=_T08*((LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S07=_T07*((LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S06=_T06*((LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S05=_T05*((LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S04=_T04*((LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S03=_T03*((LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S02=_T02*((LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S01=_T01*((LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_ASDI=_S20+_S19+_S18+_S17+_S16+_S15+_S14+_S13+_S12+_S11+ &
+      _S10+_S09+_S08+_S07+_S06+_S05+_S04+_S03+_S02+_S01
+End
+EndIf
+
+* Conditional 'IF' based on _SDI and Cutting Cycle Length
+IF                 0
+CYCLE GE _BC AND &
+((_ASDI GE _SDI) OR &
+(SpMcDBH(11,All,0,_DB-(_DI/2),999.0,0.0,999.0,0) GE &
+(_SDI + _LLT*((_LLD/10)**_E)))) & 
+AND _CCY LE _APC
+Then
+
+* Compute Conversion Factor
+Compute            0
+_CF=_SDI/(_X20+_X19+_X18+_X17+_X16+_X15+_X14+_X13+_X12+_X11+_X10+ &
+    _X09+_X08+_X07+_X06+_X05+_X04+_X03+_X02+_X01)
+End
+
+** Compute Target SDI
+Compute            0
+_Y20=_X20*_CF
+_Y19=_X19*_CF
+_Y18=_X18*_CF
+_Y17=_X17*_CF
+_Y16=_X16*_CF
+_Y15=_X15*_CF
+_Y14=_X14*_CF
+_Y13=_X13*_CF
+_Y12=_X12*_CF
+_Y11=_X11*_CF
+_Y10=_X10*_CF
+_Y09=_X09*_CF
+_Y08=_X08*_CF
+_Y07=_X07*_CF
+_Y06=_X06*_CF
+_Y05=_X05*_CF
+_Y04=_X04*_CF
+_Y03=_X03*_CF
+_Y02=_X02*_CF
+_Y01=_X01*_CF
+_TSDI=_Y20+_Y19+_Y18+_Y17+_Y16+_Y15+_Y14+_Y13+_Y12+_Y11+_Y10+ &
+      _Y09+_Y08+_Y07+_Y06+_Y05+_Y04+_Y03+_Y02+_Y01
+End
+
+** Calculate Excess SDI = Actual SDI - Desired SDI
+Compute            0
+_Z20=MAX(_S20-_Y20,0)
+_Z19=MAX(_S19-_Y19,0)
+_Z18=MAX(_S18-_Y18,0)
+_Z17=MAX(_S17-_Y17,0)
+_Z16=MAX(_S16-_Y16,0)
+_Z15=MAX(_S15-_Y15,0)
+_Z14=MAX(_S14-_Y14,0)
+_Z13=MAX(_S13-_Y13,0)
+_Z12=MAX(_S12-_Y12,0)
+_Z11=MAX(_S11-_Y11,0)
+_Z10=MAX(_S10-_Y10,0)
+_Z09=MAX(_S09-_Y09,0)
+_Z08=MAX(_S08-_Y08,0)
+_Z07=MAX(_S07-_Y07,0)
+_Z06=MAX(_S06-_Y06,0)
+_Z05=MAX(_S05-_Y05,0)
+_Z04=MAX(_S04-_Y04,0)
+_Z03=MAX(_S03-_Y03,0)
+_Z02=MAX(_S02-_Y02,0)
+_Z01=MAX(_S01-_Y01,0)
+_ZSDI=(_ASDI-_TSDI) &
+      /MAX(1,(_Z20+_Z19+_Z18+_Z17+_Z16+_Z15+_Z14+_Z13+_Z12+_Z11+ &
+       _Z10+_Z09+_Z08+_Z07+_Z06+_Z05+_Z04+_Z03+_Z02+_Z01))
+End
+
+** Compute Target SDI for > _DE dbh classes + Legacy Trees
+Compute            0
+_Y21=LININT(LININT(MAX(_ZSDI,0),0.001,0.001,0,1),0.001,0.001,_SDI- &
+(SpMcDBH(11,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_LLT*((_LLD/10)**_E)), &
+(_LLT*((_LLD/10)**_E)))
+End
+
+** ThinDBH
+
+** Sets Thinning through all DBH Classes
+*  Arguments: Min DBH, Max DBH, Cut Efficiency, Species, Residual TPA, Residual BA/Ac
+*
+* Min DBH           MAX((_DE-(_DI*01))-_DI/2,0)
+* Max DBH           MAX((_DE-(_DI*01))+_DI/2,0)
+* Cut Efficiency    1.00
+* Species           All
+* Residual TPA      LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0,(_Y20+(_Z20-_Z20*_ZSDI))/(_X20/_Q**00))
+* Residual BA/Ac    0
+
+* Legacy Trees
+ThinSDI            0   Parms(_Y21,1.00,All,(_DE+(MAX((_LLD-_DE),_DI))-_DI/2), &
+(_DE+(MAX((_LLD-_DE),_DI))+_DI/2),2)
+ThinSDI            0   Parms(_Y21,1.00,All,(_DE+(_DI*01)-_DI/2),999.0,2)
+* Managed DBH Classes
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+MAX((_DE-(_DI*00))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0, &
+(_Y20+(_Z20-_Z20*_ZSDI))/(MAX(_X20,0.000001)/_Q**00)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+MAX((_DE-(_DI*01))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y19,0.001,0.001,0,1),1,1,999.0, &
+(_Y19+(_Z19-_Z19*_ZSDI))/(MAX(_X19,0.000001)/_Q**01)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+MAX((_DE-(_DI*02))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y18,0.001,0.001,0,1),1,1,999.0, &
+(_Y18+(_Z18-_Z18*_ZSDI))/(MAX(_X18,0.000001)/_Q**02)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+MAX((_DE-(_DI*03))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y17,0.001,0.001,0,1),1,1,999.0, &
+(_Y17+(_Z17-_Z17*_ZSDI))/(MAX(_X17,0.000001)/_Q**03)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+MAX((_DE-(_DI*04))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y16,0.001,0.001,0,1),1,1,999.0, &
+(_Y16+(_Z16-_Z16*_ZSDI))/(MAX(_X16,0.000001)/_Q**04)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+MAX((_DE-(_DI*05))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y15,0.001,0.001,0,1),1,1,999.0, &
+(_Y15+(_Z15-_Z15*_ZSDI))/(MAX(_X15,0.000001)/_Q**05)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+MAX((_DE-(_DI*06))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y14,0.001,0.001,0,1),1,1,999.0, &
+(_Y14+(_Z14-_Z14*_ZSDI))/(MAX(_X14,0.000001)/_Q**06)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+MAX((_DE-(_DI*07))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y13,0.001,0.001,0,1),1,1,999.0, &
+(_Y13+(_Z13-_Z13*_ZSDI))/(MAX(_X13,0.000001)/_Q**07)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+MAX((_DE-(_DI*08))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y12,0.001,0.001,0,1),1,1,999.0, &
+(_Y12+(_Z12-_Z12*_ZSDI))/(MAX(_X12,0.000001)/_Q**08)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+MAX((_DE-(_DI*09))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y11,0.001,0.001,0,1),1,1,999.0, &
+(_Y11+(_Z11-_Z11*_ZSDI))/(MAX(_X11,0.000001)/_Q**09)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+MAX((_DE-(_DI*10))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y10,0.001,0.001,0,1),1,1,999.0, &
+(_Y10+(_Z10-_Z10*_ZSDI))/(MAX(_X10,0.000001)/_Q**10)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+MAX((_DE-(_DI*11))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y09,0.001,0.001,0,1),1,1,999.0, &
+(_Y09+(_Z09-_Z09*_ZSDI))/(MAX(_X09,0.000001)/_Q**11)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+MAX((_DE-(_DI*12))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y08,0.001,0.001,0,1),1,1,999.0, &
+(_Y08+(_Z08-_Z08*_ZSDI))/(MAX(_X08,0.000001)/_Q**12)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+MAX((_DE-(_DI*13))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y07,0.001,0.001,0,1),1,1,999.0, &
+(_Y07+(_Z07-_Z07*_ZSDI))/(MAX(_X07,0.000001)/_Q**13)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+MAX((_DE-(_DI*14))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y06,0.001,0.001,0,1),1,1,999.0, &
+(_Y06+(_Z06-_Z06*_ZSDI))/(MAX(_X06,0.000001)/_Q**14)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+MAX((_DE-(_DI*15))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y05,0.001,0.001,0,1),1,1,999.0, &
+(_Y05+(_Z05-_Z05*_ZSDI))/(MAX(_X05,0.000001)/_Q**15)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+MAX((_DE-(_DI*16))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y04,0.001,0.001,0,1),1,1,999.0, &
+(_Y04+(_Z04-_Z04*_ZSDI))/(MAX(_X04,0.000001)/_Q**16)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+MAX((_DE-(_DI*17))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y03,0.001,0.001,0,1),1,1,999.0, &
+(_Y03+(_Z03-_Z03*_ZSDI))/(MAX(_X03,0.000001)/_Q**17)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+MAX((_DE-(_DI*18))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y02,0.001,0.001,0,1),1,1,999.0, &
+(_Y02+(_Z02-_Z02*_ZSDI))/(MAX(_X02,0.000001)/_Q**18)),0)
+ThinDBH            0   Parms(LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+MAX((_DE-(_DI*19))+_DI/2,0),1.00,All, &
+LININT(LININT(_Y01,0.001,0.001,0,1),1,1,999.0, &
+(_Y01+(_Z01-_Z01*_ZSDI))/(MAX(_X01,0.000001)/_Q**19)),0)
+AGPLABEL
+   All
+Endif
+
+** Reset Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 1 OR (_APC LT 999.9 AND _APC GE _CCY)
+THEN
+COMPUTE
+_APC=0
+END
+AGPLABEL
+   All
+ENDIF
+
+*     End of: Individual Tree Selection - SDI Target w/o SpecPref
+}
+
+parmsForm = answerForm
+
+//end uneven-aged_sdi_target_wo
+
+
+//start uneven-aged_sdi_target_wi
+
+description:
+{Designed to simulate an uneven-aged management scenario given a user 
+specified target Stand Density Index.  Excess stocking is proportionally 
+distributed to deficit diameter classes to maintain the SDI target level.
+
+Input parameters are Q-factor, minimum tree size, maximum tree size, 
+and diameter class interval.  Additional features include the ability 
+to specify remnant legacy trees and cutting cycle length. 
+
+Note 1: The number of diameter classes that can be specified for 
+regulation is limited to twenty.  To check, divide the maximum tree 
+size by the diameter class interval.  Make sure less than twenty 
+classes are rendered.
+
+Note 2: ThinBTA Keywords are used to remove surplus stocking per 
+diameter class.  ThinBTA thins from the smallest to largest diameter 
+trees within dbh range.  SpecPref Keywords have effect on ThinBTA Keywords.}
+
+
+f1:{numberBox Enter Beginning Cycle for implementing ITS-SDI}
+f1v:{1}
+f2:{numberBox Enter Residual Stand Density Index Target}
+f2v:{130}
+f3:{numberBox Enter Diminution Quotient "q" Value}
+f3v:{1.40}
+f4title:
+{Enter Diamter Class Limits}
+f4:{numberBox    - Minimum DBH Class}
+f4v:{2}
+f5:{numberBox    - Maximum DBH Class (see Note 1 below)}
+f5v:{24}
+f6:{numberBox    - Diameter Class Width}
+f6v:{2}
+f7title:
+{Enter Remnant Legacy Trees Criteria}
+f7:{numberBox    - Number of Trees}
+f7v:{2}
+f8:{numberBox    - Average Diameter}
+f8v:{28}
+f9:{numberBox Enter Cutting Cycle Length}
+f9v:{20}
+
+answerForm:{\
+*  Beginning of:  Individual Tree Selection - SDI Target w/i SpecPref
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: March 10, 2003
+
+*   This keyword set is designed to simulate uneven-aged management given
+*   a user specified target Stand Density Index.  Excess stocking is
+*   proportionally distributed to deficit diameter classes to maintain the
+*   SDI target level.  Input parameters are:
+*                          Q-factor
+*                          Minimum tree size
+*                          Maximum tree size
+*                          Diameter class interval
+*   Additional features include the ability to specify the number and size
+*   of remnant legacy trees and the cutting cycle length.
+
+*   -------
+*   Example -->  COMPUTATION OF TARGET STAND DENSITY INDEX BASED ON
+*   -------       A DESIRED SDI LEVEL OF 130, A "Q" OF 1.40 AND A
+*             DBH RANGE OF 2.0 THRU 24.0 FOR A BALANCED ALL-AGED STAND
+*
+*   DBH      TRIAL    TRIAL SDI/  CONVERSION    TARGET     DESIRED      TARGET
+*  CLASS    TREES/AC    DBH CL      FACTOR       SDI       TREES/AC       BA  
+*   2.0      40.50       3.059     1.45756       4.46       59.03        1.29    
+*   4.0      28.93       6.647     1.45756       9.69       42.17        3.68    
+*   6.0      20.66       9.100     1.45756      13.26       30.11        5.91    
+*   8.0      14.76      10.317     1.45756      15.04       21.51        7.51    
+*  10.0      10.54      10.540     1.45756      15.36       15.36        8.38    
+*  12.0       7.53      10.090     1.45756      14.71       10.98        8.62    
+*  14.0       5.38       9.232     1.45756      13.46        7.84        8.38    
+*  16.0       3.84       8.165     1.45756      11.90        5.60        7.81    
+*  18.0       2.74       7.038     1.45756      10.26        3.99        7.06    
+*  20.0       1.96       5.962     1.45756       8.69        2.86        6.23    
+*  22.0       1.40       4.963     1.45756       7.23        2.04        5.39    
+*  24.0       1.00       4.076     1.45756       5.94        1.46        4.58    
+                                                                                
+* TOTALS:   139.23      89.190                 130.00      202.95       74.84   
+
+*   Definition of Compute Variables:
+*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*     _BC = Beginning Cycle       
+*    _SDI = Target Stand Density Index
+*      _Q = Q-Factor
+*     _DB = Minimum Diameter Class
+*     _DE = Maximum Diameter Class
+*     _DI = Diameter Class Interval
+*    _LLT = Number of Legacy Trees
+*    _LLD = Diameter of Legacy Trees
+*    _CCY = Cutting Cycle Length
+*   > Computed within Key Component File
+*    _APC = Additive Projection Cycle Length
+*      _C = 0.00545415 (BA conversion constant)
+*      _E = 1.605 SDI Exponent
+
+* Initialize Additive Projection Cycle Variable and BA converstion constant
+Compute            1
+_BC =!1!
+_SDI=!2!
+_Q  =!3!
+_DB =!4!
+_DE =!5!
+_DI =!6!
+_LLT=!7!
+_LLD=!8!
+_CCY=!9!
+_APC=999.9
+_C  =0.00545415
+_E  =1.605
+End
+
+* Sequence Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 0
+THEN
+COMPUTE
+_APC=_APC+(CENDYEAR-YEAR+1)
+END
+AGPLABEL
+   All
+ENDIF
+
+* Compute Actual SDI for Diameter Class Range
+* Compute DBH Classes, Trial TPA, and Trial SDI/DBH CLASS
+IF                 0
+CYCLE GE _BC AND _CCY LE _APC
+Then
+Compute            0
+_X20=((LININT(LININT &
+     (MAX((_DE-(_DI*00)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*00),0,0,_DE-(_DI*00),MAX(_DE-(_DI*00),_DB/2)),0)))) &
+     /10)**_E*_Q**00
+_X19=((LININT(LININT &
+     (MAX((_DE-(_DI*01)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*01),0,0,_DE-(_DI*01),MAX(_DE-(_DI*01),_DB/2)),0)))) &
+     /10)**_E*_Q**01
+_X18=((LININT(LININT &
+     (MAX((_DE-(_DI*02)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*02),0,0,_DE-(_DI*02),MAX(_DE-(_DI*02),_DB/2)),0)))) &
+     /10)**_E*_Q**02
+_X17=((LININT(LININT &
+     (MAX((_DE-(_DI*03)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*03),0,0,_DE-(_DI*03),MAX(_DE-(_DI*03),_DB/2)),0)))) &
+     /10)**_E*_Q**03
+_X16=((LININT(LININT &
+     (MAX((_DE-(_DI*04)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*04),0,0,_DE-(_DI*04),MAX(_DE-(_DI*04),_DB/2)),0)))) &
+     /10)**_E*_Q**04
+_X15=((LININT(LININT &
+     (MAX((_DE-(_DI*05)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*05),0,0,_DE-(_DI*05),MAX(_DE-(_DI*05),_DB/2)),0)))) &
+     /10)**_E*_Q**05
+_X14=((LININT(LININT &
+     (MAX((_DE-(_DI*06)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*06),0,0,_DE-(_DI*06),MAX(_DE-(_DI*06),_DB/2)),0)))) &
+     /10)**_E*_Q**06
+_X13=((LININT(LININT &
+     (MAX((_DE-(_DI*07)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*07),0,0,_DE-(_DI*07),MAX(_DE-(_DI*07),_DB/2)),0)))) &
+     /10)**_E*_Q**07
+_X12=((LININT(LININT &
+     (MAX((_DE-(_DI*08)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*08),0,0,_DE-(_DI*08),MAX(_DE-(_DI*08),_DB/2)),0)))) &
+     /10)**_E*_Q**08
+_X11=((LININT(LININT &
+     (MAX((_DE-(_DI*09)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*09),0,0,_DE-(_DI*09),MAX(_DE-(_DI*09),_DB/2)),0)))) &
+     /10)**_E*_Q**09
+_X10=((LININT(LININT &
+     (MAX((_DE-(_DI*10)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*10),0,0,_DE-(_DI*10),MAX(_DE-(_DI*10),_DB/2)),0)))) &
+     /10)**_E*_Q**10
+_X09=((LININT(LININT &
+     (MAX((_DE-(_DI*11)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*11),0,0,_DE-(_DI*11),MAX(_DE-(_DI*11),_DB/2)),0)))) &
+     /10)**_E*_Q**11
+_X08=((LININT(LININT &
+     (MAX((_DE-(_DI*12)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*12),0,0,_DE-(_DI*12),MAX(_DE-(_DI*12),_DB/2)),0)))) &
+     /10)**_E*_Q**12
+_X07=((LININT(LININT &
+     (MAX((_DE-(_DI*13)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*13),0,0,_DE-(_DI*13),MAX(_DE-(_DI*13),_DB/2)),0)))) &
+     /10)**_E*_Q**13
+_X06=((LININT(LININT &
+     (MAX((_DE-(_DI*14)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*14),0,0,_DE-(_DI*14),MAX(_DE-(_DI*14),_DB/2)),0)))) &
+     /10)**_E*_Q**14
+_X05=((LININT(LININT &
+     (MAX((_DE-(_DI*15)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*15),0,0,_DE-(_DI*15),MAX(_DE-(_DI*15),_DB/2)),0)))) &
+     /10)**_E*_Q**15
+_X04=((LININT(LININT &
+     (MAX((_DE-(_DI*16)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*16),0,0,_DE-(_DI*16),MAX(_DE-(_DI*16),_DB/2)),0)))) &
+     /10)**_E*_Q**16
+_X03=((LININT(LININT &
+     (MAX((_DE-(_DI*17)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*17),0,0,_DE-(_DI*17),MAX(_DE-(_DI*17),_DB/2)),0)))) &
+     /10)**_E*_Q**17
+_X02=((LININT(LININT &
+     (MAX((_DE-(_DI*18)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*18),0,0,_DE-(_DI*18),MAX(_DE-(_DI*18),_DB/2)),0)))) &
+     /10)**_E*_Q**18
+_X01=((LININT(LININT &
+     (MAX((_DE-(_DI*19)),0),(_DB-_DI)+((_DB-_DI)/1000), &
+     (_DB-_DI)+((_DB-_DI)/1000),0,1),1,1,0, &
+     MAX((LININT(_DE-(_DI*19),0,0,_DE-(_DI*19),MAX(_DE-(_DI*19),_DB/2)),0)))) &
+     /10)**_E*_Q**19
+_T20=LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0)),0)))
+_T19=LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0)),0)))
+_T18=LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0)),0)))
+_T17=LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0)),0)))
+_T16=LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0)),0)))
+_T15=LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0)),0)))
+_T14=LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0)),0)))
+_T13=LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0)),0)))
+_T12=LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0)),0)))
+_T11=LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0)),0)))
+_T10=LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0)),0)))
+_T09=LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0)),0)))
+_T08=LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0)),0)))
+_T07=LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0)),0)))
+_T06=LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0)),0)))
+_T05=LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0)),0)))
+_T04=LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0)),0)))
+_T03=LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0)),0)))
+_T02=LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0)),0)))
+_T01=LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(1,All,0,LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0)),0)))
+_S20=_T20*((LININT(LININT(_X20,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+      MAX((_DE-(_DI*00))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S19=_T19*((LININT(LININT(_X19,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+      MAX((_DE-(_DI*01))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S18=_T18*((LININT(LININT(_X18,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+      MAX((_DE-(_DI*02))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S17=_T17*((LININT(LININT(_X17,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+      MAX((_DE-(_DI*03))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S16=_T16*((LININT(LININT(_X16,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+      MAX((_DE-(_DI*04))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S15=_T15*((LININT(LININT(_X15,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+      MAX((_DE-(_DI*05))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S14=_T14*((LININT(LININT(_X14,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+      MAX((_DE-(_DI*06))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S13=_T13*((LININT(LININT(_X13,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+      MAX((_DE-(_DI*07))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S12=_T12*((LININT(LININT(_X12,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+      MAX((_DE-(_DI*08))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S11=_T11*((LININT(LININT(_X11,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+      MAX((_DE-(_DI*09))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S10=_T10*((LININT(LININT(_X10,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+      MAX((_DE-(_DI*10))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S09=_T09*((LININT(LININT(_X09,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+      MAX((_DE-(_DI*11))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S08=_T08*((LININT(LININT(_X08,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+      MAX((_DE-(_DI*12))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S07=_T07*((LININT(LININT(_X07,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+      MAX((_DE-(_DI*13))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S06=_T06*((LININT(LININT(_X06,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+      MAX((_DE-(_DI*14))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S05=_T05*((LININT(LININT(_X05,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+      MAX((_DE-(_DI*15))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S04=_T04*((LININT(LININT(_X04,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+      MAX((_DE-(_DI*16))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S03=_T03*((LININT(LININT(_X03,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+      MAX((_DE-(_DI*17))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S02=_T02*((LININT(LININT(_X02,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+      MAX((_DE-(_DI*18))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_S01=_T01*((LININT(LININT(_X01,0.001,0.001,0,1),1,1,0, &
+     (MAX((SpMcDBH(5,All,0,LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+      _DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+      MAX((_DE-(_DI*19))+_DI/2,0),0.0,999.0,0)),0)))/10)**_E)
+_ASDI=_S20+_S19+_S18+_S17+_S16+_S15+_S14+_S13+_S12+_S11+ &
+      _S10+_S09+_S08+_S07+_S06+_S05+_S04+_S03+_S02+_S01
+End
+EndIf
+
+* Conditional 'IF' based on _SDI and Cutting Cycle Length
+IF                 0
+CYCLE GE _BC AND &
+((_ASDI GE _SDI) OR &
+(SpMcDBH(11,All,0,_DB-(_DI/2),999.0,0.0,999.0,0) GE &
+(_SDI + _LLT*((_LLD/10)**_E)))) & 
+AND _CCY LE _APC
+Then
+
+* Compute Conversion Factor
+Compute            0
+_CF=_SDI/(_X20+_X19+_X18+_X17+_X16+_X15+_X14+_X13+_X12+_X11+_X10+ &
+    _X09+_X08+_X07+_X06+_X05+_X04+_X03+_X02+_X01)
+End
+
+** Compute Target SDI
+Compute            0
+_Y20=_X20*_CF
+_Y19=_X19*_CF
+_Y18=_X18*_CF
+_Y17=_X17*_CF
+_Y16=_X16*_CF
+_Y15=_X15*_CF
+_Y14=_X14*_CF
+_Y13=_X13*_CF
+_Y12=_X12*_CF
+_Y11=_X11*_CF
+_Y10=_X10*_CF
+_Y09=_X09*_CF
+_Y08=_X08*_CF
+_Y07=_X07*_CF
+_Y06=_X06*_CF
+_Y05=_X05*_CF
+_Y04=_X04*_CF
+_Y03=_X03*_CF
+_Y02=_X02*_CF
+_Y01=_X01*_CF
+_TSDI=_Y20+_Y19+_Y18+_Y17+_Y16+_Y15+_Y14+_Y13+_Y12+_Y11+_Y10+ &
+      _Y09+_Y08+_Y07+_Y06+_Y05+_Y04+_Y03+_Y02+_Y01
+End
+
+** Calculate Excess SDI = Actual SDI - Desired SDI
+Compute            0
+_Z20=MAX(_S20-_Y20,0)
+_Z19=MAX(_S19-_Y19,0)
+_Z18=MAX(_S18-_Y18,0)
+_Z17=MAX(_S17-_Y17,0)
+_Z16=MAX(_S16-_Y16,0)
+_Z15=MAX(_S15-_Y15,0)
+_Z14=MAX(_S14-_Y14,0)
+_Z13=MAX(_S13-_Y13,0)
+_Z12=MAX(_S12-_Y12,0)
+_Z11=MAX(_S11-_Y11,0)
+_Z10=MAX(_S10-_Y10,0)
+_Z09=MAX(_S09-_Y09,0)
+_Z08=MAX(_S08-_Y08,0)
+_Z07=MAX(_S07-_Y07,0)
+_Z06=MAX(_S06-_Y06,0)
+_Z05=MAX(_S05-_Y05,0)
+_Z04=MAX(_S04-_Y04,0)
+_Z03=MAX(_S03-_Y03,0)
+_Z02=MAX(_S02-_Y02,0)
+_Z01=MAX(_S01-_Y01,0)
+_ZSDI=(_ASDI-_TSDI) &
+      /MAX(1,(_Z20+_Z19+_Z18+_Z17+_Z16+_Z15+_Z14+_Z13+_Z12+_Z11+ &
+       _Z10+_Z09+_Z08+_Z07+_Z06+_Z05+_Z04+_Z03+_Z02+_Z01))
+End
+
+** Compute Target SDI for > _DE dbh classes + Legacy Trees
+Compute            0
+_Y21=LININT(LININT(MAX(_ZSDI,0),0.001,0.001,0,1),0.001,0.001,_SDI- &
+(SpMcDBH(11,All,0,_DB-(_DI/2),_DE+(_DI/2),0.0,999.0,0)-_LLT*((_LLD/10)**_E)), &
+(_LLT*((_LLD/10)**_E)))
+End
+
+** ThinBTA
+
+** Sets Thinning through all DBH Classes
+*  Arguments: Residual TPA/Ac, Cut Efficiency, Min DBH, Max DBH, Min Ht, Max Ht
+*
+* Residual TPA      LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0,(_Y20+(_Z20-_Z20*_ZSDI))/(_X20/_Q**00))
+* Cut Efficiency    1.00
+* Min DBH           MAX((_DE-(_DI*01))-_DI/2,0)
+* Max DBH           MAX((_DE-(_DI*01))+_DI/2,0)
+* Min HT            0
+* Max HT            999
+
+* Legacy Trees
+ThinSDI            0   Parms(_Y21,1.00,All,(_DE+(MAX((_LLD-_DE),_DI))-_DI/2), &
+(_DE+(MAX((_LLD-_DE),_DI))+_DI/2),2)
+ThinSDI            0   Parms(_Y21,1.00,All,(_DE+(_DI*01)-_DI/2),999.0,2)
+* Managed DBH Classes
+ThinBTA            0   Parms(LININT(LININT(_Y20,0.001,0.001,0,1),1,1,999.0, &
+(_Y20+(_Z20-_Z20*_ZSDI))/(MAX(_X20,0.000001)/_Q**00)),1.00, &
+LININT(MAX((_DE-(_DI*00))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*00))-_DI/2,0)), &
+MAX((_DE-(_DI*00))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y19,0.001,0.001,0,1),1,1,999.0, &
+(_Y19+(_Z19-_Z19*_ZSDI))/(MAX(_X19,0.000001)/_Q**01)),1.00, &
+LININT(MAX((_DE-(_DI*01))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*01))-_DI/2,0)), &
+MAX((_DE-(_DI*01))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y18,0.001,0.001,0,1),1,1,999.0, &
+(_Y18+(_Z18-_Z18*_ZSDI))/(MAX(_X18,0.000001)/_Q**02)),1.00, &
+LININT(MAX((_DE-(_DI*02))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*02))-_DI/2,0)), &
+MAX((_DE-(_DI*02))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y17,0.001,0.001,0,1),1,1,999.0, &
+(_Y17+(_Z17-_Z17*_ZSDI))/(MAX(_X17,0.000001)/_Q**03)),1.00, &
+LININT(MAX((_DE-(_DI*03))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*03))-_DI/2,0)), &
+MAX((_DE-(_DI*03))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y16,0.001,0.001,0,1),1,1,999.0, &
+(_Y16+(_Z16-_Z16*_ZSDI))/(MAX(_X16,0.000001)/_Q**04)),1.00, &
+LININT(MAX((_DE-(_DI*04))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*04))-_DI/2,0)), &
+MAX((_DE-(_DI*04))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y15,0.001,0.001,0,1),1,1,999.0, &
+(_Y15+(_Z15-_Z15*_ZSDI))/(MAX(_X15,0.000001)/_Q**05)),1.00, &
+LININT(MAX((_DE-(_DI*05))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*05))-_DI/2,0)), &
+MAX((_DE-(_DI*05))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y14,0.001,0.001,0,1),1,1,999.0, &
+(_Y14+(_Z14-_Z14*_ZSDI))/(MAX(_X14,0.000001)/_Q**06)),1.00, &
+LININT(MAX((_DE-(_DI*06))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*06))-_DI/2,0)), &
+MAX((_DE-(_DI*06))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y13,0.001,0.001,0,1),1,1,999.0, &
+(_Y13+(_Z13-_Z13*_ZSDI))/(MAX(_X13,0.000001)/_Q**07)),1.00, &
+LININT(MAX((_DE-(_DI*07))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*07))-_DI/2,0)), &
+MAX((_DE-(_DI*07))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y12,0.001,0.001,0,1),1,1,999.0, &
+(_Y12+(_Z12-_Z12*_ZSDI))/(MAX(_X12,0.000001)/_Q**08)),1.00, &
+LININT(MAX((_DE-(_DI*08))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*08))-_DI/2,0)), &
+MAX((_DE-(_DI*08))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y11,0.001,0.001,0,1),1,1,999.0, &
+(_Y11+(_Z11-_Z11*_ZSDI))/(MAX(_X11,0.000001)/_Q**09)),1.00, &
+LININT(MAX((_DE-(_DI*09))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*09))-_DI/2,0)), &
+MAX((_DE-(_DI*09))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y10,0.001,0.001,0,1),1,1,999.0, &
+(_Y10+(_Z10-_Z10*_ZSDI))/(MAX(_X10,0.000001)/_Q**10)),1.00, &
+LININT(MAX((_DE-(_DI*10))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*10))-_DI/2,0)), &
+MAX((_DE-(_DI*10))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y09,0.001,0.001,0,1),1,1,999.0, &
+(_Y09+(_Z09-_Z09*_ZSDI))/(MAX(_X09,0.000001)/_Q**11)),1.00, &
+LININT(MAX((_DE-(_DI*11))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*11))-_DI/2,0)), &
+MAX((_DE-(_DI*11))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y08,0.001,0.001,0,1),1,1,999.0, &
+(_Y08+(_Z08-_Z08*_ZSDI))/(MAX(_X08,0.000001)/_Q**12)),1.00, &
+LININT(MAX((_DE-(_DI*12))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*12))-_DI/2,0)), &
+MAX((_DE-(_DI*12))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y07,0.001,0.001,0,1),1,1,999.0, &
+(_Y07+(_Z07-_Z07*_ZSDI))/(MAX(_X07,0.000001)/_Q**13)),1.00, &
+LININT(MAX((_DE-(_DI*13))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*13))-_DI/2,0)), &
+MAX((_DE-(_DI*13))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y06,0.001,0.001,0,1),1,1,999.0, &
+(_Y06+(_Z06-_Z06*_ZSDI))/(MAX(_X06,0.000001)/_Q**14)),1.00, &
+LININT(MAX((_DE-(_DI*14))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*14))-_DI/2,0)), &
+MAX((_DE-(_DI*14))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y05,0.001,0.001,0,1),1,1,999.0, &
+(_Y05+(_Z05-_Z05*_ZSDI))/(MAX(_X05,0.000001)/_Q**15)),1.00, &
+LININT(MAX((_DE-(_DI*15))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*15))-_DI/2,0)), &
+MAX((_DE-(_DI*15))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y04,0.001,0.001,0,1),1,1,999.0, &
+(_Y04+(_Z04-_Z04*_ZSDI))/(MAX(_X04,0.000001)/_Q**16)),1.00, &
+LININT(MAX((_DE-(_DI*16))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*16))-_DI/2,0)), &
+MAX((_DE-(_DI*16))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y03,0.001,0.001,0,1),1,1,999.0, &
+(_Y03+(_Z03-_Z03*_ZSDI))/(MAX(_X03,0.000001)/_Q**17)),1.00, &
+LININT(MAX((_DE-(_DI*17))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*17))-_DI/2,0)), &
+MAX((_DE-(_DI*17))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y02,0.001,0.001,0,1),1,1,999.0, &
+(_Y02+(_Z02-_Z02*_ZSDI))/(MAX(_X02,0.000001)/_Q**18)),1.00, &
+LININT(MAX((_DE-(_DI*18))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*18))-_DI/2,0)), &
+MAX((_DE-(_DI*18))+_DI/2,0),0,999)
+ThinBTA            0   Parms(LININT(LININT(_Y01,0.001,0.001,0,1),1,1,999.0, &
+(_Y01+(_Z01-_Z01*_ZSDI))/(MAX(_X01,0.000001)/_Q**19)),1.00, &
+LININT(MAX((_DE-(_DI*19))-_DI/2,0), &
+_DI,_DI,0.001,MAX((_DE-(_DI*19))-_DI/2,0)), &
+MAX((_DE-(_DI*19))+_DI/2,0),0,999)
+AGPLABEL
+   All
+Endif
+
+** Reset Additive Projection Cycle Variable
+IF                 0
+CYCLE GE _BC AND CUT EQ 1 OR (_APC LT 999.9 AND _APC GE _CCY)
+THEN
+COMPUTE
+_APC=0
+END
+AGPLABEL
+   All
+ENDIF
+
+*     End of: Individual Tree Selection - SDI Target w/i SpecPref
+}
+
+parmsForm = answerForm
+
+//end uneven-aged_sdi_target_wi
+
+
+//start uneven-aged_grp_select
+
+description:
+{Designed to simulate an uneven-aged management action, Group Selection 
+silvicultural treatment, within the confines of an individual tree, 
+distance-independent model.  The default set up is based on goshawk 
+guidelines developed for the Southwest.  The implied cutting cycle is 
+40 years, with an intermediate thinning occurring 20 years hence.  
+
+The user can modify several input parameters.  The group opening size 
+can be determined by FVS based on dominant tree height and a height multiple
+or be specified by the user.  The proportional area cut can be determined by
+FVS based on harvest tree age and the cutting cycle length or be specified by
+the user.
+
+Additional features include the ability to increase small tree height growth 
+and to reduce seedling mortality rates.  The premise here is based on the 
+group openings receiving full sunlight with minimal shading from the perimeter.
+The adjustment factors can be determined by FVS from an embedded algorithm 
+or be specified by the user.
+
+To complete the Group Selection Silvicultural System, components for 
+regenerating the group opening and thinning stand groups is provided.}
+
+f1:{numberBox Enter Beginning Cycle for implementing GRP-SEL}
+f1v:{1}
+f2title:
+{Enter either  "Tallest Tree and Height Multiple"}
+f2:{numberBox    - Tallest Tree}
+f2v:{110}
+f3:{numberBox    - Height Multiple}
+f3v:{1.50}
+f4title:
+{ or  "Opening Size"}
+f4:{numberBox    - Opening Size}
+f4v:{0.00}
+f5title:
+{Enter either  "Cutting Cycle and Harvest Tree Age"}
+f5:{numberBox    - Cutting Cycle Length}
+f5v:{40}
+f6:{numberBox    - Harvest Tree Age}
+f6v:{200}
+f7title:
+{ or  "Proportional Area Cut (Cutting Cycle = 40 years Implied)"}
+f7:{sliderBox    - Proportion of area harvested}
+f7v:{0 0 1 0 1}
+f8title:
+{Small Tree Adjustments -- defaults of 0 lets FVS determine}
+f8:{numberBox    - Additive Height Growth (range 1.0 - 2.0)}
+f8v:{0}
+f9:{numberBox    - Reduced Mortality Multiplier (range 0.0 - 1.0)}
+f9v:{0}
+f10title:
+{Regeneration -- trees per acre}
+f10:{speciesSelection    - Species to regenerate}
+f10v{ak tt}:{deleteAll LP}
+f10v{bm ca oc ci cr ec em ie kt nc ni pn op so ut wc ws}:{deleteAll PP}
+f10v{cs ls ne sn}:{deleteAll WP}
+f11:{numberBox    - Seedling Counts}
+f11v:{450}
+f12title:
+{Thinning Targets -- per acre basis}
+f12:{numberBox    - Precommercial Thin (trees)}
+f12v:{302}
+f13:{numberBox    - Commercial Thin (basal area)}
+f13v:{60}
+f14title:{\
+--------------- Intermediate Thinning ---------------
+}
+f14:{checkBox Include Intermediate Thinning Treatment (implies 20 years hence)}
+f14v:{1}
+
+
+answerForm:{\
+*  Beginning of:  Group Selection Management Action
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: March, 27, 2009
+
+*   This keyword set is designed to simulate an uneven-aged management action, 
+*   Group Selection silvicultural treatment.  Input values include: Opening Size, 
+*   Proportional Area Cut, Small Tree Multipliers, Regeneration Counts, and 
+*   Thinning Regimen.
+
+*   -------
+*   Example -->      COMPUTATION OF Group Selection Parameters
+*   -------
+*               --- For PP overstory w/ PP understory: Group Selection
+*   Opening Size: 0.5 acre
+*     - Tallest Tree Height of 110 feet
+*     - Height Multiple of 1.5 times
+*     - Calculation: (3.141593*(((110*1.5)/2)**2))/43,560
+*                    (area of a circle)/(area of an acre)
+*   Proportional Area: 1/5 or 20.0%
+*     - Cutting Cycle Length of 40 years
+*     - Harvest Tree Age of 200 years
+*     - Calculation: 200/40
+*                    (cutting cycle length)/(harv tree age)
+*   Small Tree Height Growth Multiplier: Additive Scaled Factor
+*     - ATOPHT: After-thin average of top 40 tree heights
+*     - Radius: Opening Size basis
+*     - Calculation: (Radius*2)/ATOPHT=1; Factor=1.0
+*                    (Radius*2)/ATOPHT=2; Factor=1.5
+*                    (Radius*2)/ATOPHT=3; Factor=2.0
+*   Small Tree Mortality Multiplier: Reduction Scaled Factor
+*     - ATOPHT: After-thin average of top 40 tree heights
+*     - Radius: Opening Size based
+*     - Calculation: (Radius*2)/ATOPHT=1; Factor=1.0
+*                    (Radius*2)/ATOPHT=2; Factor=0.3
+*                    (Radius*2)/ATOPHT=3; Factor=0.1
+*   Group Age 200+/0: Group Select Cut, 10"=< dbh < 99"                                                 
+*     - Nat. Regen. of 450 TPA of PP 5 yrs after thinning w/ ave. age of 2 yrs  
+*   Group Age 40: Precommerial Thin from below to 302 TPA, 0"=< dbh <5"               
+*   Group Age 80: POL Thin from below to 60 BA, 5"=< dbh < 10"                         
+*   Group Age 120: Commercial Thin PP to 60 BA, 10"=< dbh < 99"                         
+*   Group Age 160: Commercial Thin PP to 60 BA, 10"=< dbh < 99"                         
+
+*   Definition of Compute Variables:
+*   > Supplied via Suppose - Management Action: Grp Select Target window
+*     01. _BegCycl = Beginning Cycle       
+*     02. _TallTre = Tallest Tree Height              
+*     03. _HgtMult = Height Multiple                  
+*     04. _OpenSiz = Group Opening Size               
+*     05. _HarvAge = Harvest Tree Age                 
+*     06. _CutCycl = Cutting Cycle Length             
+*     07. _PrpOpen = Number of Legacy Trees           
+*     08. _AddHgtG = Additive Small Tree Height Growth
+*     09. _SubMrtM = Reduced Mortality Multiplier     
+*     10. _RegnSpc = Tree Species to Regenerate       
+*     11. _RegnCnt = Seedling Count to Regenerate     
+*     12. _ThinPre = Between Groups TPA Thinning Density
+*     13. _ThinCom = Between Groups BA Thinning Density
+*   > Computed within Key Component File
+*         _pi      = 3.14159265
+*         _OpenRad = Radius of the Group Opening
+*         _NumbGrp = Number of Groups
+*         _GpRatio = Gap Ratio
+*         _STrGrMd = Small Tree Growth Modifier
+*         _STrMrMd = Small Tree Mortality Modifier
+*         _CmSThin = Number of Groups receiving Commercial Saw Thinning
+*         _CmPThin = Number of Groups receiving Commercial POL Thinning
+*         _Cut     = Cut Indicator
+
+* Initialize Variables from Suppose
+Compute            1
+_BegCycl=!1!
+_TallTre=!2!
+_HgtMult=!3!
+_OpenSiz=!4!
+_CutCycl=!5!
+_HarvAge=!6!
+_PrpOpen=!7!
+_AddHgtG=!8!
+_SubMrtM=!9!
+_RegnSpc=!10!
+_RegnCnt=!11!
+_ThinPre=!12!
+_ThinCom=!13!
+_IntThin=!14!
+_GSAPC=999.9
+_pi=3.14159265
+_CmSThin=0
+_CmPThin=0
+_GpRatio=2
+_Cut=0
+_MaxHrv=0.
+_OBA10m=0.
+_OBA05p=0.
+_OBA10p=0.
+_OBA25p=0.
+_TBA10p=0.
+End
+
+* Sequence Additive Projection Cycle Variable
+If                 0
+Cycle GE _BegCycl AND _Cut EQ 0
+Then
+Compute            0
+_GSAPC=_GSAPC+(CENDYEAR-YEAR+1)
+End
+EndIf
+
+* Determine Radius and Size of Group Opening
+If               999
+_TallTre GT 0 AND _HgtMult GT 0 AND _OpenSiz EQ 0
+Then
+Compute            0
+_OpenRad=(_TallTre*_HgtMult)/2.0
+_OpenSiz=(_pi*(_OpenRad**2))/43560
+End
+EndIf
+If               999
+_TallTre EQ 0 AND _HgtMult EQ 0 AND _OpenSiz GT 0
+Then
+Compute            0
+_OpenRad=Sqrt((_OpenSiz*43560)/_pi)
+End
+EndIf
+* Determine Proportional Area Cut
+If               999
+_HarvAge GT 0 AND _CutCycl GT 0 AND _PrpOpen EQ 0
+Then
+Compute            0
+_PrpOpen=(_CutCycl/_HarvAge)
+_NumbGrp=Int(_HarvAge/_CutCycl)
+_CmSThin=LinInt(_NumbGrp,3,4,4,5,5,6,6,7,7,8,8,9,9,10, &
+                         1,1,2,2,3,3,4,4,5,5,6,6,7,7)
+_CmPThin=_NumbGrp-_CmSThin-1
+End
+EndIf
+If               999
+_HarvAge EQ 0 AND _CutCycl EQ 0 AND _PrpOpen GT 0
+Then
+Compute            0
+_CutCycl=40.0
+_NumbGrp=Int(1.000/_PrpOpen)
+_CmSThin=LinInt(_NumbGrp,3,4,4,5,5,6,6,7,7,8,8,9,9,10, &
+                         1,1,2,2,3,3,4,4,5,5,6,6,7,7)
+_CmPThin=_NumbGrp-_CmSThin-1
+End
+EndIf
+
+* Determine Small Tree Height Growth and Mortality Multipliers
+If               999
+_AddHgtG EQ 0 AND _SubMrtM EQ 0
+Then
+Compute            0
+_GpRatio=(_OpenRad*2/ATOPHT)
+_AddHgtG=LinInt(_GpRatio,1,2,3,1.0,1.5,2.0)
+_SubMrtM=LinInt(_GpRatio,1,2,3,1.0,0.3,0.1)
+End
+EndIf
+RegHMult           0   Parms(All,_AddHgtG)
+MortMult           0   Parms(All,_SubMrtM,0.0,3.0)
+
+* Maximum Harvest Level
+If                 0
+Cycle GE 0 AND &
+SpMcDBH(9,All,0,10.0,99.0) GT 0 AND SpMcDBH(2,All,0,10.0,99.0) GT 0
+Then
+Compute            0
+_MaxHrv=((SpMcDBH(2,All,0,10.0,99.0)-(1450*PropStk)/ &
+(SpMcDBH(9,All,0,10.0,99.0)/SpMcDBH(2,All,0,10.0,99.0)))/PropStk)                                           
+End
+EndIf
+
+* Observed and Targeted BA by Diameter Range
+If                 0
+Cycle GE 0
+Then
+Compute            0
+_OBA10m=SpMcDBH(2,All,0,0.0,10.0,0,999,0)
+_OBA05p=SpMcDBH(2,All,0,05.0,999.0,0,999,0)
+_OBA10p=SpMcDBH(2,All,0,10.0,999.0,0,999,0)
+_OBA25p=SpMcDBH(2,All,0,25.0,999.0,0,999,0)
+_TBA10p=_ThinCom*(_PrpOpen*_CmSThin)
+End
+EndIf
+
+* Set Removal Preference for Dwarf Mistletoe
+Mistoe
+MistPref           1       ALL
+1000.  2000.  3000.  4000.  5000.  6000.
+End
+
+* Thinning Implementation
+If                 0
+Cycle GE _BegCycl AND _CutCycl LE _GSAPC AND MOD(CYCLE-_BEGCYCL,_CUTCYCL/10) LE 0 AND &
+SpMcDBH(2,All,0,10.0,999.0,0,999,0) GE _ThinCom*(_PrpOpen*_CmSThin)
+Then 
+ThinBBA            0   Parms(Max(_ThinCom*(_PrpOpen*_CmSThin)+ &
+(_OBA25p*_PrpOpen)+Max(_Thincom*_PrpOpen-(_OBA05p-_OBA10p),0), &
+_ThinCom-_OBA10m+(_OBA25p*_PrpOpen),_MaxHrv), &
+1.0,10.0,999.0,0,999)
+ThinABA            0   Parms(0,Min((1.0-_TBA10p/Max(_OBA10p,1)), &
+(_PrpOpen*1)),25.0,999.0,0,999)
+ThinBBA            0   Parms(_ThinCom*(_PrpOpen*_CmPThin),1.0,5.0,10.0,0,999)
+ThinBTA            0   Parms(_ThinPre*(_PrpOpen*1),1.0,0.0,5.0,0,999)
+* Mid-Cycle Thinning
+ThinBBA           20   Parms(Max(10,_Thincom-_OBA10p)* &
+LinInt(_IntThin,0,1,10000,1),1.0,0.,10.,0,999)
+ThinBBA           20   Parms((_ThinCom-(Max(10,_ThinCom-_OBA10p)))* &
+LinInt(_IntThin,0,1,10000,1),1.0,10.,999.0,0,999)
+* Regeneration of Group Cut Opening
+Estab
+Natural            5   Parms(_RegnSpc,_RegnCnt*_PrpOpen,100,2,0,2)
+End
+Compute            0
+_Cut=1
+_Rgn=0
+End
+Compute            1
+_Cut=0
+End
+Compute           20
+_Rgn=1
+End
+EndIf
+
+** Reset Additive Projection Cycle Variable
+If                 0
+Cycle GE _BegCycl AND _Cut EQ 1 OR (_GSAPC LT 999.9 AND _GSAPC GE _CutCycl)
+Then
+Compute            0
+_GSAPC=0
+End
+AGPLABEL
+   All
+EndIf
+
+*     End of: Group Selection Management Action
+}
+
+parmsForm = answerForm
+
+//end uneven-aged_grp_select
+
+
