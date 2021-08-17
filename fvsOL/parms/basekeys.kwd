@@ -2365,6 +2365,10 @@ numbers:{1 2}
 
 description:
 {Reseeds the pseudorandom number generators used in FVS.
+If a 0 (zero) is used as the replacement value for the seed, 
+the model will run stochastically (i.e. results will vary for multiple
+runs of the same simulation file). With any non-zero seed value the 
+results will always be the same for multiple runs of the same simulation file.
 Implications of Random Variation in the Stand Prognosis Model are
 discussed in detail in GTR INT-394.}
 
