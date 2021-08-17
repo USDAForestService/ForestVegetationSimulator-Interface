@@ -1,0 +1,169 @@
+
+//start keyword.climate.ClimData
+
+description:
+{Specifies the Climate Scenario to be used and the climate and species-viability data
+to be read in. Data can be read in from an external file specified in field 2.
+
+CAUTION:
+Climate and species viability values can be inserted directly into the keyword file
+as supplemental records, rather than specifying an external file name. When 
+inserting data directly, the supplemental record following the GCM/scenario needs to
+be an "*", followed by the climate header record and the final supplemental record 
+needs to be -999.}
+
+f1:{longListButtonString Pick a GCM/Scenario to use}
+f1v:{\
+  CGCM3_A1B = Canadian Center for Climate Modeling and Analysis, scenario A1B
+  CGCM3_A2 = Canadian Center for Climate Modeling and Analysis, scenario A2
+  CGCM3_B1 = Canadian Center for Climate Modeling and Analysis, scenario B1
+  GFDLCM21_A2 = Geophysical Fluid Dynamics Laboratory, scenario A2
+  GFDLCM21_B1 = Geophysical Fluid Dynamics Laboratory, scenario B1
+  HADCM3_A2 = Hadley Center/Met Office (UK), scenario A2
+  HADCM3_B2 = Hadley Center/Met Office (UK), scenario B2
+  CCSM4_rcp60 = The Community Earth System Model, scenario rcp60
+  GFDLCM3_rcp60 = Geophysical Fluid Dynamics Laboratory, scenario rcp6
+  HadGEM2ES_rcp60= Hadley Center/Met Office (UK), scenario rcp60
+  Ensemble_rcp45 = Our ensemble of 17 AR5 model predictions, scenario rcp45
+> Ensemble_rcp60 = Our ensemble of 17 AR5 model predictions, scenario rcp60
+  Ensemble_rcp85 = Our ensemble of 17 AR5 model predictions, scenario rcp85
+}
+
+f2:{fileBrowse Enter the file name:} 
+f2v:{FVSClimAttrs.csv}
+
+answerForm:{ClimData
+!1!
+!2!}
+parmsForm = answerForm
+
+//end keyword.climate.ClimData
+
+//start keyword.climate.ClimRept
+
+description: 
+
+{Generates the Climate-FVS output report}
+
+//end keyword.climate.ClimRept
+
+//start keyword.climate.AutoEstb
+
+description: 
+
+{Signal that Climate-FVS automatic establishment logic is turned on and that the 
+base FVS automatic establishment features are turned off. If this keyword is not
+used, Climate-FVS establishment features are turned off.}
+
+f1title:
+{Change Schedule by Year/Cycle to blank for keyword to take effect immediately}
+f1:{scheduleBox}
+
+f2:{numberBox Stocking threshold, a percentage of full stocking}
+f2v:{40 0 100}
+
+f3:{numberBox Number of trees per acre planted}
+f3v:{500 0 10000}
+
+f4:{numberBox Number of species to establish}
+f4v:{4 1 200}
+
+parmsForm:{\
+* Arguments: Stocking Threshold, Number of Trees, Number of Species
+AutoEstb  !1,10!     Parms(!2!, !3!, !4!)}
+
+//end keyword.climate.AutoEstb
+
+//start keyword.climate.GrowMult
+
+description: {Specify a species-specific adjustment to the magnitude of 
+the growth-rate multiplier computed by Climate-FVS.
+
+Setting the multiplier to zero will turn off Climate-FVS impacts on growth}
+
+f1title:
+{Change Schedule by Year/Cycle to blank for keyword to take effect immediately}
+f1:{scheduleBox}
+
+f2:{speciesSelection Species to adjust}
+
+f3:{sliderBox Adjustment factor}
+f3v:{1 0 3 0 2}
+
+parmsForm:{\
+* Arguments: Species, Adjustment Factor
+GrowMult  !1,10!     Parms(!2!, !3!)}
+
+//end keyword.climate.GrowMult
+
+//start keyword.climate.MortMult
+
+description: {Specify two species-specific mortality multipliers.
+
+Setting the multipliers to zero will turn off Climate-caused mortality
+}
+f1title:
+{Change Schedule by Year/Cycle to blank for keyword to take effect immediately}
+f1:{scheduleBox}
+
+f2:{speciesSelection Species to adjust}
+
+f3:{sliderBox Multiplier applied to viability-related mortality}
+f3v:{1 0 3 0 2}
+
+f4:{sliderBox Multiplier applied to mortality due to climate change magnitude (dClim rule)}
+f4v:{1 0 3 0 2}
+
+parmsForm:{\
+* Arguments: Species, Viability Multiplier, dClim rule Multiplier 
+MortMult  !1,10!     Parms(!2!, !3!, !4!)}
+
+//end keyword.climate.MortMult
+
+
+//start keyword.climate.MxDenMlt
+
+description: {Specify an adjustment of the maximum density multiplier
+computed by Climate-FVS.
+
+Setting the multiplier to zero will turn off the maximum density modification.
+}
+
+f1title:
+{Change Schedule by Year/Cycle to blank for keyword to take effect immediately}
+f1:{scheduleBox}
+
+f2:{sliderBox Proportion of climate-caused change in maximum density}
+f2v:{1 0 3 0 2}
+
+parmsForm:{
+* Arguments: Multiplier 
+MxDenMlt  !1,10!     Parms(!2!)}
+
+//end keyword.climate.MxDenMlt
+
+
+//start keyword.climate.SetAttr
+
+description: {Change the values for a single attribute from those in the 
+climate attribute file. The keyword must follow the ClimData keyword. 
+}
+
+f1:{longTextEdit The attribute in the Climate file. (Character string is case sensitive)}
+
+f2:{numberBox The replacement value for the first row of the data.}
+f2v:{blank}
+
+f3:{numberBox The replacement value for the second row of the data.}
+f3v:{blank}
+
+f4:{numberBox The replacement value for the third row of the data.}
+f4v:{blank}
+
+f5:{numberBox The replacement value for the fourth row of the data.}
+f5v:{blank}
+
+parmsForm:{
+SetAttr  !1,10!!2,10!!3,10!!4,10!!5,10!}
+
+//end keyword.climate.SetAttr
