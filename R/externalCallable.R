@@ -594,6 +594,8 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
   prjDB = file.path(prjDir, "FVSProject.db")
   db=dbConnect(SQLite(), dbname = "FVS_Data.db")
   rtn = writeKeyFile(globals,db,newSum=TRUE,keyFileName,verbose=verbose)
+  if(rtn=="Run data query returned no data to run.")return("Error: Keyword file was not created. Try re-importing
+             the inventory database associated with this run.")  
   dbDisconnect(db) 
   rtn
 }                                                                    
