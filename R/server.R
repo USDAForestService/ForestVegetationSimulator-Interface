@@ -3,7 +3,6 @@
 # The top of this file contains several objects loaded into the .GlobalEnv
 # prior to the shinyApp call.
 
-
 #' Run fvsOL (FVS OnLine/OnLocal). 
 #'
 #' @param prjDir the name of the directory containing an fvsOL project.
@@ -5948,12 +5947,11 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
     if (fext %in% c("accdb","mdb"))
     {
       progress$set(message = "Process schema", value = 2)
-cat("curDir=",curDir," input dir=",getwd(),"\n") 
-      cmd = if (.Platform$OS.type == "windows") 
-        shQuote(paste0("C:/Users/Public/Documents/mdbtools/mdb-schema ",fname)) else
-        paste0(paste0("mdb-schema ",fname))
+cat("curDir=",curDir," input dir=",getwd(),"\n")
+      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-schema.exe") else "mdb-schema"
+      cmd = paste0(pgm," ",fname)
 cat ("cmd=",cmd,"\n")
-      schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else 
+      schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else
                                                    try(system(cmd,intern=TRUE))
       if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
       {
@@ -5999,9 +5997,11 @@ cat ("cmd=",cmd,"\n")
       {
         path = Sys.getenv(x = "PATH")
         paths = unlist(strsplit(path,fixed=TRUE,split=if (.Platform$OS.type == "windows") ";" else ":"))
-        if (.Platform$OS.type == "windows") paths = c(if (pgm=="mdb-export") 
-            "C:/Users/Public/Documents/mdbtools" else "C:/Users/Public/Documents/SQLite",paths)
+        mdbExport = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export.exe") else "mdb-export"
+        sqlite3 = if (exists("sqlite3exe")) file.path(normalizePath(sqlite3exe)) else "sqlite3exe"  
+        paths = if (pgm=="mdb-export") mdbExport else sqlite3
         paths = paths[!duplicated(paths)]
+        pgm=paths
         for (d in paths) 
         {
           pg = if (dir.exists(d)) dir(d,pattern=pgm) else NULL
@@ -6009,7 +6009,6 @@ cat ("cmd=",cmd,"\n")
         }
         return (pgm)
       }
-          
       for (tab in tbln) 
       {
         progress$set(message = paste0("Export table ",tab), value = 3)
