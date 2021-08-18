@@ -888,11 +888,8 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     # make the run script
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
     cat ("library(rFVS)\n",file=opnout)
-    if(.Platform$OS.type == "windows" && isLocal()){
-      cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,"')\n",sep="",file=opnout) 
-    }else{
-      cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='../",fvsBin,"')\n",sep="",file=opnout)   
-    }
+    if (dir.exists(fvsBin)) fvsBin=gsub(pattern="\\\\",replacement="/",x=normalizePath(fvsBin))
+    cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,"')\n",sep="",file=opnout) 
  
     if (fvsRun$runScript != "fvsRun")
     {   
@@ -959,19 +956,19 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
  
   rsloc = if (exists("RscriptLocation")) RscriptLocation else
   {
-    exefile=normalizePath(commandArgs(trailingOnly=FALSE)[1])
-    bin = if(.Platform$OS.type == "windows") 
-      regexpr("\\\\bin\\\\",exefile) else regexpr("/bin/",exefile)
+    exefile=normalizePath(commandArgs(trailingOnly=FALSE)[1])   
+    if(.Platform$OS.type == "windows") exefile=gsub(pattern="\\\\",replacement="/",x=exefile)
+    bin = regexpr("/bin/",exefile)
     bin = substr(exefile,1,bin+attr(bin,"match.length")-2)
     if(.Platform$OS.type == "windows") 
-       file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
+       paste0('"',file.path(bin,"Rscript.exe"),'"') else file.path(bin,"Rscript")
   }
   
   cmd = paste0(rsloc," --no-restore --no-save --no-init-file ",rscript,
                        " > ",rscript,".Rout")
   if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd)
   if (verbose) cat("rsloc=",rsloc," rscript=",rscript," wait=",wait,"\ncmd=",cmd,"\n")
-  system (cmd,wait=wait) 
+  if (.Platform$OS.type == "unix") system (cmd,wait=wait) else shell(cmd,wait=wait)
 }  
   
 

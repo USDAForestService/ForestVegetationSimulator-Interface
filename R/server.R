@@ -7881,9 +7881,12 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
                        "',fvsBin='",fvsBin,"');quit()$")
           cmd = gsub('$','"',cmd,fixed=TRUE)
-          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
+          if (.Platform$OS.type == "unix") 
+          {
+            cmd = paste0("nohup ",cmd," >> /dev/null")
+            system (cmd,wait=FALSE)
+          } else shell (cmd,wait=FALSE)
 cat ("cmd for launch project=",cmd,"\n")
-          system (cmd,wait=FALSE)
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
