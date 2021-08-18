@@ -131,7 +131,7 @@ cat ("killIfRunning, fn=",fn,"\n")
     }
     for (pid in pids)
     {
-      cmd = if (.Platform$OS.type == "windows") paste("taskkill /pid",pid) else 
+      cmd = if (.Platform$OS.type == "windows") paste("taskkill /t /f /pid",pid) else 
         paste("kill ",pid)    
 cat ("kill cmd =",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system (cmd)
