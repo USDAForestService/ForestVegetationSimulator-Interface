@@ -813,6 +813,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
               }
             }
             kwdlist<- gsub("[\r]", "", kwdlist)
+            if(length(grep("FVS_Data.db",kwdlist)) > 0) kwdlist[grep("FVS_Data.db",kwdlist)]="FVS_Data.db"
             cmp$kwds <- paste(kwdlist,collapse="\n")
           }
           cat ("!Exten:",cmp$exten," Title:",cmp$title,"\n",

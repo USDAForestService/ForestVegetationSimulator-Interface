@@ -503,8 +503,8 @@ FVSOnlineUI <- fixedPage(
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg1Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg1Top")),
-              column(width=4,offset=0,uiOutput("SVSqImg1Side"))),h2(),
-            actionButton(inputId="svsCopy1","Copy dynamic plot to clipboard"),
+              column(width=4,offset=0,uiOutput("SVSqImg1Side"))),
+              fixedRow(column(width=12,offset=0,h4(id="SVSdynIm1","Dynamic image"))),
             rglwidgetOutput('SVSImg1',width = "500px", height = "500px")),                                        
         column(width=6,offset=0,
             fixedRow(
@@ -524,8 +524,8 @@ FVSOnlineUI <- fixedPage(
             fixedRow(
               column(width=4,offset=0,uiOutput("SVSqImg2Pers")),
               column(width=4,offset=0,uiOutput("SVSqImg2Top")),
-              column(width=4,offset=0,uiOutput("SVSqImg2Side"))),h2(),
-            actionButton(inputId="svsCopy2","Copy dynamic plot to clipboard"),
+              column(width=4,offset=0,uiOutput("SVSqImg2Side"))),
+            fixedRow(column(width=12,offset=0,h4(id="SVSdynIm2","Dynamic image"))),
             rglwidgetOutput('SVSImg2',width = "500px", height = "500px"))                                        
       )), #END Visualize
       tabPanel("View On Maps",
@@ -755,18 +755,18 @@ FVSOnlineUI <- fixedPage(
             fixedRow(column(width=5,offset=0,h6(),list(
               modalTriggerButton("impFVS_Data", "#impFVS_DataDlg", 
                 "Import FVS_Data.db"),
-              modalDialog(id="impFVS_DataDlg", footer=
+              modalDialog(id="impFVS_DataDlg", footer=list(
                 modalTriggerButton("impFVS_DataDlgBtn", "#impFVS_DataDlg", 
                   "Yes"), tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel")))),
+                  'data-dismiss' = "modal", "Cancel"))))),
                   column(width=7,offset=0,h5(),uiOutput("impFVS_DataMsg"),h3())),                    
             fixedRow(column(width=5,offset=0,h6(),list(
               modalTriggerButton("impSpatialData", "#impSpatialDataDlg", 
                 "Import the Spatial Data"),
-              modalDialog(id="impSpatialDataDlg", footer=
+              modalDialog(id="impSpatialDataDlg", footer=list(
                 modalTriggerButton("impSpatialDataDlgBtn", "#impSpatialDataDlg", 
                   "Yes"), tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel")))),
+                  'data-dismiss' = "modal", "Cancel"))))),
                   column(width=7,offset=0,h5(),uiOutput("impSpatialDataMsg"),h3()))                    
           ), #END oF Import items
           tabPanel("Downloads", h6(), 

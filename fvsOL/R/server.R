@@ -3896,8 +3896,17 @@ cat ("runwaitback=",input$runwaitback,"\n")
           progress$set(message = "Run preparation: ", 
              detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
           updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
-          extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
+          msg=extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
                           ncpu=ncpu)
+          if(msg=="wrong active database"){
+cat ("Run data query returned no data to run.\n")  
+          progress$set(message = "Error: Keyword file was not created. Try re-importing
+                       the inventory database associated with this run.",
+                      detail = msg, value = 3) 
+          Sys.sleep(5)
+          progress$close()
+          return()  
+          }
           refreshTimmer <- reactiveTimer(500,session=session)
           progress$close()
           output$contChange <- renderUI("Run")   
@@ -4523,13 +4532,13 @@ cat ("Visualize hit\n")
       updateSelectInput(session=session, inputId="SVSImgList2", choices=list(),
         selected=0)
       session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm1').hide();$('#svsCopy1').hide();"))
+        list(code= "$('#SVSstaIm1').hide();$('#SVSdynIm1').hide();"))
       output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
       output$SVSImg1      = renderRglwidget(NULL)
       session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm2').hide();$('#svsCopy2').hide();"))
+        list(code= "$('#SVSstaIm2').hide();$('#SVSdynIm2').hide();"))
       output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
@@ -4598,7 +4607,7 @@ cat ("Visualize input$SVSRunList1=",input$SVSRunList1,"\n")
       updateSelectInput(session=session, inputId="SVSImgList1", choices=choices, 
                         selected = 0)
       session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm1').hide();$('#svsCopy1').hide();"))
+        list(code= "$('#SVSstaIm1').hide();$('#SVSdynIm1').hide();"))
       output$SVSqImg1Pers = renderUI(NULL)
       output$SVSqImg1Top  = renderUI(NULL)
       output$SVSqImg1Side = renderUI(NULL)
@@ -4613,25 +4622,13 @@ cat ("Visualize input$SVSRunList2=",input$SVSRunList2,"\n")
       updateSelectInput(session=session, inputId="SVSImgList2", choices=choices, 
                         selected = 0)
       session$sendCustomMessage(type="jsCode",
-              list(code= "$('#SVSstaIm2').hide();$('#svsCopy2').hide();"))
+        list(code= "$('#SVSstaIm2').hide();$('#SVSdynIm2').hide();"))
       output$SVSqImg2Pers = renderUI(NULL)
       output$SVSqImg2Top  = renderUI(NULL)
       output$SVSqImg2Side = renderUI(NULL)
       output$SVSImg2      = renderRglwidget(NULL)
     }
   })
-  observe(  
-    if (input$svsCopy1 > 0)
-    {
-      session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg1") 
-    }
-  )
-  observe(  
-    if (input$svsCopy2 > 0)
-    {
-      session$sendCustomMessage(type="copyWebGLSnapshotToClipboard", "SVSImg2") 
-    }
-  )                    
 
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
@@ -4852,9 +4849,9 @@ cat("Residual length of svs=",length(svs),"\n")
               c(id,paste0(id,"Pers"),paste0(id,"Top"),paste0(id,"Side"))) 
       progress$close()
       if (id=="SVSImg1") session$sendCustomMessage(type="jsCode",
-           list(code= "$('#SVSstaIm1').show();$('#svsCopy1').show();")) else
+           list(code= "$('#SVSstaIm1').show();$('#SVSdynIm1').show();")) else
                          session$sendCustomMessage(type="jsCode",
-           list(code= "$('#SVSstaIm2').show();$('#svsCopy2').show();"))
+           list(code= "$('#SVSstaIm2').show();$('#SVSdynIm2').show();"))
     }
     session$onFlushed(callBack, once = TRUE)
   }
