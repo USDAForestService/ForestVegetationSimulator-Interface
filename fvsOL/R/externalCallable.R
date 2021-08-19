@@ -679,12 +679,12 @@ extnStoreFVSRun <- function(prjDir=getwd(),theRun)
 #'   current directory is the project directory.
 #' @param runUUID a character string of 1 run uuid that is processed.
 #' @param stands a vector (or list) of stand ids that will be added.
-#' @addStandsRegardless, if TRUE, stands are added even if they are already 
+#' @param addStandReps, if TRUE, stands are added even if they are already 
 #'   present.
 #' @return The number of stands, groups, and components added to the run 
 #' @export
 extnAddStands <- function(prjDir=getwd(),runUUID,stands,
-   addStandsRegardless=FALSE)
+   addStandReps=FALSE)
 {
   if (missing(runUUID) || is.null(runUUID)) stop("runUUID required")
   if (missing(stands) || is.null(stands)) stop("stands is required") 
@@ -719,7 +719,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   fields = intersect(toupper(fields),toupper(allNeed))
   if (length(fields) < length(allNeed)) stop("required db fields are missing")
 
-  getStds = data.frame(getStds=if (addStandsRegardless) stands else setdiff(stands,
+  getStds = data.frame(getStds=if (addStandReps) stands else setdiff(stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
   if (nrow(getStds) == 0) return(nadd)
     
@@ -807,7 +807,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   }  
   if (any(nadd>0)) 
   {
-    if (addStandsRegardless) updateReps(fvsRun)
+    if (addStandReps) updateReps(fvsRun)
     storeFVSRun(db,fvsRun)
   }
   nadd
