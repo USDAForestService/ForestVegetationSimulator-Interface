@@ -2172,9 +2172,9 @@ cat ("copyToClipboard copyplot\n")
     {
 cat ("Stands\n")
       f1=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
-      if (areFilesIdentical(f1=f1,f2="FVS_Data.db"))
-        session$sendCustomMessage(type="jsCode",list(code= "$('#usingTraining').show();")) else
-        session$sendCustomMessage(type="jsCode",list(code= "$('#usingTraining').hide();"))
+      output$sayDataSource <-renderUI((h4(paste0(
+        if (areFilesIdentical(f1=f1,f2="FVS_Data.db")) "Training" else "User",
+          " data installed"))))
       initNewInputDB(session,output,dbGlb)
       loadStandTableData(globals, dbGlb$dbIcon)
       updateStandTableSelection(session,input,globals)

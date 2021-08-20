@@ -9,7 +9,7 @@ fvsOLmadeTag: fvsOL/DESCRIPTION fvsOL/R/* fvsOL/inst/extdata/* fvsOL/inst/extdat
 	Rscript --default-packages=devtools -e 'devtools::install(pkg="fvsOL",type="source",repos=NULL)'
 	touch fvsOLmadeTag
                  
-rFVSmadeTag: rFVS/R/* rFVS/DESCRIPTION                         
+rFVSmadeTag: rFVS/DESCRIPTION rFVS/R/* 
 	Rscript --default-packages=devtools -e 'devtools::document(pkg="rFVS")'
 	Rscript --default-packages=devtools -e 'devtools::build(pkg="rFVS")'
 	Rscript --default-packages=devtools -e 'devtools::install(pkg="rFVS",type="source",repos=NULL)'
@@ -17,3 +17,4 @@ rFVSmadeTag: rFVS/R/* rFVS/DESCRIPTION
                                                                           
 clean:
 	rm fvsOL/data/prms.RData fvsOLmadeTag rFVSmadeTag                                                                                   
+	
