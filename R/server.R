@@ -4649,7 +4649,8 @@ cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
     rcirc = grep ("^#CIRCLE",svs)
     if (length(rcirc)) 
     {
-      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
+#      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
+      rgl.viewpoint(theta = 1, phi = -40, fov = 0, zoom = .9, interactive = TRUE)
       args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
       plotDef = circle3D(x0=args[1],y0=args[2],r=args[3],col=plotColor,alpha=0.7)
@@ -4699,7 +4700,6 @@ cat ("args=",args,"\n")
       }
       svs=svs[-rpols]
     }
-    par3d(ignoreExtent=TRUE) #just use the plot and range poles to define the extent.
     calls = 0
     frlineS = grep("^#FIRE_LINE",svs)
 cat ("length(frlineS)=",length(frlineS),"fireLine=",fireLine,"\n")
