@@ -19,8 +19,6 @@
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#inputTables">Input Table Descriptions</a> 
 		</p>
-		<li><p><a href="#tmtool">Project Tools</a> 
-		</p>
 	</ul>
 </ul>
 <h4><a name="intro"></a>Introduction</h4>
@@ -54,7 +52,7 @@ wiki about FVSOnline software</a>.</p>
 <ul>
 	<li><p style="margin-bottom: 0in">Use the default input database
 	while learning, load your own data once you're comfortable using the
-	interface. Note that there is a command under the <b>Project Tools</b> menu
+	interface. Note that there is a command under the <b>Manage Projects</b> menu
 	that lets you delete all runs and related outputs so you can easily
 	start fresh with your own data. 
 	</p>
@@ -83,7 +81,7 @@ wiki about FVSOnline software</a>.</p>
 	<li><p style="margin-bottom: 0in"><b>View On Maps: </b>Display some outputs in a spatial context
 	  if your stand locations are loaded. 
 	</p>
-	<li><p style="margin-bottom: 0in"><b>Project Tools: </b>Access commands to manage projects,
+	<li><p style="margin-bottom: 0in"><b>Manage Projects: </b>Access commands to manage projects,
 	import input data, and import runs and other items from other projects or backup files, and
 	download data from project. Under "Manage projects", you can 
 	create new projects, open other projects, deleted outputs or entire projects,
@@ -366,11 +364,11 @@ and when that is the case, the replication counts will not change when different
 are selected. 
 </p>
 **OUTPUTHTML**
-<h4><a name="tmsvs"></a>SVS3d</h4>
+<h4><a name="tmsvs"></a>Visualize</h4>
 <p>You can display two 3d images of stands if the output that support 
 <a href="http://forsys.cfr.washington.edu/SVS/Stand%20Visualization%20System.html" target="_blank">
 Stand Visualization System</a> has been created (easily done by checking
-SVS under the Select Outputs table). Pick a run, and within the Run, pick the stand and 
+Stand Visualization under the Select Outputs table). Pick a run, and within the Run, pick the stand and 
 time period you wish to display. It takes some time for the images to be created 
 and transferred to your browser. Once the transfer is completed, you can click 
 on the image and rotate it, flip it, and zoom in and out using your mouse.
@@ -388,7 +386,7 @@ time to generate the graphs.
 Note that the spatial polygons of the stand boundaries are 
 required to display boundaries. However, spatial points can alternatively be loaded and
 when points are provided, a red dot is displayed at the point location. 
-See <b>Map data</b> under <a href="#tmin">Project Tools</a>
+See <b>Map data</b> under <a href="#tmin">Manage Projects</a>
 to see now to load this spatial data.
 </p><p>
 If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
@@ -398,8 +396,8 @@ assuming WGS84 geographic coordinates are used.
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a name="tmin"></a>Manage Projects</h4>
-<p>Under "Manage project", you can create new projects, open other projects, 
-deleted outputs or entire projects, make and manage backup files.</p> 
+<p>Under <b>Manage project</b> you can create new projects, open other projects, 
+delete output, runs or entire projects, as well as make and manage project backup files.</p> 
 <p><b>Import input data</b> provides tools for loading an 
 FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
 database (use the file suffix .db), as a Microsoft Access database
@@ -441,34 +439,20 @@ the projection. Select a projection from the list button or just
 type in the proj4 string into the text box if you know what it is. Note the the 
 projection is set or reset here but the spatial data is not reprojected. 
 Any reprojection needed to display the data is done automatically.</p>
-
-<p><a href="#contents">Back to contents</a> 
-</p>
-<h4><a name="inputTables"></a>Input tables</h4>
-**INPUTHTML**
-<h4><a name="tmtool"></a>Manage Projects</h4>
 <p>The <b>Import runs and other items</b> tab allows you to import runs,
 custom components (.kcp), graph settings, custom queries, FVS_Data.db (input data bases), 
 Spatial Data, or any combination of these from 1) an existing project, or 2) a backup
 file or other downloaded file that contains the items you desire. You first specify
 the source project or upload a zip file and then select the item(s) you wish to import
 into your current project.
-<p>The <b>Manage projects</b> tab allows you to:
-<ul>
-<li><p style="margin-bottom: 0in">Switch to a different existing project.</p>
-<li><p style="margin-bottom: 0in">Create a new project using the software 
-(the interface and the FVS variants) that are stored in an existing project.
-Note that the runs, input data, and output data are not copied to the new project.</p>
-<li><p style="margin-bottom: 0in">Delete the outputs in the current project.</p>
-<li><p style="margin-bottom: 0in">Delete the runs and outputs in the current project.</p>
-<li><p style="margin-bottom: 0in">You can also create, delete, or download a project backup; 
-and restore from an existing backup. Note that you can not upload a backup.</p>
-</ul>
 <p>The <b>Downloads</b> tab provides the ability to download specific
 files related to the project. Thre is also a facility for
 setting up and downloading a .zip file that contains sevaral optional
 elements. Note that tese downloaded files can be a source of items that can be 
 imported into other projects. </p>
-<p><a href="#contents">Back to contents</a></p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="inputTables"></a>Input tables</h4>
+**INPUTHTML**
 </body>
 </html>

@@ -171,14 +171,14 @@ FVSOnlineUI <- fixedPage(
            ), #End Components
            tabPanel("Select Outputs",
              h4("Select outputs"),
-             HTML(paste0("Note that all outputs are put in output database except for the SVS data.<br>",
+             HTML(paste0("Note that all outputs are put in output database except for the Stand Visualization data.<br>",
                   "FVS_Cases, FVS_Summary, FVS_Compute, and mistletoe (FVS_DM_Stnd_Sum,",
                   "FVS_DM_Spp_Sum) are always produced.")),h6(),                       
              fixedRow(
-               column(width=2,style="padding-top:6px;",
+               column(width=3,style="padding-top:6px;",
                  checkboxGroupInput("autoSVS",NULL,choices=list(
-                   "SVS:"="autoSVS"),width="100%",inline=TRUE)),
-               column(width=5,style="padding-top:6px;",
+                   "Stand Visualization:"="autoSVS"),width="100%",inline=TRUE)),
+               column(width=4,style="padding-top:6px;",
                    myRadioGroup("svsPlotShape","Plot shape",list("Round","Square"),
                        selected="Round",labelstyle="font-weight:normal")),
                column(width=5,
@@ -495,7 +495,7 @@ FVSOnlineUI <- fixedPage(
               column(width=4,offset=0, 
                 colourInput(inputId="svsPlotColor1",label="Plot color", showColour="both", 
                             value = "#C5FAC6"))),
-            selectInput(inputId="SVSImgList1",label="Select SVS image", choices=NULL, 
+            selectInput(inputId="SVSImgList1",label="Select image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
             fixedRow(column(width=12,offset=0,h4(id="SVSstaIm1","Static images"))),
             fixedRow(
@@ -516,7 +516,7 @@ FVSOnlineUI <- fixedPage(
               column(width=4,offset=0, 
                 colourInput(inputId="svsPlotColor2",label="Plot color", showColour="both", 
                             value = "#C5FAC6"))),
-            selectInput(inputId="SVSImgList2",label="Select SVS image", choices=NULL, 
+            selectInput(inputId="SVSImgList2",label="Select image", choices=NULL, 
               multiple=FALSE, selectize=FALSE, width="99%"),
             fixedRow(column(width=12,offset=0,h4(id="SVSstaIm2","Static images"))),
             fixedRow(
