@@ -6005,7 +6005,6 @@ cat ("cmd=",cmd,"\n")
       cat (".quit\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Import data to Sqlite3", value = 4) 
       pgm = if (exists("sqlite3exe")) sqlite3exe else "sqlite3"
-      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe")     
       cmd = paste0(pgm," FVS_Data.db < sqlite3.import")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
