@@ -5945,7 +5945,8 @@ cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
     {
       progress$set(message = "Process schema", value = 2)
 cat("curDir=",curDir," input dir=",getwd(),"\n")
-      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-schema.exe") else "mdb-schema"
+      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-schema") else "mdb-schema"
+      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe") 
       cmd = paste0(pgm," ",fname)
 cat ("cmd=",cmd,"\n")
       schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else
@@ -5990,34 +5991,22 @@ cat ("cmd=",cmd,"\n")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
         return()
       }
-      findpgm <- function (pgm="mdb-export")
-      {
-        path = Sys.getenv(x = "PATH")
-        paths = unlist(strsplit(path,fixed=TRUE,split=if (.Platform$OS.type == "windows") ";" else ":"))
-        mdbExport = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export.exe") else "mdb-export"
-        sqlite3 = if (exists("sqlite3exe")) file.path(normalizePath(sqlite3exe)) else "sqlite3exe"  
-        paths = if (pgm=="mdb-export") mdbExport else sqlite3
-        paths = paths[!duplicated(paths)]
-        pgm=paths
-        for (d in paths) 
-        {
-          pg = if (dir.exists(d)) dir(d,pattern=pgm) else NULL
-          if (length(pg)) return(paste0(d,"/",pg[which.min(unlist(lapply(pg,nchar)))])) 
-        }
-        return (pgm)
-      }
+      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export") else "mdb-export"
+      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe")
       for (tab in tbln) 
       {
         progress$set(message = paste0("Export table ",tab), value = 3)
         cat ("begin;\n",file="sqlite3.import",append=TRUE)
-        cmd = paste0 (findpgm()," -I sqlite ",fname," ",tab," >> sqlite3.import")
+        cmd = paste0 (pgm," -I sqlite ",fname," ",tab," >> sqlite3.import")
         cat ("cmd=",cmd,"\n")
         result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
         cat ("commit;\n",file="sqlite3.import",append=TRUE)
       }
       cat (".quit\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Import data to Sqlite3", value = 4) 
-      cmd = paste0(findpgm("sqlite3")," FVS_Data.db < sqlite3.import")
+      pgm = if (exists("sqlite3exe")) sqlite3exe else "sqlite3"
+      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe")     
+      cmd = paste0(pgm," FVS_Data.db < sqlite3.import")
 cat ("cmd=",cmd,"\n")
       if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
 cat ("cmd done.\n")
