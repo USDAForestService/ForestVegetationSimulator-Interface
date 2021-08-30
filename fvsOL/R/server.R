@@ -6365,14 +6365,22 @@ cat ("index creation, qry=",qry,"\n")
       "Note that the output from the previous runs will remain in the output database.")))
     initNewInputDB(session,output,dbGlb)
     progress$close()
-  }) 
+  })
+  
   ## addNewDB
   observe({  
-    if (input$addNewDB == 0) return()  
+    if (input$addNewDB == 0) return()
     output$step2ActionMsg <- NULL
     if (is.null(dbGlb$newFVSData)) {output$step1ActionMsg<-NULL;return()}
+    dbo = dbConnect(dbDrv,dbGlb$newFVSData)
+    newtabs = myListTables(dbo)
+    dbDisconnect(dbo)
+    if (length(newtabs)==0) return()
     # set an exclusive lock on the database
     dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = EXCLUSIVE")
+    progress <- shiny::Progress$new(session,min=1,max=length(newtabs)*2+3)
+    i=2
+    progress$set(message = "Getting exclusive database lock", value=1)
     trycnt=0
     while (TRUE)
     {
@@ -6382,49 +6390,63 @@ cat ("index creation, qry=",qry,"\n")
         dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
         myListTables(dbGlb$dbIcon) # this forces the new locking mode to take effect
         output$step2ActionMsg <- renderText("Error: Exclusive lock was not obtained.")
+        progress$close()
         return()
       }
 cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
       rtn <- try(dbExecute(dbGlb$dbIcon,"create table dummy (dummy int)"))
       if (class(rtn) != "try-error") break;
-      Sys.sleep (10)
+      Sys.sleep (1)
     } 
     dbExecute(dbGlb$dbIcon,"drop table if exists dummy")    
     oldInds = dbGetQuery(dbGlb$dbIcon,"select name from sqlite_master where type='index';")[,1]
     for (idx in oldInds) dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",idx,";"))
     oldtabs = myListTables(dbGlb$dbIcon)
-    dbo = dbConnect(dbDrv,dbGlb$newFVSData)
-    newtabs = myListTables(dbo)
-    progress <- shiny::Progress$new(session,min=1,max=length(newtabs)*2+1)
-    i = 0
-    dbDisconnect(dbo)
-    attach = try(dbExecute(dbGlb$dbIcon,paste0("attach `",dbGlb$newFVSData,"` as addnew;")))
+    progress$set(message = "Attaching new database.", value=2)
+    attach = try(dbExecute(dbGlb$dbIcon,paste0("attach '",dbGlb$newFVSData,"' as addnew;")))
     if (class(attach) == "try-error")
     {
       output$step2ActionMsg <- renderText("New data could not be added")
       unlink(dbGlb$newFVSData)
+      progress$close()
       dbGlb$newFVSData=NULL
     }
     justNew = setdiff(newtabs,oldtabs)
-    dbBegin(dbGlb$dbIcon)
     for (tab in justNew) 
     {
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
-      dbExecute(dbGlb$dbIcon,paste0("insert into ",tab," select * from addnew.",tab))
+      qry=paste0("create table ",tab," as select * from addnew.",tab)
+cat("qry=",qry,"\n")
+      rtn = try(dbExecute(dbGlb$dbIcon,qry))
+      if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
     }
     newtabs = setdiff(newtabs,justNew)
     for (tab in newtabs)
     {
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
-      if ("STAND_ID" %in% toupper(dbListFields(dbGlb$dbIcon,tab)) &&
-          "STAND_ID" %in% toupper(dbListFields(dbGlb$dbIcon,paste0("addnew.",tab))))
-        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Stand_ID in ",
-                    "(select Stand_ID from addnew.",tab,")"))
+      rows=try(dbGetQuery(dbGlb$dbIcon,paste0("select count(*) from ",tab)))
+      if (class(rows)=="try-error") next
+      if (class(rows)=="data.frame" && rows[1,1]==0) 
+      {
+        cat ("no rows in ",tab,"\n")
+        next
+      }
+      newTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma addnew.table_info(",tab,")"))
+      trgTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma        table_info(",tab,")"))
+      sid1 = toupper(newTdef$name)
+      sid2 = toupper(trgTdef$name)
+      if ("STAND_ID" %in% sid1 && "STAND_ID" %in% sid2)
+      {
+        qry = paste0("delete from ",tab," where Stand_ID in ",
+                     "(select Stand_ID from addnew.",tab,")")
+        rtn = try(dbExecute(dbGlb$dbIcon,qry))
+        if (class(rtn)=="try-error") cat ("removing duplicated Stand_IDs failed.")
+      }          
       if (tolower(tab) == "fvs_groupaddfilesandkeywords") 
-        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
-                    " (select Groups from addnew.",tab,")"))
+        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where 'Groups' in ",
+                    " (select 'Groups' from addnew.",tab,")"))
       # homogenize table structure and then do the insert from ...
       newTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma addnew.table_info(",tab,")"))
       trgTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma        table_info(",tab,")"))
@@ -6434,25 +6456,26 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
       missingIndx  = match(missingInTrg,newTdef$lcname)
       if (length(missingIndx) && !any(is.na(missingIndx)))
       {
-        for (i in missingIndx)
+        for (ii in missingIndx)
         {
-          qry = paste0("alter table ",tab," add column ",newTdef$name[i],
-                " ",newTdef$type[i],";")
-cat ("homogenize qry=",qry,"\n")
+          qry = paste0("alter table '",tab,"' add column ",newTdef$name[ii],
+                " ",newTdef$type[ii],";")
+cat ("alter table qry=",qry,"\n")
           rtn = try(dbExecute(dbGlb$dbIcon,qry))
+          if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
         }
       }
       alln = paste0(newTdef$name,collapse=",")
-      qry = paste0("insert into ",tab," (",alln,") select ",alln,
+      qry = paste0("insert into ",tab," select ",alln,
                    " from addnew.",tab,";") 
-cat ("homogenize qry=",qry,"\n")
+cat ("insert qry=",qry,"\n")
       rtn = try(dbExecute(dbGlb$dbIcon,qry))
+      if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
     }
-    dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
-    tabs = dbListTabels(dbGlb$dbIcon)
+    tabs = dbGetQuery(dbGlb$dbIcon,"select * from sqlite_master where type='table'")[,"tbl_name"]
     i = i+1
     progress$set(message = "Setting up indices", value=i)
     for (tb in tabs)
@@ -6463,17 +6486,18 @@ cat ("homogenize qry=",qry,"\n")
       {
         dbExecute(dbGlb$dbIcon,"drop index if exists StdScnIndex")
         dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
-      } else if (tolower(tb) != "fvs_groupaddfilesandkeywords") {
+      } else if ("Stand_ID" %in% dbListFields(dbGlb$dbIcon,tb))
+      {   
         tbinx = paste0("idx",tb)
-        dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx))
-        dbExecute(dbGlb$dbIcon,paste0("create index ",tbinx," on ",tb," (Stand_ID);"))
+        try(dbExecute(dbGlb$dbIcon,paste0("drop index if exists ",tbinx)))
+        try(dbExecute(dbGlb$dbIcon,paste0("create index ",tbinx," on ",tb," (Stand_ID);")))
       }
     }
     dbExecute(dbGlb$dbIcon,"PRAGMA locking_mode = NORMAL")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
-    msg = paste0("New database: ",paste0(msg,collapse="; "))
+    msg = paste0("<b>Combined (new) database:</b><br>",paste0(msg,collapse="<br>"))
     output$step2ActionMsg <- renderText(msg)
     loadVarData(globals,input,dbGlb$dbIcon) 
     initNewInputDB(session,output,dbGlb)
