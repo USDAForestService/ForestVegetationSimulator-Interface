@@ -6218,7 +6218,6 @@ cat ("calling fixFVSKeywords\n")
       tt = try(checkMinColumnDefs(dbo,progress,9))
       canuse=canuse && class(tt) == "NULL"
       if (class(tt)=="character") msg = paste0(msg,"<br>Checking columns: ",tt)
-cat ("msg=",msg,"\n")
       if (!canuse) msg = paste0(msg,
         "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
 cat ("msg=",msg,"\n")
@@ -6462,15 +6461,15 @@ cat("qry=",qry,"\n")
                 " ",newTdef$type[ii],";")
 cat ("alter table qry=",qry,"\n")
           rtn = try(dbExecute(dbGlb$dbIcon,qry))
-          if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
+          if (class(rtn)=="try-error") cat ("qry failed\n")
         }
       }
       alln = paste0(newTdef$name,collapse=",")
-      qry = paste0("insert into ",tab," select ",alln,
+      qry = paste0("insert into ",tab," (",alln,") select ",alln,
                    " from addnew.",tab,";") 
 cat ("insert qry=",qry,"\n")
       rtn = try(dbExecute(dbGlb$dbIcon,qry))
-      if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
+      if (class(rtn)=="try-error") cat ("qry failed\n")
     }
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
