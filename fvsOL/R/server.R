@@ -55,7 +55,6 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
-
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
    invyr = "character", grps = "list", cmps = "list",uuid="character"))
@@ -196,7 +195,9 @@ cat ("FVSOnline/OnLocal interface server start\n")
   serverDate=paste0(serverDate,collapse="")
 
 cat ("ServerDate=",serverDate,"\n")
-
+  if(.Platform$OS.type == "windows" && !exists("RscriptLocation")) RscriptLocation="C:/Users/Public/Documents/R/R-4.0.5/bin/x64/Rscript.exe"
+  if(.Platform$OS.type == "windows" && !exists("mdbToolsDir")) mdbToolsDir="C:/Users/Public/Documents/mdbtools/"
+  if(.Platform$OS.type == "windows" && !exists("sqlite3exe")) sqlite3exe="C:/Users/Public/Documents/SQLite/sqlite3.exe"
   if (!logToConsole) 
   {
     if (file.exists("FVSOnline.log")) 
@@ -4169,6 +4170,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       filename=function() paste0("table",isolate(input$dlRDType)),
       content=function (tf = tempfile())
       {
+        browser()
         excelRowLimit=1048576
         if (isolate(input$dlRDType) == ".csv")
         {
