@@ -55,6 +55,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
+
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
    invyr = "character", grps = "list", cmps = "list",uuid="character"))
@@ -195,9 +196,7 @@ cat ("FVSOnline/OnLocal interface server start\n")
   serverDate=paste0(serverDate,collapse="")
 
 cat ("ServerDate=",serverDate,"\n")
-  if(.Platform$OS.type == "windows" && !exists("RscriptLocation")) RscriptLocation="C:/Users/Public/Documents/R/R-4.0.5/bin/x64/Rscript.exe"
-  if(.Platform$OS.type == "windows" && !exists("mdbToolsDir")) mdbToolsDir="C:/Users/Public/Documents/mdbtools/"
-  if(.Platform$OS.type == "windows" && !exists("sqlite3exe")) sqlite3exe="C:/Users/Public/Documents/SQLite/sqlite3.exe"
+
   if (!logToConsole) 
   {
     if (file.exists("FVSOnline.log")) 
@@ -867,7 +866,7 @@ cat("Custom Query\n")
       output$table <- renderTable(NULL)
     }
   })
-                                                            
+
   ## sqlRunQuery
   observe({ 
     if (input$sqlRunQuery > 0)                          
@@ -1411,7 +1410,7 @@ cat("filterRows and/or pivot\n")
     } else output$tableLimitMsg<-NULL
     output$table <- renderTable(dat) 
   })               
-           
+          
   ##Graphs
   observe({                 
     if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
@@ -4120,15 +4119,39 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
                         choices=getBkgRunList(),selected=isolate(input$bkgRuns))
     }
   })
-  
   ## Download handlers
-    output$dlFVSDatadb <- downloadHandler(filename="FVS_Data.db",
-           content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
-    output$dlFVSOutdb <- downloadHandler(filename="FVSOut.db",
-           content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
+  ## Download dlRenderData
+
+    output$dlRenderData <- downloadHandler(
+      filename=function () paste0("table",input$dlRDType),
+      content=function (tf = tempfile())
+      {
+        if (input$dlRDType == ".csv")
+        {
+          if (nrow(fvsOutData$render) > 0)
+            write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
+            cat (file=tf,'"No data"\n')
+        } else {
+          if (nrow(fvsOutData$render) > 0)
+          {
+            excelRowLimit=1048576
+            if (nrow(fvsOutData$render) > excelRowLimit) 
+              write.xlsx(fvsOutData$render[1:excelRowLimit,],file=tf,colNames = TRUE) else 
+              write.xlsx(fvsOutData$render,file=tf,colNames = TRUE) 
+          } else write.xlsx(file=tf)
+        }
+      }, contentType=if (length(input$table) && input$dlRDType==".csv") "text/csv" else 
+         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+         ### NB: length(input$table) is tested only to force this downloadHandler to fire.
+    output$dlFVSDatadb <- downloadHandler(
+       filename="FVS_Data.db",
+       content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
+    output$dlFVSOutdb <- downloadHandler(
+       filename="FVSOut.db",
+       content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
     output$dlFVSOutxlsx <- downloadHandler(
-         filename=function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
-         content = function (tf = paste0(tempfile(),".xlsx"))
+       filename= function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
+       content = function (tf = paste0(tempfile(),".xlsx"))
        {
          # limit the number of rows exported to Excel to 1,048,576
          excelRowLimit=1048576
@@ -4149,7 +4172,7 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
          { 
            meta = try(dbReadTable(dbGlb$dbOcon,"CmpMetaData"))
            class(meta) == "data.frame" && meta$KeywordFile == runuuid
-         } 
+         }
          for (tab in tabs)
          {
            qry = if (!is.null(cmpYes) && cmpYes && substr(tab,1,3) == "Cmp")
@@ -4165,30 +4188,9 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
          dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
-  ## Download dlRenderData 
-  output$dlRenderData <- downloadHandler(
-      filename=function() paste0("table",isolate(input$dlRDType)),
-      content=function (tf = tempfile())
-      {
-        browser()
-        excelRowLimit=1048576
-        if (isolate(input$dlRDType) == ".csv")
-        {
-          if (nrow(fvsOutData$render) > 0)
-            write.csv(fvsOutData$render,file=tf,row.names=FALSE) else 
-            cat (file=tf,'"No data"\n')
-        } else {
-          if (nrow(fvsOutData$render) > 0)
-          {
-            if (nrow(fvsOutData$render) > excelRowLimit) 
-              write.xlsx(fvsOutData$render[1:excelRowLimit,],file=tf,colNames = TRUE) else 
-              write.xlsx(fvsOutData$render,file=tf,colNames = TRUE) 
-          } else write.xlsx(file=tf)
-        }          
-      }, contentType=NULL)
   ## dlPrjBackup
-  output$dlPrjBackup <- downloadHandler(filename=function ()
-      isolate({
+  output$dlPrjBackup <- downloadHandler(
+      filename=isolate({
         bckupPick <- input$pickBackup
         if (file.exists(bckupPick)) bckupPick else "NoBackup.txt"
       }),  
@@ -4199,8 +4201,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
   ## DownLoad
-  output$dlFVSRunout <- downloadHandler(filename=function ()
-      paste0(globals$fvsRun$title,"_FVSoutput.txt"),
+  output$dlFVSRunout <- downloadHandler(
+      filename=paste0(globals$fvsRun$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
@@ -4212,8 +4214,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         } else cat (file=tf,"Output not yet created.\n")
       }, contentType="text")
   ## Download keywords
-  output$dlFVSRunkey <- downloadHandler(filename=function ()
-      paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
+  output$dlFVSRunkey <- downloadHandler(
+      filename=paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".key")
@@ -4222,7 +4224,8 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       }, contentType="text")
   
   ## Download FVSProjectData.zip 
-  output$dlFVSRunZip <- downloadHandler(filename="FVSProjectData.zip",
+  output$dlFVSRunZip <- downloadHandler(
+     filename="FVSProjectData.zip",
      content = function (tf = tempfile())
          {
            tempDir = paste0(dirname(tf),"/tozip")
@@ -7888,7 +7891,11 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             if(.Platform$OS.type == "windows") 
                file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
           }
-          cmd = paste0(rscript," --vanilla -e $require(fvsOL);fvsOL(prjDir='",newPrj,
+          defs=paste0("RscriptLocation='",rscript,"';")
+          if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
+          if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
+          
+          cmd = paste0(rscript," --vanilla -e $",defs,"require(fvsOL);fvsOL(prjDir='",newPrj,
                        "',fvsBin='",fvsBin,"');quit()$")
           cmd = gsub('$','"',cmd,fixed=TRUE)
           if (.Platform$OS.type == "unix") 
