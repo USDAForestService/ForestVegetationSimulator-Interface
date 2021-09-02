@@ -4189,19 +4189,6 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## dlPrjBackup
-  # output$dlPrjBackup <- downloadHandler(
-      # filename=paste0(input$pickBackup,""),
-      # filename=isolate({
-      # bckupPick <- input$pickBackup
-      #   if (file.exists(input$pickBackup)) input$pickBackup else "NoBackup.txt"
-      # }),
-      # content=function (tf = tempfile())
-      # {
-      #   sfile = input$pickBackup
-      #   if (file.exists(sfile)) file.copy(sfile,tf) else
-      #     cat (file=tf,"Backup does not exist.\n")
-      # }, contentType= if(length(input$pickBackup)) NULL)
-    
     output$dlPrjBackup <- downloadHandler(filename=function ()
       isolate({
         bckupPick <- input$pickBackup
