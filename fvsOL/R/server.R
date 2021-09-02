@@ -2375,7 +2375,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                         selected="Management")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
-      updateCheckboxGroupInput(session=session, "autoSVS", choices=list("SVS:"="autoSVS"))
+      updateCheckboxGroupInput(session=session, "autoSVS", choices=list("Stand Visualization:"="autoSVS"))
       updateRadioButtons(session=session,inputId="svsPlotShape",selected="Round")
       updateNumericInput(session=session,inputId="svsNFire",value=4)
       updateCheckboxGroupInput(session=session, "autoOut", choices=list(
@@ -4189,8 +4189,21 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## dlPrjBackup
-  output$dlPrjBackup <- downloadHandler(
-      filename=isolate({
+  # output$dlPrjBackup <- downloadHandler(
+      # filename=paste0(input$pickBackup,""),
+      # filename=isolate({
+      # bckupPick <- input$pickBackup
+      #   if (file.exists(input$pickBackup)) input$pickBackup else "NoBackup.txt"
+      # }),
+      # content=function (tf = tempfile())
+      # {
+      #   sfile = input$pickBackup
+      #   if (file.exists(sfile)) file.copy(sfile,tf) else
+      #     cat (file=tf,"Backup does not exist.\n")
+      # }, contentType= if(length(input$pickBackup)) NULL)
+    
+    output$dlPrjBackup <- downloadHandler(filename=function ()
+      isolate({
         bckupPick <- input$pickBackup
         if (file.exists(bckupPick)) bckupPick else "NoBackup.txt"
       }),  
@@ -4200,6 +4213,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
         if (file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
+    
   ## DownLoad
   output$dlFVSRunout <- downloadHandler(
       filename=paste0(globals$fvsRun$title,"_FVSoutput.txt"),
