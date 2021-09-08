@@ -775,10 +775,10 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         {
           lastExt = "base"
           cat ("End\n",file=fc,sep="")
-        } 
+        }
         naughty <- "Econ_reports"
         if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
-        { 
+        {
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastExt = exten
         }
@@ -825,6 +825,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     {     
       if (cmp$atag == "k" && !is.null(lastCnd))
       {
+        if(lastExt != "base") cat ("End\n",file=fc,sep="")
         cat ("EndIf\n",file=fc,sep="")
         lastCnd = NULL
       }
@@ -834,12 +835,12 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       if (lastExt != exten && lastExt != "base") 
       {
         lastExt = "base"
-        cat ("End\n",file=fc,sep="")
+        if (!is.null(lastCnd)) cat ("End\n",file=fc,sep="")
       } 
       if (lastExt != exten)
       {   
-          cat (extensPrefixes[exten],"\n",file=fc,sep="")
-          lastExt = exten
+        cat (extensPrefixes[exten],"\n",file=fc,sep="")
+        lastExt = exten
       }
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                      cmp$kwds,"\n",file=fc,sep="")    
