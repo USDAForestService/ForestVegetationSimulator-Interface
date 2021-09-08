@@ -168,12 +168,13 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
     {
       stdInit = getTableName(dbo,std)
       if (is.null(stdInit)) next
+      linkID = if(stdInit=="FVS_PlotInit") "StandPlot_ID" else "Stand_ID"
       dfinstand = rbind(dfinstand,
         data.frame(Groups = grps[[std]],Addfiles = "",
           FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-            "SELECT * FROM ",stdInit,"\nWHERE Stand_ID= '%StandID%'\n",
+            "SELECT * FROM ",stdInit,"\nWHERE ",linkID,"= '%StandID%'\n",
             "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
-            "WHERE Stand_ID= '%StandID%'\nEndSQL\nEND")))
+            "WHERE ",linkID,"= '%StandID%'\nEndSQL\nEND")))
     }
     dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
   }
