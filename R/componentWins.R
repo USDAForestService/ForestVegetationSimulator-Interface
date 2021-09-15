@@ -25,8 +25,8 @@ keyword.base.Compute.Win <- function(title, prms, globals, input, output)
 keyword.base.Compute.Win.mkKeyWrd <- function(input,output)
 {
 cat ("in keyword.base.Compute.Win.mkKeyWrd\n")
-  list(ex="base", 
-    kwds = paste0(sprintf("Compute   %10s\n",input$f1),input$freeEdit,"\nEnd\n"),
+  list(ex="base",
+    kwds = if(!length(grep("Compute",input$freeEdit))) paste0(sprintf("Compute   %10s\n",input$f1),input$freeEdit,"\nEnd\n") else input$freeEdit, 
     reopn = c(f1=input$f1,freeEdit=input$freeEdit)
   )  
 }
