@@ -1,5 +1,444 @@
 # $Id$
 #
+kcpVetting <- function (kcpconts)
+{
+  if(!length(kcpconts)) return()
+  basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
+                   "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
+                   "CLOSE","COMMENT","COMPRESS","CRNMULT","CRUZFILE","CUTEFF",
+                   "CUTLIST","CWEQN","CYCLEAT","DATASCRN","DEBUG","DEFECT","DELOTAB",
+                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIXCW",
+                   "FIXDG","FIXHTG","FIXMORT","FVSSTAND","GROWTH","HTGMULT","HTGSTOP",
+                   "INPFILE","INVYEAR","LOCATE","MANAGED","MCDEFECT","MCFDLN","MGMTID",
+                   "MINHARV","MODTYPE","MORTMSB","MORTMULT","NOAUTOES","NOCALIB",
+                   "NODEBUG","NOECHO","NOHTDREG","NOSCREEN","NOSUM","NOTREES","NOTRIPLE",
+                   "NUMCYCLE","NUMTRIP","OPEN","ORINFO","ORGVOL","PRMFROST","POINTGRP","POINTREF",
+                   "PROCESS","PRUNE","RANNSEED","READCORD","READCORH","READCORR",
+                   "REGDMULT","REGHMULT","RESETAGE","REUSCORD","REUSCORH","REUSCORR",
+                   "REWIND","SCREEN","SDICALC","SDIMAX","SERLCORR","SETPTHIN","SETSITE",
+                   "SITECODE","SPCODES","SPECPREF","SPGROUP","SPLABEL","SPLEAVE",
+                   "STANDCN","STATS","STDIDENT","STDINFO","STOP","STRCLASS","SVS",
+                   "TCONDMLT","TFIXAREA","THINABA","THINATA","THINAUTO","THINBBA",
+                   "THINBTA","THINCC","THINDBH","THINHT","THINMIST","THINPRSC","THINPT",
+                   "THINQFA","THINRDEN","THINRDSL","THINSDI","TIMEINT","TOPKILL","TREEDATA",
+                   "TREEFMT","TREELIST","TREESZCP","VOLEQNUM","VOLUME","YARDLOSS")
+  invokekwds <- list("ESTAB","FMIN","DATABASE","CLIMATE","ECON","COVER","RDIN","MISTOE")
+  regenkwds <- list("AUTALLY","BUDWORM","BURNPREP","ESRANSD","EXCRUISE","HABGROUP","HTADJ",
+                    "INGROW","MECHPREP","MINPLOTS","NATURAL","NOAUTALY","NOINGROW","NOSPROUT",
+                    "OUTPUT","PASSALL","PLANT","PLOTINFO","SPECMULT","SPROUT","STOCKADJ",
+                    "TALLY","TALLYONE","TALLYTWO","THRSHOLD")
+  firekwds <- list("BURNREPT","CANCALC","CANFPROF","CARBCALC","CARBCUT","CARBREPT","DEFULMOD",
+                   "DROUGHT","DUFFPROD","DWDCVOUT","DWDVLOUT","FIRECALC","FLAMEADJ","FMODLIST","FMORTMLT",
+                   "FUELDCAY","FUELFOTO","FUELINIT","FUELMODL","FUELMOVE","FUELMULT","FUELOUT",
+                   "FUELPOOL","FUELREPT","FUELSOFT","FUELTRET","MOISTURE","MORTCLASS","MORTREPT",
+                   "PILEBURN","POTFIRE","POTFMOIS","POTFPAB","POTFSEAS","POTFTEMP","POTFWIND",
+                   "SALVAGE","SALVSP","SIMFIRE","SNAGBRK","SNAGCLAS","SNAGDCAY","SNAGFALL",
+                   "SNAGINIT","SNAGOUT","SNAGPBN","SNAGPSFT","SNAGSUM","SOILHEAT","STATFUEL",
+                   "SVIMAGES")
+  dbkwds <- list("ATRTLIDB","BURNREDB","CALBSTDB","CARBREDB","CLIMREDB","COMPUTDB",
+                 "CUTLIDB","DWDCVDB","DWDVLDB","ECONRPTS","FUELREDB","FUELSOFT","MISRPTS",
+                 "MORTREDB","POTFIRDB","RDBBMORT","RDDETAIL","RDSUM","SNAGOUDB","SNAGSUDB","STRCLSDB",
+                 "SUMMARY","TREELIDB","STANDSQL","TREESQL","SQLIN","SQLOUT","DSNIN","DSNOUT",
+                 "INVSTATS","REGREPTS")
+  climatekwds <- list("CLIMDATA","SETATTR","AUTOESTB","GROWMULT","MORTMULT","MXDENMLT","CLIMREPT")
+  econkwds <- list("ANNUCST","ANNURVN","BURNCST","HRVFXCST","HRVVRCST","HRNRVN","LBSCFV",
+                   "MECHCST","NOTABLE","PCTFXCST","PCTSPEC","PCTVRCST","PLANTCST","PRETEND",
+                   "SPECCST","SPECRVN","STRTECON")
+  coverkwds <- list("CANOPY","COVER","NOCOVOUT","NOSHBOUT","NOSUMOUT","SHOWSHRB","SHRBLAYR",
+                    "SHRUBHT","SHRUBPC","SHRUBS")
+  rdkwds <- list("BBCLEAR","BBOUT","BBTYPE1","BBTYPE2","BBTYPE3","BBTYPE4","BORATE","DSNCALC",
+                 "INFCOLO","INFKILL","INFMULT","INFSIMS","INOCLIFE","INOCSPAN","PLOTINFO",
+                 "PLREAD","PSTUMP","RRCOMP","RRDOUT","RRECHO","RRHOSTS","RRINIT","RRJUMP","RRMINK",
+                 "RRTREIN","RRTYPE","RSEED","SAREA","SDIRMULT","SMCOUT","SPORE","SPREAD","STREAD",
+                 "TDISTN","TIMEDEAD","TTDMULT","WINDTHR")
+  mistkwds <- list("MISTABLE","MISTGMOD","MISTHMOD","MISTMORT","MISTMULT","MISTOFF","MISTPINF",
+                   "MISTPREF","MISTPRT")
+  extkwds <- c(regenkwds,firekwds,dbkwds,climatekwds,econkwds,coverkwds,rdkwds,mistkwds)
+  altless <- c(4,5,5,8,6) # number of parameters the non-DBS keywords have that are exact in name
+  altmore <- c(1,2,1,1,1,1,1,1) # number of parameters the non-DBS keywords have that are exact in name 
+  extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
+  condflag <- 0 # denotes whether we are in a conditional block
+  computeflag <- 0 # denotes whether we are in a compute block
+  commentflag <- 0 # denoted whether we are in a COMMENT keyword block
+  k <- 1 # index counter for the next 2 lists
+  insertkw <- list() # list of which keywords to insert at the end
+  insertidx <- list() # list of indices of where to insert those keywords at the end
+  numinserts <- 0 # number of keywords to insert
+  kcpconts <- (strsplit(kcpconts,"\n"))[[1]] # top down list of the addfile
+  # loop through each existing line of the addfile
+  j <- 1
+  for(j in 1:length(kcpconts)){
+    comment <- strsplit(kcpconts[j],"")[[1]][1]=="*"
+    suppcomp <- grep("!!C",kcpconts[j])
+    continuation <- strsplit(kcpconts[j],"")[[1]][length(strsplit(kcpconts[j],"")[[1]])]=="&"
+    numvalue <- match(strsplit(kcpconts[j],"")[[1]][1],c(1,2,3,4,5,6,7,8,9))
+    expression <- grep("=",kcpconts[j])
+    ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
+    thenkw <- toupper(kcpconts[j])=="THEN"
+    endkw <- match("END", toupper(kcpconts[j]))
+    endifkw <- match("ENDIF", toupper(kcpconts[j]))
+    commkw <- grep("COMMENT", toupper(kcpconts[j]))
+    commkw <- length(commkw)
+    compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
+    # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
+    if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
+    if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
+      # if it's a suppose-generated KCP (has "!")
+      if(strsplit(kcpconts[j],"")[[1]][1]=="!"){
+        # if it's a component specifier and we aren't in a condition block
+        if (length(suppcomp) && condflag==0){
+          # if it's specifying that the component is conditionally scheduled, set the flag
+          if(strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-4)]==3){
+            condflag <- 1
+          }
+          if (j!=length(kcpconts))next
+        }
+        # if it's a component specifier and we are in a condition block
+        else if (length(suppcomp) && condflag==1){
+          # if it's not conditionally scheduled, insert an ENDIF in the line above, and reset the flag
+          if(strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-4)]!=3){
+            insertkw[k] <- "ENDIF"
+            insertidx[k] <- j-1
+            k <- k+1
+            numinserts <- numinserts +1
+            condflag <- 0
+          }
+        }
+        # Maybe I'll come back to this block. Not required--might be nice to have END inserted where the old timers are used to.
+        # If it's a component specifier, for a base keyword and we re already in an extension block
+        # else if(length(suppcomp) && extflag > 0 &&
+        #         strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-1)]=="base"){
+        #   insertkw[k] <- "END"
+        #   insertidx[k] <- j-1
+        #   k <- k+1
+        #   numinserts <- numinserts +1
+        #   extflag <- 0
+        # }
+        
+        # otherwise, ignore the "bam" and move to the next line
+        else next
+      }
+      # if it's an extension invocation keyword and we're not in an extension block,
+      # set the flag to the corresponding group number of extension keywords
+      else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag==0){
+        extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
+        if (j!=length(kcpconts))next
+      }
+      # if it's an extension invocation keyword and we are in an extension block
+      else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag > 0){
+        # if the flag value doesn't correspond to the extension of the invocation keyword
+        # insert an END in the line above, and set the flag to the corresponding group number
+        # of extension keywords
+        if(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)!=extflag){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
+        }
+        else next
+      }
+      # If it's an extension keyword and we're not already in an extension block
+      else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) 
+              && extflag==0 && is.na(endkw) && !compkw){
+        # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
+          invoke <- as.character(invokekwds[1])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 1
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
+          invoke <- as.character(invokekwds[2])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 2
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
+          invoke <- as.character(invokekwds[3])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 3
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
+          invoke <- as.character(invokekwds[4])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 4
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
+          invoke <- as.character(invokekwds[5])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 5
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
+          invoke <- as.character(invokekwds[6])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 6
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
+          invoke <- as.character(invokekwds[7])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 7
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
+          invoke <- as.character(invokekwds[8])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 8
+          if (j!=length(kcpconts))next
+        }
+      }
+      # If it's an extension keyword, and we are already in an extension block
+      else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds))
+               && extflag > 0 && is.na(endkw) && !compkw){
+        # if it's a regen keyword and the flag doesn't equal 1, insert an END keyword,
+        # and then insert ESTAB below that, etc.
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[1])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 1
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[2])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 2
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[3])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 3
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[4])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 4
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[5])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 5
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[6])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 6
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[7])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 7
+          if (j!=length(kcpconts))next
+        }
+        if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          invoke <- as.character(invokekwds[8])
+          insertkw[k] <- invoke
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 8
+          if (j!=length(kcpconts))next
+        }
+      }
+      # If it's a base model keyword  but we haven't closed the extension block
+      else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),basekwds))&& extflag > 0){
+        # insert an END and reset the flag to 0
+        insertkw[k] <- "END"
+        insertidx[k] <- j-1
+        k <- k+1
+        numinserts <- numinserts+1
+        extflag <- 0
+      }
+      # if it's an IF keyword
+      else if (ifkw){
+        # if we weren't already in a conditional block, set the flag to 1 indicating we are now
+        if(condflag==0){
+          condflag <- 1
+        }
+        # if we already were, insert an ENDIF
+        else{
+          insertkw[k] <- "ENDIF"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+        }
+      }
+      # if it's a COMMENT keyword
+      else if (commkw==1){
+        # if we weren't already in a compute block, set the flag to 1 indicating we are now
+        if(commentflag==0){
+          commentflag <- 1
+        }
+        if(extflag > 0){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 0
+        }
+      }
+      # if it's a COMPUTE keyword
+      else if (compkw){
+        # if we weren't already in a compute block, set the flag to 1 indicating we are now
+        if(computeflag==0){
+          computeflag <- 1
+        }
+        if(extflag > 0){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          k <- k+1
+          numinserts <- numinserts +1
+          extflag <- 0
+        }
+      }
+      # if it's an END
+      else if (!is.na(endkw)){
+        if(computeflag==1){
+          computeflag <- 0
+        } 
+        else if(commentflag > 0){
+          commentflag <- 0
+        }
+        else if(extflag > 0){
+          extflag <- 0
+        }
+        else next
+      }
+      # if it's an ENDIF
+      else if (!is.na(endifkw)){
+        if(condflag==1){
+          condflag <- 0
+        }
+        if(extflag > 0){
+          insertkw[k] <- "END"
+          insertidx[k] <- j-1
+          extflag <- 0
+        }
+        else next
+      }
+      else next
+    }
+    # if we're on our last line 
+    if (j==length(kcpconts)){
+      # merge the needed invocation, END and/or ENDIF keywords at the previously identified indicies 
+      if (length(insertkw)){
+        n <- 0
+        for (l in 1:length(insertkw)){
+          kcpconts <- append(kcpconts,insertkw[[l]][1],after=(insertidx[[l]][1]+n))
+          n <- n+1
+        }
+      }
+      m <- 0
+      # also, check to see if an END and/or ENDIF needs added to finish the addfile
+      if(computeflag==1){
+        k <- k+1
+        insertkw[k] <- "END"
+        insertidx[k] <- j+numinserts
+        kcpconts <- append(kcpconts,insertkw[[k]][1],after=insertidx[[k]][1])
+        m <- 1
+      }
+      if(extflag > 0){
+        k <- k+1
+        insertkw[k] <- "END"
+        insertidx[k] <- j+numinserts
+        kcpconts <- append(kcpconts,insertkw[[k]][1],after=insertidx[[k]][1])
+        m <- 1
+      }
+      if(condflag==1 && m==0)kcpconts <- kcpconts <- append(kcpconts,'ENDIF',after=(j+numinserts))
+      if(condflag==1 && m==1)kcpconts <- kcpconts <- append(kcpconts,'ENDIF',after=(j+numinserts+1))
+    }
+  }
+  # if any insertions were made to the addfile, replace the cmp$kwds vector with kcpconts
+  vettedKCP <- paste(kcpconts,collapse="\n")
+  return(vettedKCP)
+}
+
+
 writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
@@ -119,647 +558,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     {
       if (length(grp$cmps)) for (cmp in grp$cmps)
       {
-        if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))){
-          # we have ourselves an addfile
-          basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
-                           "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
-                           "CLOSE","COMMENT","COMPRESS","CRNMULT","CRUZFILE","CUTEFF",
-                           "CUTLIST","CWEQN","CYCLEAT","DATASCRN","DEBUG","DEFECT","DELOTAB",
-                           "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIXCW",
-                           "FIXDG","FIXHTG","FIXMORT","FVSSTAND","GROWTH","HTGMULT","HTGSTOP",
-                           "INPFILE","INVYEAR","LOCATE","MANAGED","MCDEFECT","MCFDLN","MGMTID",
-                           "MINHARV","MODTYPE","MORTMSB","MORTMULT","NOAUTOES","NOCALIB",
-                           "NODEBUG","NOECHO","NOHTDREG","NOSCREEN","NOSUM","NOTREES","NOTRIPLE",
-                           "NUMCYCLE","NUMTRIP","OPEN","ORINFO","ORGVOL","POINTGRP","POINTREF",
-                           "PROCESS","PRUNE","RANNSEED","READCORD","READCORH","READCORR",
-                           "REGDMULT","REGHMULT","RESETAGE","REUSCORD","REUSCORH","REUSCORR",
-                           "REWIND","SCREEN","SDICALC","SDIMAX","SERLCORR","SETPTHIN","SETSITE",
-                           "SITECODE","SPCODES","SPECPREF","SPGROUP","SPLABEL","SPLEAVE",
-                           "STANDCN","STATS","STDIDENT","STDINFO","STOP","STRCLASS","SVS",
-                           "TCONDMLT","TFIXAREA","THINABA","THINATA","THINAUTO","THINBBA",
-                           "THINBTA","THINCC","THINDBH","THINHT","THINMIST","THINPRSC","THINPT",
-                           "THINQFA","THINRDEN","THINRDSL","THINSDI","TIMEINT","TOPKILL","TREEDATA",
-                           "TREEFMT","TREELIST","TREESZCP","VOLEQNUM","VOLUME","YARDLOSS")
-          invokekwds <- list("ESTAB","FMIN","DATABASE","CLIMATE","ECON","COVER","RDIN","MISTOE")
-          regenkwds <- list("AUTALLY","BUDWORM","BURNPREP","EXCRUISE","HABGROUP","HTADJ","INGROW",
-                            "MECHPREP","MINPLOTS","NATURAL","NOAUTALY","NOINGROW","NOSPROUT","OUTPUT",
-                            "PASSALL","PLANT","PLOTINFO","SPECMULT","SPROUT",
-                            "STOCKADJ","TALLY","TALLYONE","TALLYTWO","THRSHOLD")
-          firekwds <- list("BURNREPT","CANCALC","CANFPROF","CARBCALC","CARBCUT","CARBREPT","DEFULMOD",
-                           "DROUGHT","DUFFPROD","DWDCVOUT","FIRECALC","FLAMEADJ","FMODLIST","FMORTMLT",
-                           "FUELDCAY","FUELFOTO","FUELINIT","FUELMODL","FUELMOVE","FUELMULT","FUELOUT",
-                           "FUELPOOL","FUELREPT","FUELSOFT","FUELTRET","MOISTURE","MORTCLASS","MORTREPT",
-                           "PILEBURN","POTFIRE","POTFMOIS","POTFPAB","POTFSEAS","POTFTEMP","POTFWIND",
-                           "SALVAGE","SALVSP","SIMFIRE","SNAGBRK","SNAGCLAS","SNAGDCAY","SNAGFALL",
-                           "SNAGINIT","SNAGOUT","SNAGPBN","SNAGPSFT","SNAGSUM","SOILHEAT","STATFUEL",
-                           "SVIMAGES")
-          dbkwds <- list("ATRTLIDB","BURNREPT","CARBRPTS","COMPUTDB","CUTLIST","DWDCVOUT","DWDVLOUT",
-                         "ECONRPTS","FUELREPT","FUELSOFT","MISRPTS","MORTREPT","POTFIRE","RDBBMORT",
-                         "RDDETAIL","RDSUM","SNAGOUT","SNAGSUM","STRCLASS","SUMMARY","TREELIST",
-                         "STANDSQL","TREESQL","SQLIN","SQLOUT","DSNIN","DSNOUT","INVSTATS","REGREPTS")
-          climatekwds <- list("CLIMDATA","SETATTR","AUTOESTB","GROWMULT","MORTMULT","MXDENMLT","CLIMREPT")
-          econkwds <- list("ANNUCST","ANNURVN","BURNCST","HRVFXCST","HRVVRCST","HRNRVN","LBSCFV",
-                           "MECHCST","NOTABLE","PCTFXCST","PCTSPEC","PCTVRCST","PLANTCST","PRETEND",
-                           "SPECCST","SPECRVN","STRTECON")
-          coverkwds <- list("CANOPY","COVER","NOCOVOUT","NOSHBOUT","NOSUMOUT","SHOWSHRB","SHRBLAYR",
-                            "SHRUBHT","SHRUBPC","SHRUBS")
-          rdkwds <- list("BBCLEAR","BBOUT","BBTYPE1","BBTYPE2","BBTYPE3","BBTYPE4","BORATE","DSNCALC",
-                         "INFCOLO","INFKILL","INFMULT","INFSIMS","INOCLIFE","INOCSPAN","PLOTINFO",
-                         "PLREAD","PSTUMP","RRCOMP","RRDOUT","RRECHO","RRHOSTS","RRINIT","RRJUMP","RRMINK",
-                         "RRTREIN","RRTYPE","RSEED","SAREA","SDIRMULT","SMCOUT","SPORE","SPREAD","STREAD",
-                         "TDISTN","TIMEDEAD","TTDMULT","WINDTHR")
-          mistkwds <- list("MISTABLE","MISTGMOD","MISTHMOD","MISTMORT","MISTMULT","MISTOFF","MISTPINF",
-                           "MISTPREF","MISTPRT")
-          extkwds <- c(regenkwds,firekwds,dbkwds,climatekwds,econkwds,coverkwds,rdkwds,mistkwds)
-          # DBS-duplicate keywords, where the DBS keyword has fewer paraemters
-          dbless <- list("ATRTLIST","CUTLIST","SNAGOUT","STRCLASS","TREELIST")
-          # DBS-duplicate keywords, where the DBS keyword has more paraemters
-          dbmore <- list("BURNREPT","COMPUTE","DWDCVOUT","DWDVLOUT","FUELREPT","MORTREPT","POTFIRE",
-                         "SNAGSUM")
-          altless <- c(4,5,5,8,6) # number of parameters the non-DBS keywords have that are exact in name
-          altmore <- c(1,2,1,1,1,1,1,1) # number of parameters the non-DBS keywords have that are exact in name 
-          dbflag <- 0 # denotes whether we have a DBS-duplicate keyword
-          extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
-          condflag <- 0 # denotes whether we are in a conditional block
-          computeflag <- 0 # denotes whether are in a compute block
-          commentflag <- 0 # denoted whether we are in a COMMENT keyword block
-          k <- 1 # index counter for the next 2 lsts
-          insertkw <- list() # list of which keywords to insert at the end
-          insertidx <- list() # list of indices of where to insert those keywords at the end
-          numinserts <- 0 # number of keywords to insert
-          kcpconts <- (strsplit(cmp$kwds,"\n"))[[1]] # top down list of the addfile
-
-          # loop through each existing line of the addfile
-          for(j in 1:length(kcpconts)){
-            comment <- strsplit(kcpconts[j],"")[[1]][1]=="*"
-            suppcomp <- grep("!!C",kcpconts[j])
-            continuation <- strsplit(kcpconts[j],"")[[1]][length(strsplit(kcpconts[j],"")[[1]])]=="&"
-            numvalue <- match(strsplit(kcpconts[j],"")[[1]][1],c(1,2,3,4,5,6,7,8,9))
-            expression <- grep("=",kcpconts[j])
-            ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
-            thenkw <- toupper(kcpconts[j])=="THEN"
-            endkw <- match("END", toupper(kcpconts[j]))
-            endifkw <- match("ENDIF", toupper(kcpconts[j]))
-            commkw <- grep("COMMENT", toupper(kcpconts[j]))
-            commkw <- length(commkw)
-            compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
-            # if it's a DBS-duplicate keyword, where the DBS keyword has fewer parameters
-            if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless))){
-              test <- strsplit(kcpconts[j]," ")[[1]]
-              test[test==""] <- NA
-              test <- na.omit(test)
-              # if the keyword has less parameters than the other keyword with the same name, it's a DBS keyword
-              if(length(test) < altless[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless)]){
-                dbflag <- 1
-              }
-              # if the keyword has more parameters than the other keyword with the same name, it's a non-DBS keyword
-              if(length(test)>=altless[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbless)]){
-                dbflag <- 2
-              }
-            }
-            # if it's a DBS-duplicate keyword, where the DBS keyword has more parameters
-            if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore))){
-              test <- strsplit(kcpconts[j]," ")[[1]]
-              test[test==""] <- NA
-              test <- na.omit(test)
-              # if the keyword has more parameters than the other keyword with the same name, it's a DBS keyword
-              if(length(test) > altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
-                # if it's an old KCP that has more than 1 additional parameter for FFE reporting keywords, it's actually FFE not DBS
-                if (toupper(strsplit(kcpconts[j]," ")[[1]][1])!="COMPUTE" && length(test) > 2) {
-                  dbflag <- 2
-                } else {
-                  dbflag <- 1
-                }
-              }
-              # if the keyword has less parameters than the other keyword with the same name, it's a non-DBS keyword
-              if(length(test)<=altmore[match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbmore)]) {
-                dbflag <- 2
-              }
-            }
-            # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
-            if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
-            if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
-              # if it's a suppose-generated KCP (has "!")
-              if(strsplit(kcpconts[j],"")[[1]][1]=="!"){
-                # if it's a component specifier and we aren't in a condition block
-                if (length(suppcomp) && condflag==0){
-                  # if it's specifying that the component is conditionally scheduled, set the flag
-                  if(strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-4)]==3){
-                    condflag <- 1
-                  }
-                  next
-                }
-                # if it's a component specifier and we are in a condition block
-                else if (length(suppcomp) && condflag==1){
-                  # if it's not conditionally scheduled, insert an ENDIF in the line above, and reset the flag
-                  if(strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-4)]!=3){
-                    insertkw[k] <- "ENDIF"
-                    insertidx[k] <- j-1
-                    k <- k+1
-                    numinserts <- numinserts +1
-                    condflag <- 0
-                  }
-                }
-                else next
-              }
-              # if it's an extension invocation keyword and we're not in an extension block,
-              # set the flag to the corresponding group number of extension keywords
-              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag==0){
-                extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
-                next
-              }
-              # if it's an extension invocation keyword and we are in an extension block
-              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)) && extflag > 0){
-                # if the flag value doesn't correspond to the extension of the invocation keyword
-                # insert an END in the line above, and set the flag to the corresponding group number
-                # of extension keywords
-                if(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)!=extflag){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),invokekwds)
-                }
-                else next
-              }
-              # If it's an extension keyword, it's not a DBS-duplicate, we're not already in an extension block
-              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                      && extflag==0 && is.na(endkw) && !compkw){
-                # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
-                  invoke <- as.character(invokekwds[1])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 1
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
-                  invoke <- as.character(invokekwds[2])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 2
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
-                  invoke <- as.character(invokekwds[3])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 3
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
-                  invoke <- as.character(invokekwds[4])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 4
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
-                  invoke <- as.character(invokekwds[5])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 5
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
-                  invoke <- as.character(invokekwds[6])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 6
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
-                  invoke <- as.character(invokekwds[7])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 7
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
-                  invoke <- as.character(invokekwds[8])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 8
-                  next
-                }
-              }
-              # If it's an extension keyword, we're not already in an extension block, but it is a DBS-duplicate 
-              else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                      && extflag==0 && is.na(endkw) && !compkw){
-                # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
-                  invoke <- as.character(invokekwds[1])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 1
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds))){
-                  invoke <- as.character(invokekwds[2])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 2
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds))){
-                  if (dbflag==2) {
-                    dbflag <- 0
-                    next
-                  }
-                  invoke <- as.character(invokekwds[3])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 3
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds))){
-                  invoke <- as.character(invokekwds[4])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 4
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds))){
-                  invoke <- as.character(invokekwds[5])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 5
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds))){
-                  invoke <- as.character(invokekwds[6])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 6
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds))){
-                  invoke <- as.character(invokekwds[7])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 7
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds))){
-                  invoke <- as.character(invokekwds[8])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 8
-                  next
-                }
-                dbflag <- 0
-              }
-              # If it's an extension keyword, it's not a DBS-duplicate, and we are already in an extension block
-              else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag==0 
-                       && extflag > 0 && is.na(endkw) && !compkw){
-                # if it's a regen keyword and the flag doesn't equal 1, insert an END keyword,
-                # and then insert ESTAB below that, etc.
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[1])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 1
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[2])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 2
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[3])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 3
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[4])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 4
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[5])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 5
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[6])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 6
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[7])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 7
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[8])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 8
-                  next
-                }
-              }
-              # If it's an extension keyword, we are already in an extension block, but it is a DBS-duplicate 
-              else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) && dbflag > 0 
-                       && extflag > 0 && is.na(endkw) && !compkw){
-                # if it's a regen keyword and the flag doesn't equal 1, insert an END keyord,
-                # and then insert ESTAB below that, etc.
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds)) && extflag!=1){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[1])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 1
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),firekwds)) && extflag!=2){
-                  if(dbflag==2 || extflag==3 ){
-                    dbflag <- 0
-                    next
-                  }
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[2])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 2
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),dbkwds)) && extflag!=3){
-                  if (dbflag==2){
-                    dbflag <- 0
-                    next
-                  } 
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[3])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 3
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),climatekwds)) && extflag!=4){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[4])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 4
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),econkwds)) && extflag!=5){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[5])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 5
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),coverkwds)) && extflag!=6){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[6])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 6
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),rdkwds)) && extflag!=7){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[7])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 7
-                  next
-                }
-                if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),mistkwds)) && extflag!=8){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  invoke <- as.character(invokekwds[8])
-                  insertkw[k] <- invoke
-                  insertidx[k] <- j
-                  numinserts <- numinserts +1
-                  extflag <- 8
-                  next
-                }
-                dbflag <- 0
-              }
-              # If it's a base model keyword  but we haven't closed the extension block
-              else if (!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),basekwds))&& extflag > 0){
-                # insert an END and reset the flag to 0
-                insertkw[k] <- "END"
-                insertidx[k] <- j-1
-                k <- k+1
-                numinserts <- numinserts+1
-                extflag <- 0
-              }
-              # if it's an IF keyword
-              else if (ifkw){
-                # if we weren't already in a conditional block, set the flag to 1 indicating we are now
-                if(condflag==0){
-                  condflag <- 1
-                }
-                # if we already were, insert an ENDIF
-                else{
-                  insertkw[k] <- "ENDIF"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                }
-              }
-              # if it's a COMMENT keyword
-              else if (commkw==1){
-                # if we weren't already in a compute block, set the flag to 1 indicating we are now
-                if(commentflag==0){
-                  commentflag <- 1
-                }
-                if(extflag > 0){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 0
-                }
-              }
-              # if it's a COMPUTE keyword
-              else if (compkw){
-                # if we weren't already in a compute block, set the flag to 1 indicating we are now
-                if(computeflag==0){
-                  computeflag <- 1
-                }
-                if(extflag > 0){
-                  insertkw[k] <- "END"
-                  insertidx[k] <- j-1
-                  k <- k+1
-                  numinserts <- numinserts +1
-                  extflag <- 0
-                }
-              }
-              # if it's an END
-              else if (!is.na(endkw)){
-                if(computeflag==1){
-                  computeflag <- 0
-                } 
-                else if(commentflag > 0){
-                  commentflag <- 0
-                }
-                else if(extflag > 0){
-                  extflag <- 0
-                }
-                else next
-              }
-              # if it's an ENDIF
-              else if (!is.na(endifkw)){
-                if(condflag==1){
-                  condflag <- 0
-                }
-                else next
-              }
-              else next
-            }
-            # if we're on our last line 
-            if (j==length(kcpconts)){
-              # merge the needed invocation, END and/or ENDIF keywords at the previously identified indicies 
-              if (length(insertkw)){
-                n <- 0
-                for (l in 1:length(insertkw)){
-                  kcpconts <- append(kcpconts,insertkw[[l]][1],after=(insertidx[[l]][1]+n))
-                  n <- n+1
-                }
-              }
-              m <- 0
-              # also, check to see if an END and/or ENDIF needs added to finish the addfile
-              if(computeflag==1){
-                k <- k+1
-                insertkw[k] <- "END"
-                insertidx[k] <- j+numinserts
-                kcpconts <- append(kcpconts,insertkw[[k]][1],after=insertidx[[k]][1])
-                m <- 1
-              }
-              if(extflag > 0){
-                k <- k+1
-                insertkw[k] <- "END"
-                insertidx[k] <- j+numinserts
-                kcpconts <- append(kcpconts,insertkw[[k]][1],after=insertidx[[k]][1])
-                m <- 1
-              }
-              if(condflag==1 && m==0)kcpconts <- kcpconts <- append(kcpconts,'ENDIF',after=(j+numinserts))
-              if(condflag==1 && m==1)kcpconts <- kcpconts <- append(kcpconts,'ENDIF',after=(j+numinserts+1))
-            }
-          }
-          # if any insertions were made to the addfile, replace the cmp$kwds vector with kcpconts
-          if (length(kcpconts) > j) cmp$kwds <- paste(kcpconts,collapse="\n")
-        }
+        if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))) cmp$kwds <- kcpVetting(cmp$kwds)
         if (cmp$atag == "k" && !is.null(lastCnd))
         {
           if(lastExt != "base") cat ("End\n",file=fc,sep="")
@@ -823,6 +622,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
     {     
+      if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))) cmp$kwds <- kcpVetting(cmp$kwds)
       if (cmp$atag == "k" && !is.null(lastCnd))
       {
         if(lastExt != "base") cat ("End\n",file=fc,sep="")
