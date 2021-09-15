@@ -3024,6 +3024,13 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
   observe({
     if (length(input$kcpEdit)) 
     {
+      session$sendCustomMessage(type="getStartEnd", "freeEdit")
+    }
+  })
+  
+  observe({
+    if (length(input$kcpEdit)) 
+    {
       session$sendCustomMessage(type="getStartEnd", "kcpEdit")
     }
   })
