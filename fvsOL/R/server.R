@@ -2386,14 +2386,14 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                         "FFE canopy profile (FVS_CanProfile)"="autoCanProfile",          
                         "FFE detailed snag (FVS_SnagDet)"="autoSnagDet",  
                         "Stand structure (FVS_StrClass)"="autoStrClass",
-                        "Calibration stats (FVS_CalibStats)"="autoCalibStats",  
+                        "Calibration statistics (FVS_CalibStats)"="autoCalibStats",  
                         "Climate-FVS (FVS_Climate)"="autoClimate",                                    
                         "Economics (FVS_EconSummary, FVS_EconHarvestValue)"="autoEcon",
                         "Mistletoe detail by tree size (FVS_DM_Sz_Sum)"="autoDM_Sz_Sum",  
                         "Western Root Disease summary (FVS_RD_Sum)"="autoRD_Sum",  
                         "Western Root Disease details (FVS_RD_Det)"="autoRD_Det",  
                         "Western Root Disease bark beetles (FVS_RD_Beetle)"="autoRD_Beetle",
-                        "Inventory Statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
+                        "Inventory statistics (FVS_Stats_Species, FVS_Stats_Stand)"="autoInvStats",
                         "Regeneration (All Variants: FVS_Regen_Sprouts, FVS_Regen_SitePrep, FVS_Regen_Tally. 
                          AK, EM, KT, IE, and CI variants also get: FVS_Regen_HabType, FVS_Regen_Ingrowth)"="autoRegen",
                         "Produce all standard FVS text outputs (otherwise some are suppressed)"="autoDelOTab"  
