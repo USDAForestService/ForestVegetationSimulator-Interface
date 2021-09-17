@@ -2375,7 +2375,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
                         selected="Management")
       updateSelectInput(session=session, inputId="runScript", 
                         selected="fvsRun")
-      updateCheckboxGroupInput(session=session, "autoSVS", choices=list("Stand Visualization:"="autoSVS"))
+      updateCheckboxGroupInput(session=session, "autoSVS", choices=list("Stand visualization:"="autoSVS"))
       updateRadioButtons(session=session,inputId="svsPlotShape",selected="Round")
       updateNumericInput(session=session,inputId="svsNFire",value=4)
       updateCheckboxGroupInput(session=session, "autoOut", choices=list(
@@ -2741,9 +2741,15 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
   })
   # install callback functionality for the textarea that has the focus 
   # to get start and end selection poistions.
+    observe({
+    if (length(input$freeEdit)) 
+    {
+      session$sendCustomMessage(type="getStartEnd", "freeEdit")
+    }
+  })
   observe({
     if (length(input$focusedElement) && 
-        input$focusedElement %in% c("freeEdit","condDisp"))
+              input$focusedElement %in% c("freeEdit","condDisp"))
       session$sendCustomMessage(type="getStartEnd", input$focusedElement)    
   }) 
   observe({
@@ -2817,6 +2823,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
         len = nchar(input[[textarea]])
 cat ("insertStringIntoFocusedTextarea textarea=",textarea," string=",string," start=",start," end=",end," len=",len,"\n")
         if (nchar(string) == 0) return()
+# browser()
         if (start == end && end == len) {         # prepend 
           updateTextInput(session, textarea, value = paste0(input[[textarea]],string))
         } else if (start == 0 && end == start) {  # append
@@ -3020,14 +3027,6 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       },
       NULL)   
   })
-  
-  observe({
-    if (length(input$kcpEdit)) 
-    {
-      session$sendCustomMessage(type="getStartEnd", "freeEdit")
-    }
-  })
-  
   observe({
     if (length(input$kcpEdit)) 
     {
@@ -4290,6 +4289,36 @@ cat ("building download, ele=",ele,"\n")
            setwd(curdir)
          }, contentType="application/zip")  
   
+  ## kcpUpload
+  observe({  
+    if (is.null(input$kcpUpload)) return()
+    data=scan(file=input$kcpUpload$datapath,sep="\n",what="",quiet=TRUE)
+    if (input$kcpUpload$name=="FVS_kcps.RData") data <- data[4:length(data)]
+    if (length(data)==0) return()
+    isolate ({
+      addnl = TRUE
+      if (length(globals$customCmps) == 0 && input$kcpUpload$name=="FVS_kcps.RData")
+      {
+        load(input$kcpUpload$datapath)
+        globals$customCmps = customCmps
+        addnl = FALSE
+      }
+      if (length(globals$customCmps) && !is.null(globals$customCmps) && input$kcpEdit !=""){
+        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
+                          selected=names(globals$customCmps)[1])
+      }
+      updateTextInput(session=session, inputId="kcpTitle", value=
+                        paste("From:",input$kcpUpload$name))
+      if(addnl){
+        updateTextInput(session=session, inputId="kcpEdit", value=
+                          paste(data,collapse="\n"))
+      } else {
+        updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
+        save(file="FVS_kcps.RData",customCmps) 
+      }
+    })
+  })
+  
   ## kcpSel
   observe({
     if (length(input$kcpSel) == 0) return()
@@ -4306,37 +4335,65 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel,"\n")
         value=globals$customCmps[[sel]])
     }
   })
-
-  ## kcpSaveCmps
+  
+  ## kcpNew
   observe({  
-    if (length(input$kcpSaveCmps) && input$kcpSaveCmps > 0)
+    if (length(input$kcpNew) && input$kcpNew > 0)
     {
       isolate ({
-cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
-is.null(input$kcpTitle),"\n")
-        if (nchar(input$kcpTitle) == 0)
-        {
-          newTit = paste0("Component ",length(globals$customCmps)+1) 
-          updateTextInput(session=session, inputId="kcpTitle", value=newTit)
-        } else newTit = trim(input$kcpTitle)
-        globals$customCmps[[newTit]] = input$kcpEdit
-        customCmps = globals$customCmps
-        skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
-        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
-        {
-          updateTextInput(session=session, inputId="kcpEdit", value=
-            paste0(customCmps,"EndIf\n"))
-          customCmps <-as.list(paste0(customCmps,"EndIf\n"))
-          names(customCmps) <- names(globals$customCmps)
-          globals$customCmps = customCmps
+        updateSelectInput(session=session, inputId="kcpSel", selected = 0)
+        updateTextInput(session=session, inputId="kcpTitle", value="")
+        updateTextInput(session=session, inputId="kcpEdit", value="")
+        globals$kcpAppendConts <- list()
+      })
+cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
+    }
+  })
+  
+   ## kcpAppend
+  observe({  
+    if (length(input$kcpAppend) && input$kcpAppend > 0)
+    {
+      isolate ({
+        topaste = findCmp(globals$fvsRun,input$simCont[1])
+        if (is.null(topaste)) return()
+        if (nchar(input$kcpTitle) == 0) 
+          updateTextInput(session=session, inputId="kcpTitle", 
+            value=topaste$title)
+        updateTextInput(session=session, inputId="kcpEdit", value=
+          paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
+        session$sendCustomMessage(type="refocus", "kcpEdit")
+        indx <- match(input$simCont,globals$fvsRun$simcnts)
+        if (!length(globals$kcpAppendConts)){
+          globals$kcpAppendConts[1] <- globals$fvsRun$simcnts[indx]
+          names(globals$kcpAppendConts)[1] <- names(globals$fvsRun$simcnts)[indx]
+        }else
+          globals$kcpAppendConts[(length(globals$kcpAppendConts)+1)] <- globals$fvsRun$simcnts[indx]
+          names(globals$kcpAppendConts)[length(globals$kcpAppendConts)] <- names(globals$fvsRun$simcnts)[indx]
+          # first conditional added
+        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
+            (!length(globals$opencond) || globals$opencond==0)){
+          globals$opencond <- 1
+          globals$condKeyCntr <- 0
         }
-        storeOrUpdateObject(dbGlb$prjDB,customCmps)
-        updateSelectInput(session=session, inputId="kcpSel",
-           choices=names(globals$customCmps),
-           selected=newTit)
-        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
-        updateSelectInput(session=session, inputId="simCont",
-           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+        # first conditional keyword added
+        if (length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
+          globals$condKeyCntr <- globals$condKeyCntr + 1
+          }
+        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
+            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
+          globals$opencond <- 0
+          globals$condKeyCntr <- 0
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
+          }
+        if (length(grep("^-> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))&&
+            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
+          globals$opencond <- 0
+          globals$condKeyCntr <- 0
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
+        }  
       })
     }
   })
@@ -4395,6 +4452,39 @@ cat ("kcpSaveInRun\n")
     }
   })
 
+  ## kcpSaveCmps
+  observe({
+    if (length(input$kcpSaveCmps) && input$kcpSaveCmps > 0)
+    {
+      isolate ({
+cat ("kcpSaveCmps called, kcpTitle=",input$kcpTitle," isnull=",
+is.null(input$kcpTitle),"\n")
+        if (nchar(input$kcpTitle) == 0)
+        {
+          newTit = paste0("Component ",length(globals$customCmps)+1) 
+          updateTextInput(session=session, inputId="kcpTitle", value=newTit)
+        } else newTit = trim(input$kcpTitle)
+        globals$customCmps[[newTit]] = input$kcpEdit
+        customCmps = globals$customCmps
+        skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
+        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
+        {
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(customCmps,"EndIf\n"))
+          customCmps <-as.list(paste0(customCmps,"EndIf\n"))
+          names(customCmps) <- names(globals$customCmps)
+          globals$customCmps = customCmps
+        }
+        storeOrUpdateObject(dbGlb$prjDB,customCmps)
+        updateSelectInput(session=session, inputId="kcpSel",
+           choices=names(globals$customCmps),
+           selected=newTit)
+        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+        updateSelectInput(session=session, inputId="simCont",
+           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+      })
+    }
+  })
 
   ## kcpDelete
   observe({  
@@ -4403,12 +4493,19 @@ cat ("kcpSaveInRun\n")
       isolate ({
         cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         sel = na.omit(match(trim(input$kcpSel),trim(names(globals$customCmps))))
-        if (length(sel)) globals$customCmps[[sel[1]]] = NULL 
+        if (length(sel) && input$kcpSel==input$kcpTitle) globals$customCmps[[sel[1]]] = NULL 
         if (length(globals$customCmps)) 
         {
           customCmps = globals$customCmps
           storeOrUpdateObject(dbGlb$prjDB,customCmps)
           updateSelectInput(session=session, inputId="kcpSel", choices=names(customCmps))
+          if(input$kcpSel!=input$kcpTitle){
+            sel = match(trim(input$kcpSel),trim(names(globals$customCmps)))
+            updateTextInput(session=session, inputId="kcpTitle",
+                            value=names(globals$customCmps)[sel])
+            updateTextInput(session=session, inputId="kcpEdit",
+                            value=globals$customCmps[[sel]])
+          }
         } else {
           customCmps=NULL
           removeObject(dbGlb$prjDB,"customCmps")
@@ -4416,98 +4513,6 @@ cat ("kcpSaveInRun\n")
           updateTextInput(session=session, inputId="kcpTitle", value="")
           updateTextInput(session=session, inputId="kcpEdit", value="")
         }
-      })
-    }
-  })
-
-  ## kcpNew
-  observe({  
-    if (length(input$kcpNew) && input$kcpNew > 0)
-    {
-      isolate ({
-        updateSelectInput(session=session, inputId="kcpSel", selected = 0)
-        updateTextInput(session=session, inputId="kcpTitle", value="")
-        updateTextInput(session=session, inputId="kcpEdit", value="")
-        globals$kcpAppendConts <- list()
-      })
-cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
-    }
-  })
-         
-  ## kcpUpload
-  observe({  
-    if (is.null(input$kcpUpload)) return()
-    data=scan(file=input$kcpUpload$datapath,sep="\n",what="",quiet=TRUE)
-    if (input$kcpUpload$name=="FVS_kcps.RData") data <- data[4:length(data)]
-    if (length(data)==0) return()
-    isolate ({
-      addnl = TRUE
-      if (length(globals$customCmps) == 0 && input$kcpUpload$name=="FVS_kcps.RData")
-      {
-        load(input$kcpUpload$datapath)
-        globals$customCmps = customCmps
-        addnl = FALSE
-      }
-      if (length(globals$customCmps) && !is.null(globals$customCmps)){
-        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-                          selected=names(globals$customCmps)[1])
-      }
-      updateTextInput(session=session, inputId="kcpTitle", value=
-                        paste("From:",input$kcpUpload$name))
-      if(addnl){
-        updateTextInput(session=session, inputId="kcpEdit", value=
-                          paste(data,collapse="\n"))
-      } else {
-        updateTextInput(session=session, inputId="kcpEdit", value=globals$customCmps[1])
-        save(file="FVS_kcps.RData",customCmps) 
-      }
-    })
-  })
-
-  ## kcpAppend
-  observe({  
-    if (length(input$kcpAppend) && input$kcpAppend > 0)
-    {
-      isolate ({
-        topaste = findCmp(globals$fvsRun,input$simCont[1])
-        if (is.null(topaste)) return()
-        if (nchar(input$kcpTitle) == 0) 
-          updateTextInput(session=session, inputId="kcpTitle", 
-            value=topaste$title)
-        updateTextInput(session=session, inputId="kcpEdit", value=
-          paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
-        session$sendCustomMessage(type="refocus", "kcpEdit")
-        indx <- match(input$simCont,globals$fvsRun$simcnts)
-        if (!length(globals$kcpAppendConts)){
-          globals$kcpAppendConts[1] <- globals$fvsRun$simcnts[indx]
-          names(globals$kcpAppendConts)[1] <- names(globals$fvsRun$simcnts)[indx]
-        }else
-          globals$kcpAppendConts[(length(globals$kcpAppendConts)+1)] <- globals$fvsRun$simcnts[indx]
-          names(globals$kcpAppendConts)[length(globals$kcpAppendConts)] <- names(globals$fvsRun$simcnts)[indx]
-          # first conditional added
-        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
-            (!length(globals$opencond) || globals$opencond==0)){
-          globals$opencond <- 1
-          globals$condKeyCntr <- 0
-        }
-        # first conditional keyword added
-        if (length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))){
-          globals$condKeyCntr <- globals$condKeyCntr + 1
-          }
-        if (length(grep("^-> Cnd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) &&
-            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
-          globals$opencond <- 0
-          globals$condKeyCntr <- 0
-          updateTextInput(session=session, inputId="kcpEdit", value=
-            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
-          }
-        if (length(grep("^-> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)])))&&
-            (length(globals$condKeyCntr) && globals$condKeyCntr > 0)){
-          globals$opencond <- 0
-          globals$condKeyCntr <- 0
-          updateTextInput(session=session, inputId="kcpEdit", value=
-            paste0(input$kcpEdit,"ENDIF\n","* ",topaste$title,"\n",topaste$kwds,"\n"))
-        }  
       })
     }
   })
