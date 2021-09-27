@@ -1,8 +1,7 @@
 
 //start keyword.fire.BurnRept
 
-description:
-{Request a report of the burning conditions when a fire occurs.}
+f1:{noInput Request a report of the burning conditions when a fire occurs.}
 
 //end keyword.fire.BurnRept
 
@@ -78,8 +77,7 @@ description:
 
 //start keyword.fire.CarbRept
 
-description:
-{Request the stand carbon report.}
+f1:{noInput Request the stand carbon report.}
 
 //end keyword.fire.CarbRept
 
@@ -1837,10 +1835,8 @@ FuelPool  !1,10!!2,10!}
 
 //start keyword.fire.FuelRept
 
-description:
-{Request a fuel consumption and physical effects report be generated
-when a fire occurs.}
-
+f1:{noInput Request a fuel consumption and physical effects report 
+be generated when a fire occurs.}
 
 //end keyword.fire.FuelRept
 
@@ -1998,10 +1994,8 @@ MortClas  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!}
 
 //start keyword.fire.MortRept
 
-description:
-{Request that a fire-caused tree mortality report be generated when a
-fire occurs.}
-
+f1:{noInput Request that a fire-caused tree mortality report be 
+generated when a fire occurs.}
 
 //end keyword.fire.MortRept
 
