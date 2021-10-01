@@ -142,8 +142,19 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     {
       tree$YEAR = year
       cat ("fvsRunAcadian: calling AcadianGY, year=",year,"\n")
-      tree = AcadianGYOneStand(tree,stand=stand,ops=ops)
+      tree = try(AcadianGYOneStand(tree,stand=stand,ops=ops))
+      if (class(tree)=="try-error")
+      {        
+        cat("AcadianGYOneStand failed in year=",year,"\n")
+        dmpFile=file.path(getwd(),paste0("AcadianGYOneStand.Failure.",year,".RData"))
+        cat ("dmpFile name=",dmpFile,"\n")
+        save(file=dmpFile,tree,stand,ops)
+        tree=NULL
+        break
+      }
     }
+    # if there was a failure, tree will be NULL, go on to the next stand cycle
+    if (is.null(tree)) next
     # put the PLOT variable back to a character string (defactor it).
     if (is.factor(tree$PLOT)) tree$PLOT = levels(tree$PLOT)[as.numeric(tree$PLOT)]
     # restore the order of the trees

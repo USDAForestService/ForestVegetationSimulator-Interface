@@ -2937,11 +2937,11 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
     
     if (verbose)
     {
-      cat("In RDmods, tree$RD=",tree$RD,"\n")
+      cat("In RDmods, summary(tree$RD)=",summary(tree$RD),"\n")
       cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
-      cat("in RDmods - mean(dDBH_RDMod) = ",mean(rdMod.dDBH_RDmod),"\n")
-      cat("in RDmods - mean(dHT_RDMod) = ",mean(rdMod.dHT_RDmod),"\n")
-      cat("in RDmods - mean(dMORT_RDMod) = ",mean(rdMod.dMORT_RDmod),"\n")
+      cat("in RDmods - summary(dDBH_RDMod) = ",summary(rdMod.dDBH_RDmod),"\n")
+      cat("in RDmods - summary(dHT_RDMod) = ",summary(rdMod.dHT_RDmod),"\n")
+      cat("in RDmods - summary(dMORT_RDMod) = ",summary(rdMod.dMORT_RDmod),"\n")
     }
   } else {
     rdMod.dDBH_RDmod = 1. 
@@ -3031,7 +3031,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   tree$dDBH.SBW.mod=mapply(dDBH.SBW.mod,Region=tree$Region,
     SPP=tree$SP,DBH=tree$DBH,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,
     CR=tree$CR,avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=tree$CDEF)
-
+cat("Form 1\n")
   if (! (is.null(tree$Form) || is.null(tree$Risk))) tree$dDBH.HW.mod.x=
     ifelse(is.na(tree$Form) | is.na(tree$Risk),1,mapply(dDBH.HW.mod,
       SPP=tree$SP,DBH=tree$DBH,BAL=tree$BAL,Form=tree$Form,Risk=tree$Risk)) else
@@ -3141,7 +3141,8 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = tree$pBArm, 
     BApre=tree$BApre, QMDratio=tree$QMDratio, YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
   if (verbose) cat ("mean tree$tmort.thin.mod=",mean(tree$tmort.thin.mod),"\n")
-
+cat("Form 2\n")
+browser()
   tree$tmort.HW.mod=if (!is.null(tree$Form)) ifelse(is.na(tree$Form),1,
     mapply(HW.mort.mod,SPP=tree$SP,DBH=tree$DBH,Form=tree$Form,BAL=tree$BAL,BA=tree$BAPH)) else 1
  
