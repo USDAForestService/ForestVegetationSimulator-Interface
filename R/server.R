@@ -5023,6 +5023,7 @@ cat ("length(uidsToGet)=",length(uidsToGet),"\n")
           file.exists(spatdat)) load(spatdat,envir=dbGlb)
       pts = NULL
       ptsLbs  = NULL
+      polys = NULL
       if (exists("SpatialData",envir=dbGlb,inherit=FALSE)) 
       {
         matchVar = attr(dbGlb$SpatialData,"MatchesStandID")
@@ -5030,7 +5031,6 @@ cat ("1 matchVar=",matchVar,"\n")
         # when matchVar is NULL, it means that there is a list of maps that will be searched
         # for the spatial data. If it is not null, then there is only one item, so use it.
         mapList = if (is.null(matchVar)) dbGlb$SpatialData else list(d=dbGlb$SpatialData)
-        polys = NULL
         pts = NULL
         polyLbs = NULL
         ptsLbs  = NULL
