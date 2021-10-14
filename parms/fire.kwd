@@ -32,9 +32,7 @@ CanCalc   !1,10!!2,10!!3,10!!4,10!}
 
 //start keyword.fire.CanFProf
 
-description:
-{Request that a canopy fuels profile table be generated.}
-
+f1:{noInput Request that a canopy fuels profile table be generated.}
 
 //end keyword.fire.CanFProf
 
@@ -70,8 +68,7 @@ CarbCalc  !1,10!!2,10!!3,10!!4,10!!5,10!}
 
 //start keyword.fire.CarbCut
 
-description:
-{Request the harvested products carbon report.}
+f1:{noInput Request the harvested products carbon report.}
 
 //end keyword.fire.CarbCut
 
@@ -195,16 +192,13 @@ DuffProd  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!}
 
 //start keyword.fire.DWDCvOut
 
-description:
-{Request the down wood cover report.}
-
+f1:{noInput Request the down wood cover report.}
 
 //end keyword.fire.DWDCvOut
 
 //start keyword.fire.DWDVlOut
 
-description:
-{Request the down wood volume report.}
+f1:{noInput Request the down wood volume report.}
 
 //end keyword.fire.DWDVlOut
 
@@ -1812,8 +1806,7 @@ FuelMult  !1,10!!2,10!!3,10!!4,10!}
 
 //start keyword.fire.FuelOut
 
-description:
-{Request a report of the fuels.}
+f1:{noInput Request a report of the fuels.}
 
 //end keyword.fire.FuelOut
 
@@ -2149,10 +2142,8 @@ PotFWind  !1,10!!2,10!}
 
 //start keyword.fire.PotFire
 
-description:
-{Request that a report on potential fires under nominal burn
+f1:{noInput Request that a report on potential fires under nominal burn
 conditions be generated.}
-
 
 //end keyword.fire.PotFire
 
