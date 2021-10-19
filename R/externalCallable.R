@@ -71,7 +71,8 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   FVS_GroupAddFilesAndKeywords = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
   if (class(FVS_GroupAddFilesAndKeywords) == "try-error") 
             FVS_GroupAddFilesAndKeywords = NULL
-
+  names(FVS_GroupAddFilesAndKeywords)=toupper(names(FVS_GroupAddFilesAndKeywords))
+  
   for (row in 1:nrow(fvsInit)) 
   {
     sid = fvsInit[row,toupper(sidid)]  
@@ -89,7 +90,7 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
                title=paste0("From: ",stdInit)))
 
     grps <- if (!is.null(fvsInit$GROUPS))
-      scan(text=fvsInit[row,"GROUPS"], what=" ",quiet=TRUE) else c("All All_Stands")
+      scan(text=fvsInit[row,"GROUPS"], what=" ",quiet=TRUE) else c("All","All_Stands")
     requ <- unlist(grps[grep("^All",grps)])
     have <- unlist(lapply(fvsRun$grps,function(x) 
             if (x$grp != "") x$grp else NULL))
@@ -115,7 +116,8 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
       }
       fvsRun$grps <- append(fvsRun$grps,newgrp)
     }
-    invyr <- as.numeric(fvsInit[row,"INV_YEAR"])
+    invyr <- fvsInit[row,"INV_YEAR"]
+    invyr <- if (is.null(invyr)) fvsRun$startyr else as.numeric(invyr)
     if (invyr > as.numeric(fvsRun$startyr)) fvsRun$startyr <- as.character(invyr)
     newstd$invyr <- as.character(invyr)
     have <- unlist(lapply(fvsRun$grps,function(x) 
@@ -323,9 +325,11 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
       },                                                          
       "character" = 
       {
-        title = onames[i]                                                          
+        title = onames[i] 
+        kwds = cmps[[i]]
+        if (length(kwds)>1) kwds=paste0(kwds,collapse="\n")
         if (is.null(title) || nchar(title)==0) title=paste0("Added from external source (",i,")")
-        mkfvsCmp(kwds = cmps[[i]], exten="base", title=title, kwdName="freeEdit",
+        mkfvsCmp(kwds = kwds, exten="base", title=title, kwdName="freeEdit",
          variant=substring(fvsRun$FVSpgm,4),uuid=uuidgen(),atag="k")
       }
     )  
@@ -407,10 +411,11 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
       autoEcon = "Econ", autoDM_Sz_Sum = "DM_Sz_Sum", autoRD_Sum = "RD_Sum",  
       autoRD_Det = "RD_Det", autoRD_Beetle = "RD_Beetle", autoInvStats = "InvStats",  
       autoRegen = "Regen", autoDelOTab = "KeepTextTables")
-    set=charmatch(tolower(autoOut),tolower(autoSets))
-    if (is.na(set)) warning(paste0("autoOut does not contains one or more of: ",
-                      paste0(autoSets,collapse=", "))) else
-    {                 
+    set=intersect(tolower(autoOut),tolower(autoSets))
+    if (length(set)==0) warning(paste0("autoOut does not contains one or more of: ",
+                        paste0(autoSets,collapse=", "))) else
+    { 
+      set = charmatch(set,tolower(autoSets))
       fvsRun$autoOut$autoOut=as.list(names(autoSets)[set])
       changed=TRUE
     }
@@ -854,7 +859,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   if (is.null(keyFileName)) 
   {
     keyFileName=paste0(runUUID,".key")
-    cat("keyFileName=",keyFileName," is being created.")
+    cat("keyFileName=",keyFileName," is being created.\n")
     msg=extnMakeKeyfile(runUUID=runUUID,fvsBin=fvsBin,
                     keyFileName=keyFileName,verbose=verbose)
     if(msg=="wrong active database") return("wrong active database")

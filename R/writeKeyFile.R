@@ -621,7 +621,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
-    {     
+    {    
       if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))) cmp$kwds <- kcpVetting(cmp$kwds)
       if (cmp$atag == "k" && !is.null(lastCnd))
       {
