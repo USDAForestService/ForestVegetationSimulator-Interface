@@ -604,9 +604,10 @@ FVSOnlineUI <- fixedPage(
                 modalTriggerButton("restorePrjBackupDlgBtnC", "#restorePrjBackupDlg", 
                   "Cancel"))) 
               ),
-            h4(),
-            h4("Upload existing project backup file into current project"),
-            fileInput("upZipBackup","Upload project backup zip file",width="30%"),
+            if(isLocal()) h4(),
+            if(isLocal()) h4("Upload existing project backup file into current project"),
+            if(isLocal()) fileInput("upZipBackup","Upload project backup zip file",
+                                    width="30%"),
             uiOutput("delPrjActionMsg"),
             h4("Delete entire project"),
             selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
@@ -655,7 +656,15 @@ FVSOnlineUI <- fixedPage(
                       selected = NULL, multiple = TRUE, selectize=FALSE),
                   uiOutput("stdSel"),
                   myInlineTextInput("editStandSearch", "Find stand:", value = "", size="25%"),h6(),
-                  actionButton("clearTable","Remove all rows and commit"),h6(),
+                  list(
+                    modalTriggerButton("clearTable", "#clearTableDlg", 
+                      "Remove all rows and commit"),
+                    modalDialog(id="clearTableDlg", footer=list(
+                      modalTriggerButton("clearTableDlgBtn", "#clearTableDlg", 
+                        "Yes"),
+                      tags$button(type = "button", class = "btn btn-primary", 
+                        'data-dismiss' = "modal", "Cancel")))
+                  ),h6(), 
                   actionButton("commitChanges","Commit edits or new rows")),
                 column(width=9,offset=0,
                   h6(),uiOutput("navRows"),
