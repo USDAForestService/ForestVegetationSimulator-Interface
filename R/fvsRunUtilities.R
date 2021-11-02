@@ -1156,7 +1156,6 @@ addNewRun2DB <- function(runuuid,dbcon,removeOldOutput=TRUE,verbose=TRUE)
 {
   # dbcon is the connection to the existing output database
   # runuuid is the uuid of the run that will be merged to the output database
-
   if (verbose) cat ("addNewRun2DB, runuuid=",runuuid,"\n") 
   fn = paste0(runuuid,".db")
   # breaking these two clauses allows for Windows to see that the new db has a size greater than 0
