@@ -4093,6 +4093,7 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
         globals$currentQuickPlot = globals$fvsRun$uuid
         globals$changeind <- 0
         output$contChange <- renderUI("Run")
+        updateTabsetPanel(session=session, inputId="leftPan",selected="Load")
       }
     })
   })
@@ -4304,8 +4305,7 @@ cat ("building download, ele=",ele,"\n")
         addnl = FALSE
       }
       if (length(globals$customCmps) && !is.null(globals$customCmps) && input$kcpEdit !=""){
-        updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-                          selected=names(globals$customCmps)[1])
+                updateSelectInput(session=session, inputId="kcpSel", selected = 0)
       }
       updateTextInput(session=session, inputId="kcpTitle", value=
                         paste("From:",input$kcpUpload$name))
@@ -4345,6 +4345,7 @@ cat ("kcpSel called, input$kcpSel=",input$kcpSel,"\n")
         updateTextInput(session=session, inputId="kcpTitle", value="")
         updateTextInput(session=session, inputId="kcpEdit", value="")
         globals$kcpAppendConts <- list()
+        globals$condKeyCntr <- 0
       })
 cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
     }
@@ -4466,15 +4467,15 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
-        skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
-        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
-        {
-          updateTextInput(session=session, inputId="kcpEdit", value=
-            paste0(customCmps,"EndIf\n"))
-          customCmps <-as.list(paste0(customCmps,"EndIf\n"))
-          names(customCmps) <- names(globals$customCmps)
-          globals$customCmps = customCmps
-        }
+        # skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
+        # if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
+        # {
+        #   updateTextInput(session=session, inputId="kcpEdit", value=
+        #     paste0(customCmps,"EndIf\n"))
+        #   customCmps <-as.list(paste0(customCmps,"EndIf\n"))
+        #   names(customCmps) <- names(globals$customCmps)
+        #   globals$customCmps = customCmps
+        # }
         storeOrUpdateObject(dbGlb$prjDB,customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
@@ -4491,11 +4492,37 @@ is.null(input$kcpTitle),"\n")
     if (length(input$kcpDelete) && input$kcpDelete > 0)
     {
       isolate ({
+        # if(is.null(input$kcpSel) && length(input$kcpTitle) && length(globals$customCmps)){
+        #   
+        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
+        #             selected=names(globals$customCmps)[1])
+        #   return()
+        # }
+        # if(is.null(input$kcpSel) && length(input$kcpTitle) && !length(globals$customCmps)){
+        #   
+        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
+        #             selected=names(globals$customCmps)[1])
+        #   return()
+        # }
         cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
-        sel = na.omit(match(trim(input$kcpSel),trim(names(globals$customCmps))))
-        if (length(sel) && input$kcpSel==input$kcpTitle) globals$customCmps[[sel[1]]] = NULL 
         if (length(globals$customCmps)) 
         {
+          if(is.null(input$kcpSel)){
+  
+            updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
+                      selected=names(globals$customCmps)[1])
+            return()
+          }
+          if(length(globals$customCmps)==1){
+           customCmps=NULL
+            removeObject(dbGlb$prjDB,"customCmps")
+            updateSelectInput(session=session, inputId="kcpSel", choices=list())
+            updateTextInput(session=session, inputId="kcpTitle", value="")
+            updateTextInput(session=session, inputId="kcpEdit", value="") 
+            return()
+          }
+          sel = na.omit(match(trim(input$kcpSel),trim(names(globals$customCmps))))
+          if (length(sel) && input$kcpSel==input$kcpTitle) globals$customCmps[[sel[1]]] = NULL 
           customCmps = globals$customCmps
           storeOrUpdateObject(dbGlb$prjDB,customCmps)
           updateSelectInput(session=session, inputId="kcpSel", choices=names(customCmps))
