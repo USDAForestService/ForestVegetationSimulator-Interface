@@ -7221,9 +7221,18 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
     reloadStandSelection(session,input)
   })
 
+  ## Remove all rows and commit
+  observe({
+    if(input$clearTable > 0)
+    {
+      session$sendCustomMessage(type = "dialogContentUpdate",
+        message = list(id = "clearTableDlg",
+                  message = "Are you sure you want to delete all rows from this database table?"))
+    }
+  })
   
-  observe(if (input$clearTable > 0) 
-  {
+  observe({
+    if(input$clearTableDlgBtn == 0) return()
 cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     dbExecute(dbGlb$dbIcon,paste0("delete from ",dbGlb$tblName))
     dbGlb$navsOn <- FALSE            
