@@ -1862,6 +1862,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       fg = if (is.null(fg) && !is.null(nd$vfacet)) 
            facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
     }
+    if (pltp %in% c("bar","box")) nd$Y[nd$Y==0] = NA
     p = ggplot(data=nd) + fg + labs(
           x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
           y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
