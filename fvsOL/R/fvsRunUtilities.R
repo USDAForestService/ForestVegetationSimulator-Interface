@@ -1455,9 +1455,9 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     mkSimCnts(globals$fvsRun,justGrps=isolate(input$simContType=="Just groups"))
     updateSelectInput(session=session, inputId="simCont", 
       choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-    output$contCnts <- renderUI(HTML(paste0("<b>Contents</b><br>",
-      length(globals$fvsRun$stands)," stand(s)<br>",
-      length(globals$fvsRun$grps)," group(s)")))
+    output$contCnts <- renderUI(HTML(paste0("Run contents: ",
+        length(globals$fvsRun$stands)," stand(s), ",
+        length(globals$fvsRun$grps)," group(s)")))
     updateStandTableSelection(session,input,globals)
     globals$changeind <- 1
     output$contChange <- renderText({
