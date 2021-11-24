@@ -5818,7 +5818,8 @@ cat("delete project button.")
       { 
         tabs = read.xlsx(xlsxFile=xlsxfile,sheet="GuideLinks")
         row = charmatch(toupper(tab),toupper(tabs[,1]))
-        if(!is.null(html))html = paste0(html,tabs[row,2])
+        if(!is.null(html))html = paste0(html,"<p><a href=",tabs[row,2],' target="_blank"',
+           ">Link to reference document for table <b>",tabs[row,1],"</b></a></p>")
       }
     }
     HTML(html)
