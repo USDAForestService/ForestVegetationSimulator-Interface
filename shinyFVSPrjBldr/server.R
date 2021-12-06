@@ -4,15 +4,15 @@ options(shiny.trace = F)  # change to T for trace
 
 
 shinyServer(function(input, output, session) {
-  
-  source("prjListEmail.R")
-  source("uuidgen.R")
+
   trim <- function (x) gsub("^\\s+|\\s+$","",x)
 # pop the sink stack
   while(sink.number()) sink()
   try(sink("FVSPrjBldr.log"))
   cat (date(),"\n")
-
+  cat ("cur dir=",getwd(),"\n")
+  source("prjListEmail.R")
+  source("uuidgen.R")
   observe({
     if (input$submitnew == 0) return()
     isolate({
@@ -21,11 +21,9 @@ shinyServer(function(input, output, session) {
       if (nchar(emailnew)<5 && regexpr("@",emailnew) < 2) return()
       uuid = uuidgen()
       workDir = paste0("/home/shiny/FVSwork/",uuid)
-     cat("workDir=",workDir,"\n")
-     dir.create(workDir)
-     setwd(workDir)
-     cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file="app.R")
-
+      cat("workDir=",workDir,"\n")
+      dir.create(workDir)
+      cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
       # projectId file...
 cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
@@ -33,17 +31,16 @@ cat("email=",emailnew,"\ntitle=",input$title,"\n")
       rptFile = tempfile()
       con = file(rptFile,"w")
       link = paste0("https://charcoal2.cnre.vt.edu/FVSwork/",uuid)
-      cat (file=con,"Here is a link to the project named:",input$title,"\n\n")
+      cat (file=con,"To:",emailnew,"\n")
+      cat (file=con,"Subject: New FVSOnline project at Virginia Tech\n")
+      cat (file=con,"\nHere is a link to the project named: ",input$title,"\n\n")
       cat (file=con,link,"\n\n")
       cat (file=con,"Note that this project may be removed",
            "from the system 2 months after the last access.")
       close(con)
 
-      mailCmd = paste('mailx -a "From: FVSOnline"',
-       '-a "Subject: New project: ',input$title,'"',
-       '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
-       '-a  --',emailnew,'<',rptFile)      
-cat("mailCmd=",mailCmd,"\n")
+      mailCmd = paste('ssmtp -t < ',rptFile)
+
       system (mailCmd)
       if (nchar(input$title)) 
       {
@@ -67,5 +64,6 @@ cat("mailCmd=",mailCmd,"\n")
   })
 
 })
+
 
 

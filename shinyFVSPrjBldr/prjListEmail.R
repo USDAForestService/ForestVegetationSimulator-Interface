@@ -35,11 +35,13 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
 ##The following line needs to be edited and uncommented to replace the
 ##base web address string in the substitution
   names (ids) = sub("../FVSwork",
-                    "https://forest.moscowfsl.wsu.edu/FVSwork",workDirs)
+                    "https://charcoal2.cnre.vt.edu/FVSwork",workDirs)
   
   rptFile = tempfile()
   con = file(rptFile,"w")
   
+  cat (file=con,"To:",queryEmail,"\n")
+  cat (file=con,"Subject: FVSOnline projects at Virginia Tech\n")
   cat (file=con,"\n Projects and links for Email:",queryEmail,"\n")
   nprjs = 0
   for (i in 1:length(ids))
@@ -69,13 +71,11 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
   close(con)
   
 ##Edit and uncomment the mailCmd as necessary for a given installation  
-  mailCmd = paste('mailx -a "From: FVSOnline"',
-   '-a "Subject: Active projects"',
-   '-a "Reply-To: Nicholas Crookston <ncrookston.fs@gmail.com>"',
-   '-a "Cc: ncrookston.fs@gmail.com" --',queryEmail,' < ',rptFile)
+  mailCmd = paste('ssmtp -t < ',rptFile)
   
   if (sendEmail) system (mailCmd) else system(paste("cat",rptFile))
   unlink (rptFile)
   nprjs
 }
+
 
