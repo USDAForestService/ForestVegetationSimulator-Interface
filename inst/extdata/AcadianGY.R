@@ -2721,8 +2721,9 @@ Acadian.GY=function(tree,stand,ops=NULL)
 
   
 ###Acadian growth and yield model called for one stand at time
-AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
-{             
+AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
+{
+  if (is.null(ops)) return(tree)
   verbose            = if (is.null(ops$verbose))            FALSE else ops$verbose
   INGROWTH           = if (is.null(ops$INGROWTH))           "Y"   else ops$INGROWTH
   MinDBH             = if (is.null(ops$MinDBH))             10    else ops$MinDBH
@@ -2737,9 +2738,10 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   rtnVars            = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE","SP",
    "DBH","HT","HCB","EXPF",'pHT','pHCB','Form','Risk') else ops$rtnVars
 
-  CSI      = if (is.null(stand$CSI))  12  else stand$CSI
+  CSI      = if (is.null(stand) || is.null(stand$CSI))   12 else stand$CSI
+  ELEV     = if (is.null(stand) || is.null(stand$ELEV))  350 else stand$ELEV
  
-  if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI,
+  if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI," ELEV=",ELEV,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
     " MinDBH=",MinDBH," SBW=",SBW," useDBH_RDmodifier=",useDBH_RDmodifier,
     " useHT_RDmodifier=",useHT_RDmodifier,"\n           useMORT_RDmodifier=",
@@ -2768,7 +2770,7 @@ AcadianGYOneStand <- function(tree,stand=list(CSI=12),ops)
   if (is.null(tree$Region))   tree$Region = 'ME'
   
   #set elev                                      
-  if (is.null(tree$ELEV))     tree$ELEV   = 350
+  if (is.null(tree$ELEV))     tree$ELEV   = ELEV
   
   tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
   tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
@@ -3141,8 +3143,6 @@ cat("Form 1\n")
   tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = tree$pBArm, 
     BApre=tree$BApre, QMDratio=tree$QMDratio, YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
   if (verbose) cat ("mean tree$tmort.thin.mod=",mean(tree$tmort.thin.mod),"\n")
-cat("Form 2\n")
-browser()
   tree$tmort.HW.mod=if (!is.null(tree$Form)) ifelse(is.na(tree$Form),1,
     mapply(HW.mort.mod,SPP=tree$SP,DBH=tree$DBH,Form=tree$Form,BAL=tree$BAL,BA=tree$BAPH)) else 1
  
