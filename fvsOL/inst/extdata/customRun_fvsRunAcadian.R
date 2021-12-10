@@ -92,13 +92,14 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     if (room["ntrees"] == 0) next
 
     #fetch some stand level information
-    stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
+    stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear","elev"))
     stdIds  = fvsGetStandIDs()
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
     attributes(cyclen) = NULL
     CSIin = stdInfo["site"] * FTtoM
     CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSIin)
-    cat ("fvsRunAcadian: CSIin=",CSIin," CSI (used)=",CSI,"\n")
+    ELEV  = as.numeric(stdInfo["elev"]) * FTtoM
+    cat ("fvsRunAcadian: CSIin=",CSIin," CSI (used)=",CSI," ELEV=",ELEV,"\n")
     
     #set/reset THINMOD based on pre and post event monitor variables
     if (wThinMod)
@@ -130,7 +131,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     orgtree$HT   = orgtree$HT   * FTtoM
     orgtree$EXPF = orgtree$EXPF * HAtoACR
                        
-    stand = list(CSI=CSI)
+    stand = list(CSI=CSI,ELEV=ELEV)
     ops   = list(verbose=TRUE,INGROWTH=INGROWTH,MinDBH=MinDBH, 
                  CutPoint=0.5,   # >0 uses threshold probability (>0-1).
                  mortType="continuous", #mortType="discrete", 
