@@ -462,20 +462,18 @@ parmsForm = answerForm
 
 //start Compute_SpMcDBH
 description:
-{Computes stand variables by species, tree value class, and size class using 
-the SpMcDBH function.  You must enter the name of your user-defined variable.  
-The name of your user-defined variable may not be a word that is reserved for 
-use by FVS or the Event Monitor, or contain any special characters.
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
-Note: Computed variables may be viewed in the FVS_Compute table under the 
+Computed variables may be viewed in the FVS_Compute table under the 
 View Outputs menu, or in the Activity Summary of the main output file.
-
 }
 f1title:
 {To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
 f1:{scheduleBox}
 
-f2:{longTextEdit Enter the name for your user-defined variable (< 8 characters):}
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
 f2v:{VAR1}
 
 f3:{listButton Attribute to be returned}
@@ -556,20 +554,18 @@ answerForm=parmsForm
 
 //start Compute_FuelLoad
 description:
-{Computes dead surface fuel values (tons/acre) by size class using 
-the FuelLoad function.  You must enter the name of your user-defined variable.  
-The name of your user-defined variable may not be a word that is reserved for 
-use by FVS or the Event Monitor, or contain any special characters.
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
-Note: Computed variables may be viewed in the FVS_Compute table under the 
+Computed variables may be viewed in the FVS_Compute table under the 
 View Outputs menu, or in the Activity Summary of the main output file.
-
 }
 f1title:
 {To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
 f1:{scheduleBox}
 
-f2:{longTextEdit Enter the name for your user-defined variable (< 8 characters):}
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
 f2v:{VAR1}
 
 f3:{listButtonString Lower bound of debris class range}
@@ -601,20 +597,18 @@ answerForm=parmsForm
 
 //start Compute_Snags
 description:
-{Computes snag variables by species, hard/soft, and size class using 
-the Snags function.  You must enter the name of your user-defined variable.  
-The name of your user-defined variable may not be a word that is reserved for 
-use by FVS or the Event Monitor, or contain any special characters.
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
-Note: Computed variables may be viewed in the FVS_Compute table under the 
+Computed variables may be viewed in the FVS_Compute table under the 
 View Outputs menu, or in the Activity Summary of the main output file.
-
 }
 f1title:
 {To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
 f1:{scheduleBox}
 
-f2:{longTextEdit Enter the name for your user-defined variable (< 8 characters):}
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
 f2v:{VAR1}
 
 f3:{listButtonString Attribute to be returned}
@@ -664,20 +658,18 @@ answerForm=parmsForm
 
 //start Compute_PreDefined
 description:
-{Computes stand variables using pre-defined EM variables.  You must enter the 
-name of your user-defined variable.  The name of your user-defined variable 
-may not be a word that is reserved for use by FVS or the Event Monitor, or 
-contain any special characters.
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
-Note: Computed variables may be viewed in the FVS_Compute table under the 
+Computed variables may be viewed in the FVS_Compute table under the 
 View Outputs menu, or in the Activity Summary of the main output file.
-
 }
 f1title:
 {To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
 f1:{scheduleBox}
 
-f2:{longTextEdit Enter the name for your user-defined variable (< 8 characters):}
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
 f2v:{VAR1}
 
 f3:{mkVarList Select the Pre-Defined EM variable:}
