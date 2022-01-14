@@ -463,7 +463,7 @@ parmsForm = answerForm
 //start Compute_SpMcDBH
 description:
 {The name of your user-defined variable must not be blank, cannot be longer than 
-8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
 for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
 Computed variables may be viewed in the FVS_Compute table under the 
@@ -555,7 +555,7 @@ answerForm=parmsForm
 //start Compute_FuelLoad
 description:
 {The name of your user-defined variable must not be blank, cannot be longer than 
-8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
 for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
 Computed variables may be viewed in the FVS_Compute table under the 
@@ -598,7 +598,7 @@ answerForm=parmsForm
 //start Compute_Snags
 description:
 {The name of your user-defined variable must not be blank, cannot be longer than 
-8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
 for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
 Computed variables may be viewed in the FVS_Compute table under the 
@@ -659,7 +659,7 @@ answerForm=parmsForm
 //start Compute_PreDefined
 description:
 {The name of your user-defined variable must not be blank, cannot be longer than 
-8 charachters, cannot contain any special characters, and cannot be a word that is reserved
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
 for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
 
 Computed variables may be viewed in the FVS_Compute table under the 
