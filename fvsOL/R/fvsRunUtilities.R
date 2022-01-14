@@ -1356,7 +1356,7 @@ cat ("nreps=",nreps," rwts=",rwts," (recycled as needed)\n")
     if (is.na(nreps) || is.null(nreps) || nreps < 1) nreps = 1
     for (row in 1:nrow(fvsInit))  # the selectInput list
     {
-      if (row %% 10 == 0) 
+      if (row %% 10 == 0)
       {
         msgVal = msgVal+1
         progress$set(value = msgVal)

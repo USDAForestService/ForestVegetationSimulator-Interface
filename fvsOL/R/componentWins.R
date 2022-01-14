@@ -156,17 +156,17 @@ Compute_PreDefined <- function(title, prms, globals, input, output)
       h5("To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box."),
       mkScheduleBox("f1",prms,NULL,globals,input,output),
       myInlineTextInput("f2",
-       "Enter the name for your user-defined variable (< 8 characters)",
+       "Enter the name for your user-defined variable (see note below for rules)",
        globals$currentCmdDefs["f2"]),
       myInlineListButton ("f3", "Pick Event Monitor Variable", mkVarList(globals), 
         selected=globals$currentCmdDefs["f3"], deltll=2)),
     list(br(),p(paste(
-      "Computes stand variables using pre-defined EM variables. You must enter the",
-      "name of your user-defined variable. The name of your user-defined variable", 
-      "may not be a word that is reserved for use by FVS or the Event Monitor, or", 
-      "contain any special characters.")),
+      "Description:",
+      "The name of your user-defined variable must not be blank, cannot be longer than ",
+      "8 characters, cannot contain any special characters, and cannot be a word that is reserved",
+      "for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).")),
       p(paste(
-      "Note: Computed variables may be viewed in the FVS_Compute table under the",
+      "Computed variables may be viewed in the FVS_Compute table under the",
       "View Outputs menu, or in the Activity Summary of the main output file."))))  
   ans  
 }

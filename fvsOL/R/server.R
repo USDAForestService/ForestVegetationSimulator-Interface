@@ -106,7 +106,8 @@ mkGlobals <- setRefClass("globals",
     settingChoices="list",exploreChoices="list",simLvl="list",stdLvl="list",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
-    explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical")) 
+    explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical",
+    tableMessage="logical")) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -418,8 +419,10 @@ cat ("exit now\n")
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
     {
       globals$selAllVars=FALSE
+      globals$tableMessage=FALSE
 cat ("View Outputs & Load\n")
       initTableGraphTools(globals,session,output,fvsOutData)
+      output$table <- renderTable(NULL)
       tbs <- myListTables(dbGlb$dbOcon)     
       if (length(tbs) > 0 && !is.na(match("FVS_Cases",tbs)))
       {
@@ -708,9 +711,17 @@ cat ("tbs6=",tbs,"\n")
           tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
         }
         globals$tbsFinal <- tbsFinal
-        updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
+        if(is.null(input$selectdbtables)){
+          updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected="FVS_Cases")
-                          
+        } else if(globals$tableMessage) {
+          updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
+                          selected=input$selectdbtables[1])
+          globals$tableMessage=FALSE
+        } else {
+          updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
+                          selected=input$selectdbtables)
+        }
         setProgress(value = NULL)
       }, min=1, max=6)
     } else
@@ -752,14 +763,15 @@ cat("selectdbtables\n")
       # Throw up warning, then have first table selection in level that threw error remain selected
       while(length(tables)>1)
       {
-        if(length(tables)>1 && "FVS_Cases" %in% tables) break
-        if(length(tables)>1 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
-        if(length(tables)>1 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
+        if(length(tables)==2 && "FVS_Cases" %in% tables) break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
+        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("This composite table combination in not allowed"))
           tables <- tables[1]
+          globals$tableMessage=TRUE
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -767,6 +779,7 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Stand-level tables can only be combined with other stand-level tables"))
           tables <- tables[1]
+          globals$tableMessage=TRUE
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -774,6 +787,7 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
                message = paste0("Species-level tables can only be combined with other species-level tables"))
           tables <- tables[1]
+          globals$tableMessage=TRUE    
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -782,6 +796,7 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("DBH-class tables cannot be combined with any other tables"))
           tables <- tables[1]
+          globals$tableMessage=TRUE
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -790,6 +805,7 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("HT-class tables cannot be combined with any other tables"))
           tables <- tables[1]
+          globals$tableMessage=TRUE
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -798,6 +814,7 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Tree-level tables cannot be combined with any other tables"))
           tables <- tables[1]
+          globals$tableMessage=TRUE
           updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
                           selected=tables)
         }
@@ -805,14 +822,13 @@ cat("selectdbtables\n")
       }
       vars = lapply(tables,function (tb,dbd) paste0(tb,".",dbd[[tb]]),fvsOutData$dbLoadData)
       vars = unlist(vars)
-
       if (length(vars) == 0) return()
       fvsOutData$dbVars    <- vars
       fvsOutData$dbSelVars <- vars     
       updateSelectInput(session=session, "selectdbvars",choices=as.list(vars), 
                         selected=vars)
       output$tbSel <-renderUI({
-        HTML(input$selectdbtables)
+        HTML(tables)
       })
     }
   })
@@ -1042,6 +1058,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
       if (length(fvsOutData$dbSelVars) == 0) 
       {
        initTableGraphTools(globals,session,output,fvsOutData)
+       output$table <- renderTable(NULL)
        return()
       }
       withProgress(session, 
@@ -2824,7 +2841,6 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
         len = nchar(input[[textarea]])
 cat ("insertStringIntoFocusedTextarea textarea=",textarea," string=",string," start=",start," end=",end," len=",len,"\n")
         if (nchar(string) == 0) return()
-# browser()
         if (start == end && end == len) {         # prepend 
           updateTextInput(session, textarea, value = paste0(input[[textarea]],string))
         } else if (start == 0 && end == start) {  # append
@@ -4211,7 +4227,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
     
   ## DownLoad
   output$dlFVSRunout <- downloadHandler(
-      filename=paste0(globals$fvsRun$title,"_FVSoutput.txt"),
+      filename=function() paste0(globals$fvsRun$title,"_FVSoutput.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".out")
@@ -4224,7 +4240,7 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
       }, contentType="text")
   ## Download keywords
   output$dlFVSRunkey <- downloadHandler(
-      filename=paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
+      filename=function()paste0(globals$fvsRun$title,"_FVSkeywords.txt"),
       content=function (tf = tempfile())
       {
         sfile = paste0(input$runSel,".key")

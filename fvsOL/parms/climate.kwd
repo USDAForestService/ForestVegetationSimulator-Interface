@@ -41,9 +41,7 @@ parmsForm = answerForm
 
 //start keyword.climate.ClimRept
 
-description: 
-
-{Generates the Climate-FVS output report}
+f1:{noInput Generates the Climate-FVS output report.}
 
 //end keyword.climate.ClimRept
 

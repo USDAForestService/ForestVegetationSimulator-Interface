@@ -655,7 +655,7 @@ FVSOnlineUI <- fixedPage(
                       choices  = list(), size=10,
                       selected = NULL, multiple = TRUE, selectize=FALSE),
                   uiOutput("stdSel"),
-                  myInlineTextInput("editStandSearch", "Find stand:", value = "", size="25%"),h6(),
+                  myInlineTextInput("editStandSearch", "Find stand (ID):", value = "", size="25%"),h6(),
                   list(
                     modalTriggerButton("clearTable", "#clearTableDlg", 
                       "Remove all rows and commit"),
