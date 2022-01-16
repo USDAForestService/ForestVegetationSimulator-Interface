@@ -1,0 +1,127 @@
+
+//start mgmtCategories
+
+! Every category has a PKey for category c1...cN.  None can be
+! missing.  An ATList may be specified where the list contains
+! variants.
+
+! Within a category, the PString defines, as line 1, the category
+! title.  The rest of the lines define the actions within the
+! category.  The action lines have the following format:
+! ActionName; RequiredExtension NameOfSupposeMethod
+! furthermore, when the NameOfSupposeMethod is GPSB, a additional
+! field defines the name of the MSText section used by the GPSB
+! to define the actions screen.
+
+c1:{\
+Planting & Natural Regeneration
+Plant/Natural with Full Estab Model; estb PlantNaturalFullWin
+Plant/Natural with Partial Estab Model; strp PlantNaturalPartialWin}
+
+c2:{\
+Regeneration Methods: Even-aged
+Clearcut/Coppice; base ClearcutWin
+Seedtree; base SeedTreeWin
+Shelterwood; base ShelterwoodWin
+}
+
+c3:{\
+Regeneration Methods: Uneven-aged
+Any residual distribution
+Sample point group selection
+Single tree selection
+Thin to a Q-factor; base GPSB uneven-aged_Q
+Group Selection, Distance-independent; base GPSB uneven-aged_grp_select
+}
+
+c4:{\
+Thinning & Pruning Operations
+Thin from below; base ThinFromBelowWin
+Thin from above; base ThinFromAboveWin
+Thin throughout a diameter range; base GPSB ThinThroughout
+Thin points; base GPSB ThinPoints
+Thin individually "marked" trees; base GPSB ThinInd 
+Thin from a specific height range; base GPSB keyword.base.ThinHt
+Thin from below w/ species retention; base GPSB species_retention
+Thin dwarf mistltoe infected trees; base GPSB keyword.base.ThinMist
+Thin to a residual percent canopy cover; base GPSB keyword.base.ThinCC
+Thin to a residual stand density index; base GPSB keyword.base.ThinSDI
+Thin to a residual relative density (Curtis' RD); base GPSB keyword.base.ThinRDen
+Thin to a residual relative density (Silvah RD); base GPSB keyword.base.ThinRDSL
+Mechanical thinning; base GPSB MechThin
+Prune; base GPSB keyword.base.Prune
+}
+
+c5:{\
+Cleaning & Release Operations
+Cut dwarf mistletoe infected trees; base GPSB keyword.base.ThinMist
+Clean or release by cutting; base GPSB Release
+Clean or release by girdling/chemical treatment; base GPSB Girdling}
+
+!c6:{\
+!Traditional FVS Thinning Operations
+!Thin from above, basal area target; base GPSB keyword.base.ThinABA
+!Thin from below, basal area target; base GPSB keyword.base.ThinBBA
+!Thin from above, trees per acre target; base GPSB keyword.base.ThinATA
+!Thin from below, trees per acre target; base GPSB keyword.base.ThinBTA
+!Thin from a specific diameter range; base GPSB keyword.base.ThinDBH
+!Thin from a specific height range; base GPSB keyword.base.ThinHt
+!Thin individually "marked" trees; base GPSB keyword.base.ThinPRSC
+!Thin dwarf mistltoe infected trees; base GPSB keyword.base.ThinMist
+!Thin to a residual relative density (Curtis' RD); base GPSB keyword.base.ThinRDen
+!Thin to a residual stand density index; base GPSB keyword.base.ThinSDI
+!Thin to a residual percent canopy cover; base GPSB keyword.base.ThinCC}
+
+c6:{\
+Tree Removal Preference
+Exclude or include a species from harvest; base GPSB keyword.base.SpLeave
+Removal pref by tree value classes; base GPSB keyword.base.TCondMLT
+Removal pref by species; base GPSB keyword.base.SpecPref
+Removal pref by mistletoe rating; mist GPSB keyword.mist.MistPref}
+
+c7:{\
+Biomass Removal and Retention
+Basic: Manage logging slash; base GPSB yardloss_options
+Advanced: Full set of yarding options; base GPSB keyword.base.YardLoss}
+
+c8:{\
+Fuel Treatments
+Thin from below; base GPSB ffe_thin
+Thin a species across a dbh range; base GPSB fueltrt_thindbh
+Thin with fuel piled and burned; base&fire GPSB thin_pileburn_new
+Mastication; base&fire GPSB mastication
+Prescribed burn; fire GPSB ffe_rxburn
+Pile burn surface fuel; base&fire GPSB pileBurn_options}
+
+c9:{\
+Salvage Operations
+Cut dead trees; fire GPSB salvage_options}
+
+c10:{\
+Identify Groups
+Species to target; base GPSB CutGroup
+General species group; base GPSB GenGroup
+Create a group of points; base GPSB keyword.base.PointGrp}
+
+c11:{\
+Regeneration
+Site preparation; estb
+Planting; estb
+Natural; estb
+Site preparation; strp
+Planting; strp
+Natural; strp}
+
+c12:{\
+Fertilizer
+Fertilize; base GPSB keyword.base.Fertiliz}
+
+c13:{\
+Disease Management
+Thin dwarf mistltoe infected trees; base GPSB keyword.base.ThinMist
+Push stumps (Western Root Disease); armwrd3 GPSB keyword.armwrd3.PStump
+Borax stumps (Western Root Disease); ardwrd3 GPSB keyword.ardwrd3.Borate
+}
+
+//end mgmtCategories
+

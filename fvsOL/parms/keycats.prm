@@ -1,0 +1,26 @@
+
+//start keyword_categories
+
+! The category abbreviation is the PKey and the PString
+! category description.
+
+! Category     Description
+! ---------    -------------------------
+ calib:       {Model Calibration Control}
+ canopy:      {Canopy Options}
+ control:     {Program Control}
+ outbreak:    {Outbreak Scheduling}
+ inventory:   {Inventory of Trees, Plots, & Stands}
+ io:          {Input/Output Controls}
+ modifier:    {Modify Predictions}
+ regen:       {Regeneration Establishment}
+ silv:        {Silviculture}
+ mgmt:        {Management Actions}
+ otherAgent:  {Other Agents}
+ stdtre:      {Stand and Tree Information}
+ thin:        {Thinning and Harvesting}
+ understory:  {Understory Options}
+ vol:         {Volume Calculation Controls}
+ 
+//end keyword_categories
+

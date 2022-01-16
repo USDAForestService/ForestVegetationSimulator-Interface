@@ -1,0 +1,266 @@
+
+//start conditions_list
+
+culmination:{Culmination of mean annual increment} 
+gtnormal:{Stocking above percentage of normal} 
+ltnormal:{Stocking under percentage of normal} 
+sigRemoval:{After "significant" harvesting/thinning} 
+removal:{After any harvesting/thinning} 
+periodic:{Every cycle, every even cycle, ...} 
+periodicoffset:{Periodically starting in cycle X}
+periodicyrs:{Periodically starting in year} 
+cycle1:{Only true in cycle 1} 
+relden:{Specified Relative Density is exceeded} 
+sdiexc:{Specified SDI (Reineke) is exceeded} 
+sdi2exc:{Specified SDI (Zeide) is exceeded} 
+ageexc:{Age is in a specified range} 
+baexc:{Specified Basal Area is exceeded}
+
+//end   conditions_list
+
+//start condition.culmination
+
+description:
+{Culmination of mean annual increment is detected when the periodic
+annual increment falls below the mean annual increment.  This
+condition can be adjusted specifying a percentage of mean annual
+increment.  Note that periodic and mean annual increment are both
+measured in total cubic volume.}
+
+
+f1title:
+{Periodic annual increment must be below a percentage of
+mean annual increment.}
+f1:{sliderBox Percent of mean annual increment}
+f1v:{100 50 150 50 150}
+
+waitYears:50
+
+answerForm:{PAI lt (!1,5!*.01)*MAI}
+
+//end  condition.culmination
+
+
+//start condition.gtnormal
+
+description:
+{Normal stocking (Western White Pine, Haig 1932) is computed as a function of 
+DBH.  This rule detects when current stocking is GREATER THAN a percentage 
+of normal.  You specify the percentage.}
+
+f1:{sliderBox Percent of normal stocking}
+f1v:{65 0 100 0 100}
+
+waitYears:50
+
+answerForm:{BTPA gt (!1,6!*.01)*(25000*((BADBH+1.)**(-1.588)))}
+
+//end  condition.gtnormal
+
+
+//start condition.ltnormal
+
+description:
+{Normal stocking (Western White Pine, Haig 1932)is computed as a function of
+DBH.  This rule detects when current stocking is LESS THAN a percentage 
+of normal.  You specify the percentage.}
+
+f1:{sliderBox Percent of normal stocking}
+f1v:{65 0 100 0 100}
+
+waitYears:50
+
+answerForm:{BTPA lt (!1,6!*.01)*(25000*((BADBH+1.)**(-1.588)))}
+
+//end condition.ltnormal
+
+
+//start condition.sigRemoval
+
+description:
+{A "significant" removal is when over a percentage of trees, basal area,
+or other unit of trees have been removed.  You specify the units of measure
+and the percentage that must be removed to make a removal "significant".}
+
+f1title:
+{Specify the units of measure to which the percentage is applied.}
+f1:{listButton Units of measure:}
+f1v:
+{Trees
+>Basal area
+ Total cubic volume
+ Merch cubic volume
+ Board feet}
+
+f2:{sliderBox Percent removed}
+f2v:{30 0 100 0 100}
+
+answerForm:{!1,,afterVars! lt (1.-(!2,6!*.01)) * !1,,beforeVars!}
+beforeVars:{BTPA BBA BTCuFt BMCuFt BBdFt}
+afterVars: {ATPA ABA ATCuFt AMCuFt ABdFt}
+
+waitYears:0
+
+//end  condition.sigRemoval
+
+//start condition.removal
+
+f1title:
+{If there are ANY trees removed through harvesting or 
+thinning, then this rule fires.}
+f1:{noInput This rule can not be adjusted.}
+
+answerForm:{Cut eq Yes}
+
+//end  condition.removal
+
+//start condition.cycle1
+
+description:
+{The condition is true in first cycle only.}
+
+f1:{noInput The condition is true in first cycle only.}
+
+answerForm:{cycle eq 1}
+
+waitYears:1000
+
+//end condition.cycle1
+
+
+//start condition.periodic
+
+description:
+{The condition is true every cycle, every second cycle, every
+third cycle, every fourth cycle, or every fifth cycle.  The condition
+is computed by taking a modulus of the cycle number.}
+
+f1:{listButtonString The modulus of cycle number:}
+f1v:
+{1 = every cycle
+>2 = every even cycle
+ 3 = every 3rd cycle
+ 4 = every 4th cycle
+ 5 = every 5th cycle}
+
+answerForm:{mod(cycle,!1!) eq 0}
+
+waitYears:0
+
+//end  condition.periodic
+
+//start condition.periodicoffset
+
+description:
+{Starting in a specified cycle, the condition is true every cycle,
+every second cycle, etc., thereafter.  The condition is computed by
+taking a modulus of the cycle number.}
+
+f1:{numberBox Beginning cycle:}
+f1v:{1}
+
+f2:{listButtonString The modulus of cycle number:}
+f2v:
+{>1 = every cycle
+ 2 = every 2nd cycle
+ 3 = every 3rd cycle
+ 4 = every 4th cycle
+ 5 = every 5th cycle}
+
+answerForm:{cycle ge !1! and mod(cycle-!1!,!2!) eq 0}
+
+waitYears:0
+
+//end  condition.periodicoffset
+
+//start condition.periodicyrs
+
+description:
+{Starting in a specified year, the condition is true every X years
+Use the box below "Years before Condition can be tested to be found true"
+to set the interval.}
+
+f1:{numberBox Beginning year:}
+f1v:{0}
+
+answerForm:{year ge !1!}
+
+waitYears:20
+
+//end  condition.periodicyrs
+
+//start condition.relden
+
+description:
+{Relative Density is the basal area of the stand divided by the square root
+of the quadratic mean diameter of the stand.  The condition is triggered
+when the specified Relative Density is exceeded.}
+
+f1:{sliderBox Relative Density }
+f1v:{0 0 150 0 100}
+
+answerForm:{brden gt !1,6!}
+
+waitYears:50
+
+//end condition.relden
+
+//start condition.sdiexc
+
+description:
+{This schedules the event when SDI (Reineke calculation) has exceeded specified level.}
+
+f1:{sliderBox Stand Density Index Level}
+f1v:{0 0 800 0 500}
+
+answerForm:{bsdi gt !1,6!}
+
+waitYears:50
+
+//end condition.sdiexc
+
+//start condition.sdi2exc
+
+description:
+{This schedules the event when SDI (Zeide calculation) has exceeded specified level.}
+
+f1:{sliderBox Stand Density Index Level}
+f1v:{0 0 800 0 500}
+
+answerForm:{bsdi2 gt !1,6!}
+
+waitYears:50
+
+//end condition.sdi2exc
+
+//start condition.ageexc
+
+description:
+{This schedules the event when the stand age is in a specified range.}
+
+f1:{sliderBox Minimum Age}
+f1v:{0 0 500 0 500}
+
+f2:{sliderBox Maximum Age}
+f2v:{0 0 500 0 500}
+
+answerForm:{age ge !1,6! and age lt !2,6!}
+
+waitYears:0
+
+//end condition.ageexc
+
+//start condition.baexc
+
+description:
+{This schedules the event when the basal area exceeds a specified level.}
+
+f1:{sliderBox Basal Area}
+f1v:{0 0 500 0 500}
+
+answerForm:{bba gt !1,6!}
+
+waitYears:50
+
+//end condition.baexc
+
