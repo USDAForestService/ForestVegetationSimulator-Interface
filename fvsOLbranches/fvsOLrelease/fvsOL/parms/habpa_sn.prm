@@ -1,0 +1,326 @@
+
+//start HabPa_sn
+
+{blank}:{}
+  221Db:{221Db,Piedmont Upland}
+  221Dd:{221Dd,Triassic Basins}
+  221De:{221De,Northern Piedmont}
+  221Eb:{221Eb,Teays Plateau}
+  221Eg:{221Eg,Lower Scioto River Plateau}
+  221Ej:{221Ej,Eastern  Knobs Transition}
+  221En:{221En,Kinniconick and Licking Knobs}
+  221Ha:{221Ha,Rugged Eastern Hills}
+  221Hb:{221Hb,Kinniconick and Licking Knobs}
+  221Hc:{221Hc,Southwestern Escarpment}
+  221Hd:{221Hd,Sequatchie Valley}
+  221He:{221He,Miami-Scioto Plain-Tipton Till Plain}
+  221Ja:{221Ja,Rolling Limestone Hills}
+  221Jb:{221Jb,Sandstone Hills}
+  221Jc:{221Jc,Holston Valley}
+  222Ab:{222Ab,Central Plateau}
+  222Ag:{222Ag,White River Hills}
+  222Ah:{222Ah,Elk River Hills}
+  222Al:{222Al,Black River Ozark Border}
+  222Am:{222Am,Springfield Plain}
+  222An:{222An,Springfield Plateau}
+  222Cb:{222Cb,Northern Deep Loess Hills and Bluffs}
+  222Cc:{222Cc,Deep Loess Hills and Bluffs}
+  222Cd:{222Cd,Clay Hills}
+  222Ce:{222Ce,Northern Loessial Hills}
+  222Cf:{222Cf,Northern Pontotoc Ridge}
+  222Cg:{222Cg,Upper Loam Hills}
+  222Ch:{222Ch,Ohio and Cache River Alluvial Plain}
+  222Da:{222Da,Interior Western Coalfields}
+  222Db:{222Db,Lower Ohio-Cache-Wabash Alluvial plains}
+  222Dc:{222Dc,Outer Western Coalfields}
+  222Dd:{222Dd,Marion Hills}
+  222De:{222De,Crawford Uplands}
+  222Dg:{222Dg,Southern Dripping Springs}
+  222Di:{222Di,Lesser Shawnee Hills}
+  222Dj:{222Dj,Northern Dripping Springs}
+  222Ea:{222Ea,Eastern Highland Rim}
+  222Eb:{222Eb,Eastern Karst Plain}
+  222Ec:{222Ec,Outer Nashville Basin}
+  222Ed:{222Ed,Inner Nashville Basin}
+  222Ee:{222Ee,Highland Rim-Hilly and Rolling}
+  222Ef:{222Ef,Tennessee-Gasper Valley}
+  222Eg:{222Eg,Western Pennyroyal Karst Plain}
+  222Eh:{222Eh,Penneroyal Karst Plain}
+  222Ei:{222Ei,Western Knobs}
+  222Ej:{222Ej,Eastern  Knobs Transition}
+  222Ek:{222Ek,Mitchell Karst Plains}
+  222En:{222En,Kinniconick and Licking Knobs}
+  222Eo:{222Eo,The Cliffs}
+  222Fa:{222Fa,Outer Bluegrass}
+  222Fb:{222Fb,Inner Bluegrass}
+  222Fc:{222Fc,Western Bluegrass}
+  222Fd:{222Fd,Northern Bluegrass}
+  222Ff:{222Ff,Scottsburg Lowland}
+  223Ab:{223Ab,Central Plateau}
+  223Ag:{223Ag,White River Hills}
+  223Ah:{223Ah,Elk River Hills}
+  223Am:{223Am,Springfield Plain}
+  223An:{223An,Springfield Plateau}
+  223Bb:{223Bb,Brush Creek Hills}
+  223Bc:{223Bc,Mitchell Karst Plains}
+  223Bd:{223Bd,Western Knobs}
+  223Da:{223Da,Interior Western Coalfields}
+  223Db:{223Db,Lower Ohio-Cache-Wabash Alluvial Plains}
+  223Dc:{223Dc,Outer Western Coalfields}
+  223Dd:{223Dd,Marion Hills}
+  223De:{223De,Crawford Uplands}
+  223Dg:{223Dg,Southern Dripping Springs}
+  223Di:{223Di,Lesser Shawnee Hills}
+  223Dj:{223Dj,Northern Dripping Springs}
+  223Ea:{223Ea,Eastern Highland Rim}
+  223Eb:{223Eb,Eastern Karst Plain}
+  223Ec:{223Ec,Outer Nashville Basin}
+  223Ed:{223Ed,Inner Nashville Basin}
+  223Ee:{223Ee,Highland Rim-Hilly and Rolling}
+  223Ef:{223Ef,Tennessee-Gasper Valley}
+  223Eg:{223Eg,Western Pennyroyal Karst Plain}
+  223Eh:{223Eh,Pennyroyal Karst Plain}
+  223Fa:{223Fa,Outer Bluegrass}
+  223Fb:{223Fb,Inner Bluegrass}
+  223Fc:{223Fc,Western Bluegrass}
+  223Fd:{223Fd,Northern Bluegrass}
+  223Ff:{223Ff,Scottsburg Lowland}
+  231Aa:{231Aa,Midland Plateau Central Uplands}
+  231Ab:{231Ab,Piedmont Ridge}
+  231Ac:{231Ac,Schist Plains}
+  231Ad:{231Ad,Lower Foot Hills}
+  231Ae:{231Ae,Charlotte Belt}
+  231Af:{231Af,Carolina Slate}
+  231Ag:{231Ag,Schist Hills}
+  231Ah:{231Ah,Granite Hills}
+  231Ai:{231Ai,Opelika Plateau}
+  231Aj:{231Aj,Mica Rich Plateau}
+  231Ak:{231Ak,Lynchburg Belt}
+  231Al:{231Al,Northern Piedmont}
+  231Am:{231Am,Triassic Uplands}
+  231An:{231An,Western Coastal Plain-Piedmont Transition}
+  231Ao:{231Ao,Southern Triassic Uplands}
+  231Ap:{231Ap,Triassic Basins}
+  231Ba:{231Ba,Black Belt}
+  231Bb:{231Bb,Interior Flatwoods}
+  231Bc:{231Bc,Upper Clay Hills}
+  231Bd:{231Bd,Upper Loam Hills}
+  231Be:{231Be,Transition Loam Hills}
+  231Bf:{231Bf,Floodplains and Terraces}
+  231Bg:{231Bg,Northern Loessial Hills}
+  231Bh:{231Bh,Deep Loess Hills and Bluffs}
+  231Bi:{231Bi,Deep Loess Plains}
+  231Bj:{231Bj,Jackson Hills}
+  231Bk:{231Bk,Northern or Southern Pontotoc Ridge}
+  231Bl:{231Bl,Jackson Prairie}
+  231Ca:{231Ca,Shale Hills and Mountain}
+  231Cb:{231Cb,Sandstone Plateau}
+  231Cc:{231Cc,Table Plateau}
+  231Cd:{231Cd,Sandstone Mountain}
+  231Ce:{231Ce,Moulton Valley}
+  231Cf:{231Cf,Southern Cumberland Valleys}
+  231Cg:{231Cg,Sequatchie Valley}
+  231Da:{231Da,Chert Valley}
+  231Db:{231Db,Sandstone-Shale and Chert Ridge}
+  231Dc:{231Dc,Sandstone Ridge}
+  231Dd:{231Dd,Quartzite and Talladega Slate Ridge}
+  231De:{231De,Shaley Limestone Valley}
+  231Ea:{231Ea,South Central Arkansas}
+  231Eb:{231Eb,Southwestern Arkansas}
+  231Ec:{231Ec,Ouachita Alluvial Valleys}
+  231Ed:{231Ed,Sabine Alluvial Valley}
+  231Ee:{231Ee,Southern Oklahoma Subsection}
+  231Ef:{231Ef,Piney Woods Transition}
+  231Eg:{231Eg,Sand Hills}
+  231Eh:{231Eh,Southern Loam Hills}
+  231Ei:{231Ei,Southwest Flatwoods}
+  231Ej:{231Ej,South Central Arkansas Flatwoods}
+  231Ek:{231Ek,Southwestern Arkansas Blackland Prairies}
+  231El:{231El,Trinity Alluvial Valley}
+  231Em:{231Em,Red River Alluvial Plain}
+  231En:{231En,East Texas Timberlands-Cross Timbers}
+  231Eo:{231Eo,Red River Alluvial Plain}
+  231Fa:{231Fa,Gulf Coast Praries}
+  231Fb:{231Fb,Marshes and Inland Bays}
+  231Ga:{231Ga,Eastern Arkansas Valley and Ridges}
+  231Gb:{231Gb,Mount Magazine}
+  231Gc:{231Gc,Western Arkansas Valley and Ridges}
+  231Ha:{231Ha,Deep Loess Hills and Bluffs}
+  231Hb:{231Hb,Northern Loessial Hills}
+  231Hc:{231Hc,Deep Loess Plains}
+  231Hd:{231Hd,Clay Hills}
+  231He:{231He,Northern Deep Loess Hills and Bluffs}
+  231Hf:{231Hf,Ohio and Cache River Alluvial Plain}
+  231Hh:{231Hh,Southern Loessial Plains}
+  231Hi:{231Hi,Delmarva Upland}
+  231Ia:{231Ia,Midland Plateau Central Uplands-North}
+  231Ib:{231Ib,Lynchburg Belt}
+  231Ic:{231Ic,Charlotte Belt-North}
+  231Id:{231Id,Carolina Slate-North}
+  231Ie:{231Ie,Southern Triassic Uplands}
+  231If:{231If,Western Coastal Plain-Piedmont Transition}
+  231Ig:{231Ig,Triassic Uplands}
+  232Ad:{232Ad,Western Chesapeake Uplands}
+  232Ba:{232Ba,Fragipan Loam Hills}
+  232Bb:{232Bb,Southern Loessial Plains}
+  232Bc:{232Bc,Cintronelle Plains}
+  232Bd:{232Bd,Southern Deep Loess Hills and Bluffs}
+  232Be:{232Be,Florida Northern Highlands}
+  232Bf:{232Bf,Florida Central Highlands}
+  232Bg:{232Bg,South Coastal Plains}
+  232Bh:{232Bh,Gulf Southern Loam Hills}
+  232Bi:{232Bi,The Plains}
+  232Bj:{232Bj,Southern Loam Hills}
+  232Bk:{232Bk,Southern Clay Hills}
+  232Bl:{232Bl,Lower Loam and Clay Hills}
+  232Bm:{232Bm,Lower Clay Hills}
+  232Bn:{232Bn,Lower Loam Hills}
+  232Bo:{232Bo,Border Sand Hills}
+  232Bp:{232Bp,Wiregrass Plains}
+  232Bq:{232Bq,Sand Hills}
+  232Br:{232Br,Atlantic Southern Loam Hills}
+  232Bs:{232Bs,Floodplains and Terraces}
+  232Bt:{232Bt,Delmarva Uplands}
+  232Bu:{232Bu,Southwestern Loam Hills}
+  232Bv:{232Bv,Northern Loam Plains}
+  232Bx:{232Bx,Eastern Chesapeake Lowland}
+  232Bz:{232Bz,Delmarva Outer Coastal Plain, Bays, and Islands}
+  232Ca:{232Ca,Upper Terraces}
+  232Cb:{232Cb,Lower Terraces}
+  232Cc:{232Cc,Okefenokee Uplands}
+  232Cd:{232Cd,Okefenokee Swamp}
+  232Ce:{232Ce,Coastal Marsh and Island}
+  232Cf:{232Cf,Bacon Terraces}
+  232Cg:{232Cg,Flatwoods Floodplains and Terraces}
+  232Ch:{232Ch,Tidal Area}
+  232Ci:{232Ci,Pamlico and Albemarle Sounds and Barrier Islands}
+  232Cj:{232Cj,Chesapeake Bay}
+  232Da:{232Da,Immokalee Rise}
+  232Db:{232Db,Gulf Coastal Lowlands}
+  232Dc:{232Dc,Gulf Coast Flatwoods-Bays and Barrier Islands}
+  232Dd:{232Dd,Mobile Bay, Sounds and Islands}
+  232De:{232De,Florida Gulf Coastal Bays and Islands}
+  232Ea:{232Ea,Gulf Coast Prairies}
+  232Eb:{232Eb,LA-TX Gulf Coast Marshes and Inland Bays}
+  232Ec:{232Ec,Lake Ponchartrain}
+  232Ed:{232Ed,Gulf Coast Bays and Islands}
+  232Ee:{232Ee,Lake Borgne, Sounds and Islands}
+  232Ef:{232Ef,LA Gulf Coast Marshes and Inland Bays}
+  232Fa:{232Fa,Southern Loam Hills}
+  232Fb:{232Fb,Southwest Flatwoods}
+  232Fc:{232Fc,Sabine Alluvial Valley}
+  232Fd:{232Fd,Neches Alluvial Valley}
+  232Fe:{232Fe,Piney Woods Transition}
+  232Ff:{232Ff,Red River Alluvial Plain}
+  232Ga:{232Ga,Eastern Beach and Lagoons}
+  232Gb:{232Gb,Eastern Beach and Dunes}
+  232Gc:{232Gc,Okeechobee Plain}
+  232Gd:{232Gd,Kissimmee River}
+  232Ha:{232Ha,Atlantic Southern Loam Hills}
+  232Hb:{232Hb,Eastern Chesapeake Lowland}
+  232Hc:{232Hc,Delmarva Outer Coastal Plain Bays and Islands}
+  232Ia:{232Ia,Lower Terraces}
+  232Ib:{232Ib,Tidal Area}
+  232Ja:{232Ja,Sand Hills}
+  232Jb:{232Jb,Northern Loam Plains}
+  232Jc:{232Jc,Southwestern Loam Hills}
+  232Jd:{232Jd,Lower Loam Hills}
+  232Je:{232Je,Atlantic Southern Loam Hills}
+  232Jf:{232Jf,Gulf Southern Loam Hills}
+  232Jg:{232Jg,Floodplains and Terraces}
+  232Ka:{232Ka,Florida Northern Highlands}
+  232Kb:{232Kb,Florida Central Highlands}
+  232La:{232La,LA-MS Gulf Coast Flatwoods-Bays and Barrier Islands}
+  232Lb:{232Lb,GA-FL Gulf Coast Flatwoods-Bays and Barrier Islands}
+  232Lc:{232Lc,FL Gulf Coast Flatwoods-Bays and Barrier Islands}
+  234Aa:{234Aa,Southern Mississippi River Alluvial Plain}
+  234Ab:{234Ab,Crowleys Ridge}
+  234Ac:{234Ac,White and Black Rivers Alluvial Plain}
+  234Ad:{234Ad,Baton Rouge Terrace}
+  234Ae:{234Ae,Arkansas Grand Prairie}
+  234Af:{234Af,Atchafalaya Alluvial Plain}
+  234Ag:{234Ag,Arkansas Alluvial Plain}
+  234Ah:{234Ah,Macon Ridge}
+  234Ai:{234Ai,Red River Alluvial Plain}
+  234Aj:{234Aj,Bastrop Ridge}
+  234Ak:{234Ak,Opelousas Ridge}
+  234Al:{234Al,Teche Terrace}
+  234Am:{234Am,St. Francis River Alluvial Plain}
+  234An:{234An,North Mississippi River Alluvial Plain}
+  234Ca:{234Ca,Red River Alluvial Plain}
+  234Cb:{234Cb,Atchafalaya Alluvial Plain}
+  234Cc:{234Cc,Teche Terrace}
+  234Cd:{234Cd,Opelousas Ridge}
+  234Da:{234Da,North Mississippi River Alluvial Plain}
+  234Db:{234Db,Crowley's Ridge}
+  234Dc:{234Dc,White and Black Rivers Alluvial Plain}
+  234Do:{234Do,St. Francis River Alluvial Plain}
+  234Ea:{234Ea,Arkansas Alluvial Plain}
+  234Eb:{234Eb,Arkansas Grand Prairie}
+  234Ec:{234Ec,Bastrop Ridge}
+  251Ea:{251Ea,Scarped Osage Plains}
+  251Ec:{251Ec,Central Tallgrass}
+  251Ed:{251Ed,Elk Prairie}
+  251Fb:{251Fb,Eastern Flint Hills}
+  251Fc:{251Fc,Southern Flint Hills}
+  255Aa:{255Aa,Cross Timbers-Cherokee Prairies}
+  255Ab:{255Ab,Central Oklahoma Cross Timbers}
+  255Ac:{255Ac,Central Red Rolling Prairies}
+  255Ad:{255Ad,Southern Oklahoma Grand Prairies}
+  255Ae:{255Ae,Cross Timbers and Central Rolling Red Prairies}
+  255Af:{255Af,Cross Timbers - Southern Oklahoma}
+  255Ag:{255Ag,Red River Alluvial Plain}
+  255Ah:{255Ah,Texas Eastern Cross Timbers}
+  255Ai:{255Ai,Texas Grand Prairie}
+  255Aj:{255Aj,Texas Western Cross Timbers}
+  255Ak:{255Ak,Southwestern Timbers}
+  255Am:{255Am,Central Tall Grass Prairie}
+  255Ba:{255Ba,Blackland Prairie}
+  255Ca:{255Ca,Texas Claypan Savannah}
+  255Cc:{255Cc,Interior Savannah}
+  255Cd:{255Cd,Interior Blackland Prairie}
+  255Ce:{255Ce,Trinity Alluvial Valley}
+  255Cf:{255Cf,Blackland Prairie}
+  255Cg:{255Cg,Southern Texas Claypan Savannah}
+  255Ch:{255Ch,East Texas Timberlands-Cross Timbers}
+  255Da:{255Da,Texas Coastal Prairies}
+  255Db:{255Db,Brazos and Brazonia Alluvial Valley}
+  255Dc:{255Dc,Marshes-Inlands Bays-and Barrier Islands}
+  255Dd:{255Dd,Southern Texas Coastal Prarie and Savannah}
+  255Ea:{255Ea,Red River Alluvial Plain}
+  255Eb:{255Eb,Western Cross Timbers}
+  255Ec:{255Ec,Southwestern Cross Timbers}
+  255Ed:{255Ed,Texas Grand Prairie}
+  255Ee:{255Ee,Texas Eastern Cross Timbers}
+  411Aa:{411Aa,Lake Okeechobee}
+  411Ab:{411Ab,Everglades}
+  411Ac:{411Ac,Southern Slope}
+  411Ad:{411Ad,Atlantic Coastal Ridge}
+  411Ae:{411Ae,Coastal Lowlands-Tidal Marshes and Bays}
+  411Af:{411Af,Big Cypress Spur}
+  411Ag:{411Ag,Florida Keys and Biscayne Bay}
+  M221Aa:{M221Aa,Ridge and Valley}
+  M221Ab:{M221Ab,Great Valley of Virginia}
+  M221Ac:{M221Ac,Northern Ridge and Valley}
+  M221Ba:{M221Ba,Northern High Allegheny Mountains}
+  M221Bd:{M221Bd,Eastern Allegheny Mountain and Valley}
+  M221Be:{M221Be,Western Allegheny Mountain and Valley}
+  M221Ca:{M221Ca,Western Coal Fields}
+  M221Cb:{M221Cb,Eastern Coal Fields}
+  M221Cc:{M221Cc,Black Mountains}
+  M221Cd:{M221Cd,Southern Cumberland Mountains}
+  M221Ce:{M221Ce,Pine and Cumberland Mountains}
+  M221Da:{M221Da,Northern Blue Ridge Mountains}
+  M221Db:{M221Db,Central Blue Ridge Mountains}
+  M221Dc:{M221Dc,Southern Blue Ridge Mountains}
+  M221Dd:{M221Dd,Metasedimentary Mountains}
+  M222Aa:{M222Aa,The Boston Mountain}
+  M222Ab:{M222Ab,Boston Hills}
+  M223Aa:{M223Aa,Boston Mountains}
+  M223Ab:{M223Ab,Boston Hills}
+  M231Aa:{M231Aa,Fourche Mountains}
+  M231Ab:{M231Ab,West Central Ouachita Mountains}
+  M231Ac:{M231Ac,East Central Ouachita Mountains}
+  M231Ad:{M231Ad,Athens Piedmont Plateau}
+  
+//end   HabPa_sn

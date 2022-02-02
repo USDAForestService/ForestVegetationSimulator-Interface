@@ -1,0 +1,1107 @@
+
+
+//start base_database
+
+description:
+{Request base model outputs and send them to the database. The database
+name is also specified.}
+
+f1:{fileBrowse Enter the output database file or DSN:}
+f1v:{FVSOut.xls}
+
+f2:{checkBox Send the Summary Statistics report to the database}
+f2v:1
+f3:{checkBox Create Summary Statistics output for the Average Summary Table post processor}
+f3v:1
+
+f4title:{---------------- FVS Compute Variable Options ----------------}
+f4:{checkBox Send Compute variables to the database}
+f4v:1
+f5:{checkBox Add new variables to existing table (ignored when EXCEL tables are used)}
+f5v:1
+f6:{checkBox Include variables starting with an underscore}
+f6v:1
+
+f7title:{---------------- FVS Treelist Options ----------------}
+f7:{checkBox Output the FVS Treelist}
+f7v:1
+f8:{radioGroup Output destination:}
+f8v:{Standard output file only\n
+     Output only to the database\n
+     Both}
+
+f9title:{---------------- FVS CutList Options ----------------}
+f9:{checkBox Output the FVS Cutlist}
+f9v:1
+f10:{radioGroup Output destination:}
+f10v:{Standard output file only\n
+     Output only to the database\n
+     Both}
+
+answerForm:{\
+!3,,tEchb!
+!7,,tTlsb!
+!9,,tCutb!
+DataBase
+DSNOut
+!1!
+!2,,tSum!
+!4,,tCmp!   !5,10,tCnum!!6,10!
+!8,,tTls!
+!10,20,tCut!
+End}
+
+parmsForm:{\
+* Arguments:
+* Base TreeList: year, file ref num, header type, cycle 1 printing flag,
+*                 live dead treelist flag, not used, diameter growth printing
+* Base CutList: year, file ref num, header type, not used, not used, format flag
+* DB Compute: new column option (1 = don't add, 2 = do add),
+*             underscore option (1 = output variables that start with an
+*                               underscore, 0 = do not output these variables)
+* DB Summary: none
+* DB TreeList: output option (1 = text and db output, 2 = db output only)
+* DB CutList: output option (1 = text and db output, 2 = db output only)
+!3,,tEchb!
+!7,,tTlsb!
+!9,,tCutb!
+DataBase
+DSNOut
+!1!
+!2,,tSum!
+!4,,tCmp!   !5,10,tCnum!!6,10!
+!8,,tTls!
+!10,20,tCut!
+End}
+
+tSum:{!Summary Summary}
+tCmp:{!Compute Compute}
+tTls:{" "\n"TreeList           2"\n"TreeList           1"}
+tCut:{" "\n"CutList            2"\n"CutList            1"}
+tCnum:{1 0}
+tTlsb:{" "\n"TreeList           0"}
+tCutb:{" "\n"CutList            0"}
+tEchb:{" "\n"Echosum"}
+//end base_database
+
+//start base_TreeAndCutLists
+
+description:
+{Builds the FVS Treelist(s) and Cutlist output file (.trl extension). The treelist and 
+cutlist output file may be displayed using the "Treelist File" post processor.  
+
+In addition, this file is used by the Stand and Stock Tables, 
+Mountain Pine Beetle Risk Rating, Spruce Beetle Risk Rating, Multistory Elk 
+Hiding Cover, and R1 Vegetation Classification post processors.
+
+Warning - Do not include Cutlist if using the R1 Existing Vegetation Classification
+or Elk Hiding Cover post processors. }
+f1title:{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.
+
+---------------- Treelist Options ---------------}
+f1:{checkBox Build Treelist}
+f1v:{1}
+f2:{numberBox Year/Cycle }
+f2v:{0}
+f3:{longListButton Heading option}
+f3v:{Print heading that describes each table column
+     Print encoded (machine readable) header
+     Suppress all headings}
+
+f4title:{\
+---------------- Cutlist Options ----------------}
+f4:{checkBox Build Cutlist}
+f4v:{1}
+f5:{numberBox Year/Cycle }
+f5v:{0}
+f6:{longListButton Heading option}
+f6v:{Print heading that describes each table column
+     Print encoded (machine readable) header
+     Suppress all headings}
+f7title:{\
+---------------- Database Options ---------------
+}
+f7:{checkBox Send Treelist and/or Cutlist to a database (Table must be selected above)}
+f7v:{0}
+
+answerForm:{\
+!1,,tree1!!2,10!!3,20,header!
+!4,,cut1!!5,10!!6,20,header!
+
+!7,,comment1!
+!7,,trans1!\n!7,,trans2!\n!7,,trans3!\n!7,,trans4!}
+comment1: {" "\n"*The following text sends the Treelist and Cutlist Tables to a database."}
+trans1: {" "\n"Database"}
+trans2: {" "\n"Treelist           1"}
+trans3: {" "\n"Cutlist            1"}
+trans4: {" "\n"End"}
+header:{0 1 -1}
+tree1:{"!!Treelist  "\n"Treelist  "}
+cut1:{"!!Cutlist   "\n"Cutlist   "}
+parmsForm=answerForm
+
+//end base_TreeAndCutLists
+
+//start base_TreeAndCutLists2
+
+description:
+{Builds the FVS Treelist(s) and Cutlist output file (.trl extension). The treelist and 
+cutlist output file may be displayed using the "Treelist File" post processor.  
+
+In addition, this file is used by the Stand and Stock Tables, 
+Mountain Pine Beetle Risk Rating, Spruce Beetle Risk Rating, Multistory Elk 
+Hiding Cover, and R1 Vegetation Classification post processors.
+
+Warning - Do not include Cutlist or After Treatment Treelist if using the R1 
+Existing Vegetation Classification or Elk Hiding Cover post processors. }
+f1title:{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.
+
+---------------- Treelist Options ---------------}
+f1:{checkBox Build Treelist}
+f1v:{1}
+f2:{numberBox Year/Cycle }
+f2v:{0}
+
+f3title:{\
+---------------- Cutlist Options ----------------}
+f3:{checkBox Build Cutlist}
+f3v:{1}
+f4:{numberBox Year/Cycle }
+f4v:{0}
+     
+f5title:{\
+------- After Treatment Treelist Options --------}
+f5:{checkBox Build After Treatment Treelist}
+f5v:{1}
+f6:{numberBox Year/Cycle }
+f6v:{0}
+
+f7title:{\
+---------------- Database Options ---------------
+}
+f7:{checkBox Send Treelist(s) and/or Cutlist to a database (Table must be selected above)}
+f7v:{0}
+
+answerForm:{\
+!1,,tree1!!2,10!
+!3,,cut1!!4,10!
+!5,,atr1!!6,10!
+
+!7,,comment1!
+!7,,trans1!\n!7,,trans2!\n!7,,trans3!\n!7,,trans4!\n!7,,trans5!}
+comment1: {" "\n"*The following text sends the Treelist(s) and Cutlist Tables to a database."}
+trans1: {" "\n"Database"}
+trans2: {" "\n"Treelist           1"}
+trans3: {" "\n"Cutlist            1"}
+trans4: {" "\n"ATRTList           1"}
+trans5: {" "\n"End"}
+header:{0 1 -1}
+tree1:{"!!Treelist  "\n"Treelist  "}
+cut1:{"!!Cutlist   "\n"Cutlist   "}
+atr1:{"!!ATRTList  "\n"ATRTList  "}
+parmsForm=answerForm
+
+//end base_TreeAndCutLists2
+
+//start dbs_database
+
+description:
+{Specify the output database.}
+
+f1:{fileBrowse Enter the output database file or DSN:}
+f1v:{FVSOut.xls}
+
+answerForm:{\
+DSNOut
+!1!
+}
+
+parmsForm=answerForm
+
+//end dbs_database
+
+//start newffe_reports
+
+description:
+{Control the creation of various Fire and Fuels Extension reports.}
+
+f1:{checkBox Output the potential fire report}
+f1v:{1}
+f2:{radioGroup Output destination:}
+f2v:{Standard output file only
+     Output only to the database
+     Both}
+f3:{checkBox Output the fuels output report}
+f3v:{1}
+
+f4=f2
+f4v=f2v
+
+f5:{checkBox Output the burn conditions report}
+f5v:{1}
+f6=f2
+f6v=f2v
+
+f7:{checkBox Output the fire-related mortality report}
+f7v:{1}
+f8=f2
+f8v=f2v
+
+f9:{checkBox Output the fuel consumption report}
+f9v:{1}
+f10=f2
+f10v=f2v
+
+f11:{checkBox Output the summary snag report}
+f11v:{1}
+f12=f2
+f12v=f2v
+
+answerForm:{\
+FMIn    \n!1,,trans1!\n!3,,trans3!\n!5,,trans5!\n!7,,trans7!\n!9,,trans9!
+!11,10,trans11!\nEnd
+DataBase\n!2,,trans2!\n!4,,trans4!\n!6,,trans6!\n!8,,trans8!\n!10,20,trans10!
+!12,20,trans12!\nEnd}
+
+parmsForm:{\
+* Arguments:
+* FFE PotFire:
+* FFE FuelOut:
+* FFE BurnRept:
+* FFE MortRept:
+* FFE FuelRept:
+* DB PotFire: output option (1 = text and db output, 2 = db output only)
+* DB FuelsOut: output option (1 = text and db output, 2 = db output only)
+* DB BurnRept: output option (1 = text and db output, 2 = db output only)
+* DB MortRept: output option (1 = text and db output, 2 = db output only)
+* DB FuelRept: output option (1 = text and db output, 2 = db output only)
+
+FMIn    \n!1,,trans1!\n!3,,trans3!\n!5,,trans5!\n!7,,trans7!\n!9,,trans9!
+!11,10,trans11!\nEnd
+DataBase\n!2,,trans2!\n!4,,trans4!\n!6,,trans6!\n!8,,trans8!\n!10,20,trans10!
+!12,20,trans12!\nEnd}
+trans1:{" "\nPotfire }
+trans3:{" "\nFuelOut }
+trans5:{" "\nBurnRept}
+trans7:{" "\nMortRept}
+trans9:{" "\nFuelRept}
+trans11:{" "\nSnagSum   }
+trans2: {" "\n"Potfire            2"\n"Potfire            1"}
+trans4: {" "\n"FuelsOut           2"\n"FuelsOut           1"}
+trans6: {" "\n"BurnRept           2"\n"BurnRept           1"}
+trans8: {" "\n"MortRept           2"\n"MortRept           1"}
+trans10: {" "\n"FuelRept           2"\n"FuelRept           1"}
+trans12: {" "\n"SnagSum            2"\n"SnagSum            1"}
+//end newffe_reports
+
+//start carb_reports
+
+description:
+{Builds the stand carbon and harvested carbon output reports. }
+
+f1title:{\
+------------- Carbon Report Options -------------}
+f1:{checkBox Build the Stand Carbon Report}
+f1v:{1}
+f2:{checkBox Build the Harvested Carbon Report}
+f2v:{1}
+f3title:{\
+---------------- Database Options ---------------}
+f3:{checkBox Send the selected carbon reports to a database}
+f3v:{0}
+f4title:{\
+-------------- Calculation Options --------------}
+f4:{longListButton Biomass predictions}
+f4v:{\
+Use FFE biomass predictions
+Use Jenkins and others (2003)}
+f5:{longListButton Units}
+f5v:{\
+US (tons carbon/acre)
+Metric (metric tons carbon/hectare)
+Combined (metric tons carbon/acre)}
+
+answerForm:{\
+FMIn    \n!1,,trans1!\n!2,,trans2!
+CarbCalc  !4,10!!5,10!\nEnd
+!3,,trans3!\n!3,,trans4!\n!3,,trans5!
+}
+
+parmsForm:{\
+* Arguments:
+* FFE CarbRept:
+* FFE CarbCut:
+* FFE CarbCalc: biomass predictions (0 = FFE method, 1 = Jenkins),
+*               units (0 = US, 1 = metric, 2 = combined), 
+*               root decay rate,
+*               dbh brkpoint between pulpwood and sawtimber for softwoods,
+*               dbh brkpoint between pulpwood and sawtimber for hardwoods
+* DB CarbRpts output option (1 = text and db output, 2 = db output only)
+FMIn    \n!1,,trans1!\n!2,,trans2!
+CarbCalc  !4,10!!5,10!\nEnd
+!3,,trans3!\n!3,,trans4!\n!3,,trans5!
+}
+
+trans1:{"!!CarbRept  "\n"CarbRept  "}
+trans2:{"!!CarbCut   "\n"CarbCut   "}
+trans3: {" "\n"Database"}
+trans4: {" "\n"CarbRpts           1"}
+trans5: {" "\n"End"}
+
+//end carb_reports
+
+//start newdwd_reports
+
+description:
+{Control the creation of FFE down wood volume and cover reports.}
+
+f1:{checkBox Output the down wood volume report}
+f1v:{1}
+f2:{radioGroup Output destination:}
+f2v:{Standard output file only
+     Output only to the database
+     Both}
+f3:{checkBox Output the down wood cover report}
+f3v:{1}
+
+f4=f2
+f4v=f2v
+
+answerForm:{\
+FMIn    \n!1,,trans1!\n!3,,trans3!\nEnd
+DataBase\n!2,,trans2!\n!4,,trans4!\nEnd}
+
+parmsForm:{\
+* Arguments:
+* FFE DWDVlOut:
+* FFE DWDCvOut:
+* DB DWDVlOut: output option (1 = text and db output, 2 = db output only)
+* DB DWDCvOut: output option (1 = text and db output, 2 = db output only)
+
+FMIn    \n!1,,trans1!\n!3,,trans3!\nEnd
+DataBase\n!2,,trans2!\n!4,,trans4!\nEnd}
+trans1:{" "\nDWDVlOut }
+trans3:{" "\nDWDCvOut }
+trans2: {" "\n"DWDVlOut           2"\n"DWDVlOut           1"}
+trans4: {" "\n"DWDCvOut           2"\n"DWDCvOut           1"}
+//end newdwd_reports
+
+//start svsfiles
+description:
+{Builds the raw Stand Visualization System output files (.svs extension) used by 
+the SVS post processors. }
+
+f1:{longListButton Plot geometry and tree placement}
+f1v:{Square plot, ignore subplot identifications
+   > Subdivided square plot, place trees in subplots
+     Round plot, ignore subplot identifications
+     Subdivided round plot, place trees in subplots}
+
+f2:{listButton Draw range poles}
+f2v:{No\nYes}
+
+f3:{listButton Draw subplot boundaries}
+f3v:{No\nYes}
+
+f4:{listButtonString Ground color codes}
+f4v:{\
+1 = Red/orange
+2 = Tan
+3 = Reddish brown
+4 = Light grey
+5 = Lime green
+6 = Dark green
+7 = Medium bluegreen
+8 = Dark green
+9 = Dark grey
+10 = Light brown
+11 = Khaki/brown
+12 = Light green
+13 = Dark bluegreen
+14 = Chocolate brown
+>15 = Dark tan
+16 = Yellow
+17 = Medium grey
+18 = Brown
+19 = Green
+20 = Dark brown
+-1 = Solid Red/orange
+-2 = Solid Tan
+-3 = Solid Reddish brown
+-4 = Solid Light grey
+-5 = Solid Lime green
+-6 = Solid Dark green
+-7 = Solid Medium bluegreen
+-8 = Solid Dark green
+-9 = Solid Dark grey
+-10 = Solid Light brown
+-11 = Solid Khaki/brown
+-12 = Solid Light green
+-13 = Solid Dark bluegreen
+-14 = Solid Chocolate brown
+-15 = Solid Dark tan
+-16 = Solid Yellow
+-17 = Solid Medium grey
+-18 = Solid Brown
+-19 = Solid Green
+-20 = Solid Dark brown}
+
+answerForm:{\
+* Arguments: Right Justified in Columns 20,30,40,50,60,70
+* 20: Plot Geometry
+* 30: Grid Size (Default used)
+* 40: Range Poles
+* 50: Subplot Boundaries
+* 60: Ground Color
+* 70: Units (Default used)
+SVS       !1,10!          !2,10!!3,10!!4,10!}
+
+parmsForm = answerForm
+
+//end svsfiles
+
+//start Compute_SpMcDBH
+description:
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
+
+Computed variables may be viewed in the FVS_Compute table under the 
+View Outputs menu, or in the Activity Summary of the main output file.
+}
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
+f2v:{VAR1}
+
+f3:{listButton Attribute to be returned}
+f3v{sn ls ne cs}:{\
+Trees per acre 
+Basal area per acre
+Stand density index
+Canopy cover percent
+Quadratic mean DBH
+Average diameter growth
+Average height
+Merch cubic volume 
+Sawtimber cubic volume
+Sawtimber board foot volume
+Dwarf mistletoe rating
+Relative Density-SILVAH
+Stand density index- Zeide
+Curtis relative density}
+
+f3v:{\
+Trees per acre 
+Basal area per acre
+Stand density index
+Canopy cover percent
+Quadratic mean DBH
+Average diameter growth
+Average height
+Total cubic volume 
+Merch cubic volume
+Merch board foot volume
+Dwarf mistletoe rating
+Relative Density-SILVAH
+Stand density index- Zeide
+Curtis relative density}
+
+f4:{speciesSelection Species covered in the calculations}
+
+f5:{listButton Tree value class covered}
+f5v:{\
+All tree value classes
+Tree value class 1
+Tree value class 2
+Tree value class 3}
+
+f6:{sliderBox Lower DBH limit in the calculations (GE)}
+f6v:{0 0 999 0 100}
+
+f7:{sliderBox Upper DBH limit in the calculations (LT)}
+f7v:{200 0 999 0 200}
+
+f8:{sliderBox Lower height limit in the calculations (GE)}
+f8v:{0 0 999 0 500}
+
+f9:{sliderBox Upper height limit in the calculations (LT)}
+f9v:{500 0 999 0 500}
+
+f10:{listButton Calculations are for}
+f10v:{\
+Live trees 
+Recent mortality 
+Harvested trees 
+Residual (after harvest) live trees 
+Live mistletoe infected trees}  
+
+f11:{textEdit Point Number or Group (0 = All Points)}
+f11v:{0}
+
+parmsForm:{\
+Compute   !1,10!
+!2!=SPMCDBH(!3,,list!,!4!,!5!,!6!,!7!,!8!,!9!,!10!,!11!)
+End}
+
+list:{1 2 11 7 5 10 6 3 9 4 8 12 13 14}
+
+answerForm=parmsForm
+
+//end Compute_SpMcDBH
+
+//start Compute_FuelLoad
+description:
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
+
+Computed variables may be viewed in the FVS_Compute table under the 
+View Outputs menu, or in the Activity Summary of the main output file.
+}
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
+f2v:{VAR1}
+
+f3:{listButtonString Lower bound of debris class range}
+f3v:{\
+1 = >= zero and < .25 inches.
+2 = >= .25 and < 1 inch.
+3 = >= 1 and < 3 inches.
+4 = >= 3 and < 6 inches.
+5 = >= 6 and < 12 inches.
+6 = >= 12 and < 20 inches.
+7 = >= 20 and < 35 inches.
+8 = >= 35 and < 50 inches.
+9 = >= 50 inches.
+10 = Litter.
+11 = Duff.
+}
+
+f4:{listButtonString Upper bound of debris class range}
+f4v=f3v
+
+parmsForm:{\
+Compute   !1,10!
+!2!=FuelLoad(!3!,!4!)
+End}
+
+answerForm=parmsForm
+
+//end Compute_FuelLoad
+
+//start Compute_Snags
+description:
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
+
+Computed variables may be viewed in the FVS_Compute table under the 
+View Outputs menu, or in the Activity Summary of the main output file.
+}
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
+f2v:{VAR1}
+
+f3:{listButtonString Attribute to be returned}
+f3v{sn ls ne cs}:{\
+1 = Snags per acre
+2 = Basal area per acre
+3 = Merch cubic volume
+}
+
+f3v:{\
+1 = Snags per acre
+2 = Basal area per acre
+3 = Total cubic volume
+}
+
+f4:{speciesSelection Species covered in the calculations}
+
+f5:{listButton Snag types included}
+f5v:{\
+0 = Both hard and soft
+1 = Just hard snags
+2 = Just soft snags}
+
+f6:{sliderBox Lower DBH limit in the calculations (GE)}
+f6v:{0 0 999 0 100}
+
+f7:{sliderBox Upper DBH limit in the calculations (LT)}
+f7v:{200 0 999 0 200}
+
+f8:{sliderBox Lower height limit in the calculations (GE)}
+f8v:{0 0 999 0 500}
+
+f9:{sliderBox Upper height limit in the calculations (LT)}
+f9v:{500 0 999 0 500}
+
+parmsForm:{\
+Compute   !1,10!
+!2!=Snags(!3!,!4!,!5!,!6!,!7!,!8!,!9!)
+End}
+
+list:{1 2 11 7 5 10 6 3 9 4 8}
+
+answerForm=parmsForm
+
+//end Compute_Snags
+
+
+//start Compute_PreDefined
+description:
+{The name of your user-defined variable must not be blank, cannot be longer than 
+8 characters, cannot contain any special characters, and cannot be a word that is reserved
+for use by FVS or the Event Monitor (e.g., BBA, ABA, etc.).
+
+Computed variables may be viewed in the FVS_Compute table under the 
+View Outputs menu, or in the Activity Summary of the main output file.
+}
+f1title:
+{To request for all cycles, enter 0 (zero) in the 'Schedule by Year/Cycle' input box.}
+f1:{scheduleBox}
+
+f2:{longTextEdit Enter the name for your user-defined variable (see note below for rules):}
+f2v:{VAR1}
+
+f3:{mkVarList Select the Pre-Defined EM variable:}
+
+answerForm=parmsForm
+
+//end Compute_PreDefined
+
+
+//start Compute_WRENSS
+
+description:
+{
+Computes before- and after-harvest basal area maximums (BAMAX) that 
+are required for the WRENSS post processor. By default, 
+BAMAX=SDIMAX*0.5454*85/100 where 85 is the percentage of maximum SDI 
+where the stand reaches maximum density. If this value is changed with 
+the SDIMAX keyword, change the percentage above to match the value on 
+the SDIMAX keyword.
+}
+
+f1title:
+{Compute the basal area maximums needed for the WRENSS
+post processor. 
+
+}
+f1:{numberBox Percentage of maximum SDI where stand reaches maximum density:}
+f1v:{85.}
+
+
+parmsForm:{\
+COMPUTE            0
+BAMAXWY =BSDIMAX * 0.5454154 * !1!/100
+BAMAXEND=ASDIMAX * 0.5454154 * !1!/100
+End}
+
+answerForm=parmsForm
+
+//end Compute_WRENSS
+
+
+//start base_SC
+
+description:
+{Requests an output table that calculates structural class be written to the main 
+output file and defines Event Monitor structural class variables.}
+
+f1:{longListButton Report generation option:}
+f1v:{Do not print structural class report
+   >  Print structural class report}
+f2title:{Percentage of tree height that must be exceeded in finding a \
+gap in height distribution.}
+f2:{sliderBox Percentage of tree height:}
+f2v:{30.0 0 100.0 0 100.0}
+f3:{numberBox DBH break between seeling/saplings and pole-sized trees.}
+f3v:{5.0}
+f4:{numberBox DBH break between pole-sized and large, older, trees.}
+f4v:{25.0}
+f5title:{Minimum cover percent to qualify a potential stratum as an actual \
+stratum.}
+f5:{sliderBox Minimum cover percent:}
+f5v:{5.0 0 100.0 0 100.0}
+f6:{numberBox Minimum trees/acre needed to be classifed "Stand Initiation"}
+f6v:{200 0 Fmax 0 500}
+f7:{sliderBox Minimum percent of MAXSDI to be classified "Stem Exclusion"}
+f7v:{30.0 0 100.0 0 100.0}
+f8title:{\
+---------------- Database Options ---------------
+}
+f8:{checkBox Send Structural Class Table to a database}
+f8v:{0}
+
+parmsForm:{\
+StrClass  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10!
+
+!8,,comment1!
+!8,,trans1!\n!8,,trans2!\n!8,,trans3!}
+comment1: {" "\n"*The following text sends the Structural Class Table to a database."}
+trans1: {" "\n"Database"}
+trans2: {" "\n"StrClass           1"}
+trans3: {" "\n"End"}
+
+answerForm=parmsForm
+
+//end base_SC
+
+//start base_DT
+
+description:
+{Selectively deletes portions of the main FVS output file (.out extenstion).  
+}
+
+f1title:{\
+Select tables to delete.
+}
+f1:{checkBox Delete the stand composition table}
+f1v:{0}
+f2:{checkBox Delete the selected sample tree table}
+f2v:{0}
+f3:{checkBox Delete the summary statistics table}
+f3v:{0}
+f4:{checkBox Delete the activity schedule table}
+f4v:{0}
+
+parmsForm:{\
+!1,,trans1!\n!2,,trans2!\n!3,,trans3!\n!4,,trans4!}
+trans1: {" "\n"DelOTab            1}
+trans2: {" "\n"DelOTab            2}
+trans3: {" "\n"DelOTab            3}
+trans4: {" "\n"DelOTab            4}
+
+answerForm=parmsForm
+
+
+//end base_DT
+
+//start FvsStandFiles
+
+description:
+{Builds the FVSStand output file (.fst extension) used by the FVSStand post 
+processor.}
+
+f1:{radioGroup Print output for:}
+f1v:{>Inventory Year and All Cycles
+      Inventory Year}
+trans1: {"0"\n"2"}
+
+answerForm:{FVSStand           0!1,10,trans1!}
+
+parmsForm:
+{* Arguments:Year/Cycle,Output
+FVSStand           0!1,10,trans1!}
+
+//end FvsStandFiles
+
+//start Econ_reports
+description:{Specify basic ECON paramaters & report options.
+
+SEV calculation can be turned on or off; entering a known SEV disables SEV
+calculation and permits "Value of Forest" and "Value of Trees" computations.  
+
+Database tables will be written to the default or user specified output 
+database file, as entered on a DSNOUT keyword.
+
+Pre-commercial (PCT) harvest incur only costs, they do not generate revenue.  
+By default all harvests are commercial.  Use the PCT specifications to 
+raise the minimum requirements before a harvest can produce revenue.
+
+Hauling costs can vary greatly between sites & can be entered here.
+Regional harvest volume prices and logging costs can require numerous keywords
+to specify and are typically entered via a keyword component file (.kcp), 
+accessed from the "Editor" menu.}
+
+f1:{scheduleBox}
+f2title:{\--------------------- Interest Rate for Computing Present Values -------------------}
+f2:{numberBox Discount rate, in percent:}
+f2v:{5.0}
+f3title:{\-------------------- Soil Expectation Value (SEV) Options ------------------------}
+f3:{radioGroup SEV computation options:}
+f3v:{> Do not compute SEV\n Compute SEV}
+f4:{numberBox Enter a known SEV to compute "Value of Forest" & "Value of Trees":}
+f4v:{blank}
+f5title:{\-------------------- Time when Pretend Harvests Become Active ---------------------}
+f5:{checkBox Activate "pretend" harvest}
+f5v:{0}
+f6:{numberBox Year/cycle to begin or, if scheduled by condition the delay period):}
+f6v:{1}
+f7:{numberBox Number of years that "pretend" will remain active:}
+f7v:{999}
+f8title:{\-------------------- Pre-Commerical Thinning Specifications ------------------------}
+f8:{numberBox Minimum QMD to be considered a commercial harvest, in inches:}
+f8v:{0}
+f9:{numberBox Minimum volume to be considered a commercial harvest:}
+f9v:{0}
+f10:{radioGroup Units of measure for commercial harvest volume:}
+f10v:{> 1,000 board-feet/acre\n 100 cubic-feet/acre}
+f11title:{\-------------------- Local Harvest Hauling Costs ----------------------------------}
+f11:{numberBox Expected hauling costs, in dollars:}
+f11v:{blank}
+f12:{radioGroup Units of measure for hauling costs:}
+f12v:{> 1,000 board-feet\n 100 cubic-feet}
+f13:{numberBox Smallest tree DBH to which cost applies (greater than/equal):}
+f13v:{0}
+f14:{numberBox Largest tree DBH to which cost applies (less than):}
+f14v:{999}
+f15title:{\-------------------- Reporting Options --------------------------------------------}
+f15:{radioGroup ECON table options & destinations:}
+f15v:{Summary & Gross Value Tables as text tables\n
+     Summary & Gross Value Tables as database tables\n
+   > Summary & Gross Value Tables as both text & database tables\n
+     Summary Table only as a text table\n
+     Summary Table only as a database table\n
+     Summary Table only as both text & database tables}
+
+answerForm:{
+Econ
+StrtEcon  !1,10!!2,10!!4,10!!3,10,sevOps!
+!5,,pretend!   !6,10!!7,10!
+*Arguments: Cost$, Units, SmDBH, LgDBH
+HrvVrCst  !11,10!!12,10,units!!13,10!!14,10!
+*Arguments: minQMD, Units, Volume
+PctSpec   !8,10!!10,10,units!!9,10!
+!15,20,tables!
+End
+!15,52,comment1!
+!15,8,data1!
+!15,20,data2!
+!15,3,data3!
+}
+
+sevOps: {0 1 0}
+units: {2 3}
+tables: {" "\n"NoTable            1"\n" "\n"NoTable            2"\n"NoTable            1"\n"NoTable            2"}
+pretend: {!Pretend Pretend}
+comment1: {" "\n"*The following text sends ECON tables to a database."\n"*The following text sends ECON tables to a database."\n" "\n"*The following text sends ECON tables to a database."\n"*The following text sends ECON tables to a database."}
+data1: {" "\n"Database"\n"Database"\n" "\n"Database"\n"Database"}
+data2: {" "\n"EconRpts           2"\n"EconRpts           2"\n" "\n"EconRpts           1"\n"EconRpts           1"}
+data3: {" "\n"End"\n"End"\n" "\n"End"\n"End"}
+
+//end Econ_reports
+
+
+//start mist_output
+
+description:
+{The Dwarf Mistletoe Model reports will be generated only if the Dwarf Mistletoe 
+Model is active and dwarf mistletoe is present in the stand. If dwarf mistletoe 
+damage and severity codes are not present in the input data and the user adds 
+dwarf mistletoe infections by keyword, dwarf mistletoe reports will be generated 
+for cycles following the introduction of dwarf mistletoe infections to the stand, 
+but not for the cycle of introduction.}
+
+f1title:{\
+------------------- Stand Level Reports -------------------}
+f1:{checkBox Produce species, stand average, and DBH summary tables.}
+f1v:{1}
+
+f2:{checkBox Send the Stand Level Reports to a database.}
+f2v:{0}
+
+f3title:
+{Tree DBH must be greater than or equal to the threshold DBH to be included 
+in the summary calculations.\n}
+f3:{sliderBox Threshold DBH}
+f3v:{1 0 900 0 10}
+
+f4title:{\
+------------------ Species Level Reports ------------------\n
+These detailed tables may be produced for any species that has at least one 
+dwarf mistletoe infection at the time of report generation.\n
+(Written to the standard output file only, not available in database format.)\n}
+
+f4:{checkBox Produce detailed species/DBH class tables.}
+f4v:{0}
+
+f5:{intNumberBox Year/Cycle to begin (0 = all cycles)}
+f5v:{0}
+
+f6:{listButton Species to be printed}
+f6v{ni ie kt}:
+{All affected species
+Western larch
+Douglas-fir
+Lodgepole pine
+Ponderosa pine}
+speciesCode{ni ie kt}:{ALL WL DF LP PP}
+
+f6v{ak}:
+{All affected species
+Pacific silver fir
+Western hemlock
+Lodgepole pine
+Subalpine fir}
+speciesCode{ak}:{ALL SF WH LP AF}
+
+f6v{ca}:
+{All affected species
+White fir
+Red fir
+Shasta red fir
+Douglas-fir
+Western hemlock
+Mountain hemlock
+Whitebark pine
+Knobcone pine
+Lodgepole pine
+Limber pine
+Jeffrey pine
+Sugar pine
+White pine
+Ponderosa pine}
+speciesCode{ca}:{ALL WF RF SH DF WH MH WB KP LP LM JP SP WP PP}
+
+f6v{ci}:
+{All affected species
+White pine
+Western larch
+Douglas-fir
+Grand fir
+Lodgepole pine
+Alpine fir
+Ponderosa pine}
+speciesCode{ci}:{ALL WP WL DF GF LP AF PP}
+
+f6v{so}:
+{All affected species
+White pine
+Spruce
+Douglas-fir
+White fir
+Western hemlock
+Lodgepole pine
+Red fir
+Ponderosa pine}
+speciesCode{so}:{ALL WP SP DF WF WH LP RF PP}
+
+f6v{ut}:
+{All affected species
+Whitebark pine
+Limber pine
+Douglas-fir
+White fir
+Lodgepole pine
+Alpine fir
+Ponderosa pine}
+speciesCode{ut}:{ALL WB LM DF WF LP AF PP}
+
+f6v{tt}:
+{All affected species
+Whitebark pine
+Limber pine
+Douglas-fir
+Lodgepole pine
+Alpine fir}
+speciesCode{tt}:{ALL WB LM DF LP AF}
+
+f6v{em}:
+{All affected species
+Whitebark pine
+Douglas-fir
+Lodgepole pine
+Western larch
+Limber pine
+Ponderosa pine}
+speciesCode{em}:{ALL WB DF LP WL LM PP}
+
+f6v{ws}:
+{All affected species
+Sugar pine
+Douglas-fir
+White fir
+Jeffery pine
+Red fir
+Pondersosa pine}
+speciesCode{ws}:{ALL SP DF WF JP RF PP}
+
+f6v{bm}:
+{All affected species
+Western larch
+Douglas-fir
+Lodgepole pine
+Pondersosa pine
+Whitebark pine
+Limber pine}
+speciesCode{bm}:{ALL WL DF LP PP WB LM}
+
+f6v{ec}:
+{All affected species
+White pine
+Western larch
+Douglas-fir
+Pacific silver fir
+Grand fir
+Lodgepole pine
+Alpine fir
+Pondersosa pine}
+speciesCode{ec}:{ALL WP WL DF SF GF LP AF PP}
+
+f6v{nc}:
+{All affected species
+Sugar pine
+Douglas-fir
+White fir
+Red fir
+Pondersosa pine}
+speciesCode{nc}:{ALL SP DF WF RF PP}
+
+f6v{cr sw sp bp sf lp}:
+{All affected species
+Subalpine fir
+Corkbark fir
+Douglas-fir
+Grand fir
+White fir
+Mounatin hemlock
+Western larch
+Bristlecone pine
+Limber pine
+Lodgepole pine
+Common pinyon
+Pondersosa pine
+Whitebark pine
+Southwestern white pine
+Blue spruce
+Englemann spruce
+Singleleaf pinyon
+Border pinyon
+Arizona pinyon
+Chihuaha pine}
+speciesCode{cr sw sp bp sf lp}:{ALL AF CB DF GF WF MH WL BC LM LP PI PP WB SW BS ES PM PD AZ CI}
+
+f6v{wc}:
+{All affected species
+Alpine fir
+Red fir
+Lodgepole pine
+Douglas-fir
+Western hemlock
+Mountain hemlock}
+speciesCode{wc}:{ALL AF RF LP DF WH MH}
+
+answerForm:{\
+!2,,trans1!\n!2,,trans2!\n!2,,trans3!
+Mistoe
+!1,,trans4!!3,10!
+!4,,trans5!!5,10!!6,10,speciesCode!
+End}
+
+trans1: {"!!"\n"Database"}
+trans2: {"!!"\n"MisRpts            1"}
+trans3: {"!!"\n"End"}
+trans4:{"!!MistPrt   "\n"MistPrt   "}
+trans5:{"!!MisTable  "\n"MisTable  "}
+
+//end mist_output

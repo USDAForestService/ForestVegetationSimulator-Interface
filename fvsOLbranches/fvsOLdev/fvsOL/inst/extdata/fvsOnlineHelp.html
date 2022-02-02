@@ -1,0 +1,458 @@
+<h4><a name="contents"></a>Contents</h4>
+<ul>
+	<li><p style="margin-bottom: 0in"><a href="#intro">Introduction</a>
+	</p>
+	<li><p style="margin-bottom: 0in"><a href="#topmenu">Top menu items</a> 
+	</p>
+	<ul>
+		<li><p style="margin-bottom: 0in"><a href="#tmruns">Simulate</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmout">View Outputs</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#outputTables">Output Table Descriptions</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmsvs">Visualize</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmmaps">View On Maps</a> 
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#tmin">Manage Projects</a>
+		</p>
+		<li><p style="margin-bottom: 0in"><a href="#inputTables">Input Table Descriptions</a> 
+		</p>
+	</ul>
+</ul>
+<h4><a name="intro"></a>Introduction</h4>
+<p><b>FVSOnline</b> is an interface to the <a href="https://www.fs.fed.us/fvs/" target="_blank">
+Forest Vegetation Simulator (FVS)</a>. FVS takes a file of commands and
+input data and produces predictions of forest conditions in the
+future. This interface is used to set up the file of commands, run
+FVS, and then explore the outputs. The input data are measurements of
+trees stored in an input database. Tools for installing and editing
+that database are included.</p>
+<p>These instructions assume that you are already familiar with FVS.  
+<a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf" target="_blank">
+Press here</a> to view an essential background manual. 
+</p>
+<p>The interface was designed to run in a true client/server
+configuration, whereby the data and software are stored on a server
+and the user interaction is through a web browser. However, the
+software can also be installed on personal computer or in a 
+<a href="https://www.citrix.com/" target="_blank">Citrix</a>
+(or similar) system. The interaction is still through a web browser,
+but the software, inputs and outputs, are all stored on the "personal computer".
+This configuration is called FVSOnlocal. The system was built using 
+<a href="https://www.r-project.org/" target="_blank"><b>R</b></a>, <a 
+href="http://shiny.rstudio.com/" target="_blank"><b>Shiny</b></a>,  
+<a href="http://www.sqlite.org/" target="_blank"><b>SQLite3</b></a>, and many other
+R packages. For more information on the
+software and supporting software requirements see the 
+<a href="https://sourceforge.net/p/open-fvs/wiki/FVSOnline/" target="_blank">
+wiki about FVSOnline software</a>.</p>
+<p><i>Hints</i> for first time users:</p>
+<ul>
+	<li><p style="margin-bottom: 0in">Use the default input database
+	while learning, load your own data once you're comfortable using the
+	interface. Note that there is a command under the <b>Manage Projects</b> menu
+	that lets you delete all runs and related outputs so you can easily
+	start fresh with your own data. 
+	</p>
+	<li><p style="margin-bottom: 0in">Use default settings and options
+	until you need to change them. 
+	</p>
+	<li><p>Exploring the system is the best way to learn while reading
+	this documentation might be helpful after you have some experience. 
+	</p>
+</ul>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="topmenu"></a>Top menu items</h4>
+<ul>
+	<li><p style="margin-bottom: 0in"><b>Simulate: </b>Set up and make FVS
+	simulations; the outputs go to an output database which contains all
+	the output for all the runs in a project. If you rerun a simulation, this
+	database is updated to reflect the most recent outputs. 
+	</p>
+	<li><p style="margin-bottom: 0in"><b>View Outputs: </b>Make
+	tables and graphs using the outputs stored in the output
+	database. 
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Visualize: </b>Display 3d images of stands.
+	</p>
+	<li><p style="margin-bottom: 0in"><b>View On Maps: </b>Display some outputs in a spatial context
+	  if your stand locations are loaded. 
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Manage Projects: </b>Access commands to manage projects,
+	import input data, and import runs and other items from other projects or backup files, and
+	download data from project. Under "Manage projects", you can 
+	create new projects, open other projects, deleted outputs or entire projects,
+	make and manage backup files. 
+	</p>
+	<li><p><b>Get Help: </b>Display this help. 
+	</p>
+</ul>
+<h4><a name="tmruns"></a>Simulate</h4>
+<p>When the <b>Simulate</b> menu is selected the screen is divided into two regions, 
+left and right. The left side contains the <b>Selected run</b>
+list and buttons to create new runs, reload a selected run, save it, duplicate it 
+(more on that later), or delete it. The title of the selected run is displayed in a text box
+(you can change it to whatever you wish) and the run <b>Contents</b>
+are listed below. There are buttons and other tools below the
+<b>Contents</b> that are <a href="#leftSideRun">described below</a>.</p>
+<p>The right side contains a secondary menu, used to select
+<b>Stands</b> and add <b>Components</b>. Stands are the simulation
+units defined in the 
+<a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
+input database</a> and components are sets of 
+<a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf" target="_blank">
+FVS keywords</a> (also called commands) that that instruct FVS to invoke
+options or to simulate management activities. The stands and
+components will be added to the <b>Contents</b> list on the left. 
+</p>
+<p>The first step in building a run is to select the initialization table
+you wish to use in the input database (generally, FVS_StandInit is used). The
+second step is to pick FVS variant you wish to
+use. Only those stands that can be run with the selected variant will be listed
+as possible choices. Select one or more groups and then select the stands from
+the selected groups. You can add individually selected stands or all the stands
+from selected groups using the buttons found below the list of stands. </p>
+<p>Once stands are added, you can make a run using the Run tab on the right end
+of the second level menu bar. Alternatively, before you make the run, you can
+add run <i>components</i> control the simulation. Or do both, make a run and
+then change it and run it again. Or, make a run and duplicate it, then modify
+the duplicate. Once you make both runs, you can compare the outputs of the two
+(or several, as you desire).</p>
+<p>Note that you can add the same stand more than once and each is considered a
+replicate. This can be done by selecting and adding the same stand more than
+once or by specifying the number of replicates in the input box found below the
+list of available stands. You can also specify a set
+of relative weights of each replicate. These weights are used to modify the
+stand sampling weights specified in the input database. Often these sampling
+weights are stand sizes or the size of the land area represented by the stand.
+The set of weights you enter is <i>recycled</i> if necessary so that each
+replicate gets a weight. For example, if you say you want 5 replications of each
+stand, and you enter 1,2 for the weights, the resulting set will be 1,2,1,2,1.
+The logic includes a <i>normalization</i> step such that each weight is divided
+by the sum of the weights. Note that this normalization happens when the run is
+made using the Run tab. The normalized weights are then multiplied by the
+sampling weight entered in the database and the results are entered into FVS so
+that the sampling weights for each replicate are correctly reported in the FVS
+output. Lastly note that there is no way to modify the weights once they are 
+entered. If you make a mistake, delete the entered stands and then redo the 
+process of adding them to the run.</p>
+<p>New <b>Components</b> are added by selecting them, filling out the
+associated form, and then saving them. Components are accessed by
+first selecting component type:</p>
+<ul>
+	<li><p style="margin-bottom: 0in"><b>Management</b> for specifying
+	management actions 
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Modifiers</b> for specify
+	changes in the FVS predictions 
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Event Monitor</b> for adding FVS output
+	variables you define using FVS functions
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Economic</b> for setting parameters
+	of the Economic Extension of FVS
+	</p>
+	<li><p style="margin-bottom: 0in"><b>Keywords</b> for direct
+	access to all FVS keywords 
+	</p>
+	<li><p><b>Editor</b> to make and use custom freeform component sets you build 
+	or load (also known as .kcp files). 
+	</p>
+</ul>
+<p>The <b>Time</b> scope of a simulation is automatically set to 50
+or 100 years in 5 or 10 years cycles, both depending on the variant.
+The parameters of time can be edited and specific years you want
+included in the simulation can be specified as a list of years (separate
+the years with a space).</p>
+<p><b>Select Outputs</b> is used to select which output tables you want FVS 
+to generate. A few, like the FVS_Summary statistics table, are automaticlly generated
+every run. The others are selected using the check boxes displayed. You can
+get a short description of each table using the Describe tables tool at the
+bottom of the checkboxes. Note that FVSOnline the tree lists to generate
+stand and stock tables; if you desire them, then check the tree lists box.
+</p>
+<p><b>Run</b> simulations while you wait (great for under 20 stands
+or so), or in the background as a separate process. Use the
+checkboxes to specify sets of outputs without having to know the
+keywords needed to get the outputs you desire. You can also select
+alternative run scripts; these are used to implement alternative
+models within the FVS framework. Note that when you rerun a run, the
+interface clears the output from the previous time you made the run
+so that the output database contains the most recently generated
+output. If you use the <i>Wait for run</i> option,
+the interface will scan the FVS output file for error messages and
+display any it finds in the interface. The <i>Run in
+background</i> option does not provide that service. However, 
+there is a download button useful for downloading the FVS “.out” file.</p>
+</ul>
+<p id="leftSideRun">Here
+are more details on the left side elements when <b>Runs</b>
+is selected in the main manu.
+</p>
+<p>The Duplicate command found near the top of the left side deserves
+some explanation. Lets say you have made a simulation for a
+collection of stands using set of components and you wish to make
+another run with different components or different settings in
+existing components (for example, setting different residual
+densities on thinning options). Your idea is that you want to compare
+the results. In this case you should <i>duplicate</i>
+the first run, giving the duplicate a new name and then edit the
+duplicate. You can run and rerun any of the runs as often as you wish
+and you can compare the outputs after the simulations are run.</p>
+<p>The
+buttons found below the Contents list can be used to remove a stand,
+group, or component. If a component is removed it is added to a paste
+list. To paste one of these components into the run, first select the
+component you want to paste, then select a stand, group, or another
+component in the Contents list. The pasted component will be added to
+the selected stand or group, or directly after the selected
+component. You can also edit existing components or convert
+components from there formatted state that allows them to be edited
+using the same form used to create them or they can be converted to
+<i>freeform</i>
+that allows them to be directly modified (most useful for experts who
+know the <a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/keyword.pdf" target="_blank">FVS
+keywords</a>). Sometimes components are in the <i>freeform</i>
+state from the beginning.  
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="tmout"></a>View Outputs</h4>
+<p><b>View Outputs</b> after you make one or more runs. There are two required
+steps, the first is to <b>Load</b> outputs for the runs and output tables you 
+want to then <b>Explore</b>. For example, say you
+have made two runs and you want to compare their projections. In that
+case, you would select them both and then select the database tables
+you wish to explore. If you wish, you can limit the database columns you want to 
+explore but the default is to select all the columns from selected tables. The system
+automatically merges (joins) the data from the selected tables so you
+can explore variables from different tables when you <b>Explore</b> the
+data you selected. The data can be displayed as <b>Tables</b>
+or <b>Graphs</b> depending on the selections on the right-hand
+secondary menu.</p>
+<p>Composite summary statistics tables are created for the runs (table name: CmpSummary, 
+CmpSummary2, or the "East" versions of these) where the composites are weighted averages 
+of corresponding tables grouped by <b>management ids</b> (not by run because  
+more than one run can have the same management id, 
+more than one management id can be within one run, or both). 
+If treelist tables exist, stand and stock tables are also created (table name StdStk; 
+CmpStdStk for the composites, also grouped by management id).</p>
+<p><b>Explore Data</b> menu item is used to further control which
+data are being explored. Use the selection tools on the left to limit
+the data used in the tables or graphs to specific runs, groups,
+stands, management identification codes (set when you make a run),
+years, species, and DBHClasses. You can also turn variables on or off
+limiting the columns being displayed in tables and those available
+for graphing. 
+</p>
+<p>In summary, the two basic steps are to (1) Load the runs and FVS-generated 
+output tables, and (2) Explore those data as Tables or Graphs.
+</p>
+<p>When <b>Tables</b> are displayed, you can use tools to change a categorical
+variable (such as stand or management identifications) into a set of columns and display
+a variable's value under that column. Tables can be download as .xlsx or .csv
+files (easily opened using Excel or other spreadsheet programs). Note that the
+number of lines displayed in the table is limited, however, when the table is
+downloaded, all lines are included (for .xlsx up to 1048576 rows). 
+</p>
+<p>The <b>Graphs</b> menu item on the right provides
+access to graphing tools that operate on the data displayed in the
+table. FVSOnline contains limited logic to preselect settings
+depending on the data being analyzed. Your changes are kept until you
+go back are reselect the data you want to analyze. The best way to
+learn how the graphing tool works is to experiment. Note that making
+some selections sometimes changes others. For example, if you change
+the vertical facet to the same setting as the horizontal facet, your
+selection will be automatically adjusted to <i>None</i>.
+Also note that when there are too many levels for a variable (such
+as too many stands) then the system blocks the use of the variable
+for faceting. Similar limits control the size of the legend that is
+created when you select a <i>Plot by</i> variable.  
+If you want to keep a graph you can cut-and-paste it from your
+browser to some other software. If you want high resolution graphs, or otherwise 
+customize the apperance of a graph, then <i>Show</i> more controls and
+change the values as needed. Note that there are several ways to customize graphs.
+</p>
+<p><b>Custom Query</b> provides the ability to build and run SQL queries that run
+on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
+database. The tabular output from those queries is displayed as 
+a table and data in that table can be graphed or downloaded.</p>
+<p>
+However, building custom database queries requires some knowledge of 
+SQL, the structure of the output database, and the mechanisms used by FVSOnline to create 
+and manipulate the database. Note that the entire the database structure is defined 
+in the <a href="#outputTables">Output Table Descriptions.</a></p>
+<p>
+The first table you need to understand is the FVS_Cases table which contains one row 
+for each simulation of each stand or replication of a stand over all the runs you have
+made in the project. When each run is made, FVSOnline first creates a fresh database where 
+all the output tables are sent for the run. After each run is finished, FVSOnline
+deletes all the output that may already exist for the same run in the permanent database  
+then the outputs results in the fresh database are inserted into the permanent 
+database.</p>
+<p> 
+The FVS_Cases table is key to this process. This table contains several columns 
+including the keyword file name, that FVSOnline insures is unique to the run even if two
+or more run names are identical. The result of a query of the FVS_Cases table 
+that selects all the cases that have a given keyword file name will contain one row 
+for each case where the CaseID column has a unique identifier for each case. 
+Here is a select statement that will result in just the cases for a given run:</p>
+<p>
+<code>select CaseID from FVS_Cases where KeywordFile = 'name';</code></p>
+<p>
+A similar select statement is used by FVSOnline to build a temporary table that 
+contains a list of all the CaseID values associated with one or more KeywordFile values. 
+This table, called, temp.Cases, is automatically built or rebuilt every time the you 
+change the selections in <b>"Runs to consider"</b>. In turn, when you desire to explore one of the 
+other FVS output tables, FVSOnline uses this table to limit the rows to include just the rows
+related to runs that are loaded for exploration. For example, to select just the rows in the 
+FVS_Summary2 table that are related to the selected runs, FVSOnline uses this query:
+<p>
+<code>select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases);</code></p>
+<p>
+The <b>Custom Query</b> tab allows you to build and save your custom output 
+database queries. Queries like those show above can be used to select just the data 
+for a specific run or runs. Note that the FVS_Cases table also contains the RunTitle. 
+If you insure run titles are unique, they can be used in place of the KeywordFile 
+name to limit the cases to those of a give run or collection of runs. Here, for example, 
+is a complete query that selects all of the tree records from the FVS_TreeList_East 
+table associated with two runs names <i>Run 1</i> and <i>Run 2</i>.
+<p>
+<code>select * from FVS_TreeList_East where CaseID in<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(select CaseID from FVS_Cases where RunTitle in ('Run 1', 'Run 2'));</code></p>
+<p>
+Note that SQLite3 allows the attachment other databases and tables from those
+databases can be include in queries. 
+As a convenience, FVSOnline automatically attaches the FVS input database (FVS_Data.db) 
+to the output database when the Custom Query tab is used. This attached database is given 
+the alias <i>input</i> so that tables from the input can be joined to the output. 
+For example, the stand identification code from the input database might be 
+<code>input.FVS_standInit.Stand_ID</code>.
+<p>
+A <i>query</i> can actually be several queries each separated by a semicolon. They can
+be stored and recovered for later use. Lastly, comments can be included in 
+the query by surrounding it with /*  */ character sequences.
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="outputTables"></a>Available output tables</h4>
+<p>The tables output generated from FVS are selected prior making a run using the 
+<b>Select Outputs</b> menu item under the <b>Tabs</b> tab. The available tables are 
+listed below, and below this list there is a set of addition tables that describe
+the detailed contents of each of the tables.
+</p>
+<p>FVSOnline generates some <i>composite</i> tables by taking a weighted average over
+the individual stands from the selected runs you selected in the <b>Runs to consider</b> 
+list box. The weights used in this calculation are the individual stand sampling weights
+as specified in the input database. The names of these composite tables start with 
+<b>Cmp</b> and are listed below.
+</p>
+<p>Computing the composites is done by grouping all the stands accross all selected
+runs by unique <i>management ID</i> (which can be set in the Runs tab or by using an 
+FVS Keyword). Individual stands that have the same stand ID, run using the same 
+management ID, are considered replications of the stand. Prior to computing the weighted 
+averages, the sampling weights for the  are adjusted by dividing each by 
+the number of replications. This is a temporary adjustment that is recomputed every 
+time outputs are explored. The adjusted weights are reported as the <i>SamplingWt</i>
+in the FVS_Cases table (described below). Remember that the number of replications for 
+each stand can change depending on how the management IDs are assigned and by which 
+runs are considered. Generally, however, unique management IDs are used for each run
+and when that is the case, the replication counts will not change when different runs
+are selected. 
+</p>
+**OUTPUTHTML**
+<h4><a name="tmsvs"></a>Visualize</h4>
+<p>You can display two 3d images of stands if the output that support 
+<a href="http://forsys.cfr.washington.edu/SVS/Stand%20Visualization%20System.html" target="_blank">
+Stand Visualization System</a> has been created (easily done by checking
+Stand Visualization under the Select Outputs table). Pick a run, and within the Run, pick the stand and 
+time period you wish to display. It takes some time for the images to be created 
+and transferred to your browser. Once the transfer is completed, you can click 
+on the image and rotate it, flip it, and zoom in and out using your mouse.
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="tmmaps"></a>View On Maps</h4>
+<p>You can display stand polygon boundaries of the stands in the <b>Selected Run</b> 
+over a Google satellite or other map. Select an <b>Output Table</b> and a <b>Variable</b> 
+from the table. When you point your mouse at a stand, a small table is displayed 
+showing the values of that variable over time. You can <b>Display</b> graphs rather 
+than tables. Note that if you have a very large run, it can take significant amounts of
+time to generate the graphs. 
+</p><p>
+Note that the spatial polygons of the stand boundaries are 
+required to display boundaries. However, spatial points can alternatively be loaded and
+when points are provided, a red dot is displayed at the point location. 
+See <b>Map data</b> under <a href="#tmin">Manage Projects</a>
+to see now to load this spatial data.
+</p><p>
+If spatial data are not loaded, an attempt is made to use the Latitude and Longitude 
+information from the FVS_StandInit table (failing that, the FVS_PlotInit table)
+assuming WGS84 geographic coordinates are used. 
+</p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="tmin"></a>Manage Projects</h4>
+<p>Under <b>Manage project</b> you can create new projects, open other projects, 
+delete output, runs or entire projects, as well as make and manage project backup files.</p> 
+<p><b>Import input data</b> provides tools for loading an 
+FVS-Ready database that is stored as a <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
+database (use the file suffix .db), as a Microsoft Access database
+(.mdb or .accdb), or as an Excel (.xlsx) database where the sheet names are
+the same as the target table names. The built-in training data or a blank database (and
+FVS-Ready database that contains no rows but has predefined columns)
+can be installed without uploading a file simply by pressing the
+obvious buttons. Doing so also installs related spatial data.</p>
+<p>You can <b>Upload .csv data to add to existing tables.</b> 
+This is done by uploading a .csv file that contains column
+headings. Columns in the .csv file that are not in the existing table are added to
+the existing tables. 
+Columns in the existing table that have no values in the .csv file are left
+null.</p>
+<p>You can <b>View and edit existing tables</b>. Use the <b>Edit</b>
+mode to change values or delete rows. Make the changes and then
+<b>Commit</b> them to the database. Use the <b>New rows</b> mode to
+add new rows. You can limit the variables to consider in either mode;
+those not considered are simply hid from view. If editing, they are not altered
+and if adding new rows their values are set to null. </p>
+<p>More information on the input and output database structure is
+in the
+<a href="https://www.fs.fed.us/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf" target="_blank">
+Users Guide to the Database Extension.</a></p>
+<p>You can upload <b>Map data</b> that is used to display stand polygons on top of reference
+maps using the <a href="#tmmaps">View On Maps</a> menu item. Many file formats are
+supported, <a href="http://www.gdal.org/ogr_formats.html" target="_blank">see this
+list</a>. To upload a map, first create a .zip file that contains a single directory (folder) 
+where the coverages are stored. Then upload the .zip file and let FVSOnline try to
+load the appropriate files. </p>
+<p>If the .zip file contains more than one layer, you can select the one that 
+contains stand polygons (the system will attempt to make a valid selection). Note that
+the polygons must be identifiable by StandID but frequently the coverage data contains
+this information under a different variable name. FVSOnline attempts to discover the 
+correct variable to match to StandID. You can set the variable here if necessary.</p>
+<p>If the geographic projection of your data is not stored with the data (usually it 
+is part of the coverage data), or if it is set and is wrong, then you can set or reset 
+the projection. Select a projection from the list button or just
+type in the proj4 string into the text box if you know what it is. Note the the 
+projection is set or reset here but the spatial data is not reprojected. 
+Any reprojection needed to display the data is done automatically.</p>
+<p>The <b>Import runs and other items</b> tab allows you to import runs,
+custom components (.kcp), graph settings, custom queries, FVS_Data.db (input data bases), 
+Spatial Data, or any combination of these from 1) an existing project, or 2) a backup
+file or other downloaded file that contains the items you desire. You first specify
+the source project or upload a zip file and then select the item(s) you wish to import
+into your current project.
+<p>The <b>Downloads</b> tab provides the ability to download specific
+files related to the project. Thre is also a facility for
+setting up and downloading a .zip file that contains sevaral optional
+elements. Note that tese downloaded files can be a source of items that can be 
+imported into other projects. </p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a name="inputTables"></a>Input tables</h4>
+**INPUTHTML**
+</body>
+</html>

@@ -1,0 +1,893 @@
+//start species_retention
+
+description:
+{Performs a thinning from below to a stand basal area per acre target.
+If scheduled by cycle, the thinning is done the first year of that cycle.
+If scheduled by year, the year set must be a cycle boundary year or the 
+thinning will not occur.
+
+Additionally, species or species groups can be targeted for retention
+by identifying a proportion of basal area to retain as residual. If
+targeting multiple species, a Species Group must be created. Configure
+the Species Group prior to parameterizing the Species Retention
+Management Action.
+
+Also, if using a Species Preference keyword to define cut/leave priority,
+configure Species Preference keywords such that desired retention species
+is set to have the highest retention value. Place Species Preference
+keywords before the Species Retention Management Action.
+
+Note: Achieving stand BA target takes precedence over species retention
+BA target. If BA above upper diameter and below lower diameter removal
+limits exceeds stand BA target, remnant species retention BA is maintained
+so long as it is less than the species retention BA target.}
+
+f1:{numberBox Year or Cycle}
+f1v:{1}
+f2:{numberBox Residual stand basal area target}
+f2v:{0}
+f3:{numberBox Smallest DIA to be considered for removal (greater than/equal)}
+f3v:{0}
+f4:{numberBox Largest DIA to be considered for removal (less than)}
+f4v:{999}
+f5:{numberBox Shortest tree to be considered for removal (greater than/equal)}
+f5v:{0}
+f6:{numberBox Tallest tree to be considered for removal (less than)}
+f6v:{999}
+f7title:
+{Species Retention Criteria}
+f7:{speciesSelection    - Species to retain}
+*f7v{ak tt}:{deleteAll LP}
+*f7v{bm ca oc ci cr ec em ie kt nc ni pn op so ut wc ws}:{deleteAll PP}
+*f7v{cs ls ne sn}:{deleteAll WP}
+f8:{sliderBox    - Basal area to retain (proportion of stand BA target)}
+f8v:{0 0 1 0 1}
+f9:{numberBox    - Removal preference}
+f9v:{-500}
+
+answerForm:{\
+*  Beginning of:  Thinning w/ Species Retention Criteria Management Action
+
+*  by: Don Vandendriesche
+*      USFS - FMSC
+*      (970) 295-5772
+
+*   Last revised: January 19, 2011
+
+*   This keyword set is designed to simulate a thinning from below with
+*   associated tree species retention goals.  Input values include: Stand
+*   level density target; Species or Species Groups to maintain; and,
+*   Retention density goal.
+
+*   -------
+*   Example -->      COMPUTATION OF Thinning w/ Species Retention Criteria Parameters
+*   -------
+*           --- Thinning Upper Diameter Limit = 16"
+*           --- Thinning Lower Diameter Limit =  5"
+*           --- Target Stand Basal Area per Acre = 60 sq.ft.
+*           --- Retain 0.25 (i.e. 25%) of Target BA in Oak
+*
+*   Compute Variables for Thinning
+*     BBAAS=Before Thin Basal Area All Species  5" Small
+*     BBAAM=Before Thin Basal Area All Species 16" Minus
+*     BBAAP=Before Thin Basal Area All Species 16" Plus
+*     BBARS=Before Thin Basal Area Oak Species  5" Small
+*     BBARM=Before Thin Basal Area Oak Species 16" Minus
+*     BBARP=Before Thin Basal Area Oak Species 16" Plus
+*     ABAAS= After Thin Basal Area All Species  5" Small
+*     ABAAM= After Thin Basal Area All Species 16" Minus
+*     ABAAP= After Thin Basal Area All Species 16" Plus
+*     ABARS= After Thin Basal Area Oak Species  5" Minus
+*     ABARM= After Thin Basal Area Oak Species 16" Minus
+*     ABARP= After Thin Basal Area Oak Species 16" Plus
+*     |||||
+*     |||||-> S(mall)=Less Than Lower Diameter Target or
+*     ||||    M(inus)=Less Than Upper Diameter Target or
+*     ||||    P(lus) =Greater Than or Equal to Upper Diameter Target
+*     ||| --> A(ll) Species or
+*     |||     R(etention) Species
+*     | ----> B(asal)
+*     |       A(rea)
+*      -----> B(efore Thinning) or
+*             A(fter Thinning)
+*
+*   Compute Indicator Variables (0=No, 1=Yes)
+*     RSI=Retention Species Present
+*     X0I=BBAAP>BBAAM
+*     X1I=BBAAM>TargBA
+*     X2I=(BBAAP+BBAAS)>_TargBA
+*     X3I=BBARM>(TargBA*_PrpRtn)
+*     X4I=(BBAAP+BBAAS)>(TargBA*PrpRtn)
+*   Compute Variables for Tracking Outcomes
+*     Y0I=TargBA-(BBAAP+BBAAS)
+*     Y1I=((((BBAAP+BBAAS)-TargBA)+(TargBA*PrpRtn))*(X0I*X1I*X2I*X3I))
+*     Y2I=(((-1)*((TargBA-(BBAAP+BBAAS))-(BBARM)))*X2I*RSI)
+
+
+* Initialize Variables from Suppose
+Compute            1
+_Entry =!1!
+_TargBA=!2!
+_DiaSml=!3!
+_DiaLrg=!4!
+_HgtSml=!5!
+_HgtLrg=!6!
+_SpcRtn=!7!
+_PrpRtn=!8!
+_SpcPrf=!9!
+End
+
+* Establish Compute Variables
+* - Compute Accounting Variables
+Compute            0
+BBAAS=SPMCDBH(2,All,0,0,_DiaSml,0.,500.,0,0.)
+BBAAM=SPMCDBH(2,All,0,_DiaSml,_DiaLrg,0.,500.,0,0.)
+BBAAP=SPMCDBH(2,All,0,_DiaLrg,999.,0.,500.,0,0.)
+BBARS=SPMCDBH(2,_SpcRtn,0,0,_DiaSml,0.,500.,0,0.)
+BBARM=SPMCDBH(2,_SpcRtn,0,_DiaSml,_DiaLrg,0.,500.,0,0.)
+BBARP=SPMCDBH(2,_SpcRtn,0,_DiaLrg,999.,0.,500.,0,0.)
+ABAAS=SPMCDBH(2,All,0,0.,_DiaSml,0.,500.,3,0.)
+ABAAM=SPMCDBH(2,All,0,_DiaSml,_DiaLrg,0.,500.,3,0.)
+ABAAP=SPMCDBH(2,All,0,_DiaLrg,999.,0.,500.,3,0.)
+ABARS=SPMCDBH(2,_SpcRtn,0,0,_DiaSml,0.,500.,3,0.)
+ABARM=SPMCDBH(2,_SpcRtn,0,_DiaSml,_DiaLrg,0.,500.,3,0.)
+ABARP=SPMCDBH(2,_SpcRtn,0,_DiaLrg,999.,0.,500.,3,0.)
+End
+* - Compute Indicator Variables
+Compute            0
+RSI=LinInt((BBARM+BBARP),0.000,0.005,0.005,999.000,0,0,1,1)
+X0I=LinInt((BBAAP-BBAAM),-999,0,0,999,0,0,1,1)
+X1I=LinInt((BBAAM-_TargBA),-999,0,0,999,0,0,1,1)
+X2I=LinInt(((BBAAP+BBAAS)-_TargBA),-999,0,0,999,0,0,1,1)
+X3I=LinInt((BBARM-(_TargBA*_PrpRtn)),-999,0,0,999,0,0,1,1)
+X4I=LinInt(((BBAAP+BBAAS)-(_TargBA*_PrpRtn)),-999,0,0,999,0,0,1,1)
+Y0I=(_TargBA-(BBAAP+BBAAS))
+Y1I=((((BBAAP+BBAAS)-_TargBA)+(_TargBA*_PrpRtn))*(X0I*X1I*X2I*X3I))
+Y2I=(((-1)*((_TargBA-(BBAAP+BBAAS))-(BBARM)))*X2I*RSI)
+End
+
+* Thinning Implementation: (While) Retaining Select Species
+* - Thin Retention Species to BA Proportional Target
+If                 0
+((_Entry LT 1000 AND _Entry EQ Cycle) OR (_Entry GE 1000 AND _Entry EQ Year)) &
+AND BBAAM+BBAAP GT _TargBA &
+AND ((BBAAM+BBAAP)-(BBARM+BBARP)) GT (_TargBA-(_TargBA*_PrpRtn))
+Then
+SpecPref           0     Parms(_SpcRtn, _SpcPrf)
+ThinDBH            0     Parms(_DiaSml,_DiaLrg,1., &
+_SpcRtn,0,(_TargBA*_PrpRtn-BBARP))
+EndIf
+* - Thin Stand to BA Stand Target
+If                 0
+((_Entry LT 1000 AND _Entry EQ Cycle) OR (_Entry GE 1000 AND _Entry EQ Year)) &
+AND BBAAM+BBAAP GT _TargBA
+Then
+SpecPref           0     Parms(_SpcRtn, _SpcPrf)
+ThinBBA            0     Parms((_TargBA-(BBAAP+BBAAS)) &
++((((BBAAP+BBAAS)-_TargBA)+(_TargBA*_PrpRtn))*(X0I*X1I*X2I*X3I)) &
+-((((_TargBA-(BBAAP+BBAAS))-(BBARM)))*X2I*RSI) &
+,1.,_DiaSml,_DiaLrg,0.,999.)
+EndIf
+
+*     End of:  Thinning w/ Species Retention Criteria Management Action
+}
+
+parmsForm = answerForm
+
+//end species_retention
+
+//start ThinThroughout
+description:{This management action thins equally throughout the diameter range
+specified. Only species selected will be thinned. }
+
+f1:{scheduleBox}
+f2:{listButton Density in terms of}
+f2v:{Trees per acre \n Basal area}
+f3:{numberBox Residual Density (within specified species size range)}
+f3v:{0}
+f4title:{
+OR
+
+}
+f4:{sliderBox Proportion of trees to cut ( within specified species size range)}
+f4v:{1 0 1 0 1}
+f5:{speciesSelection Species to be removed in this cut}
+f6:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f6v:{0}
+f7:{numberBox Largest DBH to be considered for removal (less than)}
+f7v:{999}
+thin1:{"ThinDBH"\n"!!ThinDBH"}
+thin2:{"!!ThinDBH"\n"ThinDBH"}
+
+answerForm:{\
+!2,,thin1!   !1,10!!6,10!!7,10!!4,10!!5,10!!3,10!         0    
+!2,,thin2!   !1,10!!6,10!!7,10!!4,10!!5,10!         0!3,10!    
+}
+
+parmsForm:{\
+* Arguments: SmDBH, LgDBH, CutEff, Species, ResTPA, ResBA
+!2,,thin1!   !1,10!    Parms(!6!,!7!,!4!,!5!,!3!,0)
+!2,,thin2!   !1,10!    Parms(!6!,!7!,!4!,!5!,0,!3!)
+}
+
+//end ThinThroughout
+
+//start ThinPoints
+description:{This management action schedules a thinning for an individual 
+or group of points or plots. The SetPThin and ThinPt keywords are combined 
+in this window. In order to thin a group of points, the PointGrp keyword 
+must be added prior to this management action.}
+
+f1:{scheduleBox}
+f2:{textEdit Point Number or Group (0 = all points)}
+f2v:{0}
+f3:{longListButton Point thinning residual attribute}
+f3v:{1 = trees per acre
+2 = basal area
+3 = stand density index
+4 = percent canopy cover
+5 = Curtis' relative density
+6 = SILVAH's relative density}
+f4:{numberBox Residual target for the attribute specified}
+f4v:{0}
+f5:{sliderBox Cutting efficiency}
+f5v:{1 0 1 0 1}
+f6:{speciesSelection Species to be removed}
+f7:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f7v:{0}
+f8:{numberBox Largest DBH to be considered for removal (less than)}
+f8v:{999}
+f9:{longListButton Cutting control}
+f9v:{Thin throughout the specified diameter range (cutting efficiency does not apply)
+Thin from below in the specified diameter range
+Thin from above in the specified diameter range}
+f10:{longListButton Point reference Code}
+f10v:{\
+1 = point numbers will be as entered in the input data
+2 = Point numbers will be the FVS sequential point numbers}
+
+answerForm:{\
+SetPthin  !1,10!     Parms(!2!, !3,,numbers!)
+ThinPt    !1,10!     Parms(!4!, !5!, !6!, !7!, !8!, !9!)
+PointRef  !10,10,numbers!}
+numbers:{1 2 3 4 5 6}
+
+parmsForm = answerForm
+
+//end ThinPoints
+
+//start ThinCrown
+
+description:{
+This management action simulates a crown thinning and/or a crop tree
+release by removing trees in the middle to upper portion of the crown
+that are competing with perferred co-dominant and dominant trees. By
+default, the lower portion of the crown remains after thinning.
+
+The targets specified are for the species identified above the lower
+DBH identified.
+
+The diameter range specified is a surrogate for determining the lower and
+upper parts of the crown to thin.  By default the diameter range specified
+is based on the DBH of the 30th percentile tree and the 90th percentile tree
+in the merchantable cubic foot volume distribution.  You may change the
+percentile ranking and the distribution method or you may enter a lower and/
+or upper value in the DBH fields.  If a DBH field is a positive number,
+that value is used. If a DBH field is negative, the DBH percentile ranking
+is used.
+
+To target multiple species, create a new species group identifying the
+species to cut with the "SpGroup" keyword and select the species group
+from the species list.
+
+}
+
+f1:{scheduleBox}
+f2:{listButton Density is in terms of }
+f2v:{Trees per acre \n Basal area per acre \n Stand Density Index
+     Percent Canopy Cover}
+f3:{numberBox Residual Density of Crown}
+f3v:{0}
+f4:{speciesSelection Species to be removed in this thinning}
+f5title:{------------ Specify tree size limits for the lower and upper portion of the crown ------------
+
+Base size limits on percentiles in the diameter distribution:
+}
+f5:{radioGroup Diameter percentiles based on}
+f5v:{trees per acre\n total cubic foot volume\n > merchantable cubic foot volume\n board foot volume}
+f5v{cs ls ne sn}:{trees per acre  \n > merchantable cubic foot volume \n sawlog cubic foot volume \n board foot volume}
+f6:{listButton Smallest DBH percentile (ge)}
+f6v:{10th percentile \n >30th percentile \n 50th percentile \n 70th percentile \n 90th percentile}
+f7:{listButton Largest DBH percentile (lt)}
+f7v:{30th percentile \n 50th percentile \n 70th percentile \n >90th percentile \n 100th percentile}
+f8title:{
+Or, base size limits on DBH:
+
+}
+f8:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f8v:{-1 -999 999}
+f9:{numberBox Largest DBH to be considered for removal (less than)}
+f9v:{-1 -999 999}
+thin1:{"ThinDBH"\n"!!ThinDBH"\n"!!ThinDBH"\n"!!ThinDBH"}
+thin2:{"!!ThinDBH"\n"ThinDBH"\n"!!ThinDBH"\n"!!ThinDBH"}
+thin3:{"!!ThinSDI"\n"!!ThinSDI"\n"ThinSDI"\n"!!ThinSDI"}
+thin4:{"!!ThinCC "\n"!!ThinCC "\n"!!ThinCC "\n"ThinCC "}
+dist1:{3 4 5 6}
+dbh1:{1 2 3 4 5}
+dbh2:{2 3 4 5 6}
+newline1:{& & & &}
+newline2:{" "\n" "\n" "\n" "}
+newline3:{"!!"\n"!!"\n"!!"\n" "}
+answerForm:{\
+Compute   !1,10!
+_LDBH = Linint(!8!,0,0,DBHDIST(!5,,dist1!,!6,,dbh1!),!8!)
+_UDBH = Linint(!9!,0,0,DBHDIST(!5,,dist1!,!7,,dbh2!),!9!)
+_BUpTPA = SPMCDBH(1,!4!,0,_UDBH,999)/PROPSTK
+_BUpBA = SPMCDBH(2,!4!,0,_UDBH,999)/PROPSTK
+_BUpSDI = SPMCDBH(11,!4!,0,_UDBH,999)
+_BUpUCC = -100*Alog(1-Min(!3!,99.9)/100)- !2,,newline1!
+!2,,newline2!(-100*Alog(1-SpMcDBH(7,!4!,0,_UDBH,999)/100))
+End
+!2,,thin1!   !1,10!    Parms(_LDBH,_UDBH,1.0,!4!,Max(0,!3!-_BUpTPA),0)
+!2,,thin2!   !1,10!    Parms(_LDBH,_UDBH,1.0,!4!,0,Max(0,!3!-_BUpBA))
+!2,,thin3!   !1,10!    Parms(Max(0,!3!-_BUpSDI),1.0,!4!,_LDBH,_UDBH,0)
+!2,,thin4!   !1,10!    Parms(Max(0,(100*(1-Exp(-.01*_BUpUCC)))), !2,,newline1!
+!2,,newline3!1.0,!4!,_LDBH,_UDBH,0)
+}
+parmsForm = answerForm
+
+//end ThinCrown
+
+//start ThinInd
+
+description:{
+This management action cuts trees that were marked for removal in the input tree
+data.  If cut code is blank, all trees coded with a value between 2 and 9 will 
+be cut. To set these values in the input database, use the Prescription column 
+in the TreeInit Table.
+}
+
+f1:{scheduleBox}
+f2:{numberBox Cut code for trees you want removed in this harvest (0-9)}
+f2v:{blank}
+
+parmsForm:{\
+* Arguments: CutEff, CutCode
+ThinPRSC  !1,10!     Parms(1.0, !2!)
+}
+
+answerForm = parmsForm
+
+//end ThinInd
+
+//start Release
+
+description:{
+This management action simulates a release, cleaning, or liberation cutting
+operation.  It is designed to remove undesirable species and tree value classes
+that are competing with desirable species.
+
+The targets specified are for the species and diameter range identified.}
+
+f1:{scheduleBox}
+f2:{listButton Density is in terms of }
+f2v:{Trees per acre \n Basal area per acre \n Stand Density Index
+     Percent Canopy Cover}
+f3:{numberBox Residual Density }
+f3v:{0}
+f4:{sliderBox Proportion of largest trees left (spacing adjustment)}
+f4v:{0.00 0 1 0 1}
+f5:{speciesSelection Species to be removed in this cutting}
+f6:{listButton Value class to be selected for removal}
+f6v:{Do not use value criteria \n > Remove lower value trees first}
+f7title:{Specify tree size limits
+}
+f7:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f7v:{0}
+f8:{numberBox Largest DBH to be considered for removal (less than)}
+f8v:{999}
+thin1:{"ThinATA"\n"!!ThinATA"\n"!!ThinATA"\n"!!ThinATA"}
+thin2:{"!!ThinABA"\n"ThinABA"\n"!!ThinABA"\n"!!ThinABA"}
+thin3:{"!!ThinSDI"\n"!!ThinSDI"\n"ThinSDI"\n"!!ThinSDI"}
+thin4:{"!!ThinCC "\n"!!ThinCC "\n"!!ThinCC "\n"ThinCC "}
+_c1:{"1"\n"2"\n"11"\n"7"}
+value:{0 5}
+
+answerForm:{\
+* Compute variables needed for routine. _CE1 and _CE2 are intermediate
+* variables used to compute the cutting efficiency (CE).  Cutting efficiency
+* variables are not used in ThinSDI and ThinCC keywords.  T_SP and D_SP
+* are represent the stand attribute of targeted and desired species,
+* respectively.
+Compute   !1,10!
+D_SP = MAX(0,SPMCDBH(!2,,_c1!,0,0,!7!,!8!)/PROPSTK-SPMCDBH(!2,,_c1!,!5!,0,!7!,!8!)/PROPSTK)
+T_SP = SPMCDBH(!2,,_c1!,!5!,0,!7!,!8!)/PROPSTK
+_CE1 = 1.0-!4!
+_CE2 = T_SP-!3!
+_CE = linint(!3!,1,1,1.0,linint(_CE1*T_SP,_CE2,_CE2,_CE2/T_SP,_CE1))
+End
+SPECPREF  !1,10!!5,10!        50
+TCONDMLT  !1,10!!6,10,value!
+!2,,thin1!   !1,10!    Parms((D_SP+!3!),_CE,!7!,!8!,0,999)
+!2,,thin2!   !1,10!    Parms((D_SP+!3!),_CE,!7!,!8!,0,999)
+!2,,thin3!   !1,10!    Parms(!3!,1.0-!4!,!5!,!7!,!8!,2)
+!2,,thin4!   !1,10!    Parms(!3!,1.0-!4!,!5!,!7!,!8!,2)
+}
+parmsForm = answerForm
+
+//end Release
+
+//start Girdling
+
+description:{
+This management action simulates a girdling and/or chemical treatment. 
+It is designed to remove undesirable species that are competing with desirable 
+species. The mortality rate is specified for the species and diameter range 
+identified.
+
+Caution: Sprouting does not occur following treatment.  If sprouting is
+suspected to occur, enter sprouts via the Plant & Natural management action.
+}
+
+f1:{scheduleBox}
+f2:{speciesSelection Species to which mortality rate is applied}
+f3:{sliderBox Mortality rate (proportion) for selected trees }
+f3v:{1.0 0.0 1.0 0.0 1.0}
+f4title:{Specify tree size limits to which mortality rate will be applied
+}
+f4:{numberBox Smallest DBH to be considered (greater than/equal)}
+f4v:{0.0}
+f5:{numberBox Largest DBH to be considered (less than)}
+f5v:{999.0}
+f6:{longListButton Specify mortality distribution}
+f6v:{Distribute mortality uniformly across the stand
+Concentrate mortality on points within the stand
+Concentrate mortality by size, smallest to largest
+Concentrate mortality by point and size, smallest to largest
+> Concentrate mortality by size, largest to smallest
+Concentrate mortality by point and size, largest to smallest}
+
+expressionContents{always after}:{}
+
+parmsForm:{*Args: Species, Multiplier, Min DBH, Max DBH, Distribution
+* 1=add mortality to base model estimate, Mortality distribution.
+FixMort    !1,10!   Parms(!2!, !3!, !4!, !5!, 1, !6,,header!)}
+
+answerForm:{FixMort   !1,10!!2,10!!3,10!!4,10!!5,10!         1!6,10,header!}
+header:{0 1 10 11 20 21}
+
+//end Girdling
+
+//start CutGroup
+
+f1title:{Identifies a group of species to cut that can be referenced by a single
+name and included in any species field in management actions, species
+preferences or user-defined variables.
+
+NOTE: You must specify this group name within the species field on a management
+action involving cutting, mortality, or preference list for this to affect
+the simulation.
+
+Warning: This species group identifier needs to come before the management
+action or output selection utilizing the group name.
+
+ }
+f1:{textEdit Specify an 2-10 character Species Group}
+f1v:{CUT_SP}
+
+f2:{speciesSelection Species included in the group:}
+f2v:{deleteAll}
+f3:{speciesSelection Species included in the group:}
+f3v:{deleteAll}
+f4:{speciesSelection Species included in the group:}
+f4v:{deleteAll}
+f5:{speciesSelection Species included in the group:}
+f5v:{deleteAll}
+f6:{speciesSelection Species included in the group:}
+f6v:{deleteAll}
+f7:{speciesSelection Species included in the group:}
+f7v:{deleteAll}
+f8:{speciesSelection Species included in the group:}
+f8v:{deleteAll}
+f9:{speciesSelection Species included in the group:}
+f9v:{deleteAll}
+f10:{speciesSelection Species included in the group:}
+f10v:{deleteAll}
+f11:{speciesSelection Species included in the group:}
+f11v:{deleteAll}
+f12:{speciesSelection Species included in the group:}
+f12v:{deleteAll}
+f13{ak bm em ie ci cr so ec op pn wc ws ca oc cs ls ne nc sn tt ut}:{speciesSelection Species included in the group:}
+f13v:{deleteAll}
+f14{ak bm em ie ci cr so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f14v:{deleteAll}
+f15{ak bm em ie cr ci so ec op pn wc ws ca oc ws cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f15v:{deleteAll}
+f16{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f16v:{deleteAll}
+f17{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f17v:{deleteAll}
+f18{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f18v:{deleteAll}
+f19{ak em ie cr ci so ec op pn wc ca oc ws cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f19v:{deleteAll}
+f20{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f20v:{deleteAll}
+f21{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f21v:{deleteAll}
+f22{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f22v:{deleteAll}
+f23{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f23v:{deleteAll}
+f24{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f24v:{deleteAll}
+f25{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f25v:{deleteAll}
+f26{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f26v:{deleteAll}
+f27{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f27v:{deleteAll}
+f28{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f28v:{deleteAll}
+f29{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f29v:{deleteAll}
+f30{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f30v:{deleteAll}
+f31{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f31v:{deleteAll}
+f32{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f32v:{deleteAll}
+f33{cr so op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f33v:{deleteAll}
+f34{cr so op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f34v:{deleteAll}
+f35{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f35v:{deleteAll}
+f36{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f36v:{deleteAll}
+f37{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f37v:{deleteAll}
+f38{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f38v:{deleteAll}
+f39{op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f39v:{deleteAll}
+f40{op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f40v:{deleteAll}
+f41{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f41v:{deleteAll}
+f42{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f42v:{deleteAll}
+f43{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f43v:{deleteAll}
+f44{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f44v:{deleteAll}
+f45{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f45v:{deleteAll}
+f46{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f46v:{deleteAll}
+f47{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f47v:{deleteAll}
+f48{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f48v:{deleteAll}
+f49{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f49v:{deleteAll}
+f50{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f50v:{deleteAll}
+f51{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f51v:{deleteAll}
+f52{cs ls ne sn}:{speciesSelection Species included in the group:}
+f52v:{deleteAll}
+f53{cs ls ne sn}:{speciesSelection Species included in the group:}
+f53v:{deleteAll}
+f54{cs ls ne sn}:{speciesSelection Species included in the group:}
+f54v:{deleteAll}
+f55{cs ls ne sn}:{speciesSelection Species included in the group:}
+f55v:{deleteAll}
+f56{cs ls ne sn}:{speciesSelection Species included in the group:}
+f56v:{deleteAll}
+f57{cs ls ne sn}:{speciesSelection Species included in the group:}
+f57v:{deleteAll}
+f58{cs ls ne sn}:{speciesSelection Species included in the group:}
+f58v:{deleteAll}
+f59{cs ls ne sn}:{speciesSelection Species included in the group:}
+f59v:{deleteAll}    
+f60{cs ls ne sn}:{speciesSelection Species included in the group:}
+f60v:{deleteAll}                                                  
+f61{cs ls ne sn}:{speciesSelection Species included in the group:}
+f61v:{deleteAll}
+f62{cs ls ne sn}:{speciesSelection Species included in the group:}
+f62v:{deleteAll}
+f63{cs ls ne sn}:{speciesSelection Species included in the group:}
+f63v:{deleteAll}
+f64{cs ls ne sn}:{speciesSelection Species included in the group:}
+f64v:{deleteAll}
+f65{cs ls ne sn}:{speciesSelection Species included in the group:}
+f65v:{deleteAll}
+f66{cs ne sn}:{speciesSelection Species included in the group:}
+f66v:{deleteAll}
+f67{cs ne sn}:{speciesSelection Species included in the group:}
+f67v:{deleteAll}
+f68{cs ne sn}:{speciesSelection Species included in the group:}
+f68v:{deleteAll}
+f69{cs ne sn}:{speciesSelection Species included in the group:}
+f69v:{deleteAll}
+f70{cs ne sn}:{speciesSelection Species included in the group:}
+f70v:{deleteAll}                                                  
+f71{cs ne sn}:{speciesSelection Species included in the group:}
+f71v:{deleteAll}                                                  
+f72{cs ne sn}:{speciesSelection Species included in the group:}
+f72v:{deleteAll}                                                  
+f73{cs ne sn}:{speciesSelection Species included in the group:}
+f73v:{deleteAll}                                                  
+f74{cs ne sn}:{speciesSelection Species included in the group:}
+f74v:{deleteAll}                                                  
+f75{cs ne sn}:{speciesSelection Species included in the group:}   
+f75v:{deleteAll}                                                  
+f76{cs ne sn}:{speciesSelection Species included in the group:}   
+f76v:{deleteAll}                                                  
+f77{cs ne sn}:{speciesSelection Species included in the group:}   
+f77v:{deleteAll}                                                  
+f78{cs ne sn}:{speciesSelection Species included in the group:}   
+f78v:{deleteAll}                                                  
+f79{cs ne sn}:{speciesSelection Species included in the group:}   
+f79v:{deleteAll}
+f80{cs ne sn}:{speciesSelection Species included in the group:}
+f80v:{deleteAll}                                                  
+f81{cs ne sn}:{speciesSelection Species included in the group:}
+f81v:{deleteAll}                                                  
+f82{cs ne sn}:{speciesSelection Species included in the group:}
+f82v:{deleteAll}                                                  
+f83{cs ne sn}:{speciesSelection Species included in the group:}
+f83v:{deleteAll}                                                  
+f84{cs ne sn}:{speciesSelection Species included in the group:}
+f84v:{deleteAll}                                                  
+f85{cs ne sn}:{speciesSelection Species included in the group:}   
+f85v:{deleteAll}                                                  
+f86{cs ne sn}:{speciesSelection Species included in the group:}   
+f86v:{deleteAll}                                                  
+f87{cs ne sn}:{speciesSelection Species included in the group:}   
+f87v:{deleteAll}                                                  
+f88{cs ne sn}:{speciesSelection Species included in the group:}   
+f88v:{deleteAll}                                                  
+f89{cs ne sn}:{speciesSelection Species included in the group:}   
+f89v:{deleteAll} 
+f90{cs ne sn}:{speciesSelection Species included in the group:}
+f90v:{deleteAll}    
+f91{cs ne sn}:{speciesSelection Species included in the group:}
+f91v:{deleteAll}   
+
+answerForm:{\
+SpGroup   !1,10!
+!2! !3! !4! !5! !6! !7! !8! !9! !10! !11! !12! !13! !14! !15! !16! !17! !18! !19! !20! !21! !22! !23! !24! !25! !26! !27! !28! !29! !30! !31! !32! !33! !34! !35! !36! !37! !38! !39! !40! !41! !42! !43! !44! !45! !46! !47! !48! !49! !50! !51! !52! !53! !54! !55! !56! !57! !58! !59! !60! !61! !62! !63! !64! !65! !66! !67! !68! !69! !70! !71! !72! !73! !74! !75! !76! !77! !78! !79! !80! !81! !82! !83! !84! !85! !86! !87! !88! !89! !90! !91!}
+
+expressionContents{always after}:{}
+
+//end CutGroup
+
+//start GenGroup
+
+f1title:{Identifies a group of species that can be referenced by a single
+name and included in any species field in management actions, species
+preferences or user-defined variables.
+
+Warning: This species group identifier needs to come before the management
+action or output selection utilizing the group name.
+
+ }
+f1:{textEdit Specify an 2-10 character Species Group}
+f1v:{}
+
+f2:{speciesSelection Species included in the group:}
+f2v:{deleteAll}
+f3:{speciesSelection Species included in the group:}
+f3v:{deleteAll}
+f4:{speciesSelection Species included in the group:}
+f4v:{deleteAll}
+f5:{speciesSelection Species included in the group:}
+f5v:{deleteAll}
+f6:{speciesSelection Species included in the group:}
+f6v:{deleteAll}
+f7:{speciesSelection Species included in the group:}
+f7v:{deleteAll}
+f8:{speciesSelection Species included in the group:}
+f8v:{deleteAll}
+f9:{speciesSelection Species included in the group:}
+f9v:{deleteAll}
+f10:{speciesSelection Species included in the group:}
+f10v:{deleteAll}
+f11:{speciesSelection Species included in the group:}
+f11v:{deleteAll}
+f12:{speciesSelection Species included in the group:}
+f12v:{deleteAll}
+f13{ak bm em ie ci cr so ec op pn wc ws ca oc cs ls ne nc sn tt ut}:{speciesSelection Species included in the group:}
+f13v:{deleteAll}
+f14{ak bm em ie ci cr so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f14v:{deleteAll}
+f15{ak bm em ie cr ci so ec op pn wc ws ca oc ws cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f15v:{deleteAll}
+f16{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f16v:{deleteAll}
+f17{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f17v:{deleteAll}
+f18{ak bm em ie cr ci so ec op pn wc ws ca oc cs ls ne sn tt ut}:{speciesSelection Species included in the group:}
+f18v:{deleteAll}
+f19{ak em ie cr ci so ec op pn wc ca oc ws cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f19v:{deleteAll}
+f20{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f20v:{deleteAll}
+f21{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f21v:{deleteAll}
+f22{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f22v:{deleteAll}
+f23{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f23v:{deleteAll}
+f24{ak ie cr so ec op pn wc ws ca oc cs ls ne sn ut}:{speciesSelection Species included in the group:}
+f24v:{deleteAll}
+f25{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f25v:{deleteAll}
+f26{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f26v:{deleteAll}
+f27{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f27v:{deleteAll}
+f28{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f28v:{deleteAll}
+f29{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f29v:{deleteAll}
+f30{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f30v:{deleteAll}
+f31{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f31v:{deleteAll}
+f32{cr so ec op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f32v:{deleteAll}
+f33{cr so op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f33v:{deleteAll}
+f34{cr so op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f34v:{deleteAll}
+f35{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f35v:{deleteAll}
+f36{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f36v:{deleteAll}
+f37{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f37v:{deleteAll}
+f38{cr op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f38v:{deleteAll}
+f39{op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f39v:{deleteAll}
+f40{op pn wc ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f40v:{deleteAll}
+f41{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f41v:{deleteAll}
+f42{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f42v:{deleteAll}
+f43{ws ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f43v:{deleteAll}
+f44{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f44v:{deleteAll}
+f45{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f45v:{deleteAll}
+f46{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f46v:{deleteAll}
+f47{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f47v:{deleteAll}
+f48{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f48v:{deleteAll}
+f49{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f49v:{deleteAll}
+f50{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f50v:{deleteAll}
+f51{ca oc cs ls ne sn}:{speciesSelection Species included in the group:}
+f51v:{deleteAll}
+f52{cs ls ne sn}:{speciesSelection Species included in the group:}
+f52v:{deleteAll}
+f53{cs ls ne sn}:{speciesSelection Species included in the group:}
+f53v:{deleteAll}
+f54{cs ls ne sn}:{speciesSelection Species included in the group:}
+f54v:{deleteAll}
+f55{cs ls ne sn}:{speciesSelection Species included in the group:}
+f55v:{deleteAll}
+f56{cs ls ne sn}:{speciesSelection Species included in the group:}
+f56v:{deleteAll}
+f57{cs ls ne sn}:{speciesSelection Species included in the group:}
+f57v:{deleteAll}
+f58{cs ls ne sn}:{speciesSelection Species included in the group:}
+f58v:{deleteAll}
+f59{cs ls ne sn}:{speciesSelection Species included in the group:}
+f59v:{deleteAll}    
+f60{cs ls ne sn}:{speciesSelection Species included in the group:}
+f60v:{deleteAll}                                                  
+f61{cs ls ne sn}:{speciesSelection Species included in the group:}
+f61v:{deleteAll}
+f62{cs ls ne sn}:{speciesSelection Species included in the group:}
+f62v:{deleteAll}
+f63{cs ls ne sn}:{speciesSelection Species included in the group:}
+f63v:{deleteAll}
+f64{cs ls ne sn}:{speciesSelection Species included in the group:}
+f64v:{deleteAll}
+f65{cs ls ne sn}:{speciesSelection Species included in the group:}
+f65v:{deleteAll}
+f66{cs ne sn}:{speciesSelection Species included in the group:}
+f66v:{deleteAll}
+f67{cs ne sn}:{speciesSelection Species included in the group:}
+f67v:{deleteAll}
+f68{cs ne sn}:{speciesSelection Species included in the group:}
+f68v:{deleteAll}
+f69{cs ne sn}:{speciesSelection Species included in the group:}
+f69v:{deleteAll}
+f70{cs ne sn}:{speciesSelection Species included in the group:}
+f70v:{deleteAll}                                                  
+f71{cs ne sn}:{speciesSelection Species included in the group:}
+f71v:{deleteAll}                                                  
+f72{cs ne sn}:{speciesSelection Species included in the group:}
+f72v:{deleteAll}                                                  
+f73{cs ne sn}:{speciesSelection Species included in the group:}
+f73v:{deleteAll}                                                  
+f74{cs ne sn}:{speciesSelection Species included in the group:}
+f74v:{deleteAll}                                                  
+f75{cs ne sn}:{speciesSelection Species included in the group:}   
+f75v:{deleteAll}                                                  
+f76{cs ne sn}:{speciesSelection Species included in the group:}   
+f76v:{deleteAll}                                                  
+f77{cs ne sn}:{speciesSelection Species included in the group:}   
+f77v:{deleteAll}                                                  
+f78{cs ne sn}:{speciesSelection Species included in the group:}   
+f78v:{deleteAll}                                                  
+f79{cs ne sn}:{speciesSelection Species included in the group:}   
+f79v:{deleteAll}
+f80{cs ne sn}:{speciesSelection Species included in the group:}
+f80v:{deleteAll}                                                  
+f81{cs ne sn}:{speciesSelection Species included in the group:}
+f81v:{deleteAll}                                                  
+f82{cs ne sn}:{speciesSelection Species included in the group:}
+f82v:{deleteAll}                                                  
+f83{cs ne sn}:{speciesSelection Species included in the group:}
+f83v:{deleteAll}                                                  
+f84{cs ne sn}:{speciesSelection Species included in the group:}
+f84v:{deleteAll}                                                  
+f85{cs ne sn}:{speciesSelection Species included in the group:}   
+f85v:{deleteAll}                                                  
+f86{cs ne sn}:{speciesSelection Species included in the group:}   
+f86v:{deleteAll}                                                  
+f87{cs ne sn}:{speciesSelection Species included in the group:}   
+f87v:{deleteAll}                                                  
+f88{cs ne sn}:{speciesSelection Species included in the group:}   
+f88v:{deleteAll}                                                  
+f89{cs ne sn}:{speciesSelection Species included in the group:}   
+f89v:{deleteAll} 
+f90{cs ne sn}:{speciesSelection Species included in the group:}
+f90v:{deleteAll}    
+f91{cs ne sn}:{speciesSelection Species included in the group:}
+f91v:{deleteAll} 
+
+answerForm:{\
+SpGroup   !1,10!
+!2! !3! !4! !5! !6! !7! !8! !9! !10! !11! !12! !13! !14! !15! !16! !17! !18! !19! !20! !21! !22! !23! !24! !25! !26! !27! !28! !29! !30! !31! !32! !33! !34! !35! !36! !37! !38! !39! !40! !41! !42! !43! !44! !45! !46! !47! !48! !49! !50! !51! !52! !53! !54! !55! !56! !57! !58! !59! !60! !61! !62! !63! !64! !65! !66! !67! !68! !69! !70! !71! !72! !73! !74! !75! !76! !77! !78! !79! !80! !81! !82! !83! !84! !85! !86! !87! !88! !89! !90! !91!}
+expressionContents{always after}:{}
+
+//end GenGroup
+
+//start MechThin
+
+description:{
+This management action simulates a mechanical thinning operation by thinning
+equally throughout the diameter range specified.  Only species selected will be
+thinned.
+}
+
+f1:{scheduleBox}
+f2:{numberBox Residual trees per acre (within specified DBH range)}
+f2v:{0}
+f3:{numberBox Smallest DBH to be considered for removal (greater than/equal)}
+f3v:{0}
+f4:{numberBox Largest DBH to be considered for removal (less than)}
+f4v:{999}
+f5:{speciesSelection Species to be removed in this cut}
+
+
+parmsForm:{\
+* Arguments: SmDBH, LgDBH, CutEff, Species, ResTPA, ResBA
+ThinDBH   !1,10!     Parms(!3!, !4!, 1.0, !5!, !2!, 0.)
+}
+
+answerForm:{ThinDBH   !1,10!!3,10!!4,10!1.0!5,10!!2,10!0.}   
+//end MechThin
+

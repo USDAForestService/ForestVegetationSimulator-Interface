@@ -1,0 +1,669 @@
+
+//start evmon.function.ACCFSP
+
+f1:{speciesSelection CCF for species:}
+f1v:{deleteAll}
+
+answerForm:{ACCFSP(!1!)}
+
+//end   evmon.function.ACCFSP
+
+//start evmon.function.BCCFSP
+
+f1:{speciesSelection CCF for species:}
+f1v:{deleteAll}
+
+answerForm:{BCCFSP(!1!)}
+
+//end   evmon.function.BCCFSP
+
+//start evmon.function.DBHDist
+
+f1:{listButton Attribute of the stand}
+f1v:{\
+Accreation
+Mortality
+>Trees per acre
+Total cubic volume
+Merch cubic volume
+Board foot volume
+Removed trees per acre
+Removed total cubic volume
+Removed merch cubic volume
+Removed board foot volume
+Residual trees per acre}
+
+f2:{listButton Percentile point:}
+f2v:{\
+10-percentile
+30-percentile
+50-percentile
+70-percentile
+90-percentile
+100-percentile
+Total for attribute}
+
+answerForm:
+{DBHDist(!1,,list!,!2,,list!)}
+
+list:{1 2 3 4 5 6 7 8 9 10 11 12}
+
+//end   evmon.function.DBHDist
+
+//start evmon.function.HTDist
+
+f1:{numberBox Percentile (1-100)}
+f1v:{0}
+
+answerForm:
+{HTDist(!1!)}
+
+//end   evmon.function.HTDist
+
+//start evmon.function.Bound
+
+f1:{numberBox Lower bound}
+f1v:{0}
+f2:{numberBox Upper bound}
+f2v:{999}
+
+answerForm:
+{Bound(!1!, $Value$ , !2!)}
+
+//end   evmon.function.Bound
+
+//start evmon.function.Normal
+
+f1:{numberBox Mean}
+f1v:{0}
+f2:{numberBox Standard deviation}
+f2v:{1}
+
+answerForm:
+{Normal(!1!, !2!)}
+
+//end   evmon.function.Normal
+
+//start evmon.function.Decade
+
+f1:{numberBox Value for decade 1}
+f1v:{0}
+f2:{numberBox Value for decade 1}
+f2v:{0}
+f3:{numberBox Value for decade 3}
+f3v:{0}
+f4:{numberBox Value for decade 4}
+f4v:{0}
+
+answerForm:
+{Decade(!1!,!2!,!3!,!4!)}
+
+//end   evmon.function.Decade
+
+//start evmon.function.LinInt
+
+f1:{numberBox X Value 1:}
+f1v:{0}
+f2:{numberBox X Value 2:}
+f2v:{10}
+f3:{numberBox Y Value 1:}
+f3v:{0}
+f4:{numberBox Y Value 2:}
+f4v:{10}
+
+answerForm:
+{LinInt( $XValue$ , !1!, !2!, !3!, !4!)}
+
+//end   evmon.function.LinInt
+
+//start evmon.function.SpMcDBH
+
+f1:{listButton Attribute to be returned}
+f1v{sn ls ne cs}:{\
+Trees per acre
+Basal area per acre
+Merch cubic volume
+Sawtimber board foot volume
+Quadratic mean DBH
+Average height
+Canopy cover percent
+Dwarf mistletoe rating
+Sawtimber cubic volume
+Average diameter growth
+Stand density index
+Relative Density-SILVAH
+Stand density index- Zeide
+Curtis relative density}
+
+f1v:{\
+Trees per acre
+Basal area per acre
+Total cubic volume
+Board foot volume
+Quadratic mean DBH
+Average height
+Canopy cover percent
+Dwarf mistletoe rating
+Merch cubic volume
+Average diameter growth
+Stand density index
+Relative Density-SILVAH
+Stand denisty index- Zeide
+Curtis relative density}
+
+f2:{speciesSelection Species covered in the calculations}
+
+f3:{listButton Tree value class covered}
+f3v:{\
+All tree value classes
+Tree value class 1
+Tree value class 2
+Tree value class 3}
+
+f4:{sliderBox Lower DBH limit in the calculations (GE)}
+f4v:{0 0 999 0 100}
+
+f5:{sliderBox Upper DBH limit in the calculations (LT)}
+f5v:{200 0 999 0 200}
+
+f6:{sliderBox Lower height limit in the calculations (GE)}
+f6v:{0 0 999 0 500}
+
+f7:{sliderBox Upper height limit in the calculations (LT)}
+f7v:{500 0 999 0 500}
+
+f8:{longListButton}
+f8v:
+{Calculations are for LIVE trees
+ Calculations are for recent mortality
+ Calculations are for harvested trees
+ Calculations are for residual (after harvest) live trees
+ Calculations are for live mistletoe infected trees}
+
+f9:{textEdit Point Number or Group (0 = All Points)}
+f9v:{0}
+
+answerForm:
+{SpMcDBH(!1,,list!,!2!,!3!,!4!,!5!,!6!,!7!,!8!,!9!)}
+
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14}
+
+//end   evmon.function.SpMcDBH
+
+//start evmon.function.Acorns
+
+f1:{listButton Attribute to be returned}
+
+f1v:{\
+number of acorns per acre
+pounds (lbs) of acorns per acre
+}
+
+f2:{speciesSelection Species covered in the calculations}
+
+answerForm:
+{Acorns(!1,,list!,!2!)}
+
+list:{1 2}
+
+//end   evmon.function.Acorns
+
+//start evmon.function.SumStat
+
+f1:{numberBox Cycle Number or Row Number in Summary Statistics Table}
+f1v:{1}
+
+f2:{longListButton Attribute to be returned}
+f2v{sn ls ne cs}:{\
+year
+stand age
+trees per acre
+total merchantable cubic foot volume per acre (pulpwood + sawtimber)
+merchantable cubic foot sawtimber volume per acre
+merchantable board foot volume per acre
+removed trees per acre
+removed total merchantable cubic foot volume per acre (pulpwood + sawtimber)
+removed merchantable cubic foot sawtimber volume per acre
+removed merchantable board foot volume per acre
+basal area per acre after thinnings
+crown competetion factor after thinnings
+top height (average height of the 40 largest diameter trees)
+cycle length (years)
+accretion (merchantable ft3/acre/year)
+mortality (merchantable ft3/acre/year)
+stand sampling weight
+}
+
+f2v:{\
+year
+stand age
+trees per acre
+total cubic foot volume per acre
+merchantable cubic foot volume per acre
+merchantable board foot volume per acre
+removed trees per acre
+removed total cubic foot volume per acre
+removed merchantable cubic foot volume per acre
+removed merchantable board foot volume per acre
+basal area per acre after thinnings
+crown competetion factor after thinnings
+top height (average height of the 40 largest diameter trees)
+cycle length (years)
+accretion (total ft3/acre/year)
+mortality (total ft3/acre/year)
+stand sampling weight
+}
+ 
+answerForm:
+{SumStat(!1!,!2,,list!)}
+
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17}
+
+//end   evmon.function.SumStat
+
+//start evmon.function.StrStat
+
+f1:{listButton Attribute to be returned}
+f1v:{\
+nominal dbh for stratum 1
+nominal height for stratum 1
+height of the tallest tree in stratum 1
+height of the shortest tree in stratum 1
+height to crown base for stratum 1
+canopy cover for stratum 1
+major species 1 for stratum 1
+major species 2 for stratum 1
+stratum status code for stratum 1
+trees per acre for stratum 1
+nominal dbh for stratum 2
+nominal height for stratum 2
+height of the tallest tree in stratum 2
+height of the shortest tree in stratum 2
+height to crown base for stratum 2
+canopy cover for stratum 2
+major species 1 for stratum 2
+major species 2 for stratum 2
+stratum status code for stratum 2
+trees per acre for stratum 2
+nominal dbh for stratum 3
+nominal height for stratum 3
+height of the tallest tree in stratum 3
+height of the shortest tree in stratum 3
+height to crown base for stratum 3
+canopy cover for stratum 3
+major species 1 for stratum 3
+major species 2 for stratum 3
+stratum status code for stratum 3
+trees per acre for stratum 3
+number of strata
+canopy cover
+structure class}
+
+f2:{longListButton}
+f2v:
+{Calculations are before thinning
+ Calculations are after thinning}
+
+
+answerForm:
+{StrStat(!1,,list!,!2!)}
+
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+ 26 27 28 29 30 31 32 33}
+
+//end   evmon.function.StrStat
+
+//start evmon.function.FuelLoad
+
+description:
+{Returns the down woody debris (tons/acre) for a range of debris
+classes (Fire and Fuels Extension is required)}
+
+f1:{listButtonString Lower bound of debris class range}
+f1v:{\
+1 = >= zero and < .25 inches.
+2 = >= .25 and < 1 inch.
+3 = >= 1 and < 3 inches.
+4 = >= 3 and < 6 inches.
+5 = >= 6 and < 12 inches.
+6 = >= 12 and < 20 inches.
+7 = >= 20 and < 35 inches.
+8 = >= 35 and < 50 inches.
+9 = >= 50 inches.
+10 = Litter.
+11 = Duff.
+}
+
+f2:{listButtonString Upper bound of debris class range}
+f2v=f1v
+
+answerForm:
+{FuelLoad(!1!,!2!)}
+
+//end   evmon.function.FuelLoad
+
+
+//start evmon.function.PotFLen
+
+description:
+{Returns the flame lengths from the potential fire report of the FFE}
+f1:{listButtonString Type of flame length returned}
+f1v:{\
+1 = Total severe conditions.
+2 = Total moderate conditions.
+3 = Surface severe conditions.
+4 = Surface moderate conditions.
+}
+
+answerForm:
+{PotFLen(!1!)}
+
+//end evmon.function.PotFLen
+
+//start evmon.function.Snags
+
+description:
+{Returns the number, basal area, or volume of snags for a given subset
+of the snag list (Fire and Fuels Extension is required)}
+
+f1:{listButtonString Attribute to be returned}
+f1v{sn ls ne cs}:{\
+1 = Snags per acre
+2 = Basal area per acre
+3 = Merch cubic volume}
+
+f1v:{\
+1 = Snags per acre
+2 = Basal area per acre
+3 = Total cubic volume}
+
+f2:{speciesSelection Species included}
+
+f3:{listButton Snag types included}
+f3v:{\
+0 = Both hard and soft
+1 = Just hard snags
+2 = Just soft snags}
+
+f4:{numberBox Lower limit DBH of snags (GE):}
+f4v:{0 0 FMax}
+
+f5:{numberBox Upper limit DBH of snags (LT):}
+f5v:{999 0 Fmax}
+
+f6:{numberBox Lower limit height of snags (GE):}
+f6v=f4v
+
+f7:{numberBox Upper limit height of snags (LT):}
+f7v=f5v
+
+answerForm:
+{Snags(!1!,!2!,!3!,!4!,!5!,!6!,!7!)}
+
+//end evmon.function.Snags
+
+//start evmon.function.PotFMort
+
+description:
+{Returns the potential fire mortality for severe or moderate fires in
+terms of %BA or total cuft/acre (Fire and Fuels Extension is required)}
+
+f1:{listButtonString Type of mortality returned}
+f1v:{\
+1 = pot. severe fire mortality (%BA)
+2 = pot. moderate fire mortality (%BA)
+3 = pot. severe fire mortality (total cuft/acre)
+4 = pot. moderate fire mortality (total cuft/acre)
+}
+
+answerForm:
+{PotFMort(!1!)}
+
+//end evmon.function.PotFMort
+
+//start evmon.function.PotFType
+
+description:
+{Returns the potential fire type for severe or moderate fires (Fire 
+and Fuels Extension is required).  Returned value is numeric where:
+1 = surface fire
+2 = passive crown fire
+3 = active crown fire
+4 = conditional crown fire }
+
+f1:{listButtonString Type of fire returned}
+f1v:{\
+1 = potential severe fire type
+2 = potential moderate fire type 
+}
+
+answerForm:
+{PotFType(!1!)}
+
+//end evmon.function.PotFType
+
+//start evmon.function.PotSRate
+
+description:
+{Returns the potential fire spread rate (feet/min) for severe or 
+moderate fires (Fire and Fuels Extension is required).  Either the 
+surface fire spread rate or the final spread rate (taking crown fire
+activity into account) can be returned. }
+
+f1:{listButtonString Spread rate returned for}
+f1v:{\
+1 = pot. severe fires - surface spread rate
+2 = pot. moderate fire - surface spread rate
+3 = pot. severe fires - final spread rate
+4 = pot. moderate fire - final spread rate 
+}
+
+answerForm:
+{PotSRate(!1!)}
+
+//end evmon.function.PotSRate
+
+//start evmon.function.PotReInt
+
+description:
+{Returns the potential fire reaction intensity (BTU/ft2/min) for 
+severe or moderate fires (Fire and Fuels Extension is required). }
+
+f1:{listButtonString Reaction intensity for}
+f1v:{\
+1 = potential severe fires
+2 = potential moderate fires 
+}
+
+answerForm:
+{PotReInt(!1!)}
+
+//end evmon.function.PotReInt
+
+//start evmon.function.FuelMods
+
+description:
+{Returns the fuel models and associated weights used in the fire
+behavior calculations (Fire and Fuels Extension is required)}
+
+f1:{listButtonString Fuel model or weight to be returned}
+f1v:{\
+1 = First fuel model / weight
+2 = Second fuel model / weight
+3 = Third fuel model / weight
+4 = Fourth fuel model / weight}
+
+f2:{listButtonString Attribute to be returned}
+f2v:{\
+1 = Fuel model number
+2 = Associated weight}
+
+answerForm:
+{FuelMods(!1!,!2!)}
+
+//end evmon.function.FuelMods
+
+//start evmon.function.SalvVol
+
+description{sn ls ne cs}:
+{Returns salvage volume removed in merch cuft/acre by species and
+diameter class (Fire and Fuels Extension is required)}
+
+description:
+{Returns salvage volume removed in total cuft/acre by species and
+diameter class (Fire and Fuels Extension is required)}
+
+f1:{speciesSelection Species included}
+
+f2:{numberBox Lower limit DBH of salvaged snags (GE):}
+f2v:{0 0 FMax}
+
+f3:{numberBox Upper limit DBH of salvaged snags (LT):}
+f3v:{999 0 Fmax}
+
+answerForm:
+{SalvVol(!1!,!2!,!3!)}
+
+//end evmon.function.SalvVol
+
+//start evmon.function.TreeBio
+
+description:
+{In the western variants, the crown refers to branchwood and foliage only. 
+In the eastern variants, the crown refers to unmerchantable portions of trees.
+Warning: "Live Foliage" is only calculated for standing, live trees. Requesting 
+"Live Foliage" with other selections will result in an undefined function.}
+
+f1:{listButton Calculate Biomass for:}
+f1v:{\
+Standing and Removed Trees
+Standing Trees
+Removed Trees
+}
+
+f2:{listButton Tree Status:}
+f2v:{\
+Dead and Live
+Dead
+Live
+}
+
+f3:{listButton Portion of Tree}
+f3v:{\
+Stem and Crown (includes foliage)
+Stem
+Crown (includes foliage)
+Live Foliage
+}
+
+f4:{speciesSelection Species covered in the calculations}
+
+f5:{sliderBox Lower DBH (in) limit in the calculations (GE)}
+f5v:{0 0 999 0 500}
+
+f6:{sliderBox Upper DBH (in) limit in the calculations (LT)}
+f6v:{200 0 999 0 200}
+
+f7:{sliderBox Lower height (ft) limit in the calculations (GE)}
+f7v:{0 0 999 0 500}
+
+f8:{sliderBox Upper height (ft) limit in the calculations (LT)}
+f8v:{500 0 999 0 500}
+
+answerForm:
+{TreeBio(!1,,list!,!2,,list!,!3,,list!,!4!,!5!,!6!,!7!,!8!)}
+
+list:{1 -1 0 2}
+
+//end   evmon.function.TreeBio
+
+//start evmon.function.CarbStat
+
+f1:{listButton Carbon pool to be returned}
+f1v:{\
+Total aboveground live tree
+Merch aboveground live tree
+Belowground live
+Belowground dead
+Standing dead
+Down dead wood
+Forest floor
+Herbs and shrubs
+Total stand
+Total removed
+Carbon released from fire
+Merch Removed: Products
+Merch Removed: Landfills
+Merch Removed: Energy
+Merch Removed: Emissions
+Merch Removed: Stored
+Merch Removed: All
+}
+
+answerForm:
+{CarbStat(!1,,list!)}
+
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17}
+
+//end   evmon.function.CarbStat
+
+//start evmon.function.HerbShrb
+
+description:
+{Returns the total herbs and or shrubs in tons/acre. }
+
+f1:{listButtonString Live surface fuels of:}
+f1v:{\
+1 = herbs in tons/acre
+2 = shrubs in tons/acre
+3 = herbs and shrubs in tons/acre
+}
+
+answerForm:
+{HerbShrb(!1!)}
+
+//end evmon.function.HerbShrb
+
+//start evmon.function.DWDVal
+
+description:
+{Returns the volume (cuft/acre) or cover (%) of down wood for a range of 
+size classes (Fire and Fuels Extension is required)}
+
+f1:{listButtonString Attribute to be returned}
+f1v:{\
+1 = volume (cuft) per acre
+2 = percent cover (%)}
+
+f2:{listButton Down wood types included}
+f2v:{\
+0 = Both hard and soft
+1 = Just hard
+2 = Just soft}
+
+f3:{listButtonString Lower bound of size class range}
+f3v:{\
+1 = >= 0 and < 3 inches.
+>2 = >= 3 and < 6 inches.
+3 = >= 6 and < 12 inches.
+4 = >= 12 and < 20 inches.
+5 = >= 20 and < 35 inches.
+6 = >= 35 and < 50 inches.
+7 = >= 50 inches.
+}
+
+f4:{listButtonString Upper bound of size class range}
+f4v:{\
+1 = >= 0 and < 3 inches.
+2 = >= 3 and < 6 inches.
+3 = >= 6 and < 12 inches.
+4 = >= 12 and < 20 inches.
+5 = >= 20 and < 35 inches.
+6 = >= 35 and < 50 inches.
+>7 = >= 50 inches.
+}
+
+answerForm:
+{DWDVal(!1!,!2!,!3!,!4!)}
+
+//end   evmon.function.DWDVal
