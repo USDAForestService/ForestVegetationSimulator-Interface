@@ -5,7 +5,7 @@ options(shiny.trace = F)  # change to T for trace
 
 shinyServer(function(input, output, session) {
 
-  trim <- function (x) gsub("^\\s+|\\s+$","",x)
+  trim <- function (x) if (is.null(x)) "" else gsub("^\\s+|\\s+$","",x)
 # pop the sink stack
   while(sink.number()) sink()
   try(sink("FVSPrjBldr.log"))
@@ -18,12 +18,17 @@ shinyServer(function(input, output, session) {
     isolate({
       if (nchar(input$title)==0) return()
       emailnew = trim(input$emailnew)
-      if (nchar(emailnew)<5 && regexpr("@",emailnew) < 2) return()
-      uuid = uuidgen()
-      workDir = paste0("/home/shiny/FVSwork/",uuid)
-      cat("workDir=",workDir,"\n")
-      dir.create(workDir)
-      cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
+      emaildup = trim(input$emaildup)
+      if ((nchar(emailnew)<5 && regexpr("@",emailnew) < 2) || emailnew != emaildup)
+      {
+        msg = "Email entry error."
+        output$actionMsg = renderText(msg)
+        return()
+      }
+      if (input$version == "production") 
+        cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
+      if (input$version == "development") 
+        cat ('library(fvsOLdev)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
       # projectId file...
 cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
@@ -35,8 +40,10 @@ cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat (file=con,"Subject: New FVSOnline project at Virginia Tech\n")
       cat (file=con,"\nHere is a link to the project named: ",input$title,"\n\n")
       cat (file=con,link,"\n\n")
+      if (input$version == "development") 
+        cat (file=con,"This project uses the development version of FVSOnline\n")
       cat (file=con,"Note that this project may be removed",
-           "from the system 2 months after the last access.")
+           "from the system 60 days after the last access.")
       close(con)
 
       mailCmd = paste('ssmtp -t < ',rptFile)
