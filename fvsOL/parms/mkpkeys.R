@@ -314,10 +314,10 @@ mkpkeys = function (mstext)
   pkeys
 }
 
-prms = rdparms("fvsOL/parms")
+prms = rdparms("parms")
 prms = lapply(prms,mkpkeys)
 
-save(file="fvsOL/data/prms.RData",prms)
+save(file="data/prms.RData",prms)
 
 
 
