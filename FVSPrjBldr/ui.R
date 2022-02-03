@@ -20,7 +20,7 @@ shinyUI(fluidPage(
     textInput("title", "Your new project title"),
     textInput("emailnew", "Your Email address"),
     textInput("emaildup", "Your Email address again"),
-    checkboxGroupInput("version",NULL,choices=list( 
+    radioButtons("version",NULL,choices=list( 
        "Use the projuction version of the software"="production",
        "Use the development version"="development"),
        selected="production"),

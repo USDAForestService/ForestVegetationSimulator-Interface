@@ -25,6 +25,7 @@ shinyServer(function(input, output, session) {
         output$actionMsg = renderText(msg)
         return()
       }
+      uuid = uuidgen()
       workDir = paste0("/home/shiny/FVSwork/",uuid)
       cat("workDir=",workDir,"\n")
       dir.create(workDir)
