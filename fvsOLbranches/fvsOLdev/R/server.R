@@ -12,10 +12,12 @@
 #' @param shiny.trace turns on tracing for shiny, see shiny documentation
 #' @param logToConsole controls if the log is output to the console or the log file,
 #'   the default set by the interactive() function.
+#' @param devVersion when true the heading is slightly changed to label the app as 
+#    the development version
 #' @return the shiny app.
-#' @export
+#' @export    
 fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
-                   logToConsole=interactive())                                         
+                   logToConsole=interactive(),devVersion=FALSE)                                         
 {
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
   if (is.null(fvsBin) || !dir.exists(fvsBin)) 
@@ -25,6 +27,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   fvsBin <<- fvsBin
   runUUID <<- runUUID
   logToConsole <<- logToConsole
+  devVersion <<- devVersion
   
   cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
@@ -262,7 +265,8 @@ cat ("Project is locked.\n")
 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    serverDate = paste0("Release date: ",serverDate,"<br>")
+    serverDate = if (devVersion) paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") else
+                                 paste0("Release date: ",serverDate,"<br>")
     if (isLocal()) serverDate = paste0(serverDate,"Local configuration<br>") else
     {
       hostedByLogo=system.file("extdata","www/hostedByLogo.png",package="fvsOL")
