@@ -13,7 +13,7 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
   queryEmail = scan(text=queryEmail,what="character",quiet=TRUE)
   if (length(queryEmail) > 1) stop ("queryEmail string contains white space")
   
-  workDirs = list.dirs("../FVSwork",recursive = FALSE)
+  workDirs = list.dirs("/home/shiny/FVSwork",recursive = FALSE)
   ids = lapply(workDirs,function (x) 
      {  
        fn = paste0(x,"/projectId.txt")
@@ -34,7 +34,7 @@ prjListEmail <- function (queryEmail,ndays=60,sendEmail=TRUE)
      })
 ##The following line needs to be edited and uncommented to replace the
 ##base web address string in the substitution
-  names (ids) = sub("../FVSwork",
+  names (ids) = sub("/home/shiny/FVSwork",
                     "https://charcoal2.cnre.vt.edu/FVSwork",workDirs)
   
   rptFile = tempfile()

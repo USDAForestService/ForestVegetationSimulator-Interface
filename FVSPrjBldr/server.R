@@ -25,6 +25,9 @@ shinyServer(function(input, output, session) {
         output$actionMsg = renderText(msg)
         return()
       }
+      workDir = paste0("/home/shiny/FVSwork/",uuid)
+      cat("workDir=",workDir,"\n")
+      dir.create(workDir)
       if (input$version == "production") 
         cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
       if (input$version == "development") 
