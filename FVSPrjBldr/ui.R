@@ -21,7 +21,7 @@ shinyUI(fluidPage(
     textInput("emailnew", "Your Email address"),
     textInput("emaildup", "Your Email address again"),
     radioButtons("version",NULL,choices=list( 
-       "Use the projuction version of the software"="production",
+       "Use the production version of the software"="production",
        "Use the development version"="development"),
        selected="production"),
     p("By pressing submit you are certifying that you agree to the Notice posted below."),
