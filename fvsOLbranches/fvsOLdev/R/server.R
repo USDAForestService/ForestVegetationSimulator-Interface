@@ -19,6 +19,7 @@
 fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
                    logToConsole=interactive(),devVersion=FALSE)                                         
 {
+  require(utils)
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
   if (is.null(fvsBin) || !dir.exists(fvsBin)) 
   {
@@ -38,11 +39,11 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   addResourcePath("colourpicker-binding", 
     system.file("srcjs",package="colourpicker"))
   addResourcePath("FVSlogo.png", 
-    system.file("extdata","www/FVSlogo.png",package="fvsOL"))
+    system.file("extdata","www/FVSlogo.png",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   addResourcePath("USDAFS.png", 
-    system.file("extdata","www/USDAFS.png",package="fvsOL"))
+    system.file("extdata","www/USDAFS.png",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   addResourcePath("message-handler.js", 
-    system.file("extdata","www/message-handler.js",package="fvsOL"))
+    system.file("extdata","www/message-handler.js",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
   
@@ -58,6 +59,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
+devVersion <<- FALSE
 
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
@@ -178,7 +180,8 @@ selZip <- unlist(zipList[1:4])
 # if "runScripts.R" exists in the project directory, then use it, otherwise load
 # the version that is part of the package software.
 rsf <- "runScripts.R"
-if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, package = "fvsOL"))
+if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, 
+  package=if (devVersion) "fvsOLdev" else "fvsOL"))
 runScripts <- if (exists("customRunScripts") && length(customRunScripts)) 
                append(x=customRunScripts,after=0,defaultRun) else defaultRun
  
@@ -194,7 +197,7 @@ FVSOnlineServer <- function(input, output, session)
 cat ("FVSOnline/OnLocal interface server start\n")
 
   # set serverDate to be the release date using packageVersion
-  serverDate=as.character(packageVersion("fvsOL"))
+  serverDate=as.character(packageVersion(if (devVersion) "fvsOLdev" else "fvsOL"))
   serverDate=unlist(strsplit(serverDate,".",fixed=TRUE))
   for (i in 2:3) if (nchar(serverDate[i])==1) serverDate[i]=paste0("0",serverDate[i])
   serverDate=paste0(serverDate,collapse="")
@@ -251,7 +254,8 @@ cat ("Project is locked.\n")
     } 
     globals$FVS_Runs = getFVSRuns(dbGlb$prjDB)
     #update a couple of list buttons with the list of tables             
-    xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+    xlsxFile=system.file("extdata", "databaseDescription.xlsx", 
+               package=if (devVersion) "fvsOLdev" else "fvsOL")
     if (file.exists(xlsxFile))
     {
       if ("OutputTableDescriptions" %in% getSheetNames(xlsxFile))
@@ -265,19 +269,23 @@ cat ("Project is locked.\n")
 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    serverDate = if (devVersion) paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") else
-                                 paste0("Release date: ",serverDate,"<br>")
-    if (isLocal()) serverDate = paste0(serverDate,"Local configuration<br>") else
+    serverDateOut = if (devVersion)
     {
-      hostedByLogo=system.file("extdata","www/hostedByLogo.png",package="fvsOL")
-      if (file.exists(hostedByLogo)) 
-      {
-        addResourcePath("hostedByLogo.png",hostedByLogo) 
-        serverDate = paste0(serverDate,
-                     "Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
-      } else serverDate = paste0(serverDate, "Online configuration<br>")
+      if (isLocal()) 
+        paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
+        paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") 
+    } else {
+      paste0(serverDate,if (isLocal()) " Local" else " Online","configuration<br>")
     }
-    output$serverDate=renderUI(HTML(serverDate))
+    hostedByLogo=system.file("extdata","www/hostedByLogo.png",
+      package=if (devVersion) "fvsOLdev" else "fvsOL")
+cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
+    if (file.exists(hostedByLogo)) 
+    {
+      addResourcePath("hostedByLogo.png",hostedByLogo) 
+      serverDateOut = paste0(serverDateOut,"Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
+    }
+    output$serverDate=renderUI(HTML(serverDateOut))
     tit=NULL
     pfexists = file.exists("projectId.txt")
     if (!pfexists || (pfexists && file.size("projectId.txt") < 2))
@@ -322,9 +330,9 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     # is not in the project directory.
     if (!file.exists("FVS_Data.db"))
     {
-      frm=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
-      frm=system.file("extdata", "SpatialData.RData.default", package = "fvsOL")
+      frm=system.file("extdata", "SpatialData.RData.default",package=sub("package:","",find('fvsOL')[1]))
       file.copy(frm,"SpatialData.RData",overwrite=TRUE)
     }
     globals$changeind <- 0
@@ -437,7 +445,7 @@ cat ("View Outputs & Load\n")
         names(fvsOutData$runs) = runsdf$RunTitle
       }
       tableList <- list()
-      dbd=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      dbd=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
       if (file.exists(dbd))
       {
         if ("OutputTableDescriptions" %in% getSheetNames(dbd))
@@ -521,7 +529,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
-        source(system.file("extdata", "sqlQueries.R", package = "fvsOL"))
+        source(system.file("extdata", "sqlQueries.R", package=if (devVersion) "fvsOLdev" else "fvsOL"))
         ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
 cat ("ncases=",ncases,"\n")
         if (ncases > 1) if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) return()
@@ -2193,7 +2201,7 @@ cat ("copyToClipboard copyplot\n")
     if (input$topPan == "Simulate" || input$rightPan == "Stands") 
     {
 cat ("Stands\n")
-      f1=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      f1=system.file("extdata", "FVS_Data.db.default",package=if (devVersion) "fvsOLdev" else "fvsOL")
       output$sayDataSource <-renderUI((h4(paste0(
         if (areFilesIdentical(f1=f1,f2="FVS_Data.db")) "Training" else "User",
           " data installed"))))
@@ -3988,7 +3996,7 @@ cat ("load FVSpgm cmd=",cmd,"\n")
         if (globals$fvsRun$runScript != "fvsRun")
         {
           rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
-          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn, package = "fvsOL")
+          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,package=if (devVersion) "fvsOLdev" else "fvsOL")
           if (!file.exists(rsFn)) return()
           cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
 cat ("run script load cmd=",cmd,"\n")
@@ -5723,8 +5731,8 @@ cat("delete project button.")
       # fvsOnlineHelp.html or databaseDescription.xlsx
       help=NULL
       fr = "fvsOnlineHelpRender.RData"
-      fn =  system.file("extdata", "fvsOnlineHelp.html", package = "fvsOL")
-      xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      fn =  system.file("extdata", "fvsOnlineHelp.html", package=if (devVersion) "fvsOLdev" else "fvsOL")
+      xlsxfile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
       loadNew = if (file.exists(fr))
       {
         info=file.info(c(fr,fn,xlsxfile))
@@ -5822,7 +5830,7 @@ cat("delete project button.")
   mkTableDescription <- function (tab)
   {
     html = NULL
-    xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+    xlsxfile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
     if (!is.null(tab) && nchar(tab)>0 && !is.null(xlsxfile) && file.exists(xlsxfile))
     {
       sheets = sort(getSheetNames(xlsxfile), decreasing=FALSE)
@@ -5908,13 +5916,13 @@ cat ("Upload inventory data\n")
     dbDisconnect(dbGlb$dbIcon)
     if (empty)
     {
-      frm=system.file("extdata", "FVS_Data.db.empty", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.empty", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
       unlink("SpatialData.RData")
     } else {
-      frm=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
-      frm=system.file("extdata", "SpatialData.RData.default", package = "fvsOL")
+      frm=system.file("extdata", "SpatialData.RData.default",ppackage=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"SpatialData.RData",overwrite=TRUE)
     }
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db") 
@@ -6093,7 +6101,7 @@ cat ("cmd done.\n")
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      dbdis=system.file("extdata","databaseDescription.xlsx", package = "fvsOL")
+      dbdis=system.file("extdata","databaseDescription.xlsx",package=if (devVersion) "fvsOLdev" else "fvsOL")
       standNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_StandInit"))
       standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
       treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
@@ -6978,7 +6986,7 @@ cat ("stand_ID query error.\n")
       updateSelectInput(session=session, inputId="editSelDBvars", 
         choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)
       html=NULL
-      xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      xlsxFile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
       tabs = try(read.xlsx(xlsxFile=xlsxFile,sheet="InputTableDescriptions"))
       if (class(tabs) != "try-error")
       {
@@ -7845,7 +7853,7 @@ cat ("in customRunOps runScript: ",input$runScript,"\n")
       if (input$runScript != "fvsRun")
       {
         fn=paste0("customRun_",globals$fvsRun$runScript,".R")
-        if (!file.exists(fn)) fn=system.file("extdata", fn, package = "fvsOL")
+        if (!file.exists(fn)) fn=system.file("extdata", fn, package=if (devVersion) "fvsOLdev" else "fvsOL")
         if (!file.exists(fn)) return()        
         rtn = try(source(fn))
         if (class(rtn) == "try-error") return()
