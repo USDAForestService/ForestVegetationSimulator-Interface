@@ -32,7 +32,7 @@ shinyServer(function(input, output, session) {
       if (input$version == "production") 
         cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
       if (input$version == "development") 
-        cat ('library(fvsOLdev)\nfvsOL(fvsBin="../../FVS/bin",devVersion=TRUE)\n',file=paste0(workDir,"/app.R"))
+        cat ('library(fvsOLdev)\nfvsOL(fvsBin="../../FVSdev/bin",devVersion=TRUE)\n',file=paste0(workDir,"/app.R"))
       # projectId file...
 cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
@@ -45,7 +45,7 @@ cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat (file=con,"\nHere is a link to the project named: ",input$title,"\n\n")
       cat (file=con,link,"\n\n")
       if (input$version == "development") 
-        cat (file=con,"This project uses the development version of FVSOnline\n")
+        cat (file=con,"This project uses development versions of the FVS software\n")
       cat (file=con,"Note that this project may be removed",
            "from the system 60 days after the last access.")
       close(con)
