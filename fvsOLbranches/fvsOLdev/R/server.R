@@ -136,30 +136,6 @@ extnslist <- list(
   "WRD (Armillaria Root Disease)"="armwrd3",
   "WRD (Laminated Root Rot)"="phewrd3")
 
-pgmList <- list(                                
-  FVSak = "Southeast AK - Coastal BC",
-  FVSbm = "Blue Mountains, Oregon",
-  FVSca = "Inland CA, Southern Cascades",
-  FVSci = "Central ID",
-  FVScr = "Central Rockies",       
-  FVSec = "East Cascades, Washington",
-  FVSem = "Eastern Montana",
-  FVSie = "Inland Empire",
-  FVSnc = "Klammath Mountains, Northern CA",
-  FVSoc = "ORGANON Southwest",
-  FVSop = "ORGANON Pacific Northwest",
-  FVSso = "South Central OR N CA",
-  FVStt = "Tetons, Wyoming",
-  FVSut = "Utah",
-  FVSwc = "West Cascades",
-  FVSpn = "Pacific Northwest Coast",
-  FVSws = "Western Sierra Nevada, CA",
-  FVScs = "Central States",
-  FVSkt = "Kootenai/Kaniksu/Tally LK, ID - MT",
-  FVSls = "Lake States",
-  FVSne = "Northeast",
-  FVSsn = "Southern") 
-                          
 options(rgl.useNULL=TRUE)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
@@ -499,28 +475,50 @@ cat ("have exclusive lock\n")
         # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        qry = paste0("create table temp.Cases as select _RowID_,CaseID ",
+        qry = paste0("create table temp.Cases as select _RowID_,CaseID,Variant ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",
                      paste0("('",paste(input$runs,collapse="','"),"')"))
 cat("qry=",qry,"\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-        rtn = dbExecute(dbGlb$dbOcon,qry)
+        rtn = dbExecute(dbGlb$dbOcon,qry) 
 cat("rtn from create temp.Cases=",rtn,"\n")
+        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+cat ("ncases=",ncases,"\n")
+        bagit=ncases==0
+        isMetric=FALSE
+        if (!bagit)
+        {
+          variantsRun =  tolower(dbGetQuery(dbGlb$dbOcon,
+             "select distinct Variant from temp.Cases;")[,1])
+          metricVars = c("bc","on")
+          isMetric = length(intersect(variantsRun,metricVars)) > 0
+          # can not have metric and non-metric variants
+          bagit = isMetric && length(setdiff(variantsRun,metricVars))
+        }
+        if (bagit)
+        {
+            updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
+            dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+            myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
+            setProgress(value = NULL)
+            retrun()
+        }          
         for (tb in tbs) 
         {                     
 cat ("tb=",tb,"\n")                             
           cnt = 0
           if (tb == "FVS_Cases") next
-          if (tb %in% c("CmpSummary","CmpSummary_East",                 
-              "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
-              "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
+          if (tb %in% c("CmpSummary","CmpSummary_East", "CmpSummary2",
+              "CmpSummary2_East","CmpSummary2_Metric", "StdStk","CmpStdStk",
+              "StdStk_East","CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric",
+              "CmpMetaData","CmpCompute"))
           {
 cat ("drop tb=",tb,"\n")
              dbExecute(dbGlb$dbOcon,paste0("drop table if exists ",tb))
           } else {
             qry = paste0("select count(*) from ",
                    "(select CaseID from ",tb," where ",tb,".CaseID in ",
-                   "(select CaseID from temp.Cases))")
+                   "(select CaseID from temp.Cases))")   
 cat("qry=",qry,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
               dbGetQuery(dbGlb$dbOcon,qry) else -1
@@ -529,45 +527,63 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
-        source(system.file("extdata", "sqlQueries.R", package=if (devVersion) "fvsOLdev" else "fvsOL"))
-        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
-cat ("ncases=",ncases,"\n")
-        if (ncases > 1) if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) return()
+        source(system.file("extdata", if (isMetric) "sqlQueries_Metric.R" else "sqlQueries.R",
+              package=if (devVersion) "fvsOLdev" else "fvsOL"))
+        if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) 
+        {
+          updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
+          dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+          myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
+          setProgress(value = NULL)
+          retrun()
+        }
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
-        if ("FVS_Summary" %in% tbs && ncases > 1)
+        if (!isMetric)
         {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary)
-          tbs = c(tbs,"CmpSummary")
-cat ("tbs1=",tbs,"\n")
-        }
-        if ("FVS_Summary_East" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary_East", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary_East)
-          tbs = c(tbs,"CmpSummary_East")
+          if ("FVS_Summary" %in% tbs)
+          {
+            setProgress(message = "Output query", 
+              detail  = "Building CmpSummary", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary)
+            tbs = c(tbs,"CmpSummary")
+cat ("tbs1=",tbs,"\n")                             
+          }
+          if ("FVS_Summary_East" %in% tbs)
+          {
+            setProgress(message = "Output query", 
+              detail  = "Building CmpSummary_East", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary_East)
+            tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
-        }
-        if ("FVS_Summary2" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary2", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary2)
-          tbs = c(tbs,"CmpSummary2")
+          }
+          if ("FVS_Summary2" %in% tbs)
+          {
+            setProgress(message = "Output query", 
+              detail  = "Building CmpSummary2", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
-        }
-        if ("FVS_Summary2_East" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary2_East", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
-          tbs = c(tbs,"CmpSummary2_East")
+          }
+          if ("FVS_Summary2_East" %in% tbs)
+          {
+            setProgress(message = "Output query", 
+              detail  = "Building CmpSummary2_East", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
+            tbs = c(tbs,"CmpSummary2_East")
 cat ("tbs4=",tbs,"\n")
+          } 
+        } else {
+          if ("FVS_Summary2_Metric" %in% tbs && exists("Create_CmpSummary2"))
+          {
+            setProgress(message = "Output query", 
+              detail  = "Building CmpSummary2_Metric", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tbs = c(tbs,"CmpSummary2_Metric")
+cat ("tbs5=",tbs,"\n") 
+          }
         }
-        if ("FVS_Compute" %in% tbs && ncases > 1)
+        if ("FVS_Compute" %in% tbs)
         {
           setProgress(message = "Output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
@@ -586,79 +602,98 @@ cat ("tbs4=",tbs,"\n")
             dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
           }
           tbs = c(tbs,"CmpCompute")    
-cat ("tbs5=",tbs,"\n")
+cat ("tbs6=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
-        tlprocs = names(tlprocs)[tlprocs]
-        chtoEast = function(cmd)
+        if (!isMetric && any(tlprocs)) 
         {
-          cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
-          cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
-          cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
-          gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
-        }
-        for (tlp in tlprocs)          
-        {
-          if (tlp == "tlwest")
+          tlprocs = names(tlprocs)[tlprocs]
+          chtoEast = function(cmd)
           {
-            C_StdStkDBHSp  = Create_StdStkDBHSp
-            C_HrvStdStk    = Create_HrvStdStk
-            C_StdStk1Hrv   = Create_StdStk1Hrv
-            C_StdStk1NoHrv = Create_StdStk1NoHrv
-            C_StdStkFinal  = Create_StdStkFinal
-            C_CmpStdStk    = Create_CmpStdStk
-            detail = "Building StdStk from tree lists"
-            stdstk = "StdStk"
-            clname = "FVS_CutList"
-          } else {
-            C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
-            C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
-            C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
-            C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
-            C_StdStkFinal  = chtoEast(Create_StdStkFinal )
-            C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
-            C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
-            C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
-            C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
-            detail = "Building StdStk_East from tree lists"
-            stdstk = "StdStk_East"
-            clname = "FVS_CutList_East"
+            cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
+            cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
+            cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
+            gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
           }
-          setProgress(message = "Output query", 
-            detail  = detail, value = i); i = i+1
-          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          if (clname %in% tbs)
+          for (tlp in tlprocs)          
           {
+            if (tlp == "tlwest")
+            {
+              C_StdStkDBHSp  = Create_StdStkDBHSp
+              C_HrvStdStk    = Create_HrvStdStk
+              C_StdStk1Hrv   = Create_StdStk1Hrv
+              C_StdStk1NoHrv = Create_StdStk1NoHrv
+              C_StdStkFinal  = Create_StdStkFinal
+              C_CmpStdStk    = Create_CmpStdStk
+              detail = "Building StdStk from tree lists"
+              stdstk = "StdStk"
+              clname = "FVS_CutList"
+            } else {
+              C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
+              C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
+              C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
+              C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
+              C_StdStkFinal  = chtoEast(Create_StdStkFinal )
+              C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
+              C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
+              C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
+              C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
+              detail = "Building StdStk_East from tree lists"
+              stdstk = "StdStk_East"
+              clname = "FVS_CutList_East"
+            }
             setProgress(message = "Output query", 
               detail  = detail, value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-            setProgress(message = "Output query", 
-              detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          } else {
-             setProgress(message = "Output query", 
-              detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          }
-          exqury(dbGlb$dbOcon,C_StdStkFinal)
-          tbs = c(tbs,stdstk) 
+            exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            if (clname %in% tbs)
+            {
+              setProgress(message = "Output query", 
+                detail  = detail, value = i); i = i+1
+              exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+              setProgress(message = "Output query", 
+                detail  = "Joining tables", value = i); i = i+1
+              exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            } else {
+              setProgress(message = "Output query", 
+                detail  = "Joining tables", value = i); i = i+2
+              exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            }
+            exqury(dbGlb$dbOcon,C_StdStkFinal)
+            tbs = c(tbs,stdstk) 
+            if (ncases > 1) 
+            {                                               
+              exqury(dbGlb$dbOcon,C_CmpStdStk)
+              tbs = c(tbs,paste0("Cmp",stdstk))
+            }                                      
+          }          
+        }                                                      
+        if ("FVS_TreeList_Metric" %in% tbs)
+        { 
+          asSpecies=paste0("Species",input$spCodes)
+          setProgress(message = "Output query", detail  = "Building StdStk", value = i); i = i+1
+          if ("FVS_CutList_Metric" %in% tbs) exqury(dbGlb$dbOcon,Create_HrvStdStk, 
+            subExpression=dbhclassexp, asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,subExpression=dbhclassexp,asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,subExpression=dbhclassexp,asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStkFinal)
+          tbs = c(tbs,"StdStk_Metric")
           if (ncases > 1) 
-          {
-            exqury(dbGlb$dbOcon,C_CmpStdStk)
-            tbs = c(tbs,paste0("Cmp",stdstk))
-          }
+          {                                               
+            exqury(dbGlb$dbOcon,Create_CmpStdStk)
+            tbs = c(tbs,"CmpStdStk_Metric")
+          }                                      
         }
-        if (all(Create_View_DWN_Required %in% tbs)) 
+        if (all(Create_View_DWN_Required %in% tbs))             
         {
           exqury(dbGlb$dbOcon,Create_View_DWN)
           tbs = c(tbs,"View_DWN")
         }
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
-cat ("tbs6=",tbs,"\n")       
+cat ("tbs7=",tbs,"\n")       
         setProgress(message = "Output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
@@ -676,20 +711,21 @@ cat ("tbs6=",tbs,"\n")
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
-        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East",
-                               "CmpMetaData")
+        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
+          "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
-                       "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
-                       "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
-                       "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
-                       "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
-                       "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
-                       "FVS_Summary_East","View_DWN")
+            "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
+            "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
+            "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
+            "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+            "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
+            "FVS_Summary","FVS_Summary_East","View_DWN")
         globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
-        globals$dClsLvl <- list("StdStk","StdStk_East","FVS_Mortality","FVS_DM_Sz_Sum")
+        globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum")
         globals$htClsLvl <- list("FVS_CanProfile")
         globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
-                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East")
+                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East",
+                                "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
@@ -776,8 +812,9 @@ cat("selectdbtables\n")
       while(length(tables)>1)
       {
         if(length(tables)==2 && "FVS_Cases" %in% tables) break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_Metric")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
@@ -1085,9 +1122,9 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
               function (x) x[2])))
         if (length(cols) == 0) return()
         tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
-          "CmpSummary2"=1, "CmpSummary2_East"=1,
-          "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, 
-          "CmpStdStk_East"=1, "StdStk_East"=3, "FVS_ATRTList"=8,
+          "CmpSummary2"=1, "CmpSummary2_East"=1,"CmpSummary2_Metric"=1,
+          "CmpCompute"=1, "CmpStdStk"=1, "CmpStdStk_East"=1, "CmpStdStk_Metric"=1, 
+          "StdStk"=3, "StdStk_East"=3, "StdStk_Metric"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
@@ -1096,8 +1133,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Stnd_Sum"=2, "FVS_DM_Sz_Sum"=2,
           "FVS_RD_Sum"=2, "FVS_RD_Det"=2, "FVS_RD_Beetle"=2, "FVS_StrClass"=2,
           "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8,"FVS_ATRTList"=8,
-          "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,
-          "FVS_CutList_East"=8)
+          "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,"FVS_CutList_East"=8,
+          "FVS_TreeList_Metric"=8,"FVS_ATRTList_Metric"=8,"FVS_CutList_Metric"=8)
         tbg = tbgroup[tbs]
         arena = is.na(tbg)
         if (any(arena))
@@ -1112,7 +1149,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
-          if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2","CmpSummary2_East")) 
+          if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2",
+                        "CmpSummary2_East","CmpSummary2_Metric")) 
           {            
             dtab <- dbReadTable(dbGlb$dbOcon,tb)
             if (tb %in% c("CmpSummary","CmpSummary_East")) 
@@ -1311,9 +1349,12 @@ cat ("cmd=",cmd,"\n")
         }
         globals$exploreChoices$mgmid = cho
         if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
-                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"),names(dat))))
+                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
+                "FVS_TreeList_Metric","FVS_ATRTList_Metric","FVS_CutList_Metric"
+              ),names(dat))))
           updateSelectInput(session, "plotType",selected="scat") else 
-          if (length(intersect(c("StdStk","CmpStdStk","StdStk_East","CmpStdStk_East"),names(dat)))) 
+          if (length(intersect(c("StdStk","CmpStdStk","StdStk_East",
+             "CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric"),names(dat)))) 
             updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
@@ -1327,7 +1368,8 @@ cat ("cmd=",cmd,"\n")
           isel = max(1,length(cho) %/% 2)
           sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
               "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
-              "StdStk","StdStk_East","CmpStdStk","CmpStdStk_East"),names(dat)))) 
+              "StdStk","StdStk_East","StdStk_Metric","CmpStdStk","CmpStdStk_East",
+              "CmpStdStk_Metric"),names(dat)))) 
               cho[isel] else cho 
           updateSelectInput(session, "year", choices=as.list(cho), selected=sel)
         }        
@@ -4090,10 +4132,12 @@ cat ("length(allSum)=",length(allSum),"\n")
           names(allSum) = modn
         }
         X <- Y <- Stand <- NULL
+        unitConv = if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+           0.0699713 else 1    # note FT3pACRtoM3pHA = 0.0699713
         for (i in 1:length(allSum)) 
         { 
           X = c(X,allSum[[i]][,"Year"])
-          Y = c(Y,allSum[[i]][,"TCuFt"])
+          Y = c(Y,allSum[[i]][,"TCuFt"]) * unitConv
           ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
           ltag = gsub(x=ltag,pattern="^SId=",replacement="")
           Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
@@ -4101,11 +4145,14 @@ cat ("length(allSum)=",length(allSum),"\n")
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
         colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
-        volType = if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
-           "Merchantable" else "Total"
+        yUnits = expression(Total~(ft^{3}/a))
+        if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
+          yUnits = expression(Merchantable~(ft^{3}/a))
+        else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+          yUnits = expression(Total~(m^{3}/ha))
         plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
             geom_line (aes(x=X,y=Y,color=Stand)) +
-            labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
+            labs(x="Year", y=yUnits) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
               axis.text = element_text(color="black")) 
@@ -4521,19 +4568,7 @@ is.null(input$kcpTitle),"\n")
     if (length(input$kcpDelete) && input$kcpDelete > 0)
     {
       isolate ({
-        # if(is.null(input$kcpSel) && length(input$kcpTitle) && length(globals$customCmps)){
-        #   
-        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-        #             selected=names(globals$customCmps)[1])
-        #   return()
-        # }
-        # if(is.null(input$kcpSel) && length(input$kcpTitle) && !length(globals$customCmps)){
-        #   
-        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-        #             selected=names(globals$customCmps)[1])
-        #   return()
-        # }
-        cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
+cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         if (length(globals$customCmps)) 
         {
           if(is.null(input$kcpSel)){
@@ -7973,9 +8008,10 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           defs=paste0("RscriptLocation='",rscript,"';")
           if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
           if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
-          
-          cmd = paste0(rscript," --vanilla -e $",defs,"require(fvsOL);fvsOL(prjDir='",newPrj,
-                       "',fvsBin='",fvsBin,"');quit()$")
+          cmd = if (devVersion) paste0(rscript," --vanilla -e $",defs,
+            "require(fvsOLdev);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,
+            "',devVersion=TRUE);quit()$") else paste0(rscript," --vanilla -e $",defs,
+            "require(fvsOL);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")           
           cmd = gsub('$','"',cmd,fixed=TRUE)
           if (.Platform$OS.type == "unix") 
           {

@@ -369,6 +369,8 @@ resetActiveFVS <- function(globals)
 {
   globals$activeFVS = list(
     FVSak = c("ak", "estb", "dbs", "mist", "fire", "econ", "cover"), 
+    FVSbc = c("bc", "strp", "dbs", "climate", "fire", "armwrd3", "phewrd3", "ardwrd3",
+              "mist"),
     FVSbm = c("bm", "fire", "econ", "strp", "dbs", "climate", "cover", 
               "mist", "armwrd3", "phewrd3", "ardwrd3"), 
     FVSca = c("ca",  "fire", "econ", "strp", "dbs", "mist", "climate", "cover"), 
@@ -391,6 +393,7 @@ resetActiveFVS <- function(globals)
     FVSne = c("ne",  "dbs", "strp", "fire", "econ"), 
     FVSoc = c("oc", "fire", "econ",  "strp", "dbs", "mist", 
               "climate", "cover", "organon"), 
+    FVSon = c("on", "strp", "dbs", "fire"),
     FVSop = c("op",  "strp", "dbs", "mist", "fire", "econ", "climate", 
               "cover", "armwrd3",  "phewrd3", "ardwrd3", "organon"), 
     FVSpn = c("pn", "strp", "dbs",  "mist", "fire", "econ", "climate", 
@@ -412,6 +415,7 @@ resetActiveFVS <- function(globals)
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
   vars = c("ak: Alaska"="ak",
+           "bc: British Columbia (metric)"="bc",
            "bm: Blue Mountains,Oregon"="bm",
            "ca: Inland CA,Southern Cascades"="ca",
            "ci: Central ID"="ci",
@@ -426,6 +430,7 @@ resetActiveFVS <- function(globals)
            "ie: Inland Empire"="ie",
            "nc: Klammath Mountains,Northern CA"="nc",
            "oc: ORGANON SWO - FVSca hybrid"="oc",
+           "on: Ontario (metric)"="on",
            "op: ORGANON NWO/SMC - FVSpn hybrid"="op",
            "so: South Central OR N CA"="so",
            "tt: Tetons,Wyoming"="tt",
