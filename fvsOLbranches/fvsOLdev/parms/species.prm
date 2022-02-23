@@ -37,6 +37,27 @@ OS{13}:{other softwood}
 //end   species_ak
 
 
+
+//start species_bc
+
+PW{1}:{western white pine}
+LW{2}:{western larch}
+FD{3}:{Douglas-fir}
+BG{4}:{grand fir}
+HW{5}:{western hemlock} 
+CW{6}:{western redcedar}
+PL{7}:{lodgepole pine}
+SE{8}:{Engelmann spruce}
+BL{9}:{subalpine fir} 
+PY{10}:{ponderosa pine}
+EP{11}:{paper birch}
+AT{12}:{quaking aspen}
+AC{13}:{black cottonwood}
+OC{14}:{Other softwood}
+OH{15}:{Other hardwood}
+        
+//end   species_bc
+
 //start species_bm
 
 ! see species_ak for instructions.
