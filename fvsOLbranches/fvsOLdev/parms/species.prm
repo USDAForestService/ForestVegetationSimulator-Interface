@@ -36,26 +36,24 @@ OS{13}:{other softwood}
 
 //end   species_ak
 
-
-
 //start species_bc
 
-PW{1}:{western white pine}
-LW{2}:{western larch}
-FD{3}:{Douglas-fir}
-BG{4}:{grand fir}
-HW{5}:{western hemlock} 
-CW{6}:{western redcedar}
-PL{7}:{lodgepole pine}
-SE{8}:{Engelmann spruce}
-BL{9}:{subalpine fir} 
-PY{10}:{ponderosa pine}
-EP{11}:{paper birch}
-AT{12}:{quaking aspen}
-AC{13}:{black cottonwood}
-OC{14}:{Other softwood}
+FD{3}: {Douglas-fir}
+SE{8}: {Engelmann spruce}
 OH{15}:{Other hardwood}
-        
+OC{14}:{Other softwood}
+AC{13}:{black cottonwood}
+BG{4}: {grand fir}
+PL{7}: {lodgepole pine}
+EP{11}:{paper birch}
+PY{10}:{ponderosa pine}
+AT{12}:{quaking aspen}
+BL{9}: {subalpine fir} 
+HW{5}: {western hemlock} 
+LW{2}: {western larch}
+CW{6}: {western redcedar}
+PW{1}: {western white pine} 
+       
 //end   species_bc
 
 //start species_bm
@@ -974,6 +972,83 @@ OT{39}:{other}
 
 //end species_pn
 
+//start species_on     
+
+
+BD{25}:{American basswood}
+BE{28}:{American beech}
+CA{54}:{American chestnut}
+EW{21}:{American elm}
+BB{53}:{American hornbeam}
+AM{68}:{American mountain ash}
+SN{7}: {Norway spruce}
+ML{58}:{apple species}
+BF{8}: {balsam fir}
+PB{42}:{balsam poplar}
+HB{37}:{bitternut hickory}
+AB{15}:{black ash}
+CB{20}:{black cherry}
+LB{48}:{black locust}
+MB{27}:{black maple}
+BO{35}:{black oak}
+SB{9}: {black spruce natural}
+WB{46}:{black walnut}
+WI{65}:{black willow}
+GB{59}:{blackgum}
+MM{50}:{boxelder}
+OB{32}:{bur oak}
+BT{45}:{butternut}
+OC{33}:{chinkapin oak}
+CC{62}:{choke cherry}
+CH{44}:{commercial hardwood species}
+WI{66}:{diamond willow}
+CW{17}:{eastern cottonwood}
+HE{12}:{eastern hemlock}
+CR{14}:{eastern redcedar}
+PW{5}: {eastern white pine natural}
+DF{56}:{flowering dogwood}
+AR{16}:{green ash}
+BH{55}:{hackberry}
+HT{57}:{hawthorn species}
+IW{47}:{ironwood}
+PJ{1}: {jack pine natural}
+PG{40}:{largetooth aspen}
+MT{52}:{mountain maple}
+NC{49}:{non-commercial hardwood species}
+PN{36}:{northern pin oak}
+OR{34}:{northern red oak}
+CE{11}:{northern white-cedar}
+SO{13}:{other softwood species}
+BW{43}:{paper birch}
+HP{38}:{pignut hickory}
+CP{61}:{pin cherry}
+BP{72}:{planted black spruce}
+JP{69}:{planted jack pine}
+RP{4}: {planted red pine}
+WP{70}:{planted white pine}
+SP{71}:{planted white spruce}
+PL{63}:{plums, cherries}
+MR{19}:{red maple}
+RN{3}: {red pine natural}
+ER{23}:{rock elm}
+SS{67}:{sassafras}
+PS{2}: {scotch pine}
+HU{39}:{shagbark hickory}
+MV{18}:{silver maple}
+ES{22}:{slippery elm}
+MS{51}:{striped maple}
+MH{26}:{sugar maple}
+OP{31}:{swamp white oak}
+SY{60}:{sycamore}
+TA{10}:{tamarack}
+PT{41}:{trembling aspen}
+AW{29}:{white ash}
+OW{30}:{white oak}
+SW{6}: {white spruce natural}
+WI{64}:{willow species}
+BY{24}:{yellow birch}
+
+//end species_on
 
 //start species_op
 

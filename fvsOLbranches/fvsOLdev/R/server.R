@@ -4747,12 +4747,17 @@ cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
-    treeform = tolower(unlist(strsplit(unlist(strsplit(svs[2],
-               split=" ",fixed=TRUE))[2],split=".",fixed=TRUE))[1])
-    if (! (treeform %in% names(treeforms))) 
+    treeform = grep ("#TREEFORM",svs)
+    if (length(treeform))
     {
-      output[[id]] <- NULL
-      return()
+      treeform = scan(text=svs[treeform],what="character",quiet=TRUE)[2]
+      treeform = tolower(scan(text=treeform,sep=".",what="c",quiet=TRUE)[1])
+      if (! (treeform %in% names(treeforms))) 
+      {
+        output[[id]] <- NULL
+cat ("treeform=",treeform," is absent from treeforms, exiting.\n")
+        return()
+      }
     }
     treeform = treeforms[[treeform]]
     rcirc = grep ("^#CIRCLE",svs)
