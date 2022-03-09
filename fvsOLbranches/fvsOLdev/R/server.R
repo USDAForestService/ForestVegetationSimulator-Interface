@@ -1280,9 +1280,10 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         iprg = iprg+1                                      
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
-        vars = colnames(mdat)
-        sby = intersect(vars,c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-           "TreeIndex","Species","DBHClass"))
+        vars = colnames(mdat)       
+        sby = NULL
+        for (v in c("MgmtID","StandID","Stand_CN","Year","RmvCode","PtIndex",
+           "TreeIndex","Species","DBHClass")) if (v %in% vars) sby=c(sby,v)
         sby = if (length(sby)) 
         {
           cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
@@ -6231,11 +6232,13 @@ cat("loaded table=",tab,"\n")
         if (class(addgrps)!="try-error")
         {
           addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
           for (idx in fixTabs)
           {
             tab2fix=tabs[idx]
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
             if (class(grps)=="try-error") next
+            if (is.na(grps[1,1])) next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
             if (any(is.na(match(addgrps,grps))) && !length(match(grps,addgrps)))  
             {
@@ -6254,6 +6257,31 @@ cat("loaded table=",tab,"\n")
           }
         }
       }
+      # checking for blank group codes and blank Stand_CN
+      if ("fvs_standinit" %in% ltabs)
+      {
+        qry="update FVS_StandInit set Groups = 'All_Stands' where Groups is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_StandInit set Stand_CN = (select Stand_ID from FVS_StandInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }
+      if ("fvs_plotinit" %in% ltabs)
+      {
+        qry="update FVS_PlotInit set Groups = 'All_Plots' where Groups is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_PlotInit set Stand_CN = (select Stand_ID from FVS_PlotInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }     
+      if ("fvs_treeinit" %in% ltabs)
+      {
+        qry="update FVS_TreeInit set Stand_CN = (select Stand_ID from FVS_TreeInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }     
 cat ("checking duplicate stand or standplot ids\n")
       progress$set(message = "Checking for duplicate StandID values", value = 5)
       # loop over tables and omit duplicate stand or standplot id's from being uploaded
@@ -6358,6 +6386,41 @@ cat ("msg=",msg,"\n")
   observe({
     if (input$installNewDB == 0) return()
     if (is.null(dbGlb$newFVSData)) return()
+    
+    # Add an FVS_GroupAddFilesAndKeywords table if needed.
+    addkeys = getTableName(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords")
+    if (is.null(addkeys)) need = TRUE else
+    {
+      gtab = try(dbReadTable(dbo,addkeys))
+      need = class(gtab) == "try-error"
+      if (!need) need = nrow(gtab) == 0
+      names(gtab) = toupper(names(gtab))
+      if (!need) need = all(is.na(gtab$FVSKEYWORDS))
+      if (!need) need = all(gtab$FVSKEYWORDS == "")
+    }
+    if (need)
+    { 
+      treeInit = getTableName(dbGlb$dbIcon,"FVS_TreeInit")
+      if (is.null(treeInit)) treeInit="FVS_TreeInit"
+      dfinstand=NULL
+      grps = list("FVS_StandInit"="All All_Stands",
+                  "FVS_PlotInit"="All All_Plots",
+                  "FVS_StandInit_Cond"="All All_Conds")
+      for (std in names(grps))
+      {
+        stdInit = getTableName(dbo,std)
+        if (is.null(stdInit)) next
+        linkID = if(stdInit=="FVS_PlotInit") "StandPlot_ID" else "Stand_ID"
+        dfinstand = rbind(dfinstand,
+          data.frame(Groups = grps[[std]],Addfiles = "",
+            FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
+              "SELECT * FROM ",stdInit,"\nWHERE ",linkID,"= '%StandID%'\n",
+              "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
+              "WHERE ",linkID,"= '%StandID%'\nEndSQL\nEND")))
+      }
+      dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
+    }
+
     dbDisconnect(dbGlb$dbIcon)
     file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
     unlink(dbGlb$newFVSData)
@@ -6589,6 +6652,16 @@ cat ("insert qry=",qry,"\n")
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
+    # fix up the DBH/DIAMETER mess. If DIAMETER is in the data table, then it needs to take on the values 
+    # of DBH if they are also in the table.
+    cols=tolower(dbGetQuery(dbGlb$dbIcon,"PRAGMA table_info('FVS_TreeInit')")[,"name"])
+    if ("dbh" %in% cols && "diameter" %in% cols)
+    {
+      qry=paste0("update FVS_TreeInit set DIAMETER = (select DBH where DIAMETER is null ",
+                 "and DBH is not null) where DIAMETER is null and DBH is not null;")
+      rtn=try(dbExecute(dbGlb$dbIcon,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+    }
     tabs = dbGetQuery(dbGlb$dbIcon,"select * from sqlite_master where type='table'")[,"tbl_name"]
     i = i+1
     progress$set(message = "Setting up indices", value=i)
@@ -6611,7 +6684,7 @@ cat ("insert qry=",qry,"\n")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
-    msg = paste0("<b>Combined (new) database:</b><br>",paste0(msg,collapse="<br>"))
+    msg = paste0("<b>Combined (newly installed) database:</b><br>",paste0(msg,collapse="<br>"))
     output$step2ActionMsg <- renderText(msg)
     loadVarData(globals,input,dbGlb$dbIcon) 
     initNewInputDB(session,output,dbGlb)
@@ -6815,9 +6888,7 @@ cat ("insertCount=",insertCount,"\n")
             paste0(qry,";") 
           dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
-          for (col in 2:ncol(dbGlb$tbl))
-            if (class(dbGlb$tbl[[col]]) != "character") 
-               dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+          for (col in 2:ncol(dbGlb$tbl)) dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
           if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
           {
             dbGlb$tbl$Delete = FALSE
