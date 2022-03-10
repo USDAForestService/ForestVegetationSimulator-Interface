@@ -12,12 +12,10 @@
 #' @param shiny.trace turns on tracing for shiny, see shiny documentation
 #' @param logToConsole controls if the log is output to the console or the log file,
 #'   the default set by the interactive() function.
-#' @param devVersion when true the heading is slightly changed to label the app as 
-#    the development version
 #' @return the shiny app.
 #' @export    
 fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
-                   logToConsole=interactive(),devVersion=FALSE)                                         
+                   logToConsole=interactive())                                         
 {
   require(utils)
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
@@ -28,7 +26,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   fvsBin <<- fvsBin
   runUUID <<- runUUID
   logToConsole <<- logToConsole
-  devVersion <<- devVersion
+  devVersion <<- "fvsOLdev" %in% (.packages())
   
   cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
@@ -59,7 +57,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
-devVersion <<- FALSE
+devVersion <<- "fvsOLdev" %in% (.packages())
 
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
