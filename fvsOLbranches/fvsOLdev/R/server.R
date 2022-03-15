@@ -6383,13 +6383,20 @@ cat ("msg=",msg,"\n")
   ## installNewDB
   observe({
     if (input$installNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return()
-    
+    if (is.null(dbGlb$newFVSData)) return()   
+    dbDisconnect(dbGlb$dbIcon)
+    file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
+    unlink(dbGlb$newFVSData)
+    dbGlb$newFVSData=NULL
+    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db") 
+    progress <- shiny::Progress$new(session,min=1,max=8)
+    i = 1
+    progress$set(message="Checking for FVS_GroupAddFilesAndKeywords",value=i) 
     # Add an FVS_GroupAddFilesAndKeywords table if needed.
     addkeys = getTableName(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords")
     if (is.null(addkeys)) need = TRUE else
     {
-      gtab = try(dbReadTable(dbo,addkeys))
+      gtab = try(dbReadTable(dbGlb$dbIcon,addkeys))
       need = class(gtab) == "try-error"
       if (!need) need = nrow(gtab) == 0
       names(gtab) = toupper(names(gtab))
@@ -6406,7 +6413,7 @@ cat ("msg=",msg,"\n")
                   "FVS_StandInit_Cond"="All All_Conds")
       for (std in names(grps))
       {
-        stdInit = getTableName(dbo,std)
+        stdInit = getTableName(dbGlb$dbIcon,std)
         if (is.null(stdInit)) next
         linkID = if(stdInit=="FVS_PlotInit") "StandPlot_ID" else "Stand_ID"
         dfinstand = rbind(dfinstand,
@@ -6416,17 +6423,9 @@ cat ("msg=",msg,"\n")
               "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
               "WHERE ",linkID,"= '%StandID%'\nEndSQL\nEND")))
       }
-      dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
-    }
-
-    dbDisconnect(dbGlb$dbIcon)
-    file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
-    unlink(dbGlb$newFVSData)
-    dbGlb$newFVSData=NULL
-    dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db") 
+      dbWriteTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
+    }   
     tabs = myListTables(dbGlb$dbIcon)
-    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
-    i = 0
     for (tb in tabs)
     {
       i = i+1
