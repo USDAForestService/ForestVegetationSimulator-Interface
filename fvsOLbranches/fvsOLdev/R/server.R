@@ -713,17 +713,20 @@ cat ("tbs7=",tbs,"\n")
           "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
             "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
-            "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
+            "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels",
             "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
             "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
             "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
-            "FVS_Summary","FVS_Summary_East","View_DWN")
-        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
-        globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum")
+            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric")
+        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species",
+              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric")
+        globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum",
+                                "FVS_DM_Sz_Sum_Metric")
         globals$htClsLvl <- list("FVS_CanProfile")
         globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
                                 "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East",
-                                "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric")
+                                "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric",
+                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
@@ -755,6 +758,11 @@ cat ("tbs7=",tbs,"\n")
           tbsFinal = c(tbsFinal,"-----Tree-level tables-----")
           treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
+        }
+        othTbs = setdiff(tbs,tbsFinal)
+        if (length(othTbs)) {
+          tbsFinal = c(tbsFinal,"-----Other tables-----")
+          tbsFinal <- c(tbsFinal,othTbs)
         }
         globals$tbsFinal <- tbsFinal
         if(is.null(input$selectdbtables)){
@@ -1128,11 +1136,13 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
           "FVS_Down_Wood_Vol"=2, "FVS_Consumption"=2, "FVS_Hrv_Carbon"=2,
           "FVS_Mortality"=2, "FVS_PotFire_East"=2, "FVS_PotFire"=2, "FVS_SnagSum"=2,
-          "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Stnd_Sum"=2, "FVS_DM_Sz_Sum"=2,
+          "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Spp_Sum_Metric"=7, 
+          "FVS_DM_Stnd_Sum"=2, "FVS_DM_Stnd_Sum_Metric"=2, "FVS_DM_Sz_Sum"=2, "FVS_DM_Sz_Sum_Metric"=2,
           "FVS_RD_Sum"=2, "FVS_RD_Det"=2, "FVS_RD_Beetle"=2, "FVS_StrClass"=2,
           "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8,"FVS_ATRTList"=8,
           "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,"FVS_CutList_East"=8,
-          "FVS_TreeList_Metric"=8,"FVS_ATRTList_Metric"=8,"FVS_CutList_Metric"=8)
+          "FVS_TreeList_Metric"=8,"FVS_ATRTList_Metric"=8,"FVS_CutList_Metric"=8,
+          "FVS_DM_Treelist"=8,"FVS_DM_Treelist_Metric"=8) 
         tbg = tbgroup[tbs]
         arena = is.na(tbg)
         if (any(arena))
