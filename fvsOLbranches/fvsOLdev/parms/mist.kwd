@@ -204,19 +204,11 @@ f2v{bc}:
 western white pine 
 western larch
 Douglas-fir
-grand fir
 western hemlock 
-western redcedar
 lodgepole pine
-Engelmann spruce
-subalpine fir 
 ponderosa pine
-paper birch
-quaking aspen
-black cottonwood
-Other softwood
-Other hardwood}
-speciesCode{bc}:{All PW LW FD BG HW CW PL SE BL PY EP AT AC OC OH}
+Other softwood}
+speciesCode{bc}:{All PW LW FD HW PL PY OC}
 
 answerForm:{\
 MisTable  !1,10!!2,10,speciesCode!\n}
