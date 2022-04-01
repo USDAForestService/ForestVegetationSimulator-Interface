@@ -10,7 +10,7 @@
 fvsRun <-
 function(stopPointCode=NA,stopPointYear=NA)
 {
-  if (! is.na(stopPointCode) & ! is.na(stopPointCode)) 
+  if (! is.na(stopPointCode) && ! is.na(stopPointYear)) 
     .Fortran("fvsSetStoppointCodes",as.integer(stopPointCode),as.integer(stopPointYear),
              PACKAGE=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)$pgm)
 
