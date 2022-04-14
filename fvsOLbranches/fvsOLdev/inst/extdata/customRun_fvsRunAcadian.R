@@ -87,7 +87,8 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   tree
   }
 
-  # start FVS but return prior to dubbing and calibration
+  # start FVS but return prior to dubbing and calibration to dub in missing
+  # heights and crown ratios
 
   fvsRun(7,0)
   CSI = fvsGetEventMonitorVariables("csi")
@@ -166,7 +167,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     }
 
     #fetch the fvs trees and form the AcadianGY "tree" dataframe
-    orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio"))
+    orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio","special"))
     names(orgtree) = toupper(names(orgtree))
     orgtree$TREE= 1:nrow(orgtree)
     names(orgtree)[match("SPECIES",names(orgtree))] = "SP"
@@ -178,15 +179,24 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     orgtree$DBH  = orgtree$DBH  * INtoCM
     orgtree$HT   = orgtree$HT   * FTtoM
     orgtree$EXPF = orgtree$EXPF * HAtoACR
+  
+    #load the form and risk class data using FVS variable ISPECL loaded using "special"
+    
+    orgtree$Form = rep(" ",nrow(orgtree))
+    orgtree$Risk = rep(" ",nrow(orgtree))
+    tmpset = orgtree$SPECIAL > 0 & orgtree$SPECIAL < 85
+    orgtree$Form[tmpset] = paste0("F",as.integer(orgtree$SPECIAL[tmpset] %/% 10))
+    orgtree$Risk[tmpset] = paste0("R",as.integer(orgtree$SPECIAL[tmpset] %%  10))
 
     stand = list(CSI=CSI,ELEV=ELEV)
     ops   = list(verbose=TRUE,INGROWTH=INGROWTH,MinDBH=MinDBH,
                  CutPoint=0.5,   # >0 uses threshold probability (>0-1).
                  mortType="continuous", #mortType="discrete",
                  SBW=SBW,THINMOD=THINMOD,verbose=TRUE,
-                 rtnVars = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB"))
+                 rtnVars = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB","Form","Risk"))
 
     tree=orgtree
+
     for (year in stdInfo["year"]:stdInfo["cendyear"])
     {
       tree$YEAR = year
@@ -223,6 +233,9 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
               # doesn't change them. if already negetive, don't change them.
               cratio=ifelse(orgtree$CRATIO < 0, orgtree$CRATIO,
                             -tree$CR[orgtree$TREE]))
+              special=as.numeric(substr(tree$Form[orgtree$TREE],2,2))*10+
+                      as.numeric(substr(tree$Risk[orgtree$TREE],2,2))
+
     if (mortModel == "Acadian") tofvs$mort=(orgtree$EXPF-
       tree$EXPF[orgtree$TREE])*ACRtoHA
     fvsSetTreeAttrs(tofvs)
@@ -285,8 +298,8 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   rtn
 }
 
-# NOTE: I tried various ways of building these elements. Setting the initial
-# value to the saved value when the elements are created seems to work well.
+# NOTE: I (NLCrookston) tried various ways of building these elements. Setting the 
+# initial value to the saved value when the elements are created seems to work well.
 # What did not work was setting the initial value to some default and then
 # changing it using an update call in the server code.
 

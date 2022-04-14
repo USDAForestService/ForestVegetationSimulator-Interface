@@ -651,6 +651,42 @@ dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA)
   dDBH.mod=ifelse(is.na(CDEF) | SPP!='BF' & SPP!='RS' & SPP!='BS' & SPP!='WS',1.0,dDBHb/dDBHa)
   return(dDBH.mod)
 }
+dDBH.HW.mod=function(SPP,DBH,BAL,Form,Risk)
+{  
+  #Convert NHRI form classes
+  if(Form == 'F1' | Form == 'F7' | Form == 'F3' | Form == 'F4'){new.Form = 'A'}
+  else{new.Form = 'B'} #We could have catch for other form types but probably not needed.
+  
+  #Convert NHRI risk classes
+  if(Risk == 'R1' | Risk == 'R2'){new.Risk = 'LR'}
+  else{new.Risk = 'HR'} #We could have catch for other risk types but probably not needed.
+  
+  if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+  else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+  else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+  else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
+  #else if(SPP=='PB'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think we can remove this. PB wil default to intercept
+  else if(SPP=='QA'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
+  else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will assume a value of 0.
+  if(new.Form=='A'){Form.A=1; Form.B=0}
+  else{Form.A=0; Form.B=1}
+  if(new.Risk=='HR'){HR=1; LR=0}
+  else{HR=0; LR=1}
+
+  dDBH.a=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
+             -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB+
+               0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
+               0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB)+0.2176)
+  dDBH.b=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
+             -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB-0.0250*Form.B+
+               0.2176*LR+0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
+               0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB))
+  mod=dDBH.b/dDBH.a
+  mod=ifelse(SPP!='QA' & SPP!='RO' & SPP!='PB' & SPP!='YB' & SPP!='RM' & SPP!='SM',1,mod)
+  return(mod=mod)
+}
+
+
 
 #### Height increment ####
 # 12/21/2020 removed Htincr(); not called in code Height increment (10/8/14) (Russell et al. 2014 EJFR)
