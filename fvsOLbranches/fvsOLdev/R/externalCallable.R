@@ -841,7 +841,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
 #for testing:
 #prjDir=getwd();runUUID=extnListRuns()[1,1];fvsBin="FVSBin";ncpu=detectCores()
 #keyFileName=NULL;wait=FALSE;verbose=TRUE
-
+  devVersion <<- "fvsOLdev" %in% (.packages())
   curdir=getwd()
   if (missing(runUUID)) stop("runUUID required")
   setwd(prjDir)
@@ -895,13 +895,13 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     cat ("library(rFVS)\n",file=opnout)
     if (dir.exists(fvsBin)) fvsBin=gsub(pattern="\\\\",replacement="/",x=normalizePath(fvsBin))
     cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,"')\n",sep="",file=opnout) 
- 
     if (fvsRun$runScript != "fvsRun")
     {   
        # if the custom run script exists in the project dir, use it, otherwise
        # look in the system extdata directory to find it in the package
        cmdfil=paste0("customRun_",fvsRun$runScript,".R")
-       if (!file.exists(cmdfil)) cmdfil=system.file("extdata", cmdfil, package = "fvsOL")
+       if (!file.exists(cmdfil)) cmdfil=system.file("extdata", cmdfil, 
+         package = if (devVersion) "fvsOLdev" else "fvsOL")
        if (file.exists(paste=cmdfil))
        {
          cat ("curdir=getwd();setwd('..')\n",file=opnout)
@@ -925,11 +925,13 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   cat ('cat (Sys.getpid()," ',fvsRun$title,'; ',ncpu,' CPUs; ",',
        'format(Sys.time(),"%Y-%m-%d_%H_%M_%S"),"\\n",sep="",file="',
        pidStat,'")\n',sep="",file=rscript)
-  cat('require(fvsOL)\n',file=rscript,append=TRUE)
+  if (devVersion) cat('require(fvsOLdev)\n',file=rscript,append=TRUE) else
+                  cat('require(fvsOL)\n',   file=rscript,append=TRUE)
   cat('fvsprocs = makePSOCKcluster(',ncpu,')\n',sep="",file=rscript,append=TRUE)
   cat('pids = unlist(clusterEvalQ(fvsprocs,Sys.getpid()))\n',sep="",file=rscript,append=TRUE)
   cat('cat ("fvsPids:",pids,"\\n",file="',pidStat,'",append=TRUE)\n',sep="",file=rscript,append=TRUE)
-  cat('clusterEvalQ(fvsprocs,library(fvsOL))\n',sep="",file=rscript,append=TRUE)
+  cat(paste0('clusterEvalQ(fvsprocs,library(',if (devVersion) 'fvsOLdev' else 'fvsOL',
+             '))\n'),sep="",file=rscript,append=TRUE)
   for (i in 1:ncpu) cat('clusterEvalQ(fvsprocs[',i,'],setwd("',paste0(runUUID,names(asign)[i]),'"))\n',
         sep="",file=rscript,append=TRUE)     
   cat ('try(clusterEvalQ(fvsprocs,source("',runUUID,'.Rscript")))\n',sep="",file=rscript,append=TRUE)

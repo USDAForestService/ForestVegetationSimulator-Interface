@@ -2987,7 +2987,6 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
     rdMod.dMORT_RDmod = 1.
   }
     
-  
   #form and risk
   #tree$LSW=mapply(form.prob,tree$SPP,tree$DBH)
   

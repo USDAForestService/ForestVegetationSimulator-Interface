@@ -12,12 +12,13 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     sink()
     sink(logfile,append=TRUE)
   }
-
+  devVersion <<- "fvsOLdev" %in% (.packages())
+  
   #load the growth model R code
   rFn="AcadianGY.R"
   if (file.exists(rFn)) source(rFn) else
   {
-    rFn = system.file("extdata", rFn, package = "fvsOL")
+    rFn = system.file("extdata", rFn, package=if (devVersion) "fvsOLdev" else "fvsOL")
     if (! file.exists(rFn)) stop("can not find and load model code")
     source(rFn)
   }
@@ -201,16 +202,17 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     {
       tree$YEAR = year
       cat ("fvsRunAcadian: calling AcadianGY, year=",year,"\n")
-      tree = try(AcadianGYOneStand(tree,stand=stand,ops=ops))
-      if (class(tree)=="try-error")
+      treeout = try(AcadianGYOneStand(tree,stand=stand,ops=ops))
+      if (class(treeout)=="try-error")
       {
         cat("AcadianGYOneStand failed in year=",year,"\n")
         dmpFile=file.path(getwd(),paste0("AcadianGYOneStand.Failure.",year,".RData"))
         cat ("dmpFile name=",dmpFile,"\n")
-        save(file=dmpFile,tree,stand,ops)
+        save(file=dmpFile,treeout,tree,stand,ops)
         tree=NULL
         break
       }
+      tree=treeout
     }
     # if there was a failure, tree will be NULL, go on to the next stand cycle
     if (is.null(tree)) next

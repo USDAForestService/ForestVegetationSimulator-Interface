@@ -4047,7 +4047,8 @@ cat ("load FVSpgm cmd=",cmd,"\n")
         if (globals$fvsRun$runScript != "fvsRun")
         {
           rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
-          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,package=if (devVersion) "fvsOLdev" else "fvsOL")
+          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,
+              package=if (devVersion) "fvsOLdev" else "fvsOL")
           if (!file.exists(rsFn)) return()
           cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
 cat ("run script load cmd=",cmd,"\n")
