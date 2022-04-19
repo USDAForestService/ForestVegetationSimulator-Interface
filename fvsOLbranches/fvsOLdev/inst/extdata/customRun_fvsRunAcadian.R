@@ -203,10 +203,12 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
       tree$YEAR = year
       cat ("fvsRunAcadian: calling AcadianGY, year=",year,"\n")
       treeout = try(AcadianGYOneStand(tree,stand=stand,ops=ops))
-      if (class(treeout)=="try-error")
+      if (class(treeout)=="try-error" || any(is.na(treeout$DBH)) || 
+               any(is.na(treeout$HT)) || any(is.na(treeout$EXPF)))
       {
         cat("AcadianGYOneStand failed in year=",year,"\n")
         dmpFile=file.path(getwd(),paste0("AcadianGYOneStand.Failure.",year,".RData"))
+        if (class(treeout)!="try-error") treeout="critical result contains NA values"
         cat ("dmpFile name=",dmpFile,"\n")
         save(file=dmpFile,treeout,tree,stand,ops)
         tree=NULL
