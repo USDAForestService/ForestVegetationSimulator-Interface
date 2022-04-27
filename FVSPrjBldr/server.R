@@ -30,9 +30,9 @@ shinyServer(function(input, output, session) {
       cat("workDir=",workDir,"\n")
       dir.create(workDir)
       if (input$version == "production") 
-        cat ('library(fvsOL)\nfvsOL(fvsBin="../../FVS/bin")\n',file=paste0(workDir,"/app.R"))
+        cat ('library(fvsOL)\nfvsOL(fvsBin="/home/shiny/FVS/bin")\n',file=paste0(workDir,"/app.R"))
       if (input$version == "development") 
-        cat ('library(fvsOLdev)\nfvsOL(fvsBin="../../FVSdev/bin")\n',file=paste0(workDir,"/app.R"))
+        cat ('library(fvsOLdev)\nfvsOL(fvsBin="/home/shiny/FVSdev/bin")\n',file=paste0(workDir,"/app.R"))
       # projectId file...
 cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
