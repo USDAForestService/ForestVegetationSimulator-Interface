@@ -1943,13 +1943,24 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
            facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
     }
     if (pltp %in% c("bar","box")) nd$Y[nd$Y==0] = NA
-    p = ggplot(data=nd) + fg + labs(
-          x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
-          y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
-          title=input$ptitle)  + 
+    mkgraphlab <- function (str)
+    {
+      str=trim(str)
+      if(nchar(str)<11) return(str)
+      if(substr(str,1,11)=="expression(")
+      {
+        rtn = try(eval(parse(text=str)))
+        if (class(rtn)=="expression") return(rtn)
+      } 
+      str
+    }
+    xxlab=if (nchar(input$xlabel)) mkgraphlab(input$xlabel) else input$xaxis
+    yylab=if (nchar(input$ylabel)) mkgraphlab(input$ylabel) else input$yaxis
+    grtit=if (nchar(input$ptitle)) mkgraphlab(input$ptitle) else input$ptitle
+    p = ggplot(data=nd) + fg + labs(x=xxlab,y=yylab,title=grtit) +
             theme(text = element_text(size=9),
-            panel.background = element_rect(fill="gray95"),
-            axis.text = element_text(color="black"))
+              panel.background = element_rect(fill="gray95"),
+              axis.text = element_text(color="black"))
     if (!is.null(fg)) p = p + 
       theme(strip.text.x = element_text(margin = margin(.025, .01, .025, .01, "in"))) +
       theme(strip.text.y = element_text(margin = margin(.025, .01, .025, .01, "in")))
@@ -5775,55 +5786,9 @@ cat("delete project button.")
   observe({
     if (input$topPan == "Help")
     {
-      progress <- shiny::Progress$new(session,min=1,max=12)
-      progress$set(message = "Loading Help File", value = 2)
-      # build the help file if it doesn't exist or if it is older than 
-      # fvsOnlineHelp.html or databaseDescription.xlsx
-      help=NULL
-      fr = "fvsOnlineHelpRender.RData"
-      fn =  system.file("extdata", "fvsOnlineHelp.html", package=if (devVersion) "fvsOLdev" else "fvsOL")
-      xlsxfile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
-      loadNew = if (file.exists(fr))
-      {
-        info=file.info(c(fr,fn,xlsxfile))
-        which.max(as.integer(info[,"mtime"])) != 1
-      } else TRUE
-      if (loadNew) 
-      {
-        unlink(fr)
-        help = readChar(fn, file.size(fn)) 
-        progress$set(message = "Compiling the help file for this project", 
-                     detail = "Loading Output Table Descriptions",value = 5)
-        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-        if (class(tabs)!="try-error")
-        {
-          tablist=xlsx2html(tab="OutputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE)
-          morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
-          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab,xlsxfile=xlsxfile),
-          '<p><a href="#outputTables">Back to Output Table Descriptions</a>&nbsp;&nbsp;',
-          '<a href="#contents">Back to Contents</a></p>')  
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**OUTPUTHTML**",replacement=morehtml)
-        }
-        progress$set(detail = "Loading Input Table Descriptions",value = 8)
-        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-        if (class(tabs)!="try-error")                                                         
-        {
-          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE),
-                                  '<p><a href="#contents">Back to Contents</a></p>')
-          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab,xlsxfile=xlsxfile), 
-            '<p><a href="#inputTables">Back to Input Table Descriptions</a>&nbsp;&nbsp;',
-            '<a href="#contents">Back to Contents</a></p>')            
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**INPUTHTML**",replacement=morehtml)
-        }
-        save(help,file=fr)
-      } else  if (is.null(help) && file.exists(fr)) load(fr) 
-      if (is.null(help)) help="<h4>Help is not available</h4>"
-      output$uiHelpText <- renderUI(HTML(help))
-      progress$close()
+      data(fvsOnlineHelpRender)
+      if (! exists("fvshelp")) fvshelp="<h4> No help is available</h4>"
+      output$uiHelpText <- renderUI(HTML(fvshelp))
     }
   })
 
