@@ -1,9 +1,9 @@
-all: data/prms.RData fvsOLdevMadeTag 
+all: data/fvsOnlineHelpRender.RData data/prms.RData fvsOLdevMadeTag 
 
 data/prms.RData: parms/*
 	Rscript parms/mkpkeys.R
-	
-data/fvsOnlineHelpRender.RData: inst/extdata/mkhelp.R inst/extdata/fvsOnlineHelp.html
+
+data/fvsOnlineHelpRender.RData: inst/extdata/mkhelp.R inst/extdata/fvsOnlineHelp.html inst/extdata/databaseDescription.xlsx
 	Rscript inst/extdata/mkhelp.R
 
 fvsOLdevMadeTag: makefile DESCRIPTION R/* inst/extdata/* inst/extdata/www/* data/*

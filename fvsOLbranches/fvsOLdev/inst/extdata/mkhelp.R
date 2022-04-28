@@ -1,6 +1,6 @@
 require(openxlsx)
 
-xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE)
+xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE,sdat=NULL)
 {
   if (is.null(xlsxfile) || !file.exists(xlsxfile)) return(NULL)
   cleanlines=function(line) 
@@ -8,10 +8,10 @@ xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE)
     line=gsub(pattern="\n",replacement="",x=line,fixed=TRUE)
     gsub(pattern="\r",replacement="",x=line,fixed=TRUE)
   }
-  if (!file.exists(xlsxfile) || is.null(tab)) return(NULL)
+  if (is.null(tab)) return(NULL)
   if (tab %in% getSheetNames(xlsxfile))
   {
-    sdat = try(read.xlsx(xlsxFile=xlsxfile,sheet=tab))
+    if (is.null(sdat)) sdat = try(read.xlsx(xlsxFile=xlsxfile,sheet=tab))
     if (class(sdat) == "try-error") return (NULL)
     if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)             
     if (!is.null(cols) && max(cols)<=ncol(sdat)) sdat = sdat[,cols]
@@ -43,9 +43,20 @@ unlink(fr)
 fvshelp = readChar(fn, file.size(fn)) 
 cat ("Process OutputTableDescriptions\n")
 tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
+
 if (class(tabs)!="try-error")
 {
-  tablist=xlsx2html(tab="OutputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE)
+  metr = grep("Metric",tabs$Table,ignore.case=TRUE)
+  if (length(metr))
+  {
+    theMetr = tabs[metr,]
+    tabs = tabs[-metr,]
+    tabs = rbind(tabs,theMetr)
+  }  
+  tablist=xlsx2html(tab="OutputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE,sdat=tabs)     
+  if (length(metr)) tablist=sub("<b>OutputTableDescriptions</b>",
+        "<b>OutputTableDescriptions</b><p>Note: metric table descriptions are listed below.</p>",tablist)
+      
   morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
   for (tab in tabs$Table) 
   {                                                  

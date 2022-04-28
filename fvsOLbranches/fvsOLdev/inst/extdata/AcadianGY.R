@@ -2811,8 +2811,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   rtnVars            = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE","SP",
    "DBH","HT","HCB","EXPF",'pHT','pHCB','Form','Risk') else ops$rtnVars
 
-  CSI      = if (is.null(stand) || is.null(stand$CSI))   12 else stand$CSI
-  ELEV     = if (is.null(stand) || is.null(stand$ELEV)) 350 else stand$ELEV
+  CSI      = if (is.null(stand) || is.null(stand$CSI) || is.na(stand$CSI))   12 else stand$CSI
+  ELEV     = if (is.null(stand) || is.null(stand$ELEV) || is.na(stand$ELEV)) 350 else stand$ELEV
  
   if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI," ELEV=",ELEV,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
@@ -2857,6 +2857,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   
   #set elev                                      
   if (is.null(tree$ELEV))     tree$ELEV   = ELEV
+  tree$ELEV=ifelse(is.na(tree$ELEV), ELEV, tree$ELEV)
   
   tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
   tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
@@ -3385,9 +3386,10 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$DBH <- tree$DBH+tree$dDBH
   tree$HT <- tree$HT+tree$dHT
   tree$HCB <- tree$HCB + tree$dHCB
-  if (any(is.na(tree$EXPF)) | any(is.na(tree$dEXPF))) browser()
+  if (any(is.na(tree$EXPF)))  tree$EXPF [is.na(tree$EXPF)]  = 0
+  if (any(is.na(tree$dEXPF))) tree$dEXPF[is.na(tree$dEXPF)] = 0
   tree$EXPF <- tree$EXPF-tree$dEXPF
-  tree$EXPF[tree$EXPF<0] = .0001
+  tree$EXPF[tree$EXPF<.00001] = .00001
   tree$CR=(tree$HT-tree$HCB)/tree$HT
   tree=rbind(tree,ingrow)        
  

@@ -50,6 +50,9 @@ software and supporting software requirements see the
 wiki about FVSOnline software</a>.</p>
 <p><i>Hints</i> for first time users:</p>
 <ul>
+	<li><p style="margin-bottom: 0in">The <a href="https://www.fs.fed.us/fvs/" target="_blank">
+  FVS webpage</a> contains links to training materials.
+  </p>
 	<li><p style="margin-bottom: 0in">Use the default input database
 	while learning, load your own data once you're comfortable using the
 	interface. Note that there is a command under the <b>Manage Projects</b> menu
@@ -291,11 +294,11 @@ for each simulation of each stand or replication of a stand over all the runs yo
 made in the project. When each run is made, FVSOnline first creates a fresh database where 
 all the output tables are sent for the run. After each run is finished, FVSOnline
 deletes all the output that may already exist for the same run in the permanent database  
-then the outputs results in the fresh database are inserted into the permanent 
+then the outputs in the fresh database are inserted into the permanent 
 database.</p>
 <p> 
 The FVS_Cases table is key to this process. This table contains several columns 
-including the keyword file name, that FVSOnline insures is unique to the run even if two
+including the keyword file name that FVSOnline insures is unique to the run even if two
 or more run names are identical. The result of a query of the FVS_Cases table 
 that selects all the cases that have a given keyword file name will contain one row 
 for each case where the CaseID column has a unique identifier for each case. 

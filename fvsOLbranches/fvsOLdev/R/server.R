@@ -233,8 +233,17 @@ cat ("Project is locked.\n")
     if (file.exists(xlsxFile))
     {
       if ("OutputTableDescriptions" %in% getSheetNames(xlsxFile))
+      {
         tabs = read.xlsx(xlsxFile=xlsxFile,sheet="OutputTableDescriptions")[,1]
-      tableList <- as.list(sort(c("",tabs)))
+        tableList <- sort(c("",tabs))
+        metr=grep("Metric",tableList,ignore.case=TRUE)
+        if (length(metr))
+        {
+          metric = tableList[metr]
+          tableList=c(tableList[-metr],metric)
+        }
+        tableList = as.list(tableList)
+      }
       updateSelectInput(session=session, inputId="tabDescSel2",choices=tableList,
           select=tableList[[1]])
       updateSelectInput(session=session, inputId="tabDescSel",,choices=tableList,
@@ -418,15 +427,6 @@ cat ("View Outputs & Load\n")
         fvsOutData$runs = runsdf$KeywordFile
         names(fvsOutData$runs) = runsdf$RunTitle
       }
-      tableList <- list()
-      dbd=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
-      if (file.exists(dbd))
-      {
-        if ("OutputTableDescriptions" %in% getSheetNames(dbd))
-          tabs = read.xlsx(xlsxFile=dbd,sheet="OutputTableDescriptions")[,1]
-        tableList <- as.list(sort(c("",tabs)))
-      }
-      updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
       updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
   })
@@ -5786,7 +5786,7 @@ cat("delete project button.")
   observe({
     if (input$topPan == "Help")
     {
-      data(fvsOnlineHelpRender)
+      if (! exists("fvshelp")) data(fvsOnlineHelpRender)
       if (! exists("fvshelp")) fvshelp="<h4> No help is available</h4>"
       output$uiHelpText <- renderUI(HTML(fvshelp))
     }
