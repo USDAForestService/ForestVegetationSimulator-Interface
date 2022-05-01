@@ -1946,8 +1946,8 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     mkgraphlab <- function (str)
     {
       str=trim(str)
-      if(nchar(str)<11) return(str)
-      if(substr(str,1,11)=="expression(")
+      if(nchar(str)<10) return(str)
+      if(substr(str,1,10)=="expression")
       {
         rtn = try(eval(parse(text=str)))
         if (class(rtn)=="expression") return(rtn)
