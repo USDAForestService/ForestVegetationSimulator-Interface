@@ -434,60 +434,6 @@ cat ("in ThinFromBelowWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
   ans
 }
 
-  observe({
-    if(length(input$tbf2)==0) return()
-    if(input$tbf2 == "1" || input$tbf2 == "2") {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf3').prop('disabled',false)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf4').prop('disabled',false)"))
-      
-      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 <= 0){
-        updateTextInput(session=session,inputId ="tbf4",
-                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
-      }
-      if(input$tbf2 == "2" && input$tbf3 <= 0 && input$tbf4 > 0){
-        updateTextInput(session=session,inputId ="tbf3",
-                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
-      }
-      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 >0){
-        updateTextInput(session=session,inputId ="tbf4",
-                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
-      }
-      if(input$tbf2 == "2" && input$tbf3 > 0 && input$tbf4 >0){
-        updateTextInput(session=session,inputId ="tbf3",
-                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
-      }
-
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf3').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf4').prop('disabled',true)"))
-    }
-    if(input$tbf2 == "3") {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf5').prop('disabled',false)"))
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf5').prop('disabled',true)"))
-    }
-    if(input$tbf2 == "4") {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf6').prop('disabled',false)"))
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf6').prop('disabled',true)"))
-    }
-    if(input$tbf2 == "5") {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf7').prop('disabled',false)"))
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#tbf7').prop('disabled',true)"))
-    }
-  })
- 
 ThinFromBelowWin.mkKeyWrd <- function(input,output)
 {
   cat ("in ThinFromBelowWin.mkKeyWrd, input=",c(f1=input$f1,f2=input$tbf2,
@@ -568,60 +514,6 @@ cat ("in ThinFromAboveWin code, globals$currentCmdDefs=",globals$currentCmdDefs,
     list(br()))
   ans
 } 
-
-observe({
-  if(length(input$taf2)==0) return()
-  if(input$taf2 == "1" || input$taf2 == "2") {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf3').prop('disabled',false)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf4').prop('disabled',false)"))
-    
-    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 <= 0){
-      updateTextInput(session=session,inputId ="taf4",
-                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
-    }
-    if(input$taf2 == "2" && input$taf3 <= 0 && input$taf4 > 0){
-      updateTextInput(session=session,inputId ="taf3",
-                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
-    }
-    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 >0){
-      updateTextInput(session=session,inputId ="taf4",
-                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
-    }
-    if(input$taf2 == "2" && input$taf3 > 0 && input$taf4 >0){
-      updateTextInput(session=session,inputId ="taf3",
-                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
-    }
-    
-  } else {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf3').prop('disabled',true)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf4').prop('disabled',true)"))
-  }
-  if(input$taf2 == "3") {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf5').prop('disabled',false)"))
-  } else {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf5').prop('disabled',true)"))
-  }
-  if(input$taf2 == "4") {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf6').prop('disabled',false)"))
-  } else {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf6').prop('disabled',true)"))
-  }
-  if(input$taf2 == "5") {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf7').prop('disabled',false)"))
-  } else {
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#taf7').prop('disabled',true)"))
-  }
-})
 
 
 ThinFromAboveWin.mkKeyWrd <- function(input,output)
