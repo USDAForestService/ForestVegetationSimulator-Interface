@@ -549,8 +549,9 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     } 
     lastExt = "base"
     lastCnd = NULL
+      browser()
     extensPrefixes = c("estb"="Estab","strp"="Estab","cover"="Cover",
-      "fire"="FMIn","mist"="Mistoe",
+      "fire"="FMIn","mist"="Mistoe","wrd3"="RDIn",
       "ardwrd3"="RDIn","armwrd3"="RDIn\nRRType             3",
       "phewrd3"="RDIn\nRRType             4","dbs"="DataBase",
       "econ"="Econ","climate"="Climate","organon"="Organon")
@@ -635,9 +636,10 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       if (lastExt != exten && lastExt != "base") 
       {
         lastExt = "base"
-        if (!is.null(lastCnd)) cat ("End\n",file=fc,sep="")
+        cat ("End\n",file=fc,sep="")
       } 
-      if (lastExt != exten)
+      naughty <- "Econ_reports"
+      if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
       {   
         cat (extensPrefixes[exten],"\n",file=fc,sep="")
         lastExt = exten

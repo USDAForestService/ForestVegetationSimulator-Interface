@@ -12,8 +12,7 @@ answerForm:{BBClear}
 
 //start keyword.ardwrd3.BBOut
 
-description:
-{Instructs the model to write a table of bark beetle output.}
+f1:{noInput Instructs the model to write a table of bark beetle output.}
 
 answerForm:{BBOut}
 parmsForm=answerForm
@@ -536,9 +535,8 @@ RRComp    !1,10!}
 
 //start keyword.ardwrd3.RRDOut
 
-description:
-{Instructs the model to print detailed Annosus information
-to the main FVS output file.} 
+f1:{noInput Instructs the model to print detailed root disease information
+to the main FVS output file.}
 
 //end keyword.ardwrd3.RRDOut
 
