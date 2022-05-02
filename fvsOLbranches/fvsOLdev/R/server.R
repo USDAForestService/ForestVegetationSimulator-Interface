@@ -8167,6 +8167,10 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           defs=paste0("RscriptLocation='",rscript,"';")
           if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
           if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
+          if (exists("RscriptLocation")) {
+            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
+            defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+          }
           cmd = if (devVersion) paste0(rscript," --vanilla -e $",defs,
             "require(fvsOLdev);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,
             "',devVersion=TRUE);quit()$") else paste0(rscript," --vanilla -e $",defs,
