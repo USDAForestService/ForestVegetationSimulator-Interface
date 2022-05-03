@@ -7003,6 +7003,8 @@ cat ("insertCount=",insertCount,"\n")
     progress <- shiny::Progress$new(session,min=1,max=10)
     progress$set(message = "Loading data set",value = 2)
     climAtt="FVSClimAttrs.csv"
+    curdir=getwd()
+    setwd(dirname(input$climateFVSUpload$datapath))
     if (input$climateFVSUpload$type == "application/zip")
       try(unzip(input$climateFVSUpload$datapath, files = climAtt)) else 
       file.copy(input$climateFVSUpload$datapath,climAtt,
@@ -7015,6 +7017,8 @@ cat ("no FVSClimAttrs.csv file\n")
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
       progress$close()
+      setwd(curdir)
+      unlink(input$climateFVSUpload$datapath)
       return()
     }
 cat ("processing FVSClimAttrs.csv\n")
@@ -7023,7 +7027,11 @@ cat ("processing FVSClimAttrs.csv\n")
     climd = read.csv(climAtt,colClasses=c(rep("character",2),
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
-    climTab <- myListTables(dbGlb$dbIcon)
+    unlink(climAtt)
+    unlink(input$climateFVSUpload$datapath)
+    setwd(curdir)
+    
+    climTab <- myListTables(dbGlb$dbIcon)    
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
@@ -7042,7 +7050,7 @@ cat ("no current FVS_ClimAttrs\n")
     }
 cat ("current FVS_ClimAttrs\n")
     climDb="FVSClimAttrs.db"
-    if (file.exists(climDb)) unlink(climDb)
+    unlink(climDb)
     dbclim <- dbConnect(dbDrv,climDb)
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
     dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
@@ -7059,7 +7067,7 @@ cat ("current FVS_ClimAttrs\n")
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    # dbExecute(dbGlb$dbIcon,'attach database "',climDb,'" as new')
+    dbExecute(dbGlb$dbIcon,paste0('attach database "',climDb,'" as new'))
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
     oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
@@ -7067,7 +7075,7 @@ cat ("current FVS_ClimAttrs\n")
     {
 cat ("simple copy from new, all rows were deleted\n")
       dbExecute(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
-      dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+      dbExecute(dbGlb$dbIcon,'create table FVS_ClimAttrs as select * from new.FVS_ClimAttrs')
     } else {
       newAttrs = dbGetQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs limit 1;')
       if (identical(colnames(oldAttrs),colnames(newAttrs)))
