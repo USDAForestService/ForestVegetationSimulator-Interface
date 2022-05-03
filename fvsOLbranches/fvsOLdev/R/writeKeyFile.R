@@ -587,6 +587,8 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
           scn = unlist(strsplit(cmp$kwds,"\n"))[2]
           qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
                        std$sid,"' and Scenario = '",scn,"';\n")
+          climTab <- myListTables(dbIcon)
+          if (!("FVS_ClimAttrs" %in% climTab)) return("No Climate attributes data found.")
           d = dbGetQuery(dbIcon,qur)
           ans = apply(d,2,function (x) !any(is.na(x)))
           d = d[,ans]          
@@ -650,6 +652,24 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     if (!is.null(lastCnd) && lastExt != "base") {
       cat ("End\n",file=fc,sep="")
       lastExt = "base"
+    }
+    if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
+    {
+      scn = unlist(strsplit(cmp$kwds,"\n"))[2]
+      qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
+                   std$sid,"' and Scenario = '",scn,"';\n")
+      climTab <- myListTables(dbIcon)
+      if (!("FVS_ClimAttrs" %in% climTab)) return("No Climate attributes data found.")
+      d = dbGetQuery(dbIcon,qur)
+      ans = apply(d,2,function (x) !any(is.na(x)))
+      d = d[,ans]          
+      if (nrow(d)) 
+      {
+        cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
+        suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
+                                     sep=",",quote=FALSE,row.names=FALSE))
+        cat ("-999\n",file=fc,sep="")
+      }
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
     if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")

@@ -4142,6 +4142,15 @@ cat ("keyword file was not created.\n")
           return()
           }
         }
+        if(msg=="No Climate attributes data found."){
+cat ("No climate attributes data found.\n")  
+          progress$set(message = "Error: Climate data is missing. Make sure to upload it 
+                       using the Upload Climate-FVS data menu.",
+                      detail = msg, value = 3) 
+          Sys.sleep(5)
+          progress$close()
+          return()
+        }
         dir.create(globals$fvsRun$uuid)
         if (!dir.exists(globals$fvsBin)) 
         {
@@ -6989,7 +6998,7 @@ cat ("insertCount=",insertCount,"\n")
     })
   }) 
   ## climateFVSUpload
-  observe({  
+  observe({
     if (is.null(input$climateFVSUpload)) return()
     progress <- shiny::Progress$new(session,min=1,max=10)
     progress$set(message = "Loading data set",value = 2)
@@ -7001,7 +7010,7 @@ cat ("insertCount=",insertCount,"\n")
     if (!file.exists(climAtt)) 
     {
 cat ("no FVSClimAttrs.csv file\n")
-      output$uploadClimActionMsg = renderUI(HTML("FVSClimAttrs.csv not found."))
+      output$uploadClimActionMsg = renderText("FVSClimAttrs.csv not found.")
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
@@ -7014,14 +7023,14 @@ cat ("processing FVSClimAttrs.csv\n")
     climd = read.csv(climAtt,colClasses=c(rep("character",2),
         "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
     colnames(climd)[1] <- "Stand_ID"
-    unlink(climAtt)
     climTab <- myListTables(dbGlb$dbIcon)
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
       dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
-      output$actionMsg = renderText("FVSClimAttrs created.")
+      output$uploadClimActionMsg = renderText(HTML(paste0("<b>Climate attributes data successfully uploaded.
+                                               FVSClimAttrs table created and added to input database.</b>")))
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
       dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
@@ -7050,7 +7059,7 @@ cat ("current FVS_ClimAttrs\n")
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    dbExecute(dbGlb$dbIcon,'attach database "',climDb,'" as new')
+    # dbExecute(dbGlb$dbIcon,'attach database "',climDb,'" as new')
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
     oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
@@ -7115,7 +7124,8 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
     progress$set(message = "Done", value = 10)
-    output$uploadActionMsg = renderText("FVSClimAttrs updated.")
+    output$uploadClimActionMsg = renderText(HTML(paste0("<b>Climate attributes data successfully uploaded.
+                                                FVSClimAttrs table updated in input database.</b>")))
     Sys.sleep (2)
     session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
     progress$close()
