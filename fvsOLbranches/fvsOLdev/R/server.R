@@ -499,7 +499,7 @@ cat ("ncases=",ncases,"\n")
             dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
             myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
             setProgress(value = NULL)
-            retrun()
+            return()
         }          
         for (tb in tbs) 
         {                     
@@ -533,7 +533,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
           myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
           setProgress(value = NULL)
-          retrun()
+          return()
         }
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
