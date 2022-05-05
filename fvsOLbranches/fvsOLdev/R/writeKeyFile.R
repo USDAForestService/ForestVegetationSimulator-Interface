@@ -549,7 +549,6 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     } 
     lastExt = "base"
     lastCnd = NULL
-      browser()
     extensPrefixes = c("estb"="Estab","strp"="Estab","cover"="Cover",
       "fire"="FMIn","mist"="Mistoe","wrd3"="RDIn",
       "ardwrd3"="RDIn","armwrd3"="RDIn\nRRType             3",
