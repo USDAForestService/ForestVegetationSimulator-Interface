@@ -20,6 +20,13 @@
 #' @param variant a 2 character string specifying the variant (required).  
 #'    Ihe standID and the variant must match in the designated init table.
 #' @return The new run uuid, NULL if not created.
+#' @examples
+#' # Set a working directory. This example uses the default training input data.
+#'  
+#' runID <- extnMakeRun(title="My first run",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' extnListRuns()
 #' @export
 extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
    stdInit="FVS_StandInit", mgmtID=NULL, variant)
@@ -167,6 +174,14 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
 #' @param toPrjDir if not null, the duplicate is placed in a different 
 #'   project directory given by this argument. 
 #' @return The new run uuid, NULL if not created.
+#' @examples
+#' # Set a working directory. This example uses the default training input data.
+#'  
+#' runID <- extnMakeRun(title="My first run",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' newID <- extnDuplicateRun(runUUID=runID,dupTitle="Duplicate")
+#' extnListRuns()
 #' @export
 extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
    dupMgmtID=NULL,toPrjDir=NULL)
@@ -200,20 +215,20 @@ extnDuplicateRun <- function(prjDir=getwd(),runUUID=NULL,dupTitle=NULL,
 #' Convert an R object to a raw vector
 #'
 #' @param x is an R object that is convered to a raw
-#' @return A raw vector representation of the object
+#' @return A compressed raw vector representation of the object
 #' @export
 extnToRaw <- function(x) memCompress(serialize(x,NULL),type="gzip")
 
 #' Convert a raw vector to an R object
 #'
-#' @param x is a raw that converted to an R object
+#' @param x is a compressed raw that converted to an R object
 #' @return The R object
 #' @export
 extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 
 #' Get FVS Runs
 #'
-#' Pass in a project directory and get back a data.fram of the FVS runs. 
+#' Pass in a project directory and get back a data frame of the FVS runs. 
 #'
 #' @param prjDir is the path name to the project directory, default is  
 #'   current directory.
@@ -222,6 +237,8 @@ extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 #' * uuid of the run, 
 #' * title of the run, 
 #' * datetime the run was last saved. 
+#' @examples
+#' extnListRuns()
 #' @export
 extnListRuns <- function (prjDir=getwd())
 {
@@ -247,14 +264,24 @@ extnListRuns <- function (prjDir=getwd())
 #'   deleted.
 #' @return a data.frame listing the uuid, title, and datetime of the remaining runs
 #'   and NULL if the no runs exist created using [extnListRuns].
-#' @export
+#' @examples
+#' # Make a run then delete it.
+#' runID <- extnMakeRun(title="A run to delete",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' extnDeleteRuns(runUUIDs=runID)
+#' # Delete all the runs
+#'\dontrun{
+#' extnDeleteRuns(runUUIDs=extnListRuns()$uuid)
+#'}
+#' @export                             
 extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 {
   if (is.null(runUUIDs)) stop("runUUIDs must be specified.")
   if (is.null(prjDir)) prjDir=getwd() 
   if (!dir.exists(prjDir)) return(NULL) 
   prjDir = normalizePath(prjDir)
-  db = connectFVSProjectDB(prjDir)
+  db = connectFVSProjectDB(prjDir)         
   on.exit({
     if (class(db)  == "SQLiteConnection") dbDisconnect(db)
     if (exists("dbO") && class(dbO) == "SQLiteConnection") dbDisconnect(dbO)
@@ -295,12 +322,20 @@ extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 #'     by \\n (newline) chars to indicated muliple keywords. 
 #'     If the list items are named, the component name is set to the corresponding
 #'     list item name.
-#' @param groups is a list of group names 
+#' @param groups is a character vector of group names 
 #'   to which the keyword components will be attached.
-#' @param stands is a list of stand ids
+#' @param stands is a character vectorof stand ids
 #'   to which the keyword components will be attached.
 #' 
 #' @return The number of keyword components added to the run.
+#' @examples
+#' runID <- extnMakeRun(title="Run with keywords",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' extnAddComponentKwds(runUUID=runID,                   
+#'             stands=c("01100202010068","01100205010076"),
+#'             cmps=list("KeySet"="Comment\nThis is a comment\nEnd"))
+#' extnGetComponentKwds(runUUID=runID)
 #' @export
 extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=NULL)
 {
@@ -395,6 +430,12 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
 #' @param cycleat is a vector of years where cycles are scheduled, if NULL, 
 #'   no changes are made.
 #' @return the runUUID if changes are made, else NULL
+#' @examples
+#' # Make a run then delete it.
+#' runID <- extnMakeRun(title="Set run options",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' extnSetRunOptions(runUUID=runID,autoOut="Treelists",endyr=2050)                  
 #' @export
 extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
    startyr=NULL,endyr=NULL,cyclelen=NULL,cycleat=NULL)
@@ -478,12 +519,20 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 #'   "titles" of components returned. The second named list is like the first but
 #'   contains items attached to groups. The first named list is named "grpCmps" and
 #'   the second "stdCmps". 
+#' @examples
+#' runID <- extnMakeRun(title="Add components",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")
+#' extnAddComponentKwds(runUUID=runID,                   
+#'             stands=c("01100202010068","01100205010076"),
+#'             cmps=list("KeySet"="Comment\nThis is a comment\nEnd"))
+#' extnGetComponentKwds(runUUID=runID)
 #' @export
 extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 {
   if (missing(runUUID)) stop("runUUID required")
   if (! returnType %in% c("fvsCmp","raw","character")) stop ("invalid value for 'returnType'")
-  prjDir = normalizePath(prjDir)
+  prjDir = normalizePath(prjDir)              
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
@@ -528,9 +577,19 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 #' @param compUUIDs a vector of character strings holding the UUIDs of
 #'   the components that will be deleted from the run.
 #' @return The number of deletions.
-#' @export
+#' @examples  
+#' runID <- extnMakeRun(title="Add components and delete them",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnAddComponentKwds(runUUID=runID,                   
+#'             stands=c("01100202010068","01100205010076"),
+#'             cmps=list("KeySet"="Comment\nThis is a comment\nEnd"))
+#' cmps <- extnGetComponentKwds(runUUID=runID,returnType="fvsCmp")
+#' allStdCmps <- unlist(lapply(cmps$Stands,function (x) x$uuid)) 
+#' extnDeleteComponents(runUUID=runID,compUUIDs=allStdCmps)
+#' @export                                             
 extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
-{
+{     
   if (missing(runUUID)) stop("runUUID required")
   if (missing(compUUIDs)) stop("compUUIDs required")
   prjDir = normalizePath(prjDir)
@@ -551,7 +610,7 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
     }
     if (length(todel))
     {
-      grp$cmps = if (length(todel) == length(grp$cmps)) NULL else grp$cmps[-todel]
+      grp$cmps = if (length(todel) == length(grp$cmps)) list() else grp$cmps[-todel]
       changed = changed+length(todel)
     }
   }
@@ -565,7 +624,7 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
     }
     if (length(todel))
     {
-      std$cmps = if (length(todel) == length(std$cmps)) NULL else std$cmps[-todel]
+      std$cmps = if (length(todel) == length(std$cmps)) list() else std$cmps[-todel]
       changed = changed+length(todel)
     }
   }
@@ -589,6 +648,11 @@ extnDeleteComponents <- function(prjDir=getwd(),runUUID,compUUIDs)
 #'    the runUUID with .key suffix.
 #' @param verbose turns on some extra output to the console
 #' @return A text string reporting the nmber of stands and keyword file name.
+#' @examples  
+#' runID <- extnMakeRun(title="Making a keyword file",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnMakeKeyfile(runUUID=runID)
 #' @export
 extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
   keyFileName=NULL,verbose=FALSE)
@@ -618,6 +682,11 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
 #'   current directory is the project directory.
 #' @param runUUID a character string of the run uuid that is processed
 #' @return a vector of stand ids that are in the run.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, list the stands",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnListStands(runUUID=runID)
 #' @export
 extnListStands <- function(prjDir=getwd(),runUUID)
 {
@@ -637,6 +706,11 @@ extnListStands <- function(prjDir=getwd(),runUUID)
 #'   current directory is the project directory.
 #' @param runUUID a character string of the run uuid that is fetched
 #' @return the run.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, load it",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnLoadFVSRun(runUUID=runID)
 #' @export
 extnLoadFVSRun <- function(prjDir=getwd(),runUUID)
 {
@@ -653,6 +727,12 @@ extnLoadFVSRun <- function(prjDir=getwd(),runUUID)
 #'   current directory is the project directory.
 #' @param theRun an object of class fvsRun.
 #' @return return value from data base action.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, load it, then store it",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' oneRun <- extnLoadFVSRun(runUUID=runID)
+#' extnStoreFVSRun(theRun=oneRun)
 #' @export
 extnStoreFVSRun <- function(prjDir=getwd(),theRun)
 {
@@ -691,7 +771,12 @@ extnStoreFVSRun <- function(prjDir=getwd(),theRun)
 #' @param stands a vector (or list) of stand ids that will be added.
 #' @param addStandReps, if TRUE, stands are added even if they are already 
 #'   present.
-#' @return The number of stands, groups, and components added to the run 
+#' @return The number of stands, groups, and components added to the run
+#' @examples  
+#' runID <- extnMakeRun(title="Run with added stands",
+#'             standIDs=c("01100202010068"),
+#'             variant="ie")
+#' extnAddStands(runUUID=runID,stands=c("01100205010076","01100202010146"))
 #' @export
 extnAddStands <- function(prjDir=getwd(),runUUID,stands,
    addStandReps=FALSE)
@@ -840,6 +925,11 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
 #' @param verbose when true, extra informative output is sent to the console.
 #' @return the system PID of the process that is started when wait is FALSE, otherwise
 #'   NULL.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run with three stands",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnSimulateRun(runUUID=runID,ncpu=1,wait=TRUE)
 #' @export
 extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCores(),
          keyFileName=NULL,wait=FALSE,verbose=TRUE)
@@ -991,6 +1081,12 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
 #' vectors that contain error messages found in the output. 
 #' @param outfile name of the output file.
 #' @return the list of errors found
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, scan for errors",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' extnSimulateRun(runUUID=runID,ncpu=1,wait=TRUE)
+#' extnErrorScan(paste0(runID,".out"))
 #' @export
 extnErrorScan <- function (outfile)
 {
