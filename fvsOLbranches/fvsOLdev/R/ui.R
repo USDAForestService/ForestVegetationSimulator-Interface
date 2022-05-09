@@ -707,6 +707,8 @@ FVSOnlineUI <- fixedPage(
             ),
             tabPanel("Upload Climate-FVS data", 
               h4(),             
+              actionButton("delCurClimData","Delete existing FVS_ClimAttrs table"),   
+              h4(),             
               fileInput("climateFVSUpload",
                         "Upload and commit Climate-FVS data; (FVSClimAttrs.csv or answers.zip)",
                         width="90%"),                                                                            

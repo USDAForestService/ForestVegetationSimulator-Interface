@@ -6801,8 +6801,8 @@ cat ("Upload new rows\n")
       names(dbGlb$tbsCTypes) = tbs 
       if (length(tbs))
       {
-        idx <- grep ("FVS_Climattrs",tbs)
-        if (length(idx)) tbs = tbs[-ids]
+        idx <- grep ("FVS_ClimAttrs",tbs,ignore.case=TRUE)
+        if (length(idx)) tbs = tbs[-idx]
         idx <- grep ("StandInit",tbs)
         if (length(idx) == 0) idx=1     
         updateSelectInput(session=session, inputId="uploadSelDBtabs", choices=tbs, 
@@ -6996,10 +6996,32 @@ cat ("insertCount=",insertCount,"\n")
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
       initNewInputDB(session,output,dbGlb)
     })
-  }) 
-  ## climateFVSUpload
+  })
+  ## delCurClimData
   observe({
-    if (is.null(input$climateFVSUpload)) return()
+    if (input$delCurClimData)
+    {
+      dbExecute(dbGlb$dbIcon,'drop table if exists "FVS_ClimAttrs"')
+      output$uploadClimActionMsg = renderText(HTML("<b>FVSClimAttrs table deleted if it existed.</b>"))
+    }
+  })
+
+  observe({
+    if (input$topPan == "Manage Projects" && input$inputDBPan == "Upload Climate-FVS data")
+    {
+      exTabs=dbListTables(dbGlb$dbIcon)
+      if ("FVS_ClimAttrs" %in% exTabs)
+      {
+        nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+        nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+        output$uploadClimActionMsg = renderText(HTML(paste0("<b>Existing FVSClimAttrs data contains ",
+          nrow(nstds)," stands and ",nrow(nsenc)," scenarios</b>")))
+      } else output$uploadClimActionMsg = renderText(HTML(paste0("<b>There is no existing FVSClimAttrs data.</b>")))
+    }
+  })
+  ## climateFVSUpload
+  observe({  
+    if (is.null(input$climateFVSUpload)) return() 
     progress <- shiny::Progress$new(session,min=1,max=10)
     progress$set(message = "Loading data set",value = 2)
     climAtt="FVSClimAttrs.csv"
@@ -7014,7 +7036,7 @@ cat ("insertCount=",insertCount,"\n")
 cat ("no FVSClimAttrs.csv file\n")
       output$uploadClimActionMsg = renderText("FVSClimAttrs.csv not found.")
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
-      Sys.sleep (2)
+      Sys.sleep (2)   
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
       progress$close()
       setwd(curdir)
@@ -7025,39 +7047,44 @@ cat ("processing FVSClimAttrs.csv\n")
     progress$set(message = "Loading data set (big files take a while)",value = 2) 
     climd = read.csv(climAtt,nrows=1)
     climd = read.csv(climAtt,colClasses=c(rep("character",2),
-        "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
-    colnames(climd)[1] <- "Stand_ID"
+        "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)
     unlink(climAtt)
     unlink(input$climateFVSUpload$datapath)
     setwd(curdir)
-    
+    if (names(climd)[2] != "Scenario")
+    {
+      output$uploadClimActionMsg = renderText(HTML("<b>FVSClimAttrs.csv does not contain expected column names.</b>"))
+      progress$set(message = "FVSClimAttrs.csv not as expected", value = 6)
+      Sys.sleep (2)
+      session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
+      progress$close()
+      return()
+    }
+    names(climd)[1]="Stand_ID"
     climTab <- myListTables(dbGlb$dbIcon)    
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
       dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
-      output$uploadClimActionMsg = renderText(HTML(paste0("<b>Climate attributes data successfully uploaded.
-                                               FVSClimAttrs table created and added to input database.</b>")))
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
       dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
       dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+      nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+      output$uploadClimActionMsg = renderText(HTML(paste0("<b>FVSClimAttrs data contains ",
+          nrow(nstds)," stands and ",nrow(nsenc)," scnarios</b>")))
       progress$set(message = "Done", value = 9)
       Sys.sleep (.5)
       progress$close()
       return()      
     }
-cat ("current FVS_ClimAttrs\n")
-    climDb="FVSClimAttrs.db"
-    unlink(climDb)
-    dbclim <- dbConnect(dbDrv,climDb)
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
+    dbWriteTable(dbGlb$dbIcon,"temp.FVS_ClimAttrs",climd,overwrite=TRUE)
     rm (climd)  
-    progress$set(message = "Query distinct stands and scenarios",value = 5) 
-    distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")
-    dbDisconnect(dbclim)
+    progress$set(message = "Query distinct stands and scenarios",value = 5)
+    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'temp.FVS_ClimAttrs'")
     progress$set(message = "Cleaning previous climate data as needed",value = 6)    
     dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
@@ -7067,22 +7094,18 @@ cat ("current FVS_ClimAttrs\n")
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    dbExecute(dbGlb$dbIcon,paste0('attach database "',climDb,'" as new'))
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
-    oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
+    oldAttrs = dbGetQuery(dbGlb$dbIcon,"select * from FVS_ClimAttrs limit 1")
     if (nrow(oldAttrs) == 0) 
     {
 cat ("simple copy from new, all rows were deleted\n")
-      dbExecute(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
-      dbExecute(dbGlb$dbIcon,'create table FVS_ClimAttrs as select * from new.FVS_ClimAttrs')
+      dbExecute(dbGlb$dbIcon,"drop table FVS_ClimAttrs")
+      dbExecute(dbGlb$dbIcon,"create table FVS_ClimAttrs as select * from 'temp.FVS_ClimAttrs'")
     } else {
-      newAttrs = dbGetQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs limit 1;')
-      if (identical(colnames(oldAttrs),colnames(newAttrs)))
+      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'temp.FVS_ClimAttrs' limit 1")
+      if (!identical(colnames(oldAttrs),colnames(newAttrs)))
       {
-cat ("simple insert from new, all cols are identical\n")
-        dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
-      } else {  
 cat ("need to match columns, cols are not identical\n")
         oldAttrs=colnames(oldAttrs)[-(1:3)]
         newAttrs=colnames(newAttrs)
@@ -7107,36 +7130,32 @@ cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         {
           dbBegin(dbGlb$dbIcon)
           for (mis in newmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table new.FVS_ClimAttrs add "',mis,'" real'))
+            paste0('alter table "temp.FVS_ClimAttrs" add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
         if (length(oldmiss) > 0)
         {
-          dbExecute(dbGlb$dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
           dbBegin(dbGlb$dbIcon)
           for (mis in oldmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table oldClimAttrs add "',mis,'" real'))
+            paste0('alter table FVS_ClimAttrs add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
-          dbExecute(dbGlb$dbIcon,
-            paste0('create table FVS_ClimAttrs as select ',selnew,' from oldClimAttrs'))
-          dbExecute(dbGlb$dbIcon,'drop table oldClimAttrs')
-        }     
-        dbExecute(dbGlb$dbIcon,
-          paste0('insert into FVS_ClimAttrs select ',selnew,' from new.FVS_ClimAttrs'))
+        }
       }
+      dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from "temp.FVS_ClimAttrs"')
     }
-    dbExecute(dbGlb$dbIcon,'detach database new')   
-    unlink(climDb)
+    dbExecute(dbGlb$dbIcon,'drop table "temp.FVS_ClimAttrs"')
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+    nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+    nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+    output$uploadClimActionMsg = renderText(HTML(paste0("<b>FVSClimAttrs data contains ",
+        nrow(nstds)," stands and ",nrow(nsenc)," scnarios</b>")))
     progress$set(message = "Done", value = 10)
-    output$uploadClimActionMsg = renderText(HTML(paste0("<b>Climate attributes data successfully uploaded.
-                                                FVSClimAttrs table updated in input database.</b>")))
     Sys.sleep (2)
     session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
-    progress$close()
+    progress$close()   
   })  
   
   observe({

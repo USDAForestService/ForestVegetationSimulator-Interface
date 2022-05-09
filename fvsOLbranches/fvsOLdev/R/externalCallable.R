@@ -26,8 +26,14 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
 {
   if (missing(variant)) stop("variant required")
   if (dir.exists(prjDir)) prjDir=normalizePath(prjDir) else 
-    stop("The specified project directory must exist.")
+    stop("The specified project directory must exist.")  
   dbfile = file.path(prjDir,"FVS_Data.db")
+  if (!file.exists("FVS_Data.db"))
+  {
+    warning("FVS_Data.db did not exist, default training data was loaded.")
+    frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
+    file.copy(frm,dbfile)
+  }
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
   if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
