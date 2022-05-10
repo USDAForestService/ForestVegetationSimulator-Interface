@@ -469,7 +469,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
   fvsInit = try(dbGetQuery(dbIcon,qry))
   if (class(fvsInit) == "try-error") return(paste0("Run data query failed. qry=",qry," Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
-  if (nrow(fvsInit) == 0) return("Run data query returned no data to run.")
+  if (nrow(fvsInit) == 0) return("Wrong active database.")
   # compute replication weights
   stofix=table(stds)
   stofix=names(stofix[stofix>1])
@@ -581,24 +581,30 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
           cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastExt = exten
         }
-        if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
-        {
-          scn = unlist(strsplit(cmp$kwds,"\n"))[2]
-          qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
-                       std$sid,"' and Scenario = '",scn,"';\n")
-          climTab <- myListTables(dbIcon)
-          if (!("FVS_ClimAttrs" %in% climTab)) return("No Climate attributes data found.")
-          d = dbGetQuery(dbIcon,qur)
-          ans = apply(d,2,function (x) !any(is.na(x)))
-          d = d[,ans]          
-          if (nrow(d)) 
-          {
-            cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
-            suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
-                                         sep=",",quote=FALSE,row.names=FALSE))
-            cat ("-999\n",file=fc,sep="")
-          }
-        } else {
+        climTab <- myListTables(dbIcon)
+        if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData" &&
+            "FVS_ClimAttrs" %in% climTab)
+            {
+              StdChk <- "select STAND_ID from FVS_ClimAttrs where STAND_ID in (select RunStds from temp.RunStds)"
+              climAttrs <- try(dbGetQuery(dbIcon, StdChk))
+              if (nrow(climAttrs) == 0) return("Stand not found in FVS_ClimAttrs table.")
+              scn = unlist(strsplit(cmp$kwds,"\n"))[2]
+              qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
+                           std$sid,"' and Scenario = '",scn,"';\n")
+              d = dbGetQuery(dbIcon,qur)
+              ans = apply(d,2,function (x) !any(is.na(x)))
+              d = d[,ans]          
+              if (nrow(d)) 
+              {
+                cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
+                suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
+                                             sep=",",quote=FALSE,row.names=FALSE))
+                cat ("-999\n",file=fc,sep="")
+              }
+        } else if(exten == "climate" && substr(cmp$kwds,1,8) == "ClimData" &&
+            !("FVS_ClimAttrs" %in% climTab) && !file.exists(unlist(strsplit(cmp$kwds, "\n"))[3])){
+             return("No Climate attributes data found.")
+        }  else {
           # remove trailing spaces after last parameter of keywords with supplemental 
           # records entered in the GAAK table (i.e., SPGROUP, MGMTID, etc.)
           if (length(grep("FVS_GroupAddFilesAndKeywords",cmp$title))){
@@ -645,30 +651,39 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         cat (extensPrefixes[exten],"\n",file=fc,sep="")
         lastExt = exten
       }
+      climTab <- myListTables(dbIcon)
+      if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData" &&
+        "FVS_ClimAttrs" %in% climTab)
+        {
+          StdChk <- "select STAND_ID from FVS_ClimAttrs where STAND_ID in (select RunStds from temp.RunStds)"
+          climAttrs <- try(dbGetQuery(dbIcon, StdChk))
+          if (nrow(climAttrs) == 0) return("Stand not found in FVS_ClimAttrs table.")
+          scn = unlist(strsplit(cmp$kwds,"\n"))[2]
+          qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
+                       std$sid,"' and Scenario = '",scn,"';\n")
+          d = dbGetQuery(dbIcon,qur)
+          ans = apply(d,2,function (x) !any(is.na(x)))
+          d = d[,ans]          
+          if (nrow(d)) 
+          {
+            cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
+            suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
+                                         sep=",",quote=FALSE,row.names=FALSE))
+            cat ("-999\n",file=fc,sep="")
+          }
+        } 
+      else if(exten == "climate" && substr(cmp$kwds,1,8) == "ClimData" &&
+        !("FVS_ClimAttrs" %in% climTab) && !file.exists(unlist(strsplit(cmp$kwds, "\n"))[3])){
+          return("No Climate attributes data found.")
+        }
+      else {
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
-                     cmp$kwds,"\n",file=fc,sep="")    
+                     cmp$kwds,"\n",file=fc,sep="")  
+        }
     }
     if (!is.null(lastCnd) && lastExt != "base") {
       cat ("End\n",file=fc,sep="")
       lastExt = "base"
-    }
-    if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData")
-    {
-      scn = unlist(strsplit(cmp$kwds,"\n"))[2]
-      qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
-                   std$sid,"' and Scenario = '",scn,"';\n")
-      climTab <- myListTables(dbIcon)
-      if (!("FVS_ClimAttrs" %in% climTab)) return("No Climate attributes data found.")
-      d = dbGetQuery(dbIcon,qur)
-      ans = apply(d,2,function (x) !any(is.na(x)))
-      d = d[,ans]          
-      if (nrow(d)) 
-      {
-        cat ("ClimData\n",scn,"\n*\n",file=fc,sep="")
-        suppressWarnings(write.table(d,file=fc,append=TRUE,col.names=TRUE,
-                                     sep=",",quote=FALSE,row.names=FALSE))
-        cat ("-999\n",file=fc,sep="")
-      }
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
     if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")

@@ -4123,15 +4123,13 @@ cat ("Run data query returned no data to run.\n")
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
-        if (!file.exists(fc))
+         if (!file.exists(fc))
         {
-          if(msg=="Run data query returned no data to run."){
-cat ("Run data query returned no data to run.\n")  
-          progress$set(message = "Error: Keyword file was not created. Try re-importing
+          if(msg=="Wrong active database."){
+cat ("Wrong active database.\n")  
+          progress$set(message = "Error: Wrong active database. Try re-importing
                        the inventory database associated with this run.",
-                      detail = msg, value = 3) 
-          Sys.sleep(5)
-          progress$close()
+                      detail = na, value = 3) 
           return()  
           } else {
 cat ("keyword file was not created.\n")
@@ -4141,14 +4139,19 @@ cat ("keyword file was not created.\n")
           progress$close()
           return()
           }
+         }
+        if(msg=="Stand not found in FVS_ClimAttrs table."){
+cat ("Stand not found in FVS_ClimAttrs table.\n")  
+          progress$set(message = "Error: Stand not found in FVS_ClimAttrs table. Make sure to either upload it 
+                       using the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+                      detail = NA, value = 3) 
+          return()
         }
         if(msg=="No Climate attributes data found."){
 cat ("No climate attributes data found.\n")  
-          progress$set(message = "Error: Climate data is missing. Make sure to upload it 
-                       using the Upload Climate-FVS data menu.",
-                      detail = msg, value = 3) 
-          Sys.sleep(5)
-          progress$close()
+          progress$set(message = "Error: No climate attributes data found. Make sure to either upload it using 
+                       the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+                      detail = NA, value = 3) 
           return()
         }
         dir.create(globals$fvsRun$uuid)
