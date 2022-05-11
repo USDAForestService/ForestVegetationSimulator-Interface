@@ -1,8 +1,14 @@
 #' Set Attributes of Trees
 #'
 #' @param vars a named list of numeric vectors where the names are attributes
-#'  and the vector contains values for each tree (in order). 
-#' @return scalar integer 0 signals OK and 1 signals an error.
+#'  and the vector contains values for each tree (in order). See \link{fvsGetTreeAttrs}
+#'  for the list of possible attributes.
+#' @return scalar integer 0 signals OK and 1 signals an error (invisible).
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    vars = fvsGetTreeAttrs(vars=c("dbh","ht","tpa"))     
+#'    fvsSetTreeAttrs(vars)
 #' @export
 fvsSetTreeAttrs <-
 function(vars)

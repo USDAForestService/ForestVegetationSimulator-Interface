@@ -1,7 +1,14 @@
 #' Get Event Monitor Variables
 #'
-#' @param vars a character vector of Event Monitor names.
-#' @return a named numeric vector of the variables, NA if the variable name does not exit
+#' @param vars a character vector of Event Monitor names. Consult FVS documentation
+#'   for the possible variable names. 
+#' @return a named numeric vector of the variables, NA if the variable name does not exist
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    fvsGetEventMonitorVariables(c("year","atpa","aba","mybba","myaba"))
+#'    fvsSetEventMonitorVariables(c("myaba"=100,"another"=40))
+#'    fvsGetEventMonitorVariables(c("myaba","another"))
 #' @export
 fvsGetEventMonitorVariables <-
 function(vars)
@@ -25,6 +32,12 @@ function(vars)
 #'
 #' @param vars a named numeric vector of the variables and corresponding values.
 #' @return a named numeric vector of the variables, NA if the variable name does not exit
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    fvsGetEventMonitorVariables(c("year","atpa","aba","mybba","myaba"))
+#'    fvsSetEventMonitorVariables(c("myaba"=100,"another"=40))
+#'    fvsGetEventMonitorVariables(c("myaba","another"))
 #' @export
 fvsSetEventMonitorVariables <-
 function(vars)

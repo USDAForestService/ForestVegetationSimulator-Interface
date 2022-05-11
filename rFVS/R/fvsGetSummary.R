@@ -1,6 +1,10 @@
 #' Return a data.frame of the summary statistics
 #'
 #' @return summary statistics with one row per period
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    fvsGetSummary()  # will be NULL until a run is made    
 #' @export
 fvsGetSummary <-
 function()

@@ -1,8 +1,17 @@
 #' Set the values of species-specific data
 #'
 #' @param vars a named list of numeric vectors where the name corresponds to an attribute and
-#'  the vector contains values for each species (in order).
+#'  the vector contains values for each species (in order). The attributes can be any of these:
+#'  \tabular{cl}{
+#'    spccf	    \tab CCF for each species, recomputed in FVS so setting will likely have no effect\cr
+#'    spsdi	    \tab SDI maximums for each species \cr
+#'    spsiteindx \tab Species site indices\cr}
 #' @return scalar integer 0 signals OK and 1 signals an error.
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    vars = fvsGetSpeciesAttrs(vars=c("spccf","spsdi","spsiteindx"))
+#'    fvsSetSpeciesAttrs(vars=vars)      
 #' @export
 fvsSetSpeciesAttrs <-
 function(vars)

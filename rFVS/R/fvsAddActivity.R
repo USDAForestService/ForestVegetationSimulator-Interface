@@ -1,11 +1,19 @@
 #' Add an an FVS Activity to the activity schedule
 #'
-#' Pass in an activity code and parameters to the FVS activity schedule. 
+#' Pass in an activity code and parameters to the FVS activity schedule. A list of
+#' possible activity codes is returned if no arguments are passed.
 #'
 #' @param year year the activity is to be scheduled
 #' @param activity activity code as a number or character string 
 #' @param parms a numeric vector of parameters for the activity
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    fvsAddActivity()  # a list of all possible activities is return
+#'    fvsAddActivity(1993,"base_yardloss",c(0.50, 0.70, 0.50))
+#'    fvsAddActivity(1993,"base_thindbh",c(0.00,12.00,1.00,0.00,0.00))
 #' @return invisable return code with the value 0 if the activity was added and 1 if there was some error
+#'   or, in the case where no arguments are specified, a named vector of possible activity codes.
 #' @export
 
 fvsAddActivity <-

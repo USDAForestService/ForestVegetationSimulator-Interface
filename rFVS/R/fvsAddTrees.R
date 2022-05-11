@@ -1,11 +1,14 @@
 #' Add new tree records to the simulation
 #'
-#' Pass a data.frame of new trees. The following columns must be specified:
-#' "dbh","species","ht","cratio","plot", and "tpa".
+#' Pass a data frame of new trees. This function should be called
+#' only at FVS stop point 6 or 7 (see \link{fvsRun}).
 #'
-#' @param newtrees newtrees a data.frame of new trees.
+#' @param newtrees a data.frame of new trees with the following required columns:
+#'   dbh (inches),species (FVS species index (integer), use \link{fvsGetSpeciesCodes} 
+#'   to list permitted codes), ht (ft), cratio (percent), plot (index),
+#'   tpa (trees/acre). No missing values allowed.
 #' @return invisable return code with the value 0 if the trees were added and 
-#'   1 if there was some error
+#'   1 if there was some error.
 #' @export
 fvsAddTrees <-
 function(newtrees)

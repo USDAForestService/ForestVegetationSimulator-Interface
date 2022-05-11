@@ -2,6 +2,8 @@
 #'
 #' @return a named list of trees, snags, and course woody debris (cwd). Each
 #'   item in the list is a data.frame of items.
+#' @examples
+#' fvsGetSVSObjectSet() # return list of empty data frames until a run is made using SVS.     
 #' @export
 fvsGetSVSObjectSet <-
 function()

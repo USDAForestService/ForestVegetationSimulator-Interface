@@ -1,7 +1,15 @@
 #' Return a data.frame of species codes
 #'
 #' @return a data.frame with 1 row for each species and three character columns 
-#'   of the "fvs", "fia", and "plant" codes. 
+#' \tabular{cl}{
+#'    rowname \tab internal FVS numeric species index\cr
+#'    fvs     \tab FVS species codes (2-character)\cr
+#'    fia	   \tab FIA numeric species codes\cr
+#'    plant   \tab Plant codes\cr}
+#' @examples
+#'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")
+#'    fvsGetSpeciesCodes()      
 #' @export
 fvsGetSpeciesCodes <-
 function ()

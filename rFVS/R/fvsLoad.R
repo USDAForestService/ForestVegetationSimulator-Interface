@@ -5,7 +5,10 @@
 #'
 #' @param fvsProgram a character string of the name of the desired FVS shared library.
 #' @param bin the name of the directory where the shared library is stored.
-#' @return the name that was loaded.
+#' @return the name that was loaded is returned (invisible).
+#' @examples
+#'   #edit fvsLoad to reflect where FVSbin is stored on your system. 
+#'   fvsLoad(bin="FVSbin",fvsProgram="FVSie") 
 #' @export
 fvsLoad <-
 function(fvsProgram,bin="../../trunk/bin")

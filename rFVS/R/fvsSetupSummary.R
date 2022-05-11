@@ -6,9 +6,9 @@
 #'
 #' @param asum as returned from [fvsGetSummary()]
 #' @return A reorganized version of [`asum`].
-#' @export
 #' @examples
-#' fvsSetupSummary(fvsGetSummary())
+#'   fvsSetupSummary(fvsGetSummary())
+#' @export
 
 fvsSetupSummary <- 
 function(asum)
