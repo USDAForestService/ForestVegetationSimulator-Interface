@@ -7104,7 +7104,7 @@ cat ("no current FVS_ClimAttrs\n")
     {
 cat ("simple copy from new, all rows were deleted\n")
       dbExecute(dbGlb$dbIcon,"drop table FVS_ClimAttrs")
-      dbExecute(dbGlb$dbIcon,"create table FVS_ClimAttrs as select * from 'temp.FVS_ClimAttrs'")
+      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'temp.FVS_ClimAttrs'")
     } else {
       newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'temp.FVS_ClimAttrs' limit 1")
       if (!identical(colnames(oldAttrs),colnames(newAttrs)))
@@ -7275,7 +7275,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
           }
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
           for (col in 2:ncol(dbGlb$tbl))
-            if (class(dbGlb$tbl[[col]]) != "character") 
+            if (! ("character" %in% class(dbGlb$tbl[[col]]))) 
                dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
           if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else
           {
