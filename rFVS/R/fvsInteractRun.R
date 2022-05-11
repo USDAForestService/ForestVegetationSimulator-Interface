@@ -51,8 +51,7 @@ function(...)
               "BeforeAdd","BeforeEstab","SimEnd")
   toCall <- vector("list",length(needed))
   names(toCall) <- needed                                             
-  toCall[needed] <- args[needed] 
-browser()                                                          
+  toCall[needed] <- args[needed]                                                          
   ignored <- setdiff(names(args),needed)
   if (length(ignored) > 0) warning("argument(s) ignored: ",          
       paste(ignored,collapse=", "))
