@@ -7061,9 +7061,23 @@ cat ("processing FVSClimAttrs.csv\n")
       Sys.sleep (2)
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
       progress$close()
+      rm(climd)
       return()
     }
     names(climd)[1]="Stand_ID"
+    cdnames=colnames(climd)
+    periods=grep(".",cdnames,fixed=TRUE)
+    if (length(periods))
+    {
+      message = paste0("Illegal period(s) in column name(s): ",
+                       paste0(cdnames[periods],collapse=","))
+      progress$set(message,value = 4) 
+      Sys.sleep (.5)
+      progress$close()
+      output$uploadClimActionMsg = renderText(HTML(paste0("<b>",message,". Data not loaded.</b>")))
+      rm(climd)
+      return()
+    }      
     climTab <- myListTables(dbGlb$dbIcon)    
     if (!("FVS_ClimAttrs" %in% climTab))
     {
@@ -7114,16 +7128,13 @@ cat ("need to match columns, cols are not identical\n")
         newAttrs=colnames(newAttrs)
         ssid = newAttrs[1:3]
         newAttrs = newAttrs[-(1:3)]
-        oldcl=unlist(lapply(oldAttrs,function (x) if (tolower(x) == x) x else NULL))
-        newcl=unlist(lapply(newAttrs,function (x) if (tolower(x) == x) x else NULL))
         oldsp=unlist(lapply(oldAttrs,function (x) if (toupper(x) == x) x else NULL))
         newsp=unlist(lapply(newAttrs,function (x) if (toupper(x) == x) x else NULL))
-        oldot=setdiff(setdiff(oldAttrs,oldcl),oldsp)   
-        newot=setdiff(setdiff(newAttrs,newcl),newsp)   
-        bothcl = union(oldcl,newcl)
         bothsp = union(oldsp,newsp)
-        bothot = union(oldot,oldot)
-        newall = c(bothcl,bothsp,bothot)
+        oldot=setdiff(oldAttrs,bothsp)
+        newot=setdiff(newAttrs,bothsp)
+        bothot = union(oldot,newot)
+        newall = c(bothsp,bothot)
         oldmiss= setdiff(newall,oldAttrs)
         newmiss= setdiff(newall,newAttrs)
         newall = c(ssid,newall)
@@ -7145,7 +7156,11 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
           dbCommit(dbGlb$dbIcon)
         }
       }
-      dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from "temp.FVS_ClimAttrs"')
+      attrs = colnames(dbGetQuery(dbGlb$dbIcon,"select * from 'FVS_ClimAttrs' limit 1"))
+      sel = paste0(attrs,collapse=",")
+      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'temp.FVS_ClimAttrs'")
+cat("insert qry=",qry,"\n")
+      dbExecute(dbGlb$dbIcon,qry)
     }
     dbExecute(dbGlb$dbIcon,'drop table "temp.FVS_ClimAttrs"')
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
