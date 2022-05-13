@@ -990,7 +990,8 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
     cat ("library(rFVS)\n",file=opnout)
     if (dir.exists(fvsBin)) fvsBin=gsub(pattern="\\\\",replacement="/",x=normalizePath(fvsBin))
-    cat ("fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,"')\n",sep="",file=opnout) 
+    cat ("rtn=try(fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,
+         "'))\nif(class(rtn)=='try-error') stop('fvs load failed')\n",sep="",file=opnout) 
     if (fvsRun$runScript != "fvsRun")
     {   
        # if the custom run script exists in the project dir, use it, otherwise
@@ -1044,10 +1045,13 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
       if (dir.exists(rundir)) 
       {
         frm=file.path(rundir,paste0(runUUID,".out"))
-        if (file.exists(frm)) 
+        if (file.exists(frm))
+        {
           if (file.exists(out)) file.append(out,frm) else file.copy(from=frm,to=out)
+        } else cat (paste0("File ",frm," does not exist."))
         setwd(rundir)
-        addNewRun2DB(runUUID, dbcon, removeOldOutput=first, verbose=TRUE)
+        msg = addNewRun2DB(runUUID, dbcon, removeOldOutput=first, verbose=TRUE)
+        cat ("rtn from addNewRun2DB",msg,"\n")
         first=FALSE
         setwd("..")
       }
