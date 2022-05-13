@@ -110,7 +110,7 @@ mkGlobals <- setRefClass("globals",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
     explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical",
-    tableMessage="logical")) 
+    tableMessage="logical",exploring="logical")) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -321,6 +321,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     globals$changeind <- 0
     output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    globals$exploring <- FALSE
     
     setProgress(value = NULL)          
   }, min=1, max=6)
@@ -432,10 +433,10 @@ cat ("View Outputs & Load\n")
   })
 
   ## runs output run selection
-  observe({
+  observeEvent((input$leftPan == "Load" && !is.null(input$runs)), {
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
-    if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
+    if (!is.null(input$runs) && !length(globals$tbsFinal) && !globals$exploring) # will be a list of run keywordfile names (uuid's)
     {
       tbs <- myListTables(dbGlb$dbOcon)
 cat ("tbs related to the run",tbs,"\n")
@@ -446,7 +447,7 @@ cat ("tbs related to the run",tbs,"\n")
       }
       withProgress(session, {  
         i = 1
-        setProgress(message = "Output query", 
+        setProgress(message = "Please wait: Performing output query", 
                     detail  = "Selecting tables", value = i); i = i+1
         # set an exclusive lock on the database
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = EXCLUSIVE")
@@ -454,7 +455,7 @@ cat ("tbs related to the run",tbs,"\n")
         while (TRUE)
         {
           trycnt=trycnt+1
-          setProgress(message = "Getting exclusive lock",
+          setProgress(message = "Please wait: Getting exclusive lock",
                       detail  = paste0("Number of attempts=",trycnt," of 1000"))
           if (trycnt > 1000)
           {
@@ -541,7 +542,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
         {
           if ("FVS_Summary" %in% tbs)
           {
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary", value = i); i = i+1
             exqury(dbGlb$dbOcon,Create_CmpSummary)
             tbs = c(tbs,"CmpSummary")
@@ -549,7 +550,7 @@ cat ("tbs1=",tbs,"\n")
           }
           if ("FVS_Summary_East" %in% tbs)
           {
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary_East", value = i); i = i+1
             exqury(dbGlb$dbOcon,Create_CmpSummary_East)
             tbs = c(tbs,"CmpSummary_East")
@@ -557,7 +558,7 @@ cat ("tbs2=",tbs,"\n")
           }
           if ("FVS_Summary2" %in% tbs)
           {
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
             exqury(dbGlb$dbOcon,Create_CmpSummary2)
             tbs = c(tbs,"CmpSummary2")
@@ -565,7 +566,7 @@ cat ("tbs3=",tbs,"\n")
           }
           if ("FVS_Summary2_East" %in% tbs)
           {
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2_East", value = i); i = i+1
             exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
             tbs = c(tbs,"CmpSummary2_East")
@@ -574,7 +575,7 @@ cat ("tbs4=",tbs,"\n")
         } else {
           if ("FVS_Summary2_Metric" %in% tbs && exists("Create_CmpSummary2"))
           {
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2_Metric", value = i); i = i+1
             exqury(dbGlb$dbOcon,Create_CmpSummary2)
             tbs = c(tbs,"CmpSummary2_Metric")
@@ -583,7 +584,7 @@ cat ("tbs5=",tbs,"\n")
         }
         if ("FVS_Compute" %in% tbs)
         {
-          setProgress(message = "Output query", 
+          setProgress(message = "Please wait: performing output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
           cmp = dbGetQuery(dbGlb$dbOcon,
             "select * from FVS_Compute limit 0")
@@ -640,22 +641,22 @@ cat ("tbs6=",tbs,"\n")
               stdstk = "StdStk_East"
               clname = "FVS_CutList_East"
             }
-            setProgress(message = "Output query", 
+            setProgress(message = "Please wait: performing output query", 
               detail  = detail, value = i); i = i+1
             exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
                    asSpecies=paste0("Species",input$spCodes))
             if (clname %in% tbs)
             {
-              setProgress(message = "Output query", 
+              setProgress(message = "Please wait: performing output query", 
                 detail  = detail, value = i); i = i+1
               exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
                    asSpecies=paste0("Species",input$spCodes))
-              setProgress(message = "Output query", 
+              setProgress(message = "Please wait: performing output query", 
                 detail  = "Joining tables", value = i); i = i+1
               exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
                    asSpecies=paste0("Species",input$spCodes))
             } else {
-              setProgress(message = "Output query", 
+              setProgress(message = "Please wait: performing output query", 
                 detail  = "Joining tables", value = i); i = i+2
               exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
                    asSpecies=paste0("Species",input$spCodes))
@@ -672,7 +673,7 @@ cat ("tbs6=",tbs,"\n")
         if ("FVS_TreeList_Metric" %in% tbs)
         { 
           asSpecies=paste0("Species",input$spCodes)
-          setProgress(message = "Output query", detail  = "Building StdStk", value = i); i = i+1
+          setProgress(message = "Please wait: performing output query", detail  = "Building StdStk", value = i); i = i+1
           if ("FVS_CutList_Metric" %in% tbs) exqury(dbGlb$dbOcon,Create_HrvStdStk, 
             subExpression=dbhclassexp, asSpecies=asSpecies)
           exqury(dbGlb$dbOcon,Create_StdStkDBHSp,subExpression=dbhclassexp,asSpecies=asSpecies)
@@ -692,7 +693,7 @@ cat ("tbs6=",tbs,"\n")
         }
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
 cat ("tbs7=",tbs,"\n")       
-        setProgress(message = "Output query", 
+        setProgress(message = "Please wait: performing output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
@@ -776,11 +777,13 @@ cat ("tbs7=",tbs,"\n")
           updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=input$selectdbtables)
         }
+        globals$tbsFinal <- list()
         setProgress(value = NULL)
       }, min=1, max=6)
     } else
     {
       updateSelectInput(session, "selectdbtables", choices=list())
+      globals$exploring <- FALSE
     }
   })
     
@@ -1109,6 +1112,7 @@ cat ("sqlNew\n")
   observe({
     if (input$leftPan == "Explore")
     {
+      globals$exploring <- TRUE
 cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
       if (length(fvsOutData$dbSelVars) == 0) 
       {
