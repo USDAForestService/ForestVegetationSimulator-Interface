@@ -970,7 +970,7 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               " returned\n",attr(res,"condition"),"\n") else
               paste0(msgtxt,"query ",iq," ran\n")         
           updateTextInput(session=session, inputId="sqlOutput", label="", 
-                          value=msgtxt)                          
+                          value=msgtxt) 
           if (class(res) == "try-error") break
           if (class(res) == "data.frame" && ncol(res) && nrow(res))
           {
@@ -1261,7 +1261,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         }
         if (!is.null(mdat$CaseID))
         {
-          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from temp.Cases"),by="CaseID")
           mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
           mdat$rowid=NULL
         }
@@ -1292,7 +1292,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         iprg = iprg+1                                      
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
-        vars = colnames(mdat)       
+        vars = colnames(mdat)
         sby = NULL
         for (v in c("MgmtID","StandID","Stand_CN","Year","RmvCode","PtIndex",
            "TreeIndex","Species","DBHClass")) if (v %in% vars) sby=c(sby,v)
