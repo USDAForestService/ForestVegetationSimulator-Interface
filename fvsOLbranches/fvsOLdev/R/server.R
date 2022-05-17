@@ -8231,9 +8231,9 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             defs=paste0(defs,".libPaths('",Rlib2Use,"');")
           }
           cmd = if (devVersion) paste0(rscript," --vanilla -e $",defs,
-            "require(fvsOLdev);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,
-            "',devVersion=TRUE);quit()$") else paste0(rscript," --vanilla -e $",defs,
-            "require(fvsOL);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")           
+            "require(fvsOLdev);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$") else  
+                                paste0(rscript," --vanilla -e $",defs,
+            "require(fvsOL);   fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")           
           cmd = gsub('$','"',cmd,fixed=TRUE)
           if (.Platform$OS.type == "unix") 
           {
