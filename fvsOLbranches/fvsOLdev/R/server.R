@@ -258,7 +258,7 @@ cat ("Project is locked.\n")
         paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
         paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") 
     } else {
-      paste0(serverDate,if (isLocal()) " Local" else " Online","configuration<br>")
+      paste0(paste0("Release date: ",serverDate,"<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
     }
     hostedByLogo=system.file("extdata","www/hostedByLogo.png",
       package=if (devVersion) "fvsOLdev" else "fvsOL")
