@@ -8223,30 +8223,30 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             if(.Platform$OS.type == "windows") 
                file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
           }
+          rscript=gsub("\\\\","/",rscript)
           defs=paste0("RscriptLocation='",rscript,"';")
           if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
           if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
-          if (exists("RscriptLocation")) {
-            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
-            defs=paste0(defs,".libPaths('",Rlib2Use,"');")
-          }
-          cmd = if (devVersion) paste0(rscript," --vanilla -e $",defs,
-            "require(fvsOLdev);fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$") else  
-                                paste0(rscript," --vanilla -e $",defs,
-            "require(fvsOL);   fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")           
-          cmd = gsub('$','"',cmd,fixed=TRUE)
-          if (.Platform$OS.type == "unix") 
-          {
-            cmd = paste0("nohup ",cmd," >> /dev/null")
-            system (cmd,wait=FALSE)
-          } else shell (cmd,wait=FALSE)
-cat ("cmd for launch project=",cmd,"\n")
+cat(".libPaths=",unlist(.libPaths()),"\n")
+#          if (exists("RscriptLocation")) {
+#            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
+#            defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+#          }
+          cmd =  paste0("$",rscript,"$ --vanilla -e $",defs, 
+            if (devVersion) "require(fvsOLdev)" else "require(fvsOL)", 
+            ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
+          cmd = gsub('$','\"',cmd,fixed=TRUE)
+          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
+          rtn=try(system (cmd,wait=FALSE))
+cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
 cat ("launch url:",url,"\n")
           session$sendCustomMessage(type = "openURL",url)
         }
+        Sys.sleep(5)
+        updateProjectSelections()
       }          
     })
   })
