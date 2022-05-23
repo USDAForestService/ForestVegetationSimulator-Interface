@@ -6357,9 +6357,13 @@ cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
           }
         }
       }
-      # checking for blank group codes and blank Stand_CN
+      # checking for required group codes and blank Stand_CN
       if ("fvs_standinit" %in% ltabs)
       {
+        qry="update FVS_StandInit set Groups = 'All_Stands '|| Groups where Groups is not null
+              and Groups not LIKE '%All_Stands%';"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
         qry="update FVS_StandInit set Groups = 'All_Stands' where Groups is null;"
         rtn=try(dbExecute(dbo,qry))
 cat ("qry=",qry,"\nrtn=",rtn,"\n")
@@ -6369,6 +6373,10 @@ cat ("qry=",qry,"\nrtn=",rtn,"\n")
       }
       if ("fvs_plotinit" %in% ltabs)
       {
+        qry="update FVS_PlotInit set Groups = 'All_Plots '|| Groups where Groups is not null
+              and Groups not LIKE '%All_Plots%';"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
         qry="update FVS_PlotInit set Groups = 'All_Plots' where Groups is null;"
         rtn=try(dbExecute(dbo,qry))
 cat ("qry=",qry,"\nrtn=",rtn,"\n")
@@ -8228,10 +8236,10 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
           if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
 cat(".libPaths=",unlist(.libPaths()),"\n")
-#          if (exists("RscriptLocation")) {
-#            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
-#            defs=paste0(defs,".libPaths('",Rlib2Use,"');")
-#          }
+         if (exists("RscriptLocation")) {
+           Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
+           defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+         }
           cmd =  paste0("$",rscript,"$ --vanilla -e $",defs, 
             if (devVersion) "require(fvsOLdev)" else "require(fvsOL)", 
             ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
