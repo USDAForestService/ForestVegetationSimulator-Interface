@@ -4146,8 +4146,8 @@ cat ("keyword file was not created.\n")
          }
         if(msg=="Stand not found in FVS_ClimAttrs table."){
 cat ("Stand not found in FVS_ClimAttrs table.\n")  
-          progress$set(message = "Error: Stand not found in FVS_ClimAttrs table. Make sure to either upload it 
-                       using the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+          progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
+                       to ensure all stands in the run are included.",
                       detail = NA, value = 3) 
           return()
         }
