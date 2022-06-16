@@ -659,6 +659,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
           StdChk <- "select STAND_ID from FVS_ClimAttrs where STAND_ID in (select RunStds from temp.RunStds)"
           climAttrs <- try(dbGetQuery(dbIcon, StdChk))
           if (nrow(climAttrs) == 0) return("Stand not found in FVS_ClimAttrs table.")
+          if (!length(grep(std$sid,climAttrs))) return("Stand not found in FVS_ClimAttrs table.")
           scn = unlist(strsplit(cmp$kwds,"\n"))[2]
           qur = paste0("select * from FVS_Climattrs\n"," where Stand_ID = '",
                        std$sid,"' and Scenario = '",scn,"';\n")
