@@ -143,41 +143,6 @@ cat ("in checkMinColumnDefs sID=",sID," sCN=",sCN,"\n")
       if (class(qt)=="try-error") return ("Failure updating 'Groups' in StandInit.")  
     }
   }
-  # check on FVS_GroupAddFilesAndKeywords, if present, assume it is correct
-  if (!is.null(progress)) progress$set(message = paste0("Checking ",stdInit), 
-      value = pn+9, detail = "FVS_GroupAddFilesAndKeywords")
-  addkeys = getTableName(dbo,"FVS_GroupAddFilesAndKeywords")
-  if (is.null(addkeys)) need = TRUE else
-  {
-    gtab = try(dbReadTable(dbo,addkeys))
-    need = class(gtab) == "try-error"
-    if (!need) need = nrow(gtab) == 0
-    names(gtab) = toupper(names(gtab))
-    if (!need) need = all(is.na(gtab$FVSKEYWORDS))
-    if (!need) need = all(gtab$FVSKEYWORDS == "")
-  }
-  if (need)
-  { 
-    treeInit = getTableName(dbo,"FVS_TreeInit")
-    if (is.null(treeInit)) return("Needed FVS_GroupAddFilesAndKeywords not added.")
-    dfinstand=NULL
-    grps = list("FVS_StandInit"="All All_Stands",
-                "FVS_PlotInit"="All All_Plots",
-                "FVS_StandInit_Cond"="All All_Conds")
-    for (std in names(grps))
-    {
-      stdInit = getTableName(dbo,std)
-      if (is.null(stdInit)) next
-      linkID = if(stdInit=="FVS_PlotInit") "StandPlot_ID" else "Stand_ID"
-      dfinstand = rbind(dfinstand,
-        data.frame(Groups = grps[[std]],Addfiles = "",
-          FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
-            "SELECT * FROM ",stdInit,"\nWHERE ",linkID,"= '%StandID%'\n",
-            "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
-            "WHERE ",linkID,"= '%StandID%'\nEndSQL\nEND")))
-    }
-    dbWriteTable(dbo,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
-  }
   return(NULL)
 }
 

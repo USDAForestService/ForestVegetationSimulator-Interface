@@ -199,6 +199,16 @@ Western hemlock
 Mountain hemlock}
 speciesCode{wc pn}:{ALL AF RF LP DF WH MH}
 
+f2v{bc}:
+{All affected species
+western white pine 
+western larch
+Douglas-fir
+western hemlock 
+lodgepole pine
+ponderosa pine
+Other softwood}
+speciesCode{bc}:{All PW LW FD HW PL PY OC}
 
 answerForm:{\
 MisTable  !1,10!!2,10,speciesCode!\n}

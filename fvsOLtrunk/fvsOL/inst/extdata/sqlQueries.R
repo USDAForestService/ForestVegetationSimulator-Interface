@@ -212,7 +212,7 @@ Create_CmpStdStk = "
 drop table if exists CmpSmpWt;                               
 drop table if exists CmpStdStk;                               
 drop table if exists temp.CmpStdStkDBHSp;                  
-drop table if exists temp.CmpStdStkAllDBH; 
+drop table if exists temp.CmpStdStkDBHAll; 
 drop table if exists temp.CmpStdStkAllSp; 
 drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
@@ -246,7 +246,7 @@ create table temp.CmpStdStkDBHSp as
   join FVS_Cases using (CaseID)
   join temp.CmpSmpWt using (MgmtID)
   group by MgmtID,Year,Species,DBHClass;
-create table temp.CmpStdStkAllDBH as
+create table temp.CmpStdStkDBHAll as
   select MgmtID,Year,Species,'All' as DBHClass,
     round(sum(CmpLiveTPA),2)   as CmpLiveTPA,
     round(sum(CmpMrtTPA),2)    as CmpMrtTPA,
@@ -341,7 +341,7 @@ create table CmpStdStk as
     round(CmpHrvBdFt  ,2) as CmpHrvBdFt,
     round(CmpRsdBdFt  ,2) as CmpRsdBdFt  
   from temp.CmpStdStkDBHSp;
-insert into CmpStdStk select * from temp.CmpStdStkAllDBH; 
+insert into CmpStdStk select * from temp.CmpStdStkDBHAll; 
 insert into CmpStdStk select * from temp.CmpStdStkAllSp; 
 insert into CmpStdStk select * from temp.CmpStdStkAllAll;"   
   

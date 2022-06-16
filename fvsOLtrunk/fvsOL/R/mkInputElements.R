@@ -350,7 +350,7 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
       if(names(mklist[1])=="All species"){
         spgsidxs <- grep("SpGroup", names(mklist))
         spgs <- mklist[spgsidxs]
-        if(length(spgsidxs) > 1){
+        if(length(spgsidxs) > 1 && length(spgs)!=length(unique(spgs))){
         for (i in 1:length(spgsidxs))
           if(length(match(trim(spgs[i]),trim(spgs))))
             mklist <- mklist[-spgsidxs[i]] 

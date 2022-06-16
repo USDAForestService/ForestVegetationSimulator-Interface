@@ -1,4 +1,4 @@
-//start wrd_initialization
+//start keyword.wrd3.wrd_initialization
 
 description:
 {Initialize Western Root Disease Model - disease type and basic parameters.\n}
@@ -82,7 +82,7 @@ END
 trans1: {"!!"\n"RRTreIn"}
 bbclr: {"!!"\n"BBClear"}
 
-//end wrd_initialization
+//end keyword.wrd3.wrd_initialization
 
 //start wrd_reports
 
@@ -126,7 +126,7 @@ trans9: {"!!End"\n"!!End"\n"End"}
 
 //end wrd_reports
 
-//start wrd_behavior
+//start keyword.wrd3.wrd_behavior
 description:
 {Modify basic behavior of Western Root Disease model. The behavior characteristics
 modifiable here include: minimum time-to-death for all species and for individual
@@ -194,9 +194,9 @@ infk1: {"!!INFKill   "\n"INFKill   "}
 infm1: {"!!INFMult   "\n"INFMult   "}
 ttdm1: {"!!TTDMult   "\n"TTDMult   "}
 
-//end wrd_behavior
+//end keyword.wrd3.wrd_behavior
 
-//start wrd_brk_btl
+//start keyword.wrd3.wrd_brk_btl
 f1title:{\
 ------------ Bark Beetle Activity ------------
 Default bark beetle type 1, 3 and 4 activities will automatically be scheduled
@@ -224,7 +224,7 @@ ponderosa pine.
 \n}
 
 f3:{intNumberBox Earliest year/cycle that an outbreak can occur}
-f3v:{1,1,2500}
+f3v:{1}
 f4:{listButton Number of outbreaks}
 f4v:{Multiple outbreaks
 1 outbreak}
@@ -254,7 +254,7 @@ An example of a type 2 bark beetle is the Douglas-fir beetle
 \n}
 
 f10:{intNumberBox Earliest year/cycle that an outbreak can occur}
-f10v:{1,1,2500}
+f10v:{1}
 f11:{listButton Number of outbreaks}
 f11v:{Multiple outbreaks
 1 outbreak}
@@ -268,9 +268,9 @@ f15:{sliderBox Mortality rate (proportion) applied to all eligible trees}
 f15v:{0.88 0.0 1.0 0.0 1.0}
 f16title:{** Associated windthrow event **}
 f16:{numberBox Proportion of eligible TPA to be windthrown}
-f16v:{0,0,1}
+f16v:{0}
 f17:{intNumberBox Minimum number of eligible TPA necessary for windthrow}
-f17v:{0,0,1000}
+f17v:{0}
 
 f18title:{For additional windthrow events, add RD keyword WindThr via "Add Keywords"
 
@@ -290,7 +290,7 @@ grand fir.
 \n}
 
 f19:{intNumberBox Earliest year/cycle that an outbreak can occur}
-f19v:{1,1,2500}
+f19v:{1}
 f20:{listButton Number of outbreaks}
 f20v:{Multiple outbreaks
 1 outbreak}
@@ -327,7 +327,7 @@ in ponderosa pine (Dendroctonus ponderosae).
 \n}
 
 f27:{intNumberBox Earliest year/cycle that an outbreak can occur}
-f27v:{1,1,2500}
+f27v:{1}
 f28:{listButton Number of outbreaks}
 f28v:{Multiple outbreaks
 1 outbreak}
@@ -369,4 +369,4 @@ bbtyp4: {"!!BBType4 "\n"BBType4   "}
 wndthr: {"!!WindThr "\n"WindThr   "}
 cmnt: {"!!"\n" "}
 
-//end wrd_brk_btl
+//end keyword.wrd3.wrd_brk_btl
