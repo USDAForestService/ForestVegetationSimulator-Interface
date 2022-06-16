@@ -4133,7 +4133,7 @@ cat ("Run data query returned no data to run.\n")
 cat ("Wrong active database.\n")  
           progress$set(message = "Error: Wrong active database. Try re-importing
                        the inventory database associated with this run.",
-                      detail = na, value = 3) 
+                      detail = NA, value = 3) 
           return()  
           } else {
 cat ("keyword file was not created.\n")
@@ -6087,15 +6087,15 @@ cat ("Upload inventory data\n")
     installDefaultData()
     output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
-  }) 
+  })
   ## installEmptyDB
-  observe({  
+  observe({
     if (input$installEmptyDB == 0) return()
-    installData(empty=TRUE)
+    installDefaultData(empty=TRUE)
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- renderText(HTML("<b>Empty database installed and spatial data deleted.</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-  }) 
+  })
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
