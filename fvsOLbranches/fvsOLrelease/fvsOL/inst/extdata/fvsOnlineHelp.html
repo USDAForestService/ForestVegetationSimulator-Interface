@@ -39,7 +39,7 @@ and the user interaction is through a web browser. However, the
 software can also be installed on personal computer or in a 
 <a href="https://www.citrix.com/" target="_blank">Citrix</a>
 (or similar) system. The interaction is still through a web browser,
-but the software, inputs and outputs, are all stored on the "personal computer".
+but the software, inputs and outputs, are all stored on the personal computer.
 This configuration is called FVSOnlocal. The system was built using 
 <a href="https://www.r-project.org/" target="_blank"><b>R</b></a>, <a 
 href="http://shiny.rstudio.com/" target="_blank"><b>Shiny</b></a>,  
@@ -50,6 +50,9 @@ software and supporting software requirements see the
 wiki about FVSOnline software</a>.</p>
 <p><i>Hints</i> for first time users:</p>
 <ul>
+	<li><p style="margin-bottom: 0in">The <a href="https://www.fs.fed.us/fvs/" target="_blank">
+  FVS webpage</a> contains links to training materials.
+  </p>
 	<li><p style="margin-bottom: 0in">Use the default input database
 	while learning, load your own data once you're comfortable using the
 	interface. Note that there is a command under the <b>Manage Projects</b> menu
@@ -87,7 +90,7 @@ wiki about FVSOnline software</a>.</p>
 	create new projects, open other projects, deleted outputs or entire projects,
 	make and manage backup files. 
 	</p>
-	<li><p><b>Get Help: </b>Display this help. 
+	<li><p><b>Help: </b>Display this help. 
 	</p>
 </ul>
 <h4><a name="tmruns"></a>Simulate</h4>
@@ -226,11 +229,7 @@ steps, the first is to <b>Load</b> outputs for the runs and output tables you
 want to then <b>Explore</b>. For example, say you
 have made two runs and you want to compare their projections. In that
 case, you would select them both and then select the database tables
-you wish to explore. If you wish, you can limit the database columns you want to 
-explore but the default is to select all the columns from selected tables. The system
-automatically merges (joins) the data from the selected tables so you
-can explore variables from different tables when you <b>Explore</b> the
-data you selected. The data can be displayed as <b>Tables</b>
+you wish to explore. The data in the selected output table(s) can be displayed as <b>Tables</b>
 or <b>Graphs</b> depending on the selections on the right-hand
 secondary menu.</p>
 <p>Composite summary statistics tables are created for the runs (table name: CmpSummary, 
@@ -260,21 +259,48 @@ downloaded, all lines are included (for .xlsx up to 1048576 rows).
 </p>
 <p>The <b>Graphs</b> menu item on the right provides
 access to graphing tools that operate on the data displayed in the
-table. FVSOnline contains limited logic to preselect settings
-depending on the data being analyzed. Your changes are kept until you
-go back are reselect the data you want to analyze. The best way to
-learn how the graphing tool works is to experiment. Note that making
+table. FVSOnline contains logic that preselects graph settings
+depending on the data being analyzed. Changes you make are kept until you
+reselect the data you want to analyze.
+</p>
+<p>The best way to learn how the graphing tool works is to experiment. Note that making
 some selections sometimes changes others. For example, if you change
 the vertical facet to the same setting as the horizontal facet, your
-selection will be automatically adjusted to <i>None</i>.
+horizotal facet selection will be automatically adjusted to <i>None</i>.
 Also note that when there are too many levels for a variable (such
 as too many stands) then the system blocks the use of the variable
 for faceting. Similar limits control the size of the legend that is
-created when you select a <i>Plot by</i> variable.  
-If you want to keep a graph you can cut-and-paste it from your
-browser to some other software. If you want high resolution graphs, or otherwise 
-customize the apperance of a graph, then <i>Show</i> more controls and
-change the values as needed. Note that there are several ways to customize graphs.
+created when you select a <i>Plot by</i> variable.
+</p>
+<p>The <b>axis labels</b> are automatically set to the variable name unless you specify 
+a new label. And the <b>title</b> is blank unless you type in a title. 
+Axis and title labels can optionally contain <b>mathematical expressions</b>. 
+Adding an expression to a label or title is done by entering an
+<code>expression()</code> following the rules outlined in 
+<a href="https://stat.ethz.ch/R-manual/R-devel/library/grDevices/html/plotmath.html" target="_blank">
+Mathematical Annotation in R</a>, or <a href="https://rpubs.com/kylewbrown/math-expressions" target="_blank">
+Understanding R: Mathematical Expressions</a>. 
+For example, if you would like to display basal area 
+on the y-axis, you can simply select the variable <b>BA</b> and the y-axis label will be <b>BA</b> as that
+is the name of the variable. You can type in the label <b>Basal area per acre</b> 
+and that will be the label. An alternative that shows the units in mathematical 
+notation would be <code>expression(paste("Basal area ", (ft^2/a)))</code> 
+and for merchantable volume you could code <code>expression(paste("Merchantable ", (ft^3/a)))</code>. 
+Note that the label shown is exactly what you type until the expression is coded correctly. Once
+you get it right, it will display correctly.
+</p>
+<p>Finished graphs can be copied to your computer clipboard to be inserted into 
+a document. If you want high resolution graphs, or otherwise 
+customize the apperance of a graph, then <b>Show more controls</b> and
+change the settings as needed. 
+</p>
+<p>
+You can save the customizations of your graph and recall them to use in a future
+graph. At the top of the graphics window there are tools to name and save your
+customizations. For example, lets say you have some specific labels, line
+colors, graph type, variable selections, and axis scales you have 
+selected for a graph. You can give those settings a name and save them. In
+another run, they can be recalled and used on new data.
 </p>
 <p><b>Custom Query</b> provides the ability to build and run SQL queries that run
 on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
@@ -291,11 +317,11 @@ for each simulation of each stand or replication of a stand over all the runs yo
 made in the project. When each run is made, FVSOnline first creates a fresh database where 
 all the output tables are sent for the run. After each run is finished, FVSOnline
 deletes all the output that may already exist for the same run in the permanent database  
-then the outputs results in the fresh database are inserted into the permanent 
+then the outputs in the fresh database are inserted into the permanent 
 database.</p>
 <p> 
 The FVS_Cases table is key to this process. This table contains several columns 
-including the keyword file name, that FVSOnline insures is unique to the run even if two
+including the keyword file name that FVSOnline insures is unique to the run even if two
 or more run names are identical. The result of a query of the FVS_Cases table 
 that selects all the cases that have a given keyword file name will contain one row 
 for each case where the CaseID column has a unique identifier for each case. 

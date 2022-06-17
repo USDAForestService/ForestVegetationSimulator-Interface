@@ -13,10 +13,11 @@
 #' @param logToConsole controls if the log is output to the console or the log file,
 #'   the default set by the interactive() function.
 #' @return the shiny app.
-#' @export
+#' @export    
 fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
                    logToConsole=interactive())                                         
 {
+  require(utils)
   if (!is.null(prjDir) && dir.exists(prjDir)) setwd(prjDir)
   if (is.null(fvsBin) || !dir.exists(fvsBin)) 
   {
@@ -25,6 +26,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   fvsBin <<- fvsBin
   runUUID <<- runUUID
   logToConsole <<- logToConsole
+  devVersion <<- "fvsOLdev" %in% (.packages())
   
   cat ("FVSOnline/OnLocal function fvsOL started.\n")
   
@@ -35,11 +37,11 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   addResourcePath("colourpicker-binding", 
     system.file("srcjs",package="colourpicker"))
   addResourcePath("FVSlogo.png", 
-    system.file("extdata","www/FVSlogo.png",package="fvsOL"))
+    system.file("extdata","www/FVSlogo.png",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   addResourcePath("USDAFS.png", 
-    system.file("extdata","www/USDAFS.png",package="fvsOL"))
+    system.file("extdata","www/USDAFS.png",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   addResourcePath("message-handler.js", 
-    system.file("extdata","www/message-handler.js",package="fvsOL"))
+    system.file("extdata","www/message-handler.js",package=if (devVersion) "fvsOLdev" else "fvsOL"))
   if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
   
@@ -55,6 +57,7 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
   shinyApp(FVSOnlineUI, FVSOnlineServer, options=list(launch.browser=TRUE))
 }
 
+devVersion <<- "fvsOLdev" %in% (.packages())
 
 mkfvsStd <- setRefClass("fvsStd",
   fields = list(sid = "character", rep = "numeric", repwt = "numeric", 
@@ -107,7 +110,7 @@ mkGlobals <- setRefClass("globals",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
     explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical",
-    tableMessage="logical")) 
+    tableMessage="logical",exploring="logical")) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -131,30 +134,6 @@ extnslist <- list(
   "WRD (Armillaria Root Disease)"="armwrd3",
   "WRD (Laminated Root Rot)"="phewrd3")
 
-pgmList <- list(                                
-  FVSak = "Southeast AK - Coastal BC",
-  FVSbm = "Blue Mountains, Oregon",
-  FVSca = "Inland CA, Southern Cascades",
-  FVSci = "Central ID",
-  FVScr = "Central Rockies",       
-  FVSec = "East Cascades, Washington",
-  FVSem = "Eastern Montana",
-  FVSie = "Inland Empire",
-  FVSnc = "Klammath Mountains, Northern CA",
-  FVSoc = "ORGANON Southwest",
-  FVSop = "ORGANON Pacific Northwest",
-  FVSso = "South Central OR N CA",
-  FVStt = "Tetons, Wyoming",
-  FVSut = "Utah",
-  FVSwc = "West Cascades",
-  FVSpn = "Pacific Northwest Coast",
-  FVSws = "Western Sierra Nevada, CA",
-  FVScs = "Central States",
-  FVSkt = "Kootenai/Kaniksu/Tally LK, ID - MT",
-  FVSls = "Lake States",
-  FVSne = "Northeast",
-  FVSsn = "Southern") 
-                          
 options(rgl.useNULL=TRUE)
 
 trim <- function (x) gsub("^\\s+|\\s+$","",x)
@@ -175,7 +154,8 @@ selZip <- unlist(zipList[1:4])
 # if "runScripts.R" exists in the project directory, then use it, otherwise load
 # the version that is part of the package software.
 rsf <- "runScripts.R"
-if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, package = "fvsOL"))
+if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf, 
+  package=if (devVersion) "fvsOLdev" else "fvsOL"))
 runScripts <- if (exists("customRunScripts") && length(customRunScripts)) 
                append(x=customRunScripts,after=0,defaultRun) else defaultRun
  
@@ -191,7 +171,7 @@ FVSOnlineServer <- function(input, output, session)
 cat ("FVSOnline/OnLocal interface server start\n")
 
   # set serverDate to be the release date using packageVersion
-  serverDate=as.character(packageVersion("fvsOL"))
+  serverDate=as.character(packageVersion(if (devVersion) "fvsOLdev" else "fvsOL"))
   serverDate=unlist(strsplit(serverDate,".",fixed=TRUE))
   for (i in 2:3) if (nchar(serverDate[i])==1) serverDate[i]=paste0("0",serverDate[i])
   serverDate=paste0(serverDate,collapse="")
@@ -248,12 +228,22 @@ cat ("Project is locked.\n")
     } 
     globals$FVS_Runs = getFVSRuns(dbGlb$prjDB)
     #update a couple of list buttons with the list of tables             
-    xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+    xlsxFile=system.file("extdata", "databaseDescription.xlsx", 
+               package=if (devVersion) "fvsOLdev" else "fvsOL")
     if (file.exists(xlsxFile))
     {
       if ("OutputTableDescriptions" %in% getSheetNames(xlsxFile))
+      {
         tabs = read.xlsx(xlsxFile=xlsxFile,sheet="OutputTableDescriptions")[,1]
-      tableList <- as.list(sort(c("",tabs)))
+        tableList <- sort(c("",tabs))
+        metr=grep("Metric",tableList,ignore.case=TRUE)
+        if (length(metr))
+        {
+          metric = tableList[metr]
+          tableList=c(tableList[-metr],metric)
+        }
+        tableList = as.list(tableList)
+      }
       updateSelectInput(session=session, inputId="tabDescSel2",choices=tableList,
           select=tableList[[1]])
       updateSelectInput(session=session, inputId="tabDescSel",,choices=tableList,
@@ -262,18 +252,23 @@ cat ("Project is locked.\n")
 
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
-    serverDate = paste0("Release date: ",serverDate,"<br>")
-    if (isLocal()) serverDate = paste0(serverDate,"Local configuration<br>") else
+    serverDateOut = if (devVersion)
     {
-      hostedByLogo=system.file("extdata","www/hostedByLogo.png",package="fvsOL")
-      if (file.exists(hostedByLogo)) 
-      {
-        addResourcePath("hostedByLogo.png",hostedByLogo) 
-        serverDate = paste0(serverDate,
-                     "Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
-      } else serverDate = paste0(serverDate, "Online configuration<br>")
+      if (isLocal()) 
+        paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
+        paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") 
+    } else {
+      paste0(paste0("Release date: ",serverDate,"<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
     }
-    output$serverDate=renderUI(HTML(serverDate))
+    hostedByLogo=system.file("extdata","www/hostedByLogo.png",
+      package=if (devVersion) "fvsOLdev" else "fvsOL")
+cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
+    if (file.exists(hostedByLogo)) 
+    {
+      addResourcePath("hostedByLogo.png",hostedByLogo) 
+      serverDateOut = paste0(serverDateOut,"Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
+    }
+    output$serverDate=renderUI(HTML(serverDateOut))
     tit=NULL
     pfexists = file.exists("projectId.txt")
     if (!pfexists || (pfexists && file.size("projectId.txt") < 2))
@@ -318,14 +313,15 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     # is not in the project directory.
     if (!file.exists("FVS_Data.db"))
     {
-      frm=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
-      frm=system.file("extdata", "SpatialData.RData.default", package = "fvsOL")
+      frm=system.file("extdata", "SpatialData.RData.default",package=sub("package:","",find('fvsOL')[1]))
       file.copy(frm,"SpatialData.RData",overwrite=TRUE)
     }
     globals$changeind <- 0
     output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    globals$exploring <- FALSE
     
     setProgress(value = NULL)          
   }, min=1, max=6)
@@ -432,24 +428,15 @@ cat ("View Outputs & Load\n")
         fvsOutData$runs = runsdf$KeywordFile
         names(fvsOutData$runs) = runsdf$RunTitle
       }
-      tableList <- list()
-      dbd=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
-      if (file.exists(dbd))
-      {
-        if ("OutputTableDescriptions" %in% getSheetNames(dbd))
-          tabs = read.xlsx(xlsxFile=dbd,sheet="OutputTableDescriptions")[,1]
-        tableList <- as.list(sort(c("",tabs)))
-      }
-      updateSelectInput(session, "tabDescSel2", choices = tableList, selected=1)
       updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
     }
   })
 
   ## runs output run selection
-  observe({
+  observeEvent((input$leftPan == "Load" && !is.null(input$runs)), {
     if (input$leftPan != "Load") return()
 cat ("runs, run selection (load) input$runs=",input$runs,"\n")
-    if (!is.null(input$runs)) # will be a list of run keywordfile names (uuid's)
+    if (!is.null(input$runs) && !length(globals$tbsFinal) && !globals$exploring) # will be a list of run keywordfile names (uuid's)
     {
       tbs <- myListTables(dbGlb$dbOcon)
 cat ("tbs related to the run",tbs,"\n")
@@ -460,7 +447,7 @@ cat ("tbs related to the run",tbs,"\n")
       }
       withProgress(session, {  
         i = 1
-        setProgress(message = "Output query", 
+        setProgress(message = "Please wait: Performing output query", 
                     detail  = "Selecting tables", value = i); i = i+1
         # set an exclusive lock on the database
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = EXCLUSIVE")
@@ -468,7 +455,7 @@ cat ("tbs related to the run",tbs,"\n")
         while (TRUE)
         {
           trycnt=trycnt+1
-          setProgress(message = "Getting exclusive lock",
+          setProgress(message = "Please wait: Getting exclusive lock",
                       detail  = paste0("Number of attempts=",trycnt," of 1000"))
           if (trycnt > 1000)
           {
@@ -487,28 +474,50 @@ cat ("have exclusive lock\n")
         # create a temp.Cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
         # filter records selected from selected tables.
-        qry = paste0("create table temp.Cases as select _RowID_,CaseID ",
+        qry = paste0("create table temp.Cases as select _RowID_,CaseID,Variant ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",
                      paste0("('",paste(input$runs,collapse="','"),"')"))
 cat("qry=",qry,"\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
-        rtn = dbExecute(dbGlb$dbOcon,qry)
+        rtn = dbExecute(dbGlb$dbOcon,qry) 
 cat("rtn from create temp.Cases=",rtn,"\n")
+        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+cat ("ncases=",ncases,"\n")
+        bagit=ncases==0
+        isMetric=FALSE
+        if (!bagit)
+        {
+          variantsRun =  tolower(dbGetQuery(dbGlb$dbOcon,
+             "select distinct Variant from temp.Cases;")[,1])
+          metricVars = c("bc","on")
+          isMetric = length(intersect(variantsRun,metricVars)) > 0
+          # can not have metric and non-metric variants
+          bagit = isMetric && length(setdiff(variantsRun,metricVars))
+        }
+        if (bagit)
+        {
+            updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
+            dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+            myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
+            setProgress(value = NULL)
+            return()
+        }          
         for (tb in tbs) 
         {                     
 cat ("tb=",tb,"\n")                             
           cnt = 0
           if (tb == "FVS_Cases") next
-          if (tb %in% c("CmpSummary","CmpSummary_East",                 
-              "CmpSummary2","CmpSummary2_East","StdStk","CmpStdStk",
-              "StdStk_East","CmpStdStk_East","CmpMetaData","CmpCompute"))
+          if (tb %in% c("CmpSummary","CmpSummary_East", "CmpSummary2",
+              "CmpSummary2_East","CmpSummary2_Metric", "StdStk","CmpStdStk",
+              "StdStk_East","CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric",
+              "CmpMetaData","CmpCompute"))
           {
 cat ("drop tb=",tb,"\n")
              dbExecute(dbGlb$dbOcon,paste0("drop table if exists ",tb))
           } else {
             qry = paste0("select count(*) from ",
                    "(select CaseID from ",tb," where ",tb,".CaseID in ",
-                   "(select CaseID from temp.Cases))")
+                   "(select CaseID from temp.Cases))")   
 cat("qry=",qry,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
               dbGetQuery(dbGlb$dbOcon,qry) else -1
@@ -517,47 +526,65 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           }
           if (cnt == 0) tbs = setdiff(tbs,tb)
         }
-        source(system.file("extdata", "sqlQueries.R", package = "fvsOL"))
-        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
-cat ("ncases=",ncases,"\n")
-        if (ncases > 1) if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) return()
+        source(system.file("extdata", if (isMetric) "sqlQueries_Metric.R" else "sqlQueries.R",
+              package=if (devVersion) "fvsOLdev" else "fvsOL"))
+        if (!exqury(dbGlb$dbOcon,Create_CmpMetaData)) 
+        {
+          updateSelectInput(session, "runs", choices = fvsOutData$runs, selected=0)
+          dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
+          myListTables(dbGlb$dbOcon) #any query will cause the locking mode to become active
+          setProgress(value = NULL)
+          return()
+        }
         isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
-        if ("FVS_Summary" %in% tbs && ncases > 1)
+        if (!isMetric)
         {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary)
-          tbs = c(tbs,"CmpSummary")
-cat ("tbs1=",tbs,"\n")
-        }
-        if ("FVS_Summary_East" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary_East", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary_East)
-          tbs = c(tbs,"CmpSummary_East")
+          if ("FVS_Summary" %in% tbs)
+          {
+            setProgress(message = "Please wait: performing output query", 
+              detail  = "Building CmpSummary", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary)
+            tbs = c(tbs,"CmpSummary")
+cat ("tbs1=",tbs,"\n")                             
+          }
+          if ("FVS_Summary_East" %in% tbs)
+          {
+            setProgress(message = "Please wait: performing output query", 
+              detail  = "Building CmpSummary_East", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary_East)
+            tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
-        }
-        if ("FVS_Summary2" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary2", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary2)
-          tbs = c(tbs,"CmpSummary2")
+          }
+          if ("FVS_Summary2" %in% tbs)
+          {
+            setProgress(message = "Please wait: performing output query", 
+              detail  = "Building CmpSummary2", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
-        }
-        if ("FVS_Summary2_East" %in% tbs && ncases > 1)
-        {
-          setProgress(message = "Output query", 
-            detail  = "Building CmpSummary2_East", value = i); i = i+1
-          exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
-          tbs = c(tbs,"CmpSummary2_East")
+          }
+          if ("FVS_Summary2_East" %in% tbs)
+          {
+            setProgress(message = "Please wait: performing output query", 
+              detail  = "Building CmpSummary2_East", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2_East)
+            tbs = c(tbs,"CmpSummary2_East")
 cat ("tbs4=",tbs,"\n")
+          } 
+        } else {
+          if ("FVS_Summary2_Metric" %in% tbs && exists("Create_CmpSummary2"))
+          {
+            setProgress(message = "Please wait: performing output query", 
+              detail  = "Building CmpSummary2_Metric", value = i); i = i+1
+            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tbs = c(tbs,"CmpSummary2_Metric")
+cat ("tbs5=",tbs,"\n") 
+          }
         }
-        if ("FVS_Compute" %in% tbs && ncases > 1)
+        if ("FVS_Compute" %in% tbs)
         {
-          setProgress(message = "Output query", 
+          setProgress(message = "Please wait: performing output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
           cmp = dbGetQuery(dbGlb$dbOcon,
             "select * from FVS_Compute limit 0")
@@ -574,80 +601,99 @@ cat ("tbs4=",tbs,"\n")
             dbWriteTable(dbGlb$dbOcon,"CmpCompute",cmp,overwrite=TRUE)
           }
           tbs = c(tbs,"CmpCompute")    
-cat ("tbs5=",tbs,"\n")
+cat ("tbs6=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
-        tlprocs = names(tlprocs)[tlprocs]
-        chtoEast = function(cmd)
+        if (!isMetric && any(tlprocs)) 
         {
-          cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
-          cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
-          cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
-          gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
-        }
-        for (tlp in tlprocs)          
-        {
-          if (tlp == "tlwest")
+          tlprocs = names(tlprocs)[tlprocs]
+          chtoEast = function(cmd)
           {
-            C_StdStkDBHSp  = Create_StdStkDBHSp
-            C_HrvStdStk    = Create_HrvStdStk
-            C_StdStk1Hrv   = Create_StdStk1Hrv
-            C_StdStk1NoHrv = Create_StdStk1NoHrv
-            C_StdStkFinal  = Create_StdStkFinal
-            C_CmpStdStk    = Create_CmpStdStk
-            detail = "Building StdStk from tree lists"
-            stdstk = "StdStk"
-            clname = "FVS_CutList"
-          } else {
-            C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
-            C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
-            C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
-            C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
-            C_StdStkFinal  = chtoEast(Create_StdStkFinal )
-            C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
-            C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
-            C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
-            C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
-            detail = "Building StdStk_East from tree lists"
-            stdstk = "StdStk_East"
-            clname = "FVS_CutList_East"
+            cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
+            cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
+            cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
+            gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
           }
-          setProgress(message = "Output query", 
-            detail  = detail, value = i); i = i+1
-          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          if (clname %in% tbs)
+          for (tlp in tlprocs)          
           {
-            setProgress(message = "Output query", 
+            if (tlp == "tlwest")
+            {
+              C_StdStkDBHSp  = Create_StdStkDBHSp
+              C_HrvStdStk    = Create_HrvStdStk
+              C_StdStk1Hrv   = Create_StdStk1Hrv
+              C_StdStk1NoHrv = Create_StdStk1NoHrv
+              C_StdStkFinal  = Create_StdStkFinal
+              C_CmpStdStk    = Create_CmpStdStk
+              detail = "Building StdStk from tree lists"
+              stdstk = "StdStk"
+              clname = "FVS_CutList"
+            } else {
+              C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
+              C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
+              C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
+              C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
+              C_StdStkFinal  = chtoEast(Create_StdStkFinal )
+              C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
+              C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
+              C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
+              C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
+              detail = "Building StdStk_East from tree lists"
+              stdstk = "StdStk_East"
+              clname = "FVS_CutList_East"
+            }
+            setProgress(message = "Please wait: performing output query", 
               detail  = detail, value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-            setProgress(message = "Output query", 
-              detail  = "Joining tables", value = i); i = i+1
-            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          } else {
-             setProgress(message = "Output query", 
-              detail  = "Joining tables", value = i); i = i+2
-            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
-                 asSpecies=paste0("Species",input$spCodes))
-          }
-          exqury(dbGlb$dbOcon,C_StdStkFinal)
-          tbs = c(tbs,stdstk) 
+            exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            if (clname %in% tbs)
+            {
+              setProgress(message = "Please wait: performing output query", 
+                detail  = detail, value = i); i = i+1
+              exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+              setProgress(message = "Please wait: performing output query", 
+                detail  = "Joining tables", value = i); i = i+1
+              exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            } else {
+              setProgress(message = "Please wait: performing output query", 
+                detail  = "Joining tables", value = i); i = i+2
+              exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
+                   asSpecies=paste0("Species",input$spCodes))
+            }
+            exqury(dbGlb$dbOcon,C_StdStkFinal)
+            tbs = c(tbs,stdstk) 
+            if (ncases > 1) 
+            {                                               
+              exqury(dbGlb$dbOcon,C_CmpStdStk)
+              tbs = c(tbs,paste0("Cmp",stdstk))
+            }                                      
+          }          
+        }                                                      
+        if ("FVS_TreeList_Metric" %in% tbs)
+        { 
+          asSpecies=paste0("Species",input$spCodes)
+          setProgress(message = "Please wait: performing output query", detail  = "Building StdStk", value = i); i = i+1
+          if ("FVS_CutList_Metric" %in% tbs) exqury(dbGlb$dbOcon,Create_HrvStdStk, 
+            subExpression=dbhclassexp, asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStkDBHSp,subExpression=dbhclassexp,asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStk1NoHrv,subExpression=dbhclassexp,asSpecies=asSpecies)
+          exqury(dbGlb$dbOcon,Create_StdStkFinal)
+          tbs = c(tbs,"StdStk_Metric")
           if (ncases > 1) 
-          {
-            exqury(dbGlb$dbOcon,C_CmpStdStk)
-            tbs = c(tbs,paste0("Cmp",stdstk))
-          }
+          {                                               
+            exqury(dbGlb$dbOcon,Create_CmpStdStk)
+            tbs = c(tbs,"CmpStdStk_Metric")
+          }                                      
         }
-        if (all(Create_View_DWN_Required %in% tbs)) 
+        if (all(Create_View_DWN_Required %in% tbs))             
         {
           exqury(dbGlb$dbOcon,Create_View_DWN)
           tbs = c(tbs,"View_DWN")
         }
         dbExecute(dbGlb$dbOcon,"PRAGMA locking_mode = NORMAL")
-cat ("tbs6=",tbs,"\n")       
-        setProgress(message = "Output query", 
+cat ("tbs7=",tbs,"\n")       
+        setProgress(message = "Please wait: performing output query", 
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
@@ -664,20 +710,24 @@ cat ("tbs6=",tbs,"\n")
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
-        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpSummary2","CmpSummary2_East",
-                               "CmpMetaData")
+        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
+          "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
-                       "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
-                       "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels","FVS_DM_Spp_Sum",
-                       "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
-                       "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
-                       "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary",
-                       "FVS_Summary_East","View_DWN")
-        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species")
-        globals$dClsLvl <- list("StdStk","StdStk_East","FVS_Mortality","FVS_DM_Sz_Sum")
+            "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
+            "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels",
+            "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
+            "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+            "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
+            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric")
+        globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species",
+              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric")
+        globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum",
+                                "FVS_DM_Sz_Sum_Metric")
         globals$htClsLvl <- list("FVS_CanProfile")
         globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
-                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East")
+                                "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East",
+                                "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric",
+                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
@@ -710,6 +760,11 @@ cat ("tbs6=",tbs,"\n")
           treeLvlIdx <- subset(match(globals$treeLvl,tbs),match(globals$treeLvl,tbs) != "NA")
           tbsFinal <- c(tbsFinal,sort(tbs[treeLvlIdx]))
         }
+        othTbs = setdiff(tbs,tbsFinal)
+        if (length(othTbs)) {
+          tbsFinal = c(tbsFinal,"-----Other tables-----")
+          tbsFinal <- c(tbsFinal,othTbs)
+        }
         globals$tbsFinal <- tbsFinal
         if(is.null(input$selectdbtables)){
           updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
@@ -722,11 +777,13 @@ cat ("tbs6=",tbs,"\n")
           updateSelectInput(session, "selectdbtables", choices=as.list(tbsFinal),
                           selected=input$selectdbtables)
         }
+        globals$tbsFinal <- list()
         setProgress(value = NULL)
       }, min=1, max=6)
     } else
     {
       updateSelectInput(session, "selectdbtables", choices=list())
+      globals$exploring <- FALSE
     }
   })
     
@@ -764,8 +821,9 @@ cat("selectdbtables\n")
       while(length(tables)>1)
       {
         if(length(tables)==2 && "FVS_Cases" %in% tables) break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2")) break
-        if(length(tables)==2 && (tables[1] %in% "CmpCompute" && tables[2] %in% "CmpSummary2_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_Metric")) break
         '%notin%' = Negate('%in%')
         if (any(tables %in% globals$simLvl)) {
           session$sendCustomMessage(type = "infomessage",
@@ -912,7 +970,7 @@ cat ("sqlRunQuery, qry=",qry,"\n")
               " returned\n",attr(res,"condition"),"\n") else
               paste0(msgtxt,"query ",iq," ran\n")         
           updateTextInput(session=session, inputId="sqlOutput", label="", 
-                          value=msgtxt)                          
+                          value=msgtxt) 
           if (class(res) == "try-error") break
           if (class(res) == "data.frame" && ncol(res) && nrow(res))
           {
@@ -1054,6 +1112,7 @@ cat ("sqlNew\n")
   observe({
     if (input$leftPan == "Explore")
     {
+      globals$exploring <- TRUE
 cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n") 
       if (length(fvsOutData$dbSelVars) == 0) 
       {
@@ -1073,19 +1132,21 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
               function (x) x[2])))
         if (length(cols) == 0) return()
         tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
-          "CmpSummary2"=1, "CmpSummary2_East"=1,
-          "CmpCompute"=1, "CmpStdStk"=1, "StdStk"=3, 
-          "CmpStdStk_East"=1, "StdStk_East"=3, "FVS_ATRTList"=8,
+          "CmpSummary2"=1, "CmpSummary2_East"=1,"CmpSummary2_Metric"=1,
+          "CmpCompute"=1, "CmpStdStk"=1, "CmpStdStk_East"=1, "CmpStdStk_Metric"=1, 
+          "StdStk"=3, "StdStk_East"=3, "StdStk_Metric"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
           "FVS_CanProfile"=5, "FVS_Carbon"=2, "FVS_SnagDet"=6, "FVS_Down_Wood_Cov"=2,
           "FVS_Down_Wood_Vol"=2, "FVS_Consumption"=2, "FVS_Hrv_Carbon"=2,
           "FVS_Mortality"=2, "FVS_PotFire_East"=2, "FVS_PotFire"=2, "FVS_SnagSum"=2,
-          "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Stnd_Sum"=2, "FVS_DM_Sz_Sum"=2,
+          "FVS_Fuels"=2, "FVS_DM_Spp_Sum"=7, "FVS_DM_Spp_Sum_Metric"=7, 
+          "FVS_DM_Stnd_Sum"=2, "FVS_DM_Stnd_Sum_Metric"=2, "FVS_DM_Sz_Sum"=2, "FVS_DM_Sz_Sum_Metric"=2,
           "FVS_RD_Sum"=2, "FVS_RD_Det"=2, "FVS_RD_Beetle"=2, "FVS_StrClass"=2,
           "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8,"FVS_ATRTList"=8,
-          "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,
-          "FVS_CutList_East"=8)
+          "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,"FVS_CutList_East"=8,
+          "FVS_TreeList_Metric"=8,"FVS_ATRTList_Metric"=8,"FVS_CutList_Metric"=8,
+          "FVS_DM_Treelist"=8,"FVS_DM_Treelist_Metric"=8) 
         tbg = tbgroup[tbs]
         arena = is.na(tbg)
         if (any(arena))
@@ -1100,7 +1161,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
 cat ("tb=",tb," len(dat)=",length(dat),"\n")
           iprg = iprg+1
           setProgress(message = "Processing tables", detail=tb,value = iprg)
-          if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2","CmpSummary2_East")) 
+          if (tb %in% c("CmpSummary","CmpSummary_East","CmpSummary2",
+                        "CmpSummary2_East","CmpSummary2_Metric")) 
           {            
             dtab <- dbReadTable(dbGlb$dbOcon,tb)
             if (tb %in% c("CmpSummary","CmpSummary_East")) 
@@ -1199,7 +1261,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         }
         if (!is.null(mdat$CaseID))
         {
-          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select * from temp.Cases"),by="CaseID")
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from temp.Cases"),by="CaseID")
           mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
           mdat$rowid=NULL
         }
@@ -1231,8 +1293,9 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         setProgress(message = "Processing variables", detail=tb,value = iprg)
         mdat = fvsOutData$dbData
         vars = colnames(mdat)
-        sby = intersect(vars,c("MgmtID","StandID","Stand_CN","Year","PtIndex",
-           "TreeIndex","Species","DBHClass"))
+        sby = NULL
+        for (v in c("MgmtID","StandID","Stand_CN","Year","RmvCode","PtIndex",
+           "TreeIndex","Species","DBHClass")) if (v %in% vars) sby=c(sby,v)
         sby = if (length(sby)) 
         {
           cmd = paste0("order(",paste(paste0("mdat$",sby),collapse=","),
@@ -1299,9 +1362,12 @@ cat ("cmd=",cmd,"\n")
         }
         globals$exploreChoices$mgmid = cho
         if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
-                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East"),names(dat))))
+                "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
+                "FVS_TreeList_Metric","FVS_ATRTList_Metric","FVS_CutList_Metric"
+              ),names(dat))))
           updateSelectInput(session, "plotType",selected="scat") else 
-          if (length(intersect(c("StdStk","CmpStdStk","StdStk_East","CmpStdStk_East"),names(dat)))) 
+          if (length(intersect(c("StdStk","CmpStdStk","StdStk_East",
+             "CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric"),names(dat)))) 
             updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
@@ -1315,7 +1381,8 @@ cat ("cmd=",cmd,"\n")
           isel = max(1,length(cho) %/% 2)
           sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
               "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
-              "StdStk","StdStk_East","CmpStdStk","CmpStdStk_East"),names(dat)))) 
+              "StdStk","StdStk_East","StdStk_Metric","CmpStdStk","CmpStdStk_East",
+              "CmpStdStk_Metric"),names(dat)))) 
               cho[isel] else cho 
           updateSelectInput(session, "year", choices=as.list(cho), selected=sel)
         }        
@@ -1880,13 +1947,24 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
            facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
     }
     if (pltp %in% c("bar","box")) nd$Y[nd$Y==0] = NA
-    p = ggplot(data=nd) + fg + labs(
-          x=if (nchar(input$xlabel)) input$xlabel else input$xaxis, 
-          y=if (nchar(input$ylabel)) input$ylabel else input$yaxis, 
-          title=input$ptitle)  + 
+    mkgraphlab <- function (str)
+    {
+      str=trim(str)
+      if(nchar(str)<10) return(str)
+      if(substr(str,1,10)=="expression")
+      {
+        rtn = try(eval(parse(text=str)))
+        if (class(rtn)=="expression") return(rtn)
+      } 
+      str
+    }
+    xxlab=if (nchar(input$xlabel)) mkgraphlab(input$xlabel) else input$xaxis
+    yylab=if (nchar(input$ylabel)) mkgraphlab(input$ylabel) else input$yaxis
+    grtit=if (nchar(input$ptitle)) mkgraphlab(input$ptitle) else input$ptitle
+    p = ggplot(data=nd) + fg + labs(x=xxlab,y=yylab,title=grtit) +
             theme(text = element_text(size=9),
-            panel.background = element_rect(fill="gray95"),
-            axis.text = element_text(color="black"))
+              panel.background = element_rect(fill="gray95"),
+              axis.text = element_text(color="black"))
     if (!is.null(fg)) p = p + 
       theme(strip.text.x = element_text(margin = margin(.025, .01, .025, .01, "in"))) +
       theme(strip.text.y = element_text(margin = margin(.025, .01, .025, .01, "in")))
@@ -2189,7 +2267,7 @@ cat ("copyToClipboard copyplot\n")
     if (input$topPan == "Simulate" || input$rightPan == "Stands") 
     {
 cat ("Stands\n")
-      f1=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      f1=system.file("extdata", "FVS_Data.db.default",package=if (devVersion) "fvsOLdev" else "fvsOL")
       output$sayDataSource <-renderUI((h4(paste0(
         if (areFilesIdentical(f1=f1,f2="FVS_Data.db")) "Training" else "User",
           " data installed"))))
@@ -3293,6 +3371,116 @@ cat ("funName=",funName,"\n")
     })
   }
 
+    # Thin from below window observer function
+ observe({
+    if(is.null(input$tbf2)) return()
+    if(input$tbf2 == "1" || input$tbf2 == "2") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf3').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf4').prop('disabled',false)"))
+      
+      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 <= 0){
+        updateTextInput(session=session,inputId ="tbf4",
+                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
+      }
+      if(input$tbf2 == "2" && input$tbf3 <= 0 && input$tbf4 > 0){
+        updateTextInput(session=session,inputId ="tbf3",
+                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
+      }
+      if(input$tbf2 == "1" && input$tbf3 > 0 && input$tbf4 >0){
+        updateTextInput(session=session,inputId ="tbf4",
+                        value=round(sqrt(43560/as.numeric(input$tbf3)),digits=4))
+      }
+      if(input$tbf2 == "2" && input$tbf3 > 0 && input$tbf4 >0){
+        updateTextInput(session=session,inputId ="tbf3",
+                        value=round(43560/(as.numeric(input$tbf4)^2),digits=2))
+      }
+
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf3').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf4').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "3") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf5').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf5').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "4") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf6').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf6').prop('disabled',true)"))
+    }
+    if(input$tbf2 == "5") {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf7').prop('disabled',false)"))
+    } else {
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#tbf7').prop('disabled',true)"))
+    }
+  })
+ 
+ # Thin from above window observer function
+ observe({
+  if(length(input$taf2)==0) return()
+  if(input$taf2 == "1" || input$taf2 == "2") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf3').prop('disabled',false)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf4').prop('disabled',false)"))
+    
+    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 <= 0){
+      updateTextInput(session=session,inputId ="taf4",
+                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
+    }
+    if(input$taf2 == "2" && input$taf3 <= 0 && input$taf4 > 0){
+      updateTextInput(session=session,inputId ="taf3",
+                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
+    }
+    if(input$taf2 == "1" && input$taf3 > 0 && input$taf4 >0){
+      updateTextInput(session=session,inputId ="taf4",
+                      value=round(sqrt(43560/as.numeric(input$taf3)),digits=4))
+    }
+    if(input$taf2 == "2" && input$taf3 > 0 && input$taf4 >0){
+      updateTextInput(session=session,inputId ="taf3",
+                      value=round(43560/(as.numeric(input$taf4)^2),digits=2))
+    }
+    
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf3').prop('disabled',true)"))
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf4').prop('disabled',true)"))
+  }
+  if(input$taf2 == "3") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf5').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf5').prop('disabled',true)"))
+  }
+  if(input$taf2 == "4") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf6').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf6').prop('disabled',true)"))
+  }
+  if(input$taf2 == "5") {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf7').prop('disabled',false)"))
+  } else {
+    session$sendCustomMessage(type="jsCode",
+                              list(code= "$('#taf7').prop('disabled',true)"))
+  }
+})
+  
   # schedule box toggled.
   observe({  
     if (length(input$schedbox) == 0) return()
@@ -3939,15 +4127,13 @@ cat ("Run data query returned no data to run.\n")
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
-        if (!file.exists(fc))
+         if (!file.exists(fc))
         {
-          if(msg=="Run data query returned no data to run."){
-cat ("Run data query returned no data to run.\n")  
-          progress$set(message = "Error: Keyword file was not created. Try re-importing
+          if(msg=="Wrong active database."){
+cat ("Wrong active database.\n")  
+          progress$set(message = "Error: Wrong active database. Try re-importing
                        the inventory database associated with this run.",
-                      detail = msg, value = 3) 
-          Sys.sleep(5)
-          progress$close()
+                      detail = NA, value = 3) 
           return()  
           } else {
 cat ("keyword file was not created.\n")
@@ -3957,6 +4143,20 @@ cat ("keyword file was not created.\n")
           progress$close()
           return()
           }
+         }
+        if(msg=="Stand not found in FVS_ClimAttrs table."){
+cat ("Stand not found in FVS_ClimAttrs table.\n")  
+          progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
+                       to ensure all stands in the run are included.",
+                      detail = NA, value = 3) 
+          return()
+        }
+        if(msg=="No Climate attributes data found."){
+cat ("No climate attributes data found.\n")  
+          progress$set(message = "Error: No climate attributes data found. Make sure to either upload it using 
+                       the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+                      detail = NA, value = 3) 
+          return()
         }
         dir.create(globals$fvsRun$uuid)
         if (!dir.exists(globals$fvsBin)) 
@@ -3984,7 +4184,8 @@ cat ("load FVSpgm cmd=",cmd,"\n")
         if (globals$fvsRun$runScript != "fvsRun")
         {
           rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
-          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn, package = "fvsOL")
+          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,
+              package=if (devVersion) "fvsOLdev" else "fvsOL")
           if (!file.exists(rsFn)) return()
           cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
 cat ("run script load cmd=",cmd,"\n")
@@ -4078,10 +4279,12 @@ cat ("length(allSum)=",length(allSum),"\n")
           names(allSum) = modn
         }
         X <- Y <- Stand <- NULL
+        unitConv = if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+           0.0699713 else 1    # note FT3pACRtoM3pHA = 0.0699713
         for (i in 1:length(allSum)) 
         { 
           X = c(X,allSum[[i]][,"Year"])
-          Y = c(Y,allSum[[i]][,"TCuFt"])
+          Y = c(Y,allSum[[i]][,"TCuFt"]) * unitConv
           ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
           ltag = gsub(x=ltag,pattern="^SId=",replacement="")
           Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
@@ -4089,11 +4292,14 @@ cat ("length(allSum)=",length(allSum),"\n")
         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
         toMany = nlevels(toplot$Stand) > 9
         colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
-        volType = if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
-           "Merchantable" else "Total"
+        yUnits = expression(Total~(ft^{3}/a))
+        if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
+          yUnits = expression(Merchantable~(ft^{3}/a))
+        else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+          yUnits = expression(Total~(m^{3}/ha))
         plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
             geom_line (aes(x=X,y=Y,color=Stand)) +
-            labs(x="Year", y=paste0(volType," cubic volume per acre")) + 
+            labs(x="Year", y=yUnits) + 
             theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
               axis.text = element_text(color="black")) 
@@ -4509,19 +4715,7 @@ is.null(input$kcpTitle),"\n")
     if (length(input$kcpDelete) && input$kcpDelete > 0)
     {
       isolate ({
-        # if(is.null(input$kcpSel) && length(input$kcpTitle) && length(globals$customCmps)){
-        #   
-        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-        #             selected=names(globals$customCmps)[1])
-        #   return()
-        # }
-        # if(is.null(input$kcpSel) && length(input$kcpTitle) && !length(globals$customCmps)){
-        #   
-        #   updateSelectInput(session=session,inputId="kcpSel",choices=as.list(names(globals$customCmps)),
-        #             selected=names(globals$customCmps)[1])
-        #   return()
-        # }
-        cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
+cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         if (length(globals$customCmps)) 
         {
           if(is.null(input$kcpSel)){
@@ -4700,12 +4894,17 @@ cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
     for (dd in rgl.dev.list()) try(rgl.close())
     open3d(useNULL=TRUE) 
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
-    treeform = tolower(unlist(strsplit(unlist(strsplit(svs[2],
-               split=" ",fixed=TRUE))[2],split=".",fixed=TRUE))[1])
-    if (! (treeform %in% names(treeforms))) 
+    treeform = grep ("#TREEFORM",svs)
+    if (length(treeform))
     {
-      output[[id]] <- NULL
-      return()
+      treeform = scan(text=svs[treeform],what="character",quiet=TRUE)[2]
+      treeform = tolower(scan(text=treeform,sep=".",what="c",quiet=TRUE)[1])
+      if (! (treeform %in% names(treeforms))) 
+      {
+        output[[id]] <- NULL
+cat ("treeform=",treeform," is absent from treeforms, exiting.\n")
+        return()
+      }
     }
     treeform = treeforms[[treeform]]
     rcirc = grep ("^#CIRCLE",svs)
@@ -5713,55 +5912,9 @@ cat("delete project button.")
   observe({
     if (input$topPan == "Help")
     {
-      progress <- shiny::Progress$new(session,min=1,max=12)
-      progress$set(message = "Loading Help File", value = 2)
-      # build the help file if it doesn't exist or if it is older than 
-      # fvsOnlineHelp.html or databaseDescription.xlsx
-      help=NULL
-      fr = "fvsOnlineHelpRender.RData"
-      fn =  system.file("extdata", "fvsOnlineHelp.html", package = "fvsOL")
-      xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
-      loadNew = if (file.exists(fr))
-      {
-        info=file.info(c(fr,fn,xlsxfile))
-        which.max(as.integer(info[,"mtime"])) != 1
-      } else TRUE
-      if (loadNew) 
-      {
-        unlink(fr)
-        help = readChar(fn, file.size(fn)) 
-        progress$set(message = "Compiling the help file for this project", 
-                     detail = "Loading Output Table Descriptions",value = 5)
-        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="OutputTableDescriptions"))
-        if (class(tabs)!="try-error")
-        {
-          tablist=xlsx2html(tab="OutputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE)
-          morehtml=paste0(tablist,'<p><a href="#contents">Back to Contents</a></p>')
-          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab,xlsxfile=xlsxfile),
-          '<p><a href="#outputTables">Back to Output Table Descriptions</a>&nbsp;&nbsp;',
-          '<a href="#contents">Back to Contents</a></p>')  
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**OUTPUTHTML**",replacement=morehtml)
-        }
-        progress$set(detail = "Loading Input Table Descriptions",value = 8)
-        tabs = try(read.xlsx(xlsxFile=xlsxfile,sheet="InputTableDescriptions"))
-        if (class(tabs)!="try-error")                                                         
-        {
-          morehtml=paste0(xlsx2html(tab="InputTableDescriptions",xlsxfile=xlsxfile,addLink=TRUE),
-                                  '<p><a href="#contents">Back to Contents</a></p>')
-          for (tab in tabs$Table) morehtml=paste0(morehtml,'<a name="',tab,'"></a>',
-            xlsx2html(tab=tab,xlsxfile=xlsxfile), 
-            '<p><a href="#inputTables">Back to Input Table Descriptions</a>&nbsp;&nbsp;',
-            '<a href="#contents">Back to Contents</a></p>')            
-          if (!is.null(morehtml)) help = sub(x=help,fixed=TRUE,
-                  pattern="**INPUTHTML**",replacement=morehtml)
-        }
-        save(help,file=fr)
-      } else  if (is.null(help) && file.exists(fr)) load(fr) 
-      if (is.null(help)) help="<h4>Help is not available</h4>"
-      output$uiHelpText <- renderUI(HTML(help))
-      progress$close()
+      if (! exists("fvshelp")) data(fvsOnlineHelpRender)
+      if (! exists("fvshelp")) fvshelp="<h4> No help is available</h4>"
+      output$uiHelpText <- renderUI(HTML(fvshelp))
     }
   })
 
@@ -5818,7 +5971,7 @@ cat("delete project button.")
   mkTableDescription <- function (tab)
   {
     html = NULL
-    xlsxfile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+    xlsxfile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
     if (!is.null(tab) && nchar(tab)>0 && !is.null(xlsxfile) && file.exists(xlsxfile))
     {
       sheets = sort(getSheetNames(xlsxfile), decreasing=FALSE)
@@ -5904,13 +6057,13 @@ cat ("Upload inventory data\n")
     dbDisconnect(dbGlb$dbIcon)
     if (empty)
     {
-      frm=system.file("extdata", "FVS_Data.db.empty", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.empty", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
       unlink("SpatialData.RData")
     } else {
-      frm=system.file("extdata", "FVS_Data.db.default", package = "fvsOL")
+      frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
-      frm=system.file("extdata", "SpatialData.RData.default", package = "fvsOL")
+      frm=system.file("extdata", "SpatialData.RData.default",ppackage=if (devVersion) "fvsOLdev" else "fvsOL")
       file.copy(frm,"SpatialData.RData",overwrite=TRUE)
     }
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db") 
@@ -5934,15 +6087,15 @@ cat ("Upload inventory data\n")
     installDefaultData()
     output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
-  }) 
+  })
   ## installEmptyDB
-  observe({  
+  observe({
     if (input$installEmptyDB == 0) return()
-    installData(empty=TRUE)
+    installDefaultData(empty=TRUE)
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- renderText(HTML("<b>Empty database installed and spatial data deleted.</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
-  }) 
+  })
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
@@ -6089,7 +6242,7 @@ cat ("cmd done.\n")
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
                     "FVS_StandInit","FVS_TreeInit")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      dbdis=system.file("extdata","databaseDescription.xlsx", package = "fvsOL")
+      dbdis=system.file("extdata","databaseDescription.xlsx",package=if (devVersion) "fvsOLdev" else "fvsOL")
       standNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_StandInit"))
       standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
       treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
@@ -6179,11 +6332,13 @@ cat("loaded table=",tab,"\n")
         if (class(addgrps)!="try-error")
         {
           addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
+cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
           for (idx in fixTabs)
           {
             tab2fix=tabs[idx]
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
             if (class(grps)=="try-error") next
+            if (is.na(grps[1,1])) next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
             if (any(is.na(match(addgrps,grps))) && !length(match(grps,addgrps)))  
             {
@@ -6202,6 +6357,39 @@ cat("loaded table=",tab,"\n")
           }
         }
       }
+      # checking for required group codes and blank Stand_CN
+      if ("fvs_standinit" %in% ltabs)
+      {
+        qry="update FVS_StandInit set Groups = 'All_Stands '|| Groups where Groups is not null
+              and Groups not LIKE '%All_Stands%';"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_StandInit set Groups = 'All_Stands' where Groups is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_StandInit set Stand_CN = (select Stand_ID from FVS_StandInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }
+      if ("fvs_plotinit" %in% ltabs)
+      {
+        qry="update FVS_PlotInit set Groups = 'All_Plots '|| Groups where Groups is not null
+              and Groups not LIKE '%All_Plots%';"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_PlotInit set Groups = 'All_Plots' where Groups is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+        qry="update FVS_PlotInit set Stand_CN = (select Stand_ID from FVS_PlotInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }     
+      if ("fvs_treeinit" %in% ltabs)
+      {
+        qry="update FVS_TreeInit set Stand_CN = (select Stand_ID from FVS_TreeInit) where Stand_CN is null;"
+        rtn=try(dbExecute(dbo,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+      }     
 cat ("checking duplicate stand or standplot ids\n")
       progress$set(message = "Checking for duplicate StandID values", value = 5)
       # loop over tables and omit duplicate stand or standplot id's from being uploaded
@@ -6305,15 +6493,49 @@ cat ("msg=",msg,"\n")
   ## installNewDB
   observe({
     if (input$installNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return()
+    if (is.null(dbGlb$newFVSData)) return()   
     dbDisconnect(dbGlb$dbIcon)
     file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db") 
+    progress <- shiny::Progress$new(session,min=1,max=8)
+    i = 1
+    progress$set(message="Checking for FVS_GroupAddFilesAndKeywords",value=i) 
+    # Add an FVS_GroupAddFilesAndKeywords table if needed.
+    addkeys = getTableName(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords")
+    if (is.null(addkeys)) need = TRUE else
+    {
+      gtab = try(dbReadTable(dbGlb$dbIcon,addkeys))
+      need = class(gtab) == "try-error"
+      if (!need) need = nrow(gtab) == 0
+      names(gtab) = toupper(names(gtab))
+      if (!need) need = all(is.na(gtab$FVSKEYWORDS))
+      if (!need) need = all(gtab$FVSKEYWORDS == "")
+    }
+    if (need)
+    { 
+      treeInit = getTableName(dbGlb$dbIcon,"FVS_TreeInit")
+      if (is.null(treeInit)) treeInit="FVS_TreeInit"
+      dfinstand=NULL
+      grps = list("FVS_StandInit"="All All_Stands",
+                  "FVS_PlotInit"="All All_Plots",
+                  "FVS_StandInit_Cond"="All All_Conds")
+      for (std in names(grps))
+      {
+        stdInit = getTableName(dbGlb$dbIcon,std)
+        if (is.null(stdInit)) next
+        linkID = if(stdInit=="FVS_PlotInit") "StandPlot_ID" else "Stand_ID"
+        dfinstand = rbind(dfinstand,
+          data.frame(Groups = grps[[std]],Addfiles = "",
+            FVSKeywords = paste0("Database\nDSNIn\nFVS_Data.db\nStandSQL\n",
+              "SELECT * FROM ",stdInit,"\nWHERE ",linkID,"= '%StandID%'\n",
+              "EndSQL\nTreeSQL\nSELECT * FROM ",treeInit,"\n", 
+              "WHERE ",linkID,"= '%StandID%'\nEndSQL\nEND")))
+      }
+      dbWriteTable(dbGlb$dbIcon,"FVS_GroupAddFilesAndKeywords",value=dfinstand,overwrite=TRUE)
+    }   
     tabs = myListTables(dbGlb$dbIcon)
-    progress <- shiny::Progress$new(session,min=1,max=length(tabs)+2)
-    i = 0
     for (tb in tabs)
     {
       i = i+1
@@ -6537,6 +6759,16 @@ cat ("insert qry=",qry,"\n")
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
     dbGlb$newFVSData=NULL
+    # fix up the DBH/DIAMETER mess. If DIAMETER is in the data table, then it needs to take on the values 
+    # of DBH if they are also in the table.
+    cols=tolower(dbGetQuery(dbGlb$dbIcon,"PRAGMA table_info('FVS_TreeInit')")[,"name"])
+    if ("dbh" %in% cols && "diameter" %in% cols)
+    {
+      qry=paste0("update FVS_TreeInit set DIAMETER = (select DBH where DIAMETER is null ",
+                 "and DBH is not null) where DIAMETER is null and DBH is not null;")
+      rtn=try(dbExecute(dbGlb$dbIcon,qry))
+cat ("qry=",qry,"\nrtn=",rtn,"\n")
+    }
     tabs = dbGetQuery(dbGlb$dbIcon,"select * from sqlite_master where type='table'")[,"tbl_name"]
     i = i+1
     progress$set(message = "Setting up indices", value=i)
@@ -6559,7 +6791,7 @@ cat ("insert qry=",qry,"\n")
     rowCnts = unlist(lapply(tabs,function (x) dbGetQuery(dbGlb$dbIcon,
       paste0("select count(*) as ",x," from ",x,";"))))
     msg = lapply(names(rowCnts),function(x) paste0(x," (",rowCnts[x]," rows)"))
-    msg = paste0("<b>Combined (new) database:</b><br>",paste0(msg,collapse="<br>"))
+    msg = paste0("<b>Combined (newly installed) database:</b><br>",paste0(msg,collapse="<br>"))
     output$step2ActionMsg <- renderText(msg)
     loadVarData(globals,input,dbGlb$dbIcon) 
     initNewInputDB(session,output,dbGlb)
@@ -6584,8 +6816,8 @@ cat ("Upload new rows\n")
       names(dbGlb$tbsCTypes) = tbs 
       if (length(tbs))
       {
-        idx <- grep ("FVS_Climattrs",tbs)
-        if (length(idx)) tbs = tbs[-ids]
+        idx <- grep ("FVS_ClimAttrs",tbs,ignore.case=TRUE)
+        if (length(idx)) tbs = tbs[-idx]
         idx <- grep ("StandInit",tbs)
         if (length(idx) == 0) idx=1     
         updateSelectInput(session=session, inputId="uploadSelDBtabs", choices=tbs, 
@@ -6763,9 +6995,7 @@ cat ("insertCount=",insertCount,"\n")
             paste0(qry,";") 
           dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
-          for (col in 2:ncol(dbGlb$tbl))
-            if (class(dbGlb$tbl[[col]]) != "character") 
-               dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
+          for (col in 2:ncol(dbGlb$tbl)) dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
           if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
           {
             dbGlb$tbl$Delete = FALSE
@@ -6781,13 +7011,37 @@ cat ("insertCount=",insertCount,"\n")
       session$sendCustomMessage(type = "resetFileInputHandler","uploadStdTree")
       initNewInputDB(session,output,dbGlb)
     })
-  }) 
+  })
+  ## delCurClimData
+  observe({
+    if (input$delCurClimData)
+    {
+      dbExecute(dbGlb$dbIcon,'drop table if exists "FVS_ClimAttrs"')
+      output$uploadClimActionMsg = renderText(HTML("<b>FVSClimAttrs table deleted if it existed.</b>"))
+    }
+  })
+
+  observe({
+    if (input$topPan == "Manage Projects" && input$inputDBPan == "Upload Climate-FVS data")
+    {
+      exTabs=dbListTables(dbGlb$dbIcon)
+      if ("FVS_ClimAttrs" %in% exTabs)
+      {
+        nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+        nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+        output$uploadClimActionMsg = renderText(HTML(paste0("<b>Existing FVSClimAttrs data contains ",
+          nrow(nstds)," stands and ",nrow(nsenc)," scenarios</b>")))
+      } else output$uploadClimActionMsg = renderText(HTML(paste0("<b>There is no existing FVSClimAttrs data.</b>")))
+    }
+  })
   ## climateFVSUpload
   observe({  
-    if (is.null(input$climateFVSUpload)) return()
+    if (is.null(input$climateFVSUpload)) return() 
     progress <- shiny::Progress$new(session,min=1,max=10)
     progress$set(message = "Loading data set",value = 2)
     climAtt="FVSClimAttrs.csv"
+    curdir=getwd()
+    setwd(dirname(input$climateFVSUpload$datapath))
     if (input$climateFVSUpload$type == "application/zip")
       try(unzip(input$climateFVSUpload$datapath, files = climAtt)) else 
       file.copy(input$climateFVSUpload$datapath,climAtt,
@@ -6795,46 +7049,71 @@ cat ("insertCount=",insertCount,"\n")
     if (!file.exists(climAtt)) 
     {
 cat ("no FVSClimAttrs.csv file\n")
-      output$uploadClimActionMsg = renderUI(HTML("FVSClimAttrs.csv not found."))
+      output$uploadClimActionMsg = renderText("FVSClimAttrs.csv not found.")
       progress$set(message = "FVSClimAttrs.csv not found", value = 6)
-      Sys.sleep (2)
+      Sys.sleep (2)   
       session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
       progress$close()
+      setwd(curdir)
+      unlink(input$climateFVSUpload$datapath)
       return()
     }
 cat ("processing FVSClimAttrs.csv\n")
     progress$set(message = "Loading data set (big files take a while)",value = 2) 
     climd = read.csv(climAtt,nrows=1)
     climd = read.csv(climAtt,colClasses=c(rep("character",2),
-        "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)        
-    colnames(climd)[1] <- "Stand_ID"
+        "integer",rep("numeric",ncol(climd)-3)),as.is=TRUE)
     unlink(climAtt)
-    climTab <- myListTables(dbGlb$dbIcon)
+    unlink(input$climateFVSUpload$datapath)
+    setwd(curdir)
+    if (names(climd)[2] != "Scenario")
+    {
+      output$uploadClimActionMsg = renderText(HTML("<b>FVSClimAttrs.csv does not contain expected column names.</b>"))
+      progress$set(message = "FVSClimAttrs.csv not as expected", value = 6)
+      Sys.sleep (2)
+      session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
+      progress$close()
+      rm(climd)
+      return()
+    }
+    names(climd)[1]="Stand_ID"
+    cdnames=colnames(climd)
+    periods=grep(".",cdnames,fixed=TRUE)
+    if (length(periods))
+    {
+      message = paste0("Illegal period(s) in column name(s): ",
+                       paste0(cdnames[periods],collapse=","))
+      progress$set(message,value = 4) 
+      Sys.sleep (.5)
+      progress$close()
+      output$uploadClimActionMsg = renderText(HTML(paste0("<b>",message,". Data not loaded.</b>")))
+      rm(climd)
+      return()
+    }      
+    climTab <- myListTables(dbGlb$dbIcon)    
     if (!("FVS_ClimAttrs" %in% climTab))
     {
 cat ("no current FVS_ClimAttrs\n")
       progress$set(message = "Building FVS_ClimAttrs table",value = 4) 
       dbWriteTable(dbGlb$dbIcon,"FVS_ClimAttrs",climd)
-      output$actionMsg = renderText("FVSClimAttrs created.")
       rm (climd)
       progress$set(message = "Creating FVS_ClimAttrs index",value = 6)
       dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
       dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+      nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+      nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+      output$uploadClimActionMsg = renderText(HTML(paste0("<b>FVSClimAttrs data contains ",
+          nrow(nstds)," stands and ",nrow(nsenc)," scenarios</b>")))
       progress$set(message = "Done", value = 9)
       Sys.sleep (.5)
       progress$close()
       return()      
     }
-cat ("current FVS_ClimAttrs\n")
-    climDb="FVSClimAttrs.db"
-    if (file.exists(climDb)) unlink(climDb)
-    dbclim <- dbConnect(dbDrv,climDb)
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbclim,"FVS_ClimAttrs",climd)
+    dbWriteTable(dbGlb$dbIcon,"temp.FVS_ClimAttrs",climd,overwrite=TRUE)
     rm (climd)  
-    progress$set(message = "Query distinct stands and scenarios",value = 5) 
-    distinct = dbGetQuery(dbclim,"select distinct Stand_ID,Scenario from FVS_ClimAttrs")
-    dbDisconnect(dbclim)
+    progress$set(message = "Query distinct stands and scenarios",value = 5)
+    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'temp.FVS_ClimAttrs'")
     progress$set(message = "Cleaning previous climate data as needed",value = 6)    
     dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
@@ -6844,37 +7123,30 @@ cat ("current FVS_ClimAttrs\n")
     }, dbGlb$dbIcon)
     dbCommit(dbGlb$dbIcon)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
-    dbExecute(dbGlb$dbIcon,'attach database "',climDb,'" as new')
     # get the table:
     progress$set(message = "Inserting new data",value = 8)    
-    oldAttrs = dbGetQuery(dbGlb$dbIcon,'select * from FVS_ClimAttrs limit 1;')
+    oldAttrs = dbGetQuery(dbGlb$dbIcon,"select * from FVS_ClimAttrs limit 1")
     if (nrow(oldAttrs) == 0) 
     {
 cat ("simple copy from new, all rows were deleted\n")
-      dbExecute(dbGlb$dbIcon,'drop table FVS_ClimAttrs')
-      dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
+      dbExecute(dbGlb$dbIcon,"drop table FVS_ClimAttrs")
+      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'temp.FVS_ClimAttrs'")
     } else {
-      newAttrs = dbGetQuery(dbGlb$dbIcon,'select * from new.FVS_ClimAttrs limit 1;')
-      if (identical(colnames(oldAttrs),colnames(newAttrs)))
+      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'temp.FVS_ClimAttrs' limit 1")
+      if (!identical(colnames(oldAttrs),colnames(newAttrs)))
       {
-cat ("simple insert from new, all cols are identical\n")
-        dbExecute(dbGlb$dbIcon,'insert into FVS_ClimAttrs select * from new.FVS_ClimAttrs')
-      } else {  
 cat ("need to match columns, cols are not identical\n")
         oldAttrs=colnames(oldAttrs)[-(1:3)]
         newAttrs=colnames(newAttrs)
         ssid = newAttrs[1:3]
         newAttrs = newAttrs[-(1:3)]
-        oldcl=unlist(lapply(oldAttrs,function (x) if (tolower(x) == x) x else NULL))
-        newcl=unlist(lapply(newAttrs,function (x) if (tolower(x) == x) x else NULL))
         oldsp=unlist(lapply(oldAttrs,function (x) if (toupper(x) == x) x else NULL))
         newsp=unlist(lapply(newAttrs,function (x) if (toupper(x) == x) x else NULL))
-        oldot=setdiff(setdiff(oldAttrs,oldcl),oldsp)   
-        newot=setdiff(setdiff(newAttrs,newcl),newsp)   
-        bothcl = union(oldcl,newcl)
         bothsp = union(oldsp,newsp)
-        bothot = union(oldot,oldot)
-        newall = c(bothcl,bothsp,bothot)
+        oldot=setdiff(oldAttrs,bothsp)
+        newot=setdiff(newAttrs,bothsp)
+        bothot = union(oldot,newot)
+        newall = c(bothsp,bothot)
         oldmiss= setdiff(newall,oldAttrs)
         newmiss= setdiff(newall,newAttrs)
         newall = c(ssid,newall)
@@ -6884,35 +7156,36 @@ cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         {
           dbBegin(dbGlb$dbIcon)
           for (mis in newmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table new.FVS_ClimAttrs add "',mis,'" real'))
+            paste0('alter table "temp.FVS_ClimAttrs" add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
         if (length(oldmiss) > 0)
         {
-          dbExecute(dbGlb$dbIcon,'alter table FVS_ClimAttrs rename to oldClimAttrs')
           dbBegin(dbGlb$dbIcon)
           for (mis in oldmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table oldClimAttrs add "',mis,'" real'))
+            paste0('alter table FVS_ClimAttrs add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
-          dbExecute(dbGlb$dbIcon,
-            paste0('create table FVS_ClimAttrs as select ',selnew,' from oldClimAttrs'))
-          dbExecute(dbGlb$dbIcon,'drop table oldClimAttrs')
-        }     
-        dbExecute(dbGlb$dbIcon,
-          paste0('insert into FVS_ClimAttrs select ',selnew,' from new.FVS_ClimAttrs'))
+        }
       }
+      attrs = colnames(dbGetQuery(dbGlb$dbIcon,"select * from 'FVS_ClimAttrs' limit 1"))
+      sel = paste0(attrs,collapse=",")
+      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'temp.FVS_ClimAttrs'")
+cat("insert qry=",qry,"\n")
+      dbExecute(dbGlb$dbIcon,qry)
     }
-    dbExecute(dbGlb$dbIcon,'detach database new')   
-    unlink(climDb)
+    dbExecute(dbGlb$dbIcon,'drop table "temp.FVS_ClimAttrs"')
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
+    nstds = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID from 'FVS_ClimAttrs'")
+    nsenc = dbGetQuery(dbGlb$dbIcon,"select distinct Scenario from 'FVS_ClimAttrs'")
+    output$uploadClimActionMsg = renderText(HTML(paste0("<b>FVSClimAttrs data contains ",
+        nrow(nstds)," stands and ",nrow(nsenc)," scenarios</b>")))
     progress$set(message = "Done", value = 10)
-    output$uploadActionMsg = renderText("FVSClimAttrs updated.")
     Sys.sleep (2)
     session$sendCustomMessage(type = "resetFileInputHandler","climateFVSUpload")
-    progress$close()
+    progress$close()   
   })  
   
   observe({
@@ -6974,7 +7247,7 @@ cat ("stand_ID query error.\n")
       updateSelectInput(session=session, inputId="editSelDBvars", 
         choices=as.list(dbGlb$tblCols),selected=dbGlb$tblCols)
       html=NULL
-      xlsxFile=system.file("extdata", "databaseDescription.xlsx", package = "fvsOL")
+      xlsxFile=system.file("extdata", "databaseDescription.xlsx", package=if (devVersion) "fvsOLdev" else "fvsOL")
       tabs = try(read.xlsx(xlsxFile=xlsxFile,sheet="InputTableDescriptions"))
       if (class(tabs) != "try-error")
       {
@@ -7029,7 +7302,7 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
           }
           rownames(dbGlb$tbl) = dbGlb$tbl$rowid
           for (col in 2:ncol(dbGlb$tbl))
-            if (class(dbGlb$tbl[[col]]) != "character") 
+            if (! ("character" %in% class(dbGlb$tbl[[col]]))) 
                dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
           if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else
           {
@@ -7841,7 +8114,7 @@ cat ("in customRunOps runScript: ",input$runScript,"\n")
       if (input$runScript != "fvsRun")
       {
         fn=paste0("customRun_",globals$fvsRun$runScript,".R")
-        if (!file.exists(fn)) fn=system.file("extdata", fn, package = "fvsOL")
+        if (!file.exists(fn)) fn=system.file("extdata", fn, package=if (devVersion) "fvsOLdev" else "fvsOL")
         if (!file.exists(fn)) return()        
         rtn = try(source(fn))
         if (class(rtn) == "try-error") return()
@@ -7958,25 +8231,30 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
             if(.Platform$OS.type == "windows") 
                file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
           }
+          rscript=gsub("\\\\","/",rscript)
           defs=paste0("RscriptLocation='",rscript,"';")
           if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
           if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
-          
-          cmd = paste0(rscript," --vanilla -e $",defs,"require(fvsOL);fvsOL(prjDir='",newPrj,
-                       "',fvsBin='",fvsBin,"');quit()$")
-          cmd = gsub('$','"',cmd,fixed=TRUE)
-          if (.Platform$OS.type == "unix") 
-          {
-            cmd = paste0("nohup ",cmd," >> /dev/null")
-            system (cmd,wait=FALSE)
-          } else shell (cmd,wait=FALSE)
-cat ("cmd for launch project=",cmd,"\n")
+cat(".libPaths=",unlist(.libPaths()),"\n")
+         if (exists("RscriptLocation")) {
+           Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
+           defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+         }
+          cmd =  paste0("$",rscript,"$ --vanilla -e $",defs, 
+            if (devVersion) "require(fvsOLdev)" else "require(fvsOL)", 
+            ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
+          cmd = gsub('$','\"',cmd,fixed=TRUE)
+          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
+          rtn=try(system (cmd,wait=FALSE))
+cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
 cat ("launch url:",url,"\n")
           session$sendCustomMessage(type = "openURL",url)
         }
+        Sys.sleep(5)
+        updateProjectSelections()
       }          
     })
   })

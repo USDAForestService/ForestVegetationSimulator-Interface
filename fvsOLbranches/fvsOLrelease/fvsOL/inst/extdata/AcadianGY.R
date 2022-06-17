@@ -1,20 +1,15 @@
 # $Id$
 ################################################################################
-# v12.1.1.r 
-# Aaron edits 6/6/2019
-# Crookston edits for FVS 9/20/2020
-# Weiskittel v12.1.r edits 12/1/2020
-# Rice edits integrate new dHt and dDBH functions with FVS version 12/21/2020
+# v12.1.4.r 
+#
 # Acadian Variant of the Forest Vegetation Simulator (FVS-ACD)                                                                                            #
 # Developed by Aaron Weiskittel, University of Maine, School of Forest Resources
 # aaron.weiskittel@maine.edu
 # 
-# Includes v11.1.r Aaron edits 6/6/2019 and several edits
-# from Ben Rice and Jereme Frank
 #
 # For commercial thinning modifiers, proportion of basal area removed 'pBArm', 
 # ratio of QMD before and after thinning 'QMDratio', stand basal area at the 
-# time of thinning 'BApre', and year of commerical thinning 'YEAR_CT' need to 
+# time of thinning 'BApre', and year of commercial thinning 'YEAR_CT' need to 
 # be defined
 #
 # For SBW modifiers, cummulative defoliation % 'CDEF', initial year of 
@@ -26,9 +21,34 @@
 
 library(plyr)  #needed for ddply
 library(dplyr) # added 12/21/2020 for dplyr::arrange, mutate, rowwise, left_join, tribble
-library(nlme)  #needed for groupedData
+library(nlme)  #needed for groupedData and gsummary
 
-AcadianVersionTag = "AcadianV12.1.1"
+AcadianVersionTag = "AcadianV12.1.4"
+
+##############################
+#### major update summary ####
+#
+
+# 12.1.4
+  # Fixed diameter hardwood form and risk modifier 
+
+# 12.1.3
+  # AcadianGYOneStand function
+    # added default RD
+    # include form and risk 
+    # temp calculations include ELEV
+    # updated SDI/RD calculation
+ 
+# 12.1.1
+  # Weiskittel edits 12/1/2020
+  # Rice edits integrate new dHt and dDBH functions with FVS version 12/21/2020
+
+# 11.1 Aaron edits 6/6/2019 and several edits
+  # from Ben Rice and Jereme Frank to resolve errors
+  # Crookston edits for FVS 9/20/2020
+
+##############################
+
                                                                                      
 #Define all functions below
  # 12/21/2020 removed sort.data.frame <- function(form,dat) substitute dplyr::arrange
@@ -159,7 +179,7 @@ SPP.func=function(SPP)
   return(list(SPtype=SPtype[sprow],shade=attrs[sprow,3],sg=attrs[sprow,1]))
 }
  
-
+#### Crown prediction ####
 #Maximum crown width
 mcw=function(sp,dbh)
 {
@@ -227,7 +247,7 @@ lcw=function(sp,mcw,dbh){
 }   
 
 
-
+#### Height prediction ####
 ### Total height prediction function (updated 8/31/2012) using species as a random effect
 HTPred=function(SPP,DBH,CSI,CCF,BAL) 
 {     
@@ -360,6 +380,7 @@ HCBPred=function(SPP,DBH,HT,CCF,BAL)
   return(hcb=hcb)
 }
 
+#### Form and risk ####
 #Form Classification from Castle et al. (2017; CJFR 47: 1457-1467)
 #Returns the probability of single straight stem (STM), 
 #extensive sweep and lean (LSW), multiple stems (MST),
@@ -408,6 +429,7 @@ risk.prob=function(SPP,DBH)
   return(HR=HR)
 }
 
+#### Diameter increment ####
 #Kershaw's basal area increment model (7/25/2012)
 dBA=function(SPP,DBH,BalSW,BalHW,SI)
 {
@@ -484,7 +506,6 @@ dBA=function(SPP,DBH,BalSW,BalHW,SI)
   return(CSAgrow=CSAgrow)
 }
 
-#### Diameter increment ####
 
 #species random effects
 ddbh.fun.spp=tribble(
@@ -579,9 +600,50 @@ ddbh.fun.spp=tribble(
     
     return(dDBH=dDBH)
   }
+
+## Diameter increment HW form and risk modifier
+  dDBH.HW.mod=function(SPP,DBH,BAL,Form,Risk){
+    
+    # check for valid species, form and risk codes
+    if(is.na(Form) | !(gsub('[^0-9]', '', Form) %in% 1:8) |
+       is.na(Risk) | !(gsub('[^0-9]', '', Risk) %in% 1:4) |
+       !SPP %in% c('RO', 'SM', 'YB', 'RM', 'PB', 'QA')){
+      mod=1
+    }else{
+      #Convert NHRI form classes
+      if(Form == 'F1' | Form == 'F7' | Form == 'F3' | Form == 'F4'){new.Form = 'A'}
+      else{new.Form = 'B'} #We could have catch for other form types but probably not needed.
+      
+      #Convert NHRI risk classes
+      if(Risk == 'R1' | Risk == 'R2'){new.Risk = 'LR'}
+      else{new.Risk = 'HR'} #We could have catch for other risk types but probably not needed.
+      
+      if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+      else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+      else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+      else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
+      #else if(SPP=='PB'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think we can remove this. PB wil default to intercept
+      else if(SPP=='QA'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
+      else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will assume a value of 0.
+      if(new.Form=='A'){Form.A=1; Form.B=0}
+      else{Form.A=0; Form.B=1}
+      if(new.Risk=='HR'){HR=1; LR=0}
+      else{HR=0; LR=1}
+      
+      dDBH.a=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
+                 -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB+
+                   0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
+                   0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB)+0.2176)
+      dDBH.b=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
+                 -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB-0.0250*Form.B+
+                   0.2176*LR+0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
+                   0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB))
+      mod=dDBH.b/dDBH.a}
+    mod
+  }  
+    
   
-  
-## Diameter modifier function (3/15/16 based on results by Christian Kuehne)
+## Diameter thinning modifier function (3/15/16 based on results by Christian Kuehne)
 dDBH.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR)
 {
   TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) # time since thinning
@@ -795,6 +857,7 @@ dHT.SBW.mod=function(SPP,DBH,topht,CR,avg.DBH.SW,CDEF='NA')
   return(dHT.mod)
 }
 
+### Crown recession ####
 #dynamic crown recession equation (Russell et al. 2014; EJFR)
 dHCB=function(dHT,DBH,HT,HCB,CCF,shade)
 {
@@ -835,6 +898,7 @@ dHCB.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   return(dHCB.mod = dHCB.mod)
 }
 
+#### Mortality ####
 #Mortality using the approach of Kershaw
 stand.mort.prob=function(Region,BA,BAG,QMD,pBA.BF,pBA.IH)
 {
@@ -1048,39 +1112,42 @@ tree.mort.mod.SBW=function(Region,SPP,DBH,CR,HT,BAL.HW,BAL.SW,avgHT.SW,CDEF=NA)
 #HW mortality modifier from Castle et al. (2017)
 HW.mort.mod=function(SPP,DBH,BAL,BA,Form){
   
-  #Convert NHRI form classes
-  if(Form == 'F1'){new.Form = 'STM'}
-  else if(Form == 'F2'){new.Form = 'SWP'}
-  else if(Form == 'F5' | Form == 'F8'){new.Form = 'MST'}
-  else{new.Form = 'OTHER'}
+  # check for valid species and form codes
+  if(is.na(Form) | !(gsub('[^0-9]', '', Form) %in% 1:8) |
+     !SPP %in% c('RO', 'SM', 'YB', 'RM', 'PB', 'QA')){
+    mod=1
+  }else{
+    #Convert NHRI form classes
+    if(Form == 'F1'){new.Form = 'STM'}
+    else if(Form == 'F2'){new.Form = 'SWP'}
+    else if(Form == 'F5' | Form == 'F8'){new.Form = 'MST'}
+    else{new.Form = 'OTHER'}
+    
+    if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+    else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+    else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
+    else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
+    #else if(SPP=='PB'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think this can be removed since PB is baseline species (intercept term)
+    else if(SPP=='QA'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
+    else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will take on a value of 0
+    if(new.Form=='STM'){STM=1; SWP=0; MST=0}
+    else if(new.Form =='SWP'){STM=0; SWP=1; MST=0}
+    else{STM=0; SWP=0; MST=0}
+    
+    mort.a=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
+                 5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
+                 0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082)/(1+exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
+                                                                          5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
+                                                                          0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082))
+    
+    mort.b=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
+                 5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
+                 0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP)/(1 + exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
+                                                                                           5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) + 0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP))
+    
+    mod=mort.b/mort.a}
   
-  if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-  else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-  else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-  else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
-  #else if(SPP=='PB'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think this can be removed since PB is baseline species (intercept term)
-  else if(SPP=='QA'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
-  else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will take on a value of 0
-  if(new.Form=='STM'){STM=1; SWP=0; MST=0}
-  else if(new.Form =='SWP'){STM=0; SWP=1; MST=0}
-  else{STM=0; SWP=0; MST=0}
-  
-  mort.a=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-               5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-               0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082)/(1+exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                                                                        5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-                                                                        0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082))
-  
-  mort.b=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-               5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-               0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP)/(1 + exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                                                                                         5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) + 0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP))
-  
-  mod=mort.b/mort.a
-  
-  mod=ifelse(SPP=='QA' | SPP=='RM' | SPP=='RO' | SPP=='YB' | SPP=='PB' | SPP=='SM',mod,1)
-  
-  return(mod=mod)
+  mod
 }
 
 #Thinning mortality modifier for trees
@@ -1107,15 +1174,15 @@ tmort.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
   return(tmort.mod = tmort.mod)
 }
 
-
-##INGROWTH FUNCTION of Li et al. (2011; CJFR 41, 2077-2089)
-# PARMS is GNLS (generalized least squares) or NLME (mixed effects), 
-# CutPoint is the probability threshold where ingrowth will occur
-# BA is total basal area,
-# TPH is trees per ha, 
-# PHW is percent hardwood basal area, 
-# MinDBH is the minimum threshold diameter (cm)
-# ClimateSI is the climate site index (m)
+#### Ingrowth ####
+  ##INGROWTH FUNCTION of Li et al. (2011; CJFR 41, 2077-2089)
+  # PARMS is GNLS (generalized least squares) or NLME (mixed effects), 
+  # CutPoint is the probability threshold where ingrowth will occur
+  # BA is total basal area,
+  # TPH is trees per ha, 
+  # PHW is percent hardwood basal area, 
+  # MinDBH is the minimum threshold diameter (cm)
+  # ClimateSI is the climate site index (m)
 Ingrowth.FUN=function(PARMS,CutPoint,BA,TPH,QMD,PHW,MinDBH,ClimateSI,cyclen=1)
 {    
   if(PARMS=="GNLS"){
@@ -1290,6 +1357,14 @@ ING.TreeList=function(Sum.temp,INGROWTH,MinDBH)
   InTree1
 }
 
+the.includer.func<-function(EXPF,cum.EXPF){
+  if(cum.EXPF<=100) tree.inc <-EXPF
+  else if((cum.EXPF+EXPF)>100 & 100-cum.EXPF>0) tree.inc <- 100-cum.EXPF
+  else tree.inc <-0
+  return(tree.inc)}
+
+
+#### Taper ####
 ##Li et al. (2012) taper equations
 KozakTaper=function(Bark,SPP,DHT,DBH,HT,Planted){
   if(Bark=='ob' & SPP=='AB'){
@@ -2060,11 +2135,6 @@ smalians<-function(r1,r2,len){
   return(round(vol,4))
 }
 
-the.includer.func<-function(EXPF,cum.EXPF){
-  if(cum.EXPF<=100) tree.inc <-EXPF
-  else if((cum.EXPF+EXPF)>100 & 100-cum.EXPF>0) tree.inc <- 100-cum.EXPF
-  else tree.inc <-0
-  return(tree.inc)}
 
 KozakTreeVol=function(Bark,SPP,DBH,HT,Planted,stump=NA,topHT=NA,topD=NA)
 {
@@ -2633,6 +2703,7 @@ hw.saw.prop=function(SPP,DBH,Form,Risk){
 
 #hw.saw.prop('RM',20,'LSW','LR')
 
+#### Summary ####
 Summary.GY=function(tree){
   library(nlme)
   tree$SPtype=as.vector(mapply(SPP.func,tree$SP)[1,])
@@ -2705,7 +2776,8 @@ Summary.GY=function(tree){
     'pAB.ba','pQA.ba','pSM.ba','pWC.ba','pHW.ba','pSW.ba'))
   temp
 }        
-       
+
+#### Model execution ####       
 ###Acadian growth and yield model
 Acadian.GY=function(tree,stand,ops=NULL)
 {
@@ -2715,7 +2787,7 @@ Acadian.GY=function(tree,stand,ops=NULL)
       stand = as.list(subset(stand,STAND == x[1,"STAND"]))
       AcadianGYOneStand(tree,stand=stand,ops=ops)
     }, stand, ops)                
-   tree<-arrange(ans, YEAR,STAND,PLOT,TREE) # 12/21/2020 replaced tree<-sort.data.frame(ans,~+YEAR+STAND+PLOT+TREE)
+   tree<-dplyr::arrange(ans, YEAR,STAND,PLOT,TREE) # 12/21/2020 replaced tree<-sort.data.frame(ans,~+YEAR+STAND+PLOT+TREE)
   tree
 }
 
@@ -2730,23 +2802,25 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   cyclen             = if (is.null(ops$cyclen))             1     else ops$cyclen
   CutPoint           = if (is.null(ops$CutPoint))           0.95  else ops$CutPoint
   mortType           = if (is.null(ops$mortType))      "discrete" else ops$mortType
-  useDBH_RDmodifier  = if (is.null(ops$useDBH_RDmodifier )) TRUE  else ops$useDBH_RDmodifier 
-  useHT_RDmodifier   = if (is.null(ops$useHT_RDmodifier  )) TRUE  else ops$useHT_RDmodifier  
-  useMORT_RDmodifier = if (is.null(ops$useMORT_RDmodifier)) TRUE  else ops$useMORT_RDmodifier
+  maxRD              = if (is.null(ops$maxRD))              1.0   else ops$maxRD
+  useDBH_RDmodifier  = if (is.null(ops$useDBH_RDmodifier )) FALSE  else ops$useDBH_RDmodifier # 9/10/21 set default to FALSE
+  useHT_RDmodifier   = if (is.null(ops$useHT_RDmodifier  )) FALSE  else ops$useHT_RDmodifier  # 9/10/21 set default to FALSE
+  useMORT_RDmodifier = if (is.null(ops$useMORT_RDmodifier)) FALSE  else ops$useMORT_RDmodifier # 9/10/21 set default to FALSE
   usedHTCap          = if (is.null(ops$usedHTCap))          TRUE  else ops$usedHTCap
   SBW                = if (is.null(ops$SBW))                TRUE  else ops$SBW                           
   rtnVars            = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE","SP",
    "DBH","HT","HCB","EXPF",'pHT','pHCB','Form','Risk') else ops$rtnVars
 
-  CSI      = if (is.null(stand) || is.null(stand$CSI))   12 else stand$CSI
-  ELEV     = if (is.null(stand) || is.null(stand$ELEV))  350 else stand$ELEV
+  CSI      = if (is.null(stand) || is.null(stand$CSI) || is.na(stand$CSI))   12 else stand$CSI
+  ELEV     = if (is.null(stand) || is.null(stand$ELEV) || is.na(stand$ELEV)) 350 else stand$ELEV
  
   if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI," ELEV=",ELEV,
     " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
     " MinDBH=",MinDBH," SBW=",SBW," useDBH_RDmodifier=",useDBH_RDmodifier,
     " useHT_RDmodifier=",useHT_RDmodifier,"\n           useMORT_RDmodifier=",
     useMORT_RDmodifier," usedHTCap=",usedHTCap,"\n")                                               
-  if (exists("AcadianVersionTag") && verbose) cat("AcadianVersionTag=",AcadianVersionTag,"\n")
+  if (exists("AcadianVersionTag") && verbose) 
+    cat("AcadianVersionTag=",AcadianVersionTag,"\n")
 
   temp = SPP.func(tree$SP)  
   tree$SPtype=temp$SPtype
@@ -2754,6 +2828,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$SG=temp$sg
   
   #set SBW  factors 
+  # this approach can cause SBW and CDEF to be NA
   if (is.null(tree$CDEF))    tree$CDEF   =NA
   if (is.null(tree$SBW.YR))  tree$SBW.YR =NA
   if (is.null(tree$SBW.DUR)) tree$SBW.DUR=NA
@@ -2766,11 +2841,23 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   if (is.null(tree$QMDratio)) tree$QMDratio = NA
   if (is.null(tree$YEAR_CT))  tree$YEAR_CT  = NA
   
+  #set Form & Risk
+  if (is.null(tree$Form) || is.null(tree$Risk))   
+  {
+    tree$Form = NA
+    tree$Risk = NA
+  }
+  toNA = !is.na(tree$Form) & tree$Form == " " |
+         !is.na(tree$Risk) & tree$Risk == " "
+  tree$Form[toNA] = NA
+  tree$Risk[toNA] = NA
+  
   #set region
   if (is.null(tree$Region))   tree$Region = 'ME'
   
   #set elev                                      
   if (is.null(tree$ELEV))     tree$ELEV   = ELEV
+  tree$ELEV=ifelse(is.na(tree$ELEV), ELEV, tree$ELEV)
   
   tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
   tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
@@ -2811,25 +2898,37 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   temp = ddply(temp,.(PLOT),
     function(x)
     {
-      rtn = as.data.frame(t(colSums(x[,c(-1,-2)])))
+      rtn = as.data.frame(t(colSums(x[,c(-1,-2,-3)])))
       rtn$PLOT = x$PLOT[1]
-      rtn$maxTREE = max(x$TREE)
+      rtn$ELEV = x$ELEV[1]
+      rtn$maxTREE = max(x$TREE) # used to generate ingrowth tree numbers
       rtn
     })                                
-                               
   temp$BAPH<-temp$ba
   tree$SG.wt=tree$SG*tree$ba
   tree$DBH.SW=ifelse(tree$SPtype=='SW',tree$DBH,NA)
   tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,NA)
   tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
+  tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
+  tree$SDIadd.all=(tree$DBH/25.4)^1.6*tree$EXPF
   
-  if (verbose) cat("making temp2, nrow(trees)=",nrow(trees),"\n") 
-  temp2=ddply(tree,.(PLOT),plyr::summarize,tph=sum(EXPF),meanSG=sum(SG.wt)/sum(ba),
-              SDI=sum(SDIadd,na.rm=T),avgDBH.SW=mean(DBH.SW,na.rm=T),avgDBH=mean(DBH.10,na.rm=T),sdDBH=sd(DBH.10,na.rm=T),
-              SPP.DIV=length(unique(SP)),minDBH=min(DBH.10,na.rm=T),maxDBH=max(DBH.10,na.rm=T))
+  if (verbose) cat("making temp2, nrow(trees)=",nrow(trees),"\n") 															  
+  temp2=ddply(tree,.(PLOT),plyr::summarize,
+              tph=sum(EXPF),
+              meanSG=sum(SG.wt)/sum(ba),
+              SDI=sum(SDIadd,na.rm=T),
+              SDI.all=sum(SDIadd.all, na.rm=T),
+              avgDBH.SW=mean(DBH.SW,na.rm=T),
+              avgDBH=mean(DBH.10,na.rm=T),
+              sdDBH=sd(DBH.10,na.rm=T),
+              SPP.DIV=length(unique(SP)),
+              minDBH=min(DBH.10,na.rm=T),
+              maxDBH=max(DBH.10,na.rm=T), # should DBH.10 be default=0 to prevent function returning NA and Inf 
+              DBH.RANGE.all=max(DBH,na.rm=T)-min(DBH,na.rm=T)) 
   
   temp=merge(temp,temp2,by=c('PLOT'))
-  if (verbose) cat("after temp2, nrow(temp2)=",nrow(temp2)," nrow(temp)=",nrow(temp),"\n") 
+	if (verbose) cat("after temp2, nrow(temp2)=",nrow(temp2)," nrow(temp)=",nrow(temp))
+  
   temp$avgDBH.SW=ifelse(is.na(temp$avgDBH.SW),0,temp$avgDBH.SW)
   temp$qmd<-ifelse(temp$tph==0,0,sqrt(temp$BAPH/(0.00007854*temp$tph)))
   temp$qmd.BF=ifelse(temp$tph.BF==0,0,sqrt(temp$ba.BF/(0.00007854*temp$tph.BF)))
@@ -2853,42 +2952,41 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   temp$pSM.ba=ifelse(temp$BAPH==0,0,temp$ba.SM/temp$BAPH)
   temp$pWC.ba=ifelse(temp$BAPH==0,0,temp$ba.WC/temp$BAPH)
   temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)
-  if (verbose) cat("after ifelse set on temp, nrow(temp)=",nrow(temp),"\n") 
   temp$DBH.RANGE=temp$maxDBH-temp$minDBH
   temp$DBH.CV=temp$sdDBH/temp$avgDBH
   temp$DBH.R=temp$avgDBH*(1+(((1.6064-1.0)*1.6064)/2)*temp$DBH.CV)^1.6064
   temp$meanSG=ifelse(temp$meanSG>.80,.8,temp$meanSG)
-  temp$SDImax=483.2448-1.4563*temp$pHW.ba-212.705*log(temp$meanSG)+45.351*
-    sqrt(temp$DBH.RANGE)+14.811*temp$SPP.DIV-0.0848*temp$ELEV+0.0001*
-    temp$ELEV^2+331.3714*(1/CSI)
-  temp$SIDmax2=-6017.3*temp$meanSG+4156.3
-  if (verbose) cat("after temp$SIDmax, temp$SIDmax=",temp$SIDmax,"\n") 
-  if (verbose) cat("after temp$SIDmax2, temp$SIDmax2=",temp$SIDmax2,"\n") 
-# the next line sometimes failed...
-# temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
-#  if (verbose) cat("after na check temp$SIDmax, temp$SDImax=",temp$SDImax,"\n")
-    
+  # temp$SDImax=(483.2448-1.4563*temp$pHW.ba-212.705*log(temp$meanSG)+45.351*
+  #   sqrt(temp$DBH.RANGE)+14.811*temp$SPP.DIV-0.0848*temp$ELEV+0.0001*
+  #   temp$ELEV^2+331.3714*(1/CSI))
+  temp$SDImax=475.2079-1.5908*temp$pHW.ba-236.9051*log(temp$meanSG)+50.3299*sqrt(temp$DBH.RANGE)+ #Weiskittel & Kuehne 2019
+   13.5202*temp$SPP.DIV+0.0685*temp$ELEV-2.8537*sqrt(temp$ELEV)+222.7836*(1/CSI)
+  temp$SDImax2= 1347.445-1003.870*temp$meanSG #Weiskittel and Kuehne (2019)
+  #temp$SDImax2=-6017.3*temp$meanSG+4156.3
+  temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
   temp$RD=temp$SDI/temp$SDImax
-  if (verbose) cat("after RD\n") 
-
-  if (verbose) cat("subsetting temp, nrow(temp)=",nrow(temp),"\n") 
+  
+  # RD all DBH
+  temp$SDImax.all=475.2079-1.5908*temp$pHW.ba-236.9051* log(temp$meanSG)+ 50.3299* sqrt(temp$DBH.RANGE.all)+
+    13.5202*temp$SPP.DIV+0.0685*temp$ELEV-2.8537* sqrt(temp$ELEV)+222.7836*(1/CSI) #Weiskittel & Kuehne 2019
+  temp$SDImax.all=ifelse(is.na(temp$SDImax.all),temp$SDImax2,temp$SDImax.all)
+  temp$RD.all=temp$SDI.all/temp$SDImax.all
+  temp$RD.mod=case_when(temp$qmd<10 & !is.na(temp$RD.all) ~ temp$RD.all, # 11/12/21 added logic for RD
+                        temp$qmd>=10 & !is.na(temp$RD) ~temp$RD,
+                        TRUE ~0)
   
   temp=subset(temp,select=c("PLOT",'BAPH','tph','qmd','pHW.ba',
     'pWP.ba','pBF.ba','pRM.ba','pSPR.ba','pBRH.ba','pOH.ba','pOS.ba','pRS.ba',
     'pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba','qmd.BF','pIHW.ba','SDI',
-    'SDImax','meanSG','RD','avgDBH.SW','maxTREE','pAB.ba','pQA.ba','pSM.ba','pWC.ba'))
+    'SDImax','meanSG','RD','RD.all', 'RD.mod', 'avgDBH.SW','maxTREE','pAB.ba','pQA.ba','pSM.ba','pWC.ba'))
     #BLC - add AB, QA, SM, WC
 
   Sum.temp=temp
   temp$maxTREE = NULL
-  
-  if (verbose) cat("merge nrow(tree)=",nrow(tree)," with nrow(Sum.temp)=",
-                   nrow(Sum.temp),"\n") 
-    
   tree=merge(tree,Sum.temp,by="PLOT")
 
   #Compute basal area in larger trees
-  tree<-arrange(tree, PLOT, desc(DBH)) #12/21/2020 replaced tree<-sort.data.frame(tree,~+PLOT-DBH)
+  tree<-dplyr::arrange(tree, PLOT, desc(DBH)) #12/21/2020 replaced tree<-sort.data.frame(tree,~+PLOT-DBH)
   temp = unlist(by(tree$ba,INDICES=tree$PLOT,FUN=cumsum))
   tree$BAL = temp-tree$ba
   temp = unlist(by(tree$ba.SW,INDICES=tree$PLOT,FUN=cumsum))
@@ -2919,47 +3017,43 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   rdMod.dHTmod_end = 2
   rdMod.MORTmod_start = 0.55
   rdMod.lamda = 1.5
-
-  if (verbose) cat("BLC RD DBH mods\n") 
-  if (all(!is.na(tree$RD)))
-  {
+  
+  # give some initial values to the multipliers
+  rdMod.dDBH_RDmod <- rdMod.dHT_RDmod <- rdMod.dMORT_RDmod <- 1.
+  tree=tree %>%  
     # BLC RD DBH mods - straight line
-    rdMod.pctInRange =(tree$RD - rdMod.dDBHmod_start) / (rdMod.dDBHmod_end - rdMod.dDBHmod_start)
-    rdMod.dDBH_RDmod = if(useDBH_RDmodifier) 
-    ifelse(tree$RD>rdMod.dDBHmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
-    
-    # BLC RD HT mods - straight line
-    rdMod.pctInRange =(tree$RD - rdMod.dHTmod_start) / (rdMod.dHTmod_end - rdMod.dHTmod_start)
-    rdMod.dHT_RDmod = if(useHT_RDmodifier) 
-      ifelse(tree$RD>rdMod.dHTmod_start,max(0, 1 - rdMod.pctInRange),1) else 1
-    
-    # BLC RD MORT mods - exponential decay as it rises above rdMod.MORTmod_start (default RD > 0.55)                                                                 
-    rdMod.dMORT_RDmod = if(useMORT_RDmodifier)
-      ifelse(tree$RD>rdMod.MORTmod_start,exp(rdMod.lamda * (tree$RD - rdMod.MORTmod_start)),1)  else 1                                                                   
-    
-    if (verbose)
-    {
-      cat("In RDmods, summary(tree$RD)=",summary(tree$RD),"\n")
-      cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
-      cat("in RDmods - summary(dDBH_RDMod) = ",summary(rdMod.dDBH_RDmod),"\n")
-      cat("in RDmods - summary(dHT_RDMod) = ",summary(rdMod.dHT_RDmod),"\n")
-      cat("in RDmods - summary(dMORT_RDMod) = ",summary(rdMod.dMORT_RDmod),"\n")
-    }
-  } else {
-    rdMod.dDBH_RDmod = 1. 
-    rdMod.dHT_RDmod = 1.
-    rdMod.dMORT_RDmod = 1.
+    dplyr::mutate(rdMod.pctInRangeDbh =(RD.mod - rdMod.dDBHmod_start) / (rdMod.dDBHmod_end - rdMod.dDBHmod_start),
+                  rdMod.dDBH_RDmod = case_when(useDBH_RDmodifier==T & 
+                                                 RD.mod>rdMod.dDBHmod_start &
+                                                 between(1 - rdMod.pctInRangeDbh, 0 , 1) ~ 1 - rdMod.pctInRangeDbh,
+                                               TRUE ~1),
+                  # BLC RD HT mods - straight line
+                  rdMod.pctInRangeHt =(RD.mod - rdMod.dHTmod_start) / (rdMod.dHTmod_end - rdMod.dHTmod_start),
+                  rdMod.dHT_RDmod = case_when(useHT_RDmodifier==T & 
+                                                RD.mod>rdMod.dHTmod_start &
+                                                between(1 - rdMod.pctInRangeHt, 0 , 1) ~ 1 - rdMod.pctInRangeHt,
+                                              TRUE ~1),
+                  # BLC RD MORT mods - exponential decay as it rises above rdMod.MORTmod_start (default RD > 0.55)                                                                 
+                  rdMod.dMORT_RDmod = case_when(useMORT_RDmodifier==T &
+                                                  RD.mod>rdMod.MORTmod_start ~exp(rdMod.lamda * (RD.mod - rdMod.MORTmod_start)),
+                                                TRUE ~1))                                                                   
+  
+  if (verbose)
+  {
+    cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
+    cat("in RDmods - mean(rdMod.dDBH_RDmod) = ",mean(rdMod.dDBH_RDmod),"\n")
+    cat("in RDmods - mean(rdMod.dHT_RDmod) = ",mean(rdMod.dHT_RDmod),"\n")
+    cat("in RDmods - mean(rdMod.dMORT_RDmod) = ",mean(rdMod.dMORT_RDmod),"\n")
   }
-    
   
   #form and risk
   #tree$LSW=mapply(form.prob,tree$SPP,tree$DBH)
   
   #calculate heights of any with missing values.
-  #generally, none will be missing when funciton is used with FVS, but some or
+  #generally, none will be missing when function is used with FVS, but some or
   #all would be missing when code us used to grow tree lists from other sources. 
 
-  tree$pHT = is.na(tree$HT) | tree$HT>900 | tree$HT==0
+  tree$pHT = is.na(tree$HT) | tree$HT>900 | tree$HT==0 # throws an error
   if (any(tree$pHT)) 
   {
     pHT.m=mapply(HTPred,SPP=tree$SP,DBH=tree$DBH,CSI=CSI,                                
@@ -2968,24 +3062,42 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   }
   tree$pHT = as.numeric(tree$pHT)
   #compute plot top height
-  topht = ddply(tree,.(PLOT), function (x)
-    {
-      cum.EXPF = cumsum(x$EXPF)
-      tree.inc = mapply(the.includer.func,x$EXPF,cum.EXPF)
-      wt.HT=tree.inc*x$HT
-      meanHT = mean(x$HT)
-      topht = plyr::summarize(x,wt.HT=sum(wt.HT),tree.inc=sum(tree.inc))
-      topht = ifelse(topht$tree.inc > 0, topht$wt.HT/topht$tree.inc, meanHT)
-    })                                                                                
-  names(topht)[2] = "topht"
+  
+  # plyr::ddply sometimes throws error; replaced with dplyr 8/18/2021
+  # topht = ddply(tree,.(PLOT), function (x)
+  #   {
+  #     cum.EXPF = cumsum(x$EXPF)
+  #     tree.inc = mapply(the.includer.func,x$EXPF,cum.EXPF)
+  #     wt.HT=tree.inc*x$HT
+  #     meanHT = mean(x$HT)
+  #     topht = plyr::summarize(x,wt.HT=sum(wt.HT),tree.inc=sum(tree.inc))
+  #     topht = ifelse(topht$tree.inc > 0, topht$wt.HT/topht$tree.inc, meanHT)
+  #   })                                                                                
+  # names(topht)[2] = "topht"
  
+  
+  topht=tree %>% 
+    dplyr::group_by(PLOT) %>% 
+    dplyr::mutate(cum.EXPF = cumsum(EXPF), # incorporate tree inc conditional assignment in mutate call
+                  tree.inc = case_when(cum.EXPF<=100 ~EXPF,
+                                       (cum.EXPF+EXPF)>100 & 100-cum.EXPF>0 ~ 100-cum.EXPF,
+                                       TRUE ~0),
+                  wt.HT=tree.inc*HT) %>% 
+    dplyr::summarise(meanHT = mean(HT),
+                     wt.HT=sum(wt.HT),
+                     tree.inc=sum(tree.inc, na.rm=T), # na.rm=T resolves issue with NA tree.inc values 
+                     .groups='keep') %>% 
+    dplyr::ungroup() %>% 
+    dplyr::mutate(topht = ifelse(tree.inc > 0, wt.HT/tree.inc, meanHT))
+   
+  
   tree=merge(tree,topht,by=c('PLOT'))
   #compute average height of softwood and hardwood species
   tree$HT.SW=ifelse(tree$SPtype=='SW',tree$HT,NA)
   tree$HT.HW=ifelse(tree$SPtype=='HW',tree$HT,NA)
   
   avgHT=ddply(tree,.(PLOT),plyr::summarize,avgHT.SW=mean(HT.SW,na.rm=T),
-              avgHT.HW=mean(HT.HW,na.rm=T))
+              avgHT.HW=mean(HT.HW,na.rm=T)) # avgHT.HW used where?
   tree=merge(tree,avgHT,by=c('PLOT'))
   tree$avgHT.SW=ifelse(is.na(tree$avgHT.SW),0,tree$avgHT.SW)
   tree$avgHT.HW=ifelse(is.na(tree$avgHT.HW),0,tree$avgHT.HW)
@@ -3014,17 +3126,22 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$dBA=mapply(dBA, SPP=tree$SP, DBH=tree$DBH, BalSW=tree$BAL.SW,
     BalHW=tree$BAL.HW, SI=CSI)*cyclen
 
-   tree= tree %>%
-    left_join(ddbh.fun.spp, 
-              by=c('SP'='Spp')) %>% 
-    mutate(ddbh.b0.spp=ifelse(is.na(ddbh.b0.spp), 0, ddbh.b0.spp), 
-           ddbh.b2.spp=ifelse(is.na(ddbh.b2.spp), 0, ddbh.b2.spp), 
-           ddbh.b3.spp=ifelse(is.na(ddbh.b3.spp), 0, ddbh.b3.spp), 
-           ddbh.b4.spp=ifelse(is.na(ddbh.b4.spp), 0, ddbh.b4.spp)) %>% 
-    rowwise() %>% 
-    mutate(dDBH=dDBH_fun(SPP=SP, DBH = DBH, CR=CR, BAL.SW=BAL.SW, 
-                         BAL.HW=BAL.HW, CSI=CSI, b0.SPP=ddbh.b0.spp, 
-                         b2.SPP=ddbh.b2.spp, b3.SPP=ddbh.b3.spp, b4.SPP=ddbh.b4.spp)*cyclen)
+  tree= tree %>% #mutate(Form=NA, Risk=NA) %>% 
+    dplyr::left_join(ddbh.fun.spp,
+                     by=c('SP'='Spp')) %>%
+    dplyr::mutate(ddbh.b0.spp=ifelse(is.na(ddbh.b0.spp), 0, ddbh.b0.spp), 
+                  ddbh.b2.spp=ifelse(is.na(ddbh.b2.spp), 0, ddbh.b2.spp), 
+                  ddbh.b3.spp=ifelse(is.na(ddbh.b3.spp), 0, ddbh.b3.spp), 
+                  ddbh.b4.spp=ifelse(is.na(ddbh.b4.spp), 0, ddbh.b4.spp)) %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dDBH=dDBH_fun(SPP=SP, DBH = DBH, CR=CR, BAL.SW=BAL.SW, 
+                                BAL.HW=BAL.HW, CSI=CSI, b0.SPP=ddbh.b0.spp, 
+                                b2.SPP=ddbh.b2.spp, b3.SPP=ddbh.b3.spp, b4.SPP=ddbh.b4.spp)*cyclen,
+                  dDBH.form.risk.mod=ifelse(!is.na(Form) & !is.na(Risk),
+                                            dDBH.HW.mod(SPP=SP, DBH=DBH, BAL=BAL, 
+                                                        Form=Form, Risk=Risk),
+                                            1)) %>% 
+    dplyr::ungroup()
   
   tree$dDBH.thin.mod=mapply(dDBH.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, 
     BApre=tree$BApre, QMDratio=tree$QMDratio, 
@@ -3033,24 +3150,22 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$dDBH.SBW.mod=mapply(dDBH.SBW.mod,Region=tree$Region,
     SPP=tree$SP,DBH=tree$DBH,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,
     CR=tree$CR,avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=tree$CDEF)
-cat("Form 1\n")
-  if (! (is.null(tree$Form) || is.null(tree$Risk))) tree$dDBH.HW.mod.x=
-    ifelse(is.na(tree$Form) | is.na(tree$Risk),1,mapply(dDBH.HW.mod,
-      SPP=tree$SP,DBH=tree$DBH,BAL=tree$BAL,Form=tree$Form,Risk=tree$Risk)) else
-    tree$dDBH.HW.mod.x=1
-  
-  tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod*tree$dDBH.HW.mod.x * 
+
+ 
+  tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod*tree$dDBH.form.risk.mod*
     rdMod.dDBH_RDmod
   
+ 
   #height increment  
   tree= tree %>%
-    left_join(dht.fun.spp, 
+    dplyr::left_join(dht.fun.spp, 
               by=c('SP'='Spp')) %>% 
-    mutate(dht.b0.spp=ifelse(is.na(dht.b0.spp), 0, dht.b0.spp), 
+    dplyr::mutate(dht.b0.spp=ifelse(is.na(dht.b0.spp), 0, dht.b0.spp), 
            dht.b2.spp=ifelse(is.na(dht.b2.spp), 0, dht.b2.spp)) %>% 
-    rowwise() %>% 
-    mutate(dHT=dHT_fun(SPP=SP, HT=HT, CR=CR, 
-                       CCFL=CCFL, CSI=CSI, b0.SPP=dht.b0.spp, b2.SPP=dht.b2.spp)*cyclen)
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dHT=dHT_fun(SPP=SP, HT=HT, CR=CR, 
+                       CCFL=CCFL, CSI=CSI, b0.SPP=dht.b0.spp, b2.SPP=dht.b2.spp)*cyclen) %>% 
+    dplyr::ungroup()
   
 
   tree$dHT.thin.mod=mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, 
@@ -3064,6 +3179,7 @@ cat("Form 1\n")
   # cap height growth
   dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
   if (verbose) cat ("mean dHTmult=",mean(dHTmult),if (usedHTCap) " applied\n" else " not applied\n")
+  ifelse(is.na(dHTmult), 1, dHTmult) # NA values halt execution 8/19/21
   if (usedHTCap) tree$dHT=tree$dHT*dHTmult
   
   #crown recession
@@ -3076,18 +3192,23 @@ cat("Form 1\n")
 
   tree$dHCB=tree$dHCB*tree$dHCB.thin.mod
   
+  # cat ("na DBH values=", sum(is.na(tree$DBH)), "\n")
+  # cat ("mean DBH=",mean(tree$DBH),"\n")
+  # cat ("mean EXPF=",mean(tree$EXPF),"\n")
+  # cat ("na EXPF values=", sum(is.na(tree$EXPF)), "\n")
+  
   ## Mortality
-  tree = ddply (tree,.(PLOT),
+  tree = ddply (tree,.(PLOT, YEAR),
                 function (x)
                 { 
                   x = x[sort(x$DBH,decreasing=TRUE,index.return=TRUE)$ix,]
-                  Csward1<-cumsum(x$EXPF*(0.00015+0.00218*x$SG)*((x$DBH/25)^1.6))
+                  Csward1<-cumsum(x$EXPF*(0.00015+0.00218*x$SG)*((x$DBH/25)^1.605))
                   bag=(((x$DBH+x$dDBH)^2*0.00007854)-
                          (x$DBH)^2*0.00007854)*x$EXPF
                   x$Sbag30=sum(ifelse(Csward1<=0.3,bag,0))
                   x
-                })              
-  
+                })
+ 
   tree$stand.pmort=as.vector(mapply(stand.mort.prob,Region=tree$Region,BA=tree$BAPH,
       BAG=tree$Sbag30/cyclen,QMD=tree$qmd,pBA.BF=tree$pBF.ba,pBA.IH=tree$pIHW.ba)[1,])    
  
@@ -3117,6 +3238,7 @@ cat("Form 1\n")
     BA.BF=tree$pBF.ba*tree$BAPH,topht=tree$topht,CDEF=tree$CDEF)
   if (verbose) cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
   
+  
   tree$stand.mort.BA = if (mortType == "discrete") 
   {
     tree.mort.lamda = -0.05
@@ -3134,6 +3256,7 @@ cat("Form 1\n")
     tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*pmort
   } 
   
+ 
   #spruce budworm mortality modifier
   tree$tsurv.SBW.mod=mapply(tree.mort.mod.SBW,Region=tree$Region,SPP=tree$SP,
     DBH=tree$DBH,CR=tree$CR,HT=tree$HT,BAL.HW=tree$BAL.HW,BAL.SW=tree$BAL.SW,
@@ -3143,32 +3266,51 @@ cat("Form 1\n")
   tree$tmort.thin.mod=mapply(tmort.thin.mod, SPP=tree$SP, PERCBArm = tree$pBArm, 
     BApre=tree$BApre, QMDratio=tree$QMDratio, YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
   if (verbose) cat ("mean tree$tmort.thin.mod=",mean(tree$tmort.thin.mod),"\n")
+
   tree$tmort.HW.mod=if (!is.null(tree$Form)) ifelse(is.na(tree$Form),1,
     mapply(HW.mort.mod,SPP=tree$SP,DBH=tree$DBH,Form=tree$Form,BAL=tree$BAL,BA=tree$BAPH)) else 1
  
   tree.surv.lamda = 0.0
   tree$tsurv=pmax(0,pmin(1-(1-mapply(tree.mort.prob,tree$SP,tree$DBH)*(exp(tree.surv.lamda*(cyclen-1))))*
-    tree$tsurv.SBW.mod*tree$tmort.thin.mod*tree$tmort.HW.mod,1.0))  # BLC - added in HW.mod to match AW 9.5/9.6 code
-                                
-  tree$mortBA=((tree$DBH+(tree$dDBH))^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
+                           tree$tsurv.SBW.mod*tree$tmort.thin.mod*tree$tmort.HW.mod,1.0))  # BLC - added in HW.mod to match AW 9.5/9.6 code
   
-  tree = ddply (tree,.(PLOT),
-                function (x)
-                {
-                  # sort the trees on the plot on increasing survivorship
-                  #x = x[sort(x$tsurv,decreasing=FALSE,index.return=TRUE)$ix,]
-                  x = arrange(x, tsurv, DBH) # 12/21/2020 replaced x = sort.data.frame(x,~+tsurv+DBH)
-                  x$bb=sum(x$mortBA)
-                  x$cc=ifelse(x$stand.mort.BA>0,x$bb/x$stand.mort.BA,0)
-                  x$dd=ifelse(x$stand.mort.BA>0,x$mortBA/x$cc,0)
-                  x$ba.mort=0.00007854*(x$DBH+x$dDBH)^2
-                  x$dEXPF=ifelse(x$stand.mort.BA>0,x$dd/x$ba.mort,0)
-                  x$EXPF.ba=(((x$DBH+(x$dDBH))^2*0.00007854)*x$dEXPF)
-                  x$Dead=sum(x$EXPF.ba)
-                  x
-                })
-                
-  tree$dEXPF2=tree$EXPF*((1-tree$tsurv)*tree$stand.pmort)
+  # tree$mortBA=((tree$DBH+(tree$dDBH))^2*0.00007854)*tree$EXPF*(1-tree$tsurv)
+  # 
+  # tree = ddply (tree,.(PLOT),
+  #               function (x)
+  #               {
+  #                 # sort the trees on the plot on increasing survivorship
+  #                 #x = x[sort(x$tsurv,decreasing=FALSE,index.return=TRUE)$ix,]
+  #                 x = dplyr::arrange(x, tsurv, DBH) # 12/21/2020 replaced x = sort.data.frame(x,~+tsurv+DBH)
+  #                 x$bb=sum(x$mortBA) # plot sum of tree ba mortality
+  #                 x$cc=ifelse(x$stand.mort.BA>0,x$bb/x$stand.mort.BA,0) # plot sum of tree ba mortality / stand ba mortality
+  #                 x$dd=ifelse(x$stand.mort.BA>0,x$mortBA/x$cc,0) # tree ba mortality / above ratio
+  #                 x$ba.mort=0.00007854*(x$DBH+x$dDBH)^2 # tree basal area (not per acre)
+  #                 x$dEXPF=ifelse(x$stand.mort.BA>0,x$dd/x$ba.mort,0)
+  #                 x$EXPF.ba=(((x$DBH+(x$dDBH))^2*0.00007854)*x$dEXPF)
+  #                 x$Dead=sum(x$EXPF.ba)
+  #                 x
+  #               })
+  #               
+  # tree$dEXPF2=tree$EXPF*((1-tree$tsurv)*tree$stand.pmort)
+
+
+  tree=tree %>% # 9/10/2021 updated mortality calculation execution 
+    dplyr::mutate(stand.mort.BA=case_when(stand.mort.BA>BAPH ~BAPH, # constrain stand BA mortality to total stand BA 
+                                          TRUE ~stand.mort.BA),
+           tree.mortBA=((DBH+dDBH)^2*0.00007854)*EXPF*(1-tsurv)) %>% 
+    dplyr::group_by(PLOT) %>% 
+    dplyr::mutate(sum.tree.mortBA=sum(tree.mortBA)) %>%  # plot sum of tree ba mortality
+    dplyr::ungroup() %>% 
+    dplyr::mutate(cc=ifelse(stand.mort.BA>0, sum.tree.mortBA/stand.mort.BA, 0), # plot sum of tree ba mortality / stand ba mortality
+           dd=ifelse(stand.mort.BA>0, tree.mortBA/cc, 0), # tree ba mortality / tree-stand mortality ratio
+           ba.mort=(0.00007854*(DBH+dDBH)^2), # tree basal area
+           dEXPF=ifelse(stand.mort.BA>0, dd/ba.mort,0))
+  # unused variables
+  #  EXPF.ba=(((DBH+dDBH)^2*0.00007854)*dEXPF))
+  #  Dead=sum(EXPF.ba))
+  #  dEXPF2=EXPF*((1-tsurv)*stand.pmort)
+  
 
 
   ##INGROWTH
@@ -3244,9 +3386,58 @@ cat("Form 1\n")
   tree$DBH <- tree$DBH+tree$dDBH
   tree$HT <- tree$HT+tree$dHT
   tree$HCB <- tree$HCB + tree$dHCB
-  tree$EXPF <- tree$EXPF-tree$dEXPF     
+  if (any(is.na(tree$EXPF)))  tree$EXPF [is.na(tree$EXPF)]  = 0
+  if (any(is.na(tree$dEXPF))) tree$dEXPF[is.na(tree$dEXPF)] = 0
+  tree$EXPF <- tree$EXPF-tree$dEXPF
+  tree$EXPF[tree$EXPF<.00001] = .00001
   tree$CR=(tree$HT-tree$HCB)/tree$HT
+  tree=rbind(tree,ingrow)        
+ 
+  #tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,0)
+  #tree$SDIadd=(tree$DBH.10/25.4)^1.605*tree$EXPF
+  # 
+  # temp = SPP.func(tree$SP)  
+  # tree$SPtype=temp$SPtype
+  # tree$shade=temp$shade
+  # tree$SG=temp$sg
+  # 
+  # tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
+  # tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
+  # tree$SG.wt=tree$SG*tree$ba
+  # tree$DBH.SW=ifelse(tree$SPtype=='SW',tree$DBH,0)
+  # 
+  # temp=ddply(tree,.(PLOT),plyr::summarize,ELEV=mean(ELEV,na.rm=T),BAPH=sum(ba,na.rm=T),tph=sum(EXPF),meanSG=sum(SG.wt)/sum(ba),ba.SW=sum(ba.SW,na.rm=T),
+  #            SDI=sum(SDIadd,na.rm=T),avgDBH.SW=mean(DBH.SW,na.rm=T),avgDBH=mean(DBH.10,na.rm=T),sdDBH=sd(DBH.10,na.rm=T),
+  #            SPP.DIV=length(unique(SP)),minDBH=min(DBH.10,na.rm=T),maxDBH=max(DBH.10,na.rm=T))
+  # 
+  # temp$pSW.ba=temp$ba.SW/temp$BAPH
+  # temp$pHW.ba=1-temp$pSW.ba
+  # temp$avgDBH.SW=ifelse(is.na(temp$avgDBH.SW),0,temp$avgDBH.SW)
+  # temp$DBH.RANGE=temp$maxDBH-temp$minDBH
+  # temp$DBH.CV=temp$sdDBH/temp$avgDBH
+  # temp$DBH.R=temp$avgDBH*(1+(((1.6064-1.0)*1.6064)/2)*temp$DBH.CV)^1.6064
+  # temp$meanSG=ifelse(temp$meanSG>.80,.8,temp$meanSG)
+  # temp$SDImax=483.2448-1.4563*temp$pHW.ba-212.705*log(temp$meanSG)+45.351*
+  #   sqrt(temp$DBH.RANGE)+14.811*temp$SPP.DIV-0.0848*temp$ELEV+0.0001*
+  #   temp$ELEV^2+331.3714*(1/CSI)
+  # temp$SDImax2= 1347.445-1003.870*temp$meanSG #Weiskittel and Kuehne (2019)
+  # #temp$SDImax2=-6017.3*temp$meanSG+4156.3
+  # temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
+  # temp$RD=temp$SDI/temp$SDImax
+  # temp$RD.flag=ifelse(temp$RD>=maxRD,1,0)
+  # temp$SDI2=temp$SDImax*maxRD*temp$RD.flag
+  # temp$SDIrat=temp$SDI2/temp$SDI
+  # 
+  # Sum.temp=temp
+  # rtnVars=intersect(rtnVars,colnames(tree))
+  # tree<-subset(tree,select=rtnVars)                    
+  # tree=merge(tree,Sum.temp,by="PLOT")
+  # tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,0)
+  # tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
+  # tree$SDI.new=ifelse(tree$RD.flag==1,tree$SDIadd*tree$SDIrat,tree$SDIadd)
+  # tree$EXPF=ifelse(tree$RD.flag==1,(25.4^1.605*tree$SDI.new)/(tree$DBH^1.605),tree$EXPF)
+  
   rtnVars=intersect(rtnVars,colnames(tree))
   tree<-subset(tree,select=rtnVars)                    
-  rbind(tree,ingrow)                                    
+
 }         
