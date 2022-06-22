@@ -1,0 +1,5 @@
+# Comment line are preceeded by hash symbol
+# Each line is a file pattern followed by one or more owners.
+
+# Default repo owners take precdence, unless subsequent match
+*         @mshettles @DavidLRfs @wagnerds
