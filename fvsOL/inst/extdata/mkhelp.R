@@ -1,8 +1,5 @@
 require(openxlsx)
 
-#edit "root" below to match the root fvsOL location on your machine
-root = "C:/GitFVS/ForestVegetationSimulator-Interface/fvsOLdev/"
-
 xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE,sdat=NULL)
 {
   if (is.null(xlsxfile) || !file.exists(xlsxfile)) return(NULL)
@@ -37,10 +34,10 @@ xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE,sdat=NULL)
     return (html)                                 
   } else return (NULL)
 }  
- 
-fr = paste0(root,"data/fvsOnlineHelpRender.RData")                         
-fn =  paste0(root,"inst/extdata/fvsOnlineHelp.html")
-xlsxfile= paste0(root,"inst/extdata/databaseDescription.xlsx")                           
+  
+fr = "data/fvsOnlineHelpRender.RData"                            
+fn =  "inst/extdata/fvsOnlineHelp.html"
+xlsxfile="inst/extdata/databaseDescription.xlsx"                            
 cat ("Erase ",fr,"\n")
 unlink(fr)
 fvshelp = readChar(fn, file.size(fn)) 
