@@ -4175,6 +4175,8 @@ cat ("No climate attributes data found.\n")
           progress$close()
 cat ("exiting, stop fvschild\n")          
           try(stopCluster(fvschild))
+          Sys.sleep(0.3)
+          unlink(paste0(globals$fvsRun$uuid,".db"))
         }) 
         clusterEvalQ(fvschild,library(rFVS))
         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
