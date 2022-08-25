@@ -260,7 +260,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
     list(
       mkScheduleBox("pnDOD",prms,"Schedule the date of disturbance",
         globals,input,output),    
-      div(style="background-color: rgb(255,240,240)",
+      if(full){div(style="background-color: rgb(255,240,240)",
         myInlineTextInput("pnYD", "Years following disturbance for site preparation: ", 
           globals$currentCmdDefs["pnYD"]),
         fixedRow(
@@ -269,7 +269,7 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
           column(width=6,          
             myInlineTextInput("pnPMch", "% mechanically scarified: ", 
               globals$currentCmdDefs["pnPMch"]))
-      )),
+      ))},
       div(style="background-color: rgb(240,240,255)",
         fixedRow(
           column(width=5,          
@@ -332,15 +332,14 @@ cat ("in PlantNaturalFullWin code, globals$currentCmdDefs=",globals$currentCmdDe
                                                 
 PlantNaturalFullWin.mkKeyWrd <- function(input,output,full=TRUE)
 { 
-  kwds = list()
+  kwds = sprintf("Estab     %10s",input$pnDOD)
 cat ("in PlantNaturalFullWin.mkKeyWrd\n")
-  if (full & input$pnPBrn != " ") kwds = sprintf("\nBurnPrep  %10s%10s",
-      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$PBrn)
-  if (full & input$pnPMch != " ") kwds = if (length(kwds)) paste0(kwds,
+  if (full & (!is.null(input$pnPBrn) && input$pnPBrn != " ")) kwds = paste0(kwds,
+    sprintf("\nBurnPrep  %10s%10s",
+      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPBrn))
+  if (full & (!is.null(input$pnPMch) && input$pnPMch != " ")) kwds = paste0(kwds,
     sprintf("\nMechPrep  %10s%10s",
-      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch)) else
-    sprintf("\nMechPrep  %10s%10s",
-      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch) 
+      as.character(as.numeric(input$pnDOD)+as.numeric(input$pnYD)),input$pnPMch))
   kwds = if (length(kwds)) paste0(kwds,"\n",if (input$pnSprt == "1") "Sprout" else "NoSprout") else
          if (input$pnSprt == "1") "Sprout" else "NoSprout"
   if (full) kwds = paste0(kwds,"\n",if (input$pnIng  == "1") "InGrow" else "NoInGrow")

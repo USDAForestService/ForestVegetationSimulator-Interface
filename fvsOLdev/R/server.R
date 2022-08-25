@@ -110,7 +110,7 @@ mkGlobals <- setRefClass("globals",
     specLvl="list",dClsLvl="list",htClsLvl="list",treeLvl="list",tbsFinal="list",
     selRuns = "character", selUuids = "character",selAllVars="logical",
     explorePass="numeric",lastNewPrj="character",prjFilesOnly="logical",
-    tableMessage="logical",exploring="logical")) 
+    tableMessage="logical",exploring="logical", RepsDesign='logical')) 
 
 isLocal <- function () Sys.getenv('SHINY_PORT') == ""
 
@@ -3987,8 +3987,28 @@ cat ("changeind=",globals$changeind,"\n")
 cat("Nulling uiRunPlot at Save and Run\n")
         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
         globals$currentQuickPlot = character(0) 
-        # timeing checks.
+        # timing checks.
         thisYr = as.numeric(format(Sys.time(), "%Y"))
+        # First check to see if required start year, end year, or cycle length fields are blank.
+        if (input$startyr =="") {
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common starting year is blank."))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+        }
+        if (input$endyr =="") {
+            session$sendCustomMessage(type = "infomessage",
+                    message = paste0("The common ending year is blank."))
+            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+            return()
+          }
+        if (input$cyclelen =="") {
+          session$sendCustomMessage(type = "infomessage",
+                  message = paste0("The growth and reporting interval is blank."))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+        # other start year checks
         for(i in 1:length(globals$fvsRun$stands)){
           if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
                ((input$startyr !="") && nchar(input$startyr) > 4))){
@@ -4005,14 +4025,8 @@ cat("Nulling uiRunPlot at Save and Run\n")
             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
             return()
           }
-          if (input$startyr =="") {
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common starting year is blank."))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
         }
-        # End year checks
+        # other end year checks
         for(i in 1:length(globals$fvsRun$stands)){
           if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
             (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
@@ -4031,25 +4045,13 @@ cat("Nulling uiRunPlot at Save and Run\n")
             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
             return()
           }
-          if (input$endyr =="") {
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common ending year is blank."))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
         }
-        # Cycle length checks
+        # other cycle length check
         if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
              ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
           session$sendCustomMessage(type = "infomessage",
                   message = paste0("The growth interval of ", input$cyclelen,
                   " years is greater than the maximum 50 years"))
-          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-          return()
-        }
-        if (input$cyclelen =="") {
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The growth interval is blank."))
           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
           return()
         }
@@ -4077,7 +4079,7 @@ cat("Nulling uiRunPlot at Save and Run\n")
               }
             }
           }
-        }        
+        }  
         progress <- shiny::Progress$new(session,min=1,
                            max=length(globals$fvsRun$stands)+10)
         progress$set(message = "Run preparation: ", 
