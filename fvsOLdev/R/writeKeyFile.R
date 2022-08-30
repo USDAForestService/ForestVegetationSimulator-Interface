@@ -442,6 +442,7 @@ kcpVetting <- function (kcpconts)
 
 writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
+  if (!exists("devVersion")) devVersion <<- "fvsOLdev" %in% (.packages())
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
   if (verbose) cat("writeKeyFile, num stds=",length(stds),
     " globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")
@@ -482,7 +483,8 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     if (length(idxs)) wtofix[[sf]] = rwts[idxs]/sum(rwts[idxs])
   }
   extns = globals$activeFVS[globals$fvsRun$FVSpgm][[1]]
-  source(system.file("extdata", "autoOutKeys.R", package = "fvsOL"),local=TRUE)
+  source(system.file("extdata", "autoOutKeys.R", 
++         package = if (devVersion) "fvsOLdev" else "fvsOL"), local=TRUE)
   defaultOut = sub ("FVSOut",globals$fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if (is.null(keyFileName)) keyFileName=paste0(globals$fvsRun$uuid,".key")
