@@ -484,7 +484,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
   }
   extns = globals$activeFVS[globals$fvsRun$FVSpgm][[1]]
   source(system.file("extdata", "autoOutKeys.R", 
-+         package = if (devVersion) "fvsOLdev" else "fvsOL"), local=TRUE)
++         package == if (devVersion) "fvsOLdev" else "fvsOL"), local=TRUE)
   defaultOut = sub ("FVSOut",globals$fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if (is.null(keyFileName)) keyFileName=paste0(globals$fvsRun$uuid,".key")
