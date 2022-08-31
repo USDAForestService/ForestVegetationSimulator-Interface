@@ -1,4 +1,4 @@
-# $Id$
+# $Id: mkInputElements.R 4001 2022-05-23 15:04:37Z mshettles521 $
 
 mkeltList <- function (pkeys,prms,globals,input,output,
                        cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
@@ -428,6 +428,7 @@ mkVarList <- function (globals)
   varList = c(
      " "=" ",
      "Age: Age at beginning of an FVS cycle"="Age", 
+     "AgeCmp: Estimated average age for the dominant size class"="AgeCmp",
      "Aspect: Aspect in degrees"="Aspect", 
      "BaDBH: Before thin quadractic mean DBH"="BaDBH", 
      "BBA: Before thin basal area"="BBA", 
@@ -560,10 +561,12 @@ mkFuncList <- function (globals)
     "DBHDist: Returns the diameter of the tree corresponding to the nominal percentile in the distribution of one of 11 specific attributes"="DBHDist",
     "Decade: Returns the argument the corresponds to the decade the simulation is in"="Decade",
     "HTDist: Returns the height of the tree corresponding to the nominal percentile in the trees per acre distribution"="HTDist",
+    "Index: Returns the value associated with the index specified in the first argument"="Index",
     "LinInt: Returns a linear interpolation between points on a simple Y-over-X graph"="LinInt",                   
     "MaxIndex: Returns the argument index corresponding to the largest value"="MaxIndex",                
     "MinIndex: Returns the argument index corresponding to the smallest value"="MinIndex",
     "Normal: Returns a random normal variate given a mean and std. dev"="Normal",
+    "PointID: Returns the inventory point number corresponding to the FVS sequential point number"="PointID",
     "SpMcDBH: Returns the trees, basal area, or one of 10 other attributes for trees of a given species, tree value class, or tree-size range"="SpMcDBH",
     "StrStat: Returns the information in the structural statistics report under before or after thinning conditions"="StrStat",
     "SumStat: Returns values from the Summary Statistics table"="SumStat",

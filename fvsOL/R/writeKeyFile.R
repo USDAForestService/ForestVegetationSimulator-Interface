@@ -80,6 +80,7 @@ kcpVetting <- function (kcpconts)
     commkw <- grep("COMMENT", toupper(kcpconts[j]))
     commkw <- length(commkw)
     compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
+    if(!is.na(match("DESIGN", toupper(kcpconts[j]))))RepsDesign=TRUE
     # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
     if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
     if(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw){
@@ -441,6 +442,7 @@ kcpVetting <- function (kcpconts)
 
 writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
 {
+  if (!exists("devVersion")) devVersion <<- "fvsOLdev" %in% (.packages())
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
   if (verbose) cat("writeKeyFile, num stds=",length(stds),
     " globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")
@@ -481,7 +483,8 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     if (length(idxs)) wtofix[[sf]] = rwts[idxs]/sum(rwts[idxs])
   }
   extns = globals$activeFVS[globals$fvsRun$FVSpgm][[1]]
-  source(system.file("extdata", "autoOutKeys.R", package = "fvsOL"),local=TRUE)
+  source(system.file("extdata", "autoOutKeys.R", 
++         package = if (devVersion) "fvsOLdev" else "fvsOL"), local=TRUE)
   defaultOut = sub ("FVSOut",globals$fvsRun$uuid,defaultOut)
   if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if (is.null(keyFileName)) keyFileName=paste0(globals$fvsRun$uuid,".key")
@@ -498,6 +501,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
   cycleat = sort(union(cycleat,as.numeric(globals$fvsRun$endyr))) 
   for (std in globals$fvsRun$stands)
   { 
+    RepsDesign=FALSE
     names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
@@ -563,7 +567,6 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         {
           if(lastExt != "base") cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
-          if(lastExt == lastExt) cat (extensPrefixes[exten],"\n",file=fc,sep="")
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
@@ -626,6 +629,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
           }
           cat ("!Exten:",cmp$exten," Title:",cmp$title,"\n",
                     cmp$kwds,"\n",file=fc,sep="")
+          if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
         }
       }
     } 
@@ -681,7 +685,8 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       else {
       cat ("!Exten:",cmp$exten," Name:",cmp$kwdName,"\n",
                      cmp$kwds,"\n",file=fc,sep="")  
-        }
+      }
+      if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
     }
     if (!is.null(lastCnd) && lastExt != "base") {
       cat ("End\n",file=fc,sep="")
@@ -690,7 +695,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
     if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
-    if (!is.null(wtofix[[std$sid]]))
+    if (!is.null(wtofix[[std$sid]]) && !RepsDesign)
     {
       swt=as.numeric(fvsInit$SAM_WT[sRows])
       if (is.na(swt)) swt=1
@@ -698,7 +703,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       cswt=sprintf("%10s",as.character(swt))
       if (nchar(cswt)>10) cswt=sprintf("%9.5g",swt)
       cat ("Design",strrep(" ",53),cswt,"\n",file=fc,sep="")
-    } 
+    }
     cat ("SPLabel\n",file=fc,sep="")
     for (i in 1:length(std$grps))
     {

@@ -1,4 +1,4 @@
-# $Id$
+# $Id: fvsRunUtilities.R 3982 2022-05-10 18:07:19Z mshettles521 $
 
 loadStandTableData <- function (globals, dbIcon)
 {
@@ -231,6 +231,7 @@ cat("mkSimCnts, foundStand=",foundStand," start=",start," end=",end,
   paste0("length(list)=",length(list)) else sels,"\n")
     if (length(fvsRun$stands)) for (i in start:end) 
     {
+      if(length(fvsRun$stands) < i) break
       ## these two lines are needed to deal with old runs that may not have these elements in the stand class
       if (class(fvsRun$stands[[i]]$rep  )!="numeric") fvsRun$stands[[i]]$rep  =0
       if (class(fvsRun$stands[[i]]$repwt)!="numeric") fvsRun$stands[[i]]$repwt=1
@@ -1851,7 +1852,7 @@ loadFVSRun <- function(db,uuid)
   if (missing(uuid)) stop("uuid required")
   rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",uuid,"')"))
   fvsRun = if (nrow(rtn)) extnFromRaw(rtn[1,1][[1]]) else NULL
-  if (!is.null(fvsRun)) attr(attr(fvsRun,"class"),"package") = "fvsOL"
+  if (!is.null(fvsRun)) attr(attr(fvsRun,"class"),"package") = if (devVersion) "fvsOLdev" else "fvsOL"
   fvsRun
 }
 
