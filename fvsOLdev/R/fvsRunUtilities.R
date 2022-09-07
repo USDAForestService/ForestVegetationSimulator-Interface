@@ -1852,7 +1852,7 @@ loadFVSRun <- function(db,uuid)
   if (missing(uuid)) stop("uuid required")
   rtn = dbGetQuery(db,paste0("select run from FVSRuns where (uuid='",uuid,"')"))
   fvsRun = if (nrow(rtn)) extnFromRaw(rtn[1,1][[1]]) else NULL
-  if (!is.null(fvsRun)) attr(attr(fvsRun,"class"),"package") = if (devVersion) "fvsOLdev" else "fvsOL"
+  if (!is.null(fvsRun)) attr(attr(fvsRun,"class"),"package") = "fvsOL"
   fvsRun
 }
 
