@@ -1,4 +1,4 @@
-# $Id$
+# $Id: customRun_fvsRunAdirondack.R 4019 2022-08-31 20:33:55Z nickcrookston $
 
 # Note: This is very carefully coded.
 
@@ -192,7 +192,7 @@ cat ("in uiAdirondack uiAdirondackVolume=",
     radioButtons("uiAdirondackIngrowth", "Simulate ingrowth:", 
       c("Yes","No"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackIngrowth),
-    fvsOL:::myInlineTextInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
+    myInlineTextInput("uiAdirondackMinDBH","Minimum DBH for ingrowth", 
                fvsRun$uiCustomRunOps$uiAdirondackMinDBH),
     radioButtons("uiAdirondackMort", "Mortality model:", 
       c("Adirondack","Base Model"),inline=TRUE,
@@ -200,7 +200,7 @@ cat ("in uiAdirondack uiAdirondackVolume=",
     radioButtons("uiAdirondackVolume", "Merchantable volume logic:", 
       c("Kozak","Base Model"),inline=TRUE,
       selected=fvsRun$uiCustomRunOps$uiAdirondackVolume),
-    fvsOL:::myInlineTextInput("uiAdirondackCutPoint","CutPoint", 
+    myInlineTextInput("uiAdirondackCutPoint","CutPoint", 
                fvsRun$uiCustomRunOps$uiAdirondackCutPoint)
   )
 }

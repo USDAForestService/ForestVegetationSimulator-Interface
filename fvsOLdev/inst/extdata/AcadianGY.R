@@ -1,6 +1,6 @@
-# $Id$
+# $Id: AcadianGY.R 3968 2022-04-28 10:36:05Z nickcrookston $
 ################################################################################
-# v12.1.4.r 
+# v12.1.5.r 
 #
 # Acadian Variant of the Forest Vegetation Simulator (FVS-ACD)                                                                                            #
 # Developed by Aaron Weiskittel, University of Maine, School of Forest Resources
@@ -23,11 +23,17 @@ library(plyr)  #needed for ddply
 library(dplyr) # added 12/21/2020 for dplyr::arrange, mutate, rowwise, left_join, tribble
 library(nlme)  #needed for groupedData and gsummary
 
-AcadianVersionTag = "AcadianV12.1.4"
+AcadianVersionTag = "AcadianV12.1.5"
 
 ##############################
 #### major update summary ####
 #
+
+# 12.1.5
+  # ING.TreeList function
+    # Modified function in response to ingrowth calculation error; stand id dependency
+  # AcadianGYOneStand function 
+    # Run at one year cycle length only
 
 # 12.1.4
   # Fixed diameter hardwood form and risk modifier 
@@ -1293,9 +1299,13 @@ ING.TreeList=function(Sum.temp,INGROWTH,MinDBH)
   if(nrow(TreeCon)==0 || toupper(substring(INGROWTH,1,1)) == "N") return(NULL)
   for(i in 1:nrow(TreeCon))
   {
-    STAND.c=as.character(unique(TreeCon$STAND[i]))
+    STAND.c=ifelse(is.null(TreeCon$STAND[i]),
+                   1,
+                   as.character(unique(TreeCon$STAND[i])))
     PLOT.c=TreeCon$PLOT[i]
-    YEAR.c=TreeCon$YEAR[i]+1
+    YEAR.c=ifelse(is.null(TreeCon$YEAR[i]),
+                  1,
+                  as.numeric(TreeCon$YEAR[i]+1))
     TREENum=TreeCon$maxTREE[i]
     #SPP=c('BF','RM','WP','OH','OS','GB','PB','YB','RS','BS','WS')
     #SPPn=c(TreeCon$BF.ING[i],TreeCon$RM.ING[i],TreeCon$WP.ING[i],TreeCon$OH.ING[i],TreeCon$OS.ING[i],TreeCon$GB.ING[i],TreeCon$PB.ING[i],
@@ -1897,8 +1907,7 @@ KozakTaper=function(Bark,SPP,DHT,DBH,HT,Planted){
     b5_tap=0.1074
     b6_tap=-0.5131
     b7_tap=0
-  }
-  else if(Bark=='ib' & SPP=='WS'){
+    #parms w/ FIA data
     a0_tap=0.75826241
     a1_tap=0.98481863
     a2_tap=0.09956165
@@ -2799,13 +2808,14 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   verbose            = if (is.null(ops$verbose))            FALSE else ops$verbose
   INGROWTH           = if (is.null(ops$INGROWTH))           "Y"   else ops$INGROWTH
   MinDBH             = if (is.null(ops$MinDBH))             10    else ops$MinDBH
-  cyclen             = if (is.null(ops$cyclen))             1     else ops$cyclen
+  #cyclen             = if (is.null(ops$cyclen))             1     else ops$cyclen
+  cyclen             = 1 # 2022-09-01 set cycle length to 1 
   CutPoint           = if (is.null(ops$CutPoint))           0.95  else ops$CutPoint
   mortType           = if (is.null(ops$mortType))      "discrete" else ops$mortType
   maxRD              = if (is.null(ops$maxRD))              1.0   else ops$maxRD
-  useDBH_RDmodifier  = if (is.null(ops$useDBH_RDmodifier )) FALSE  else ops$useDBH_RDmodifier # 9/10/21 set default to FALSE
-  useHT_RDmodifier   = if (is.null(ops$useHT_RDmodifier  )) FALSE  else ops$useHT_RDmodifier  # 9/10/21 set default to FALSE
-  useMORT_RDmodifier = if (is.null(ops$useMORT_RDmodifier)) FALSE  else ops$useMORT_RDmodifier # 9/10/21 set default to FALSE
+  useDBH_RDmodifier  = if (is.null(ops$useDBH_RDmodifier )) TRUE  else ops$useDBH_RDmodifier
+  useHT_RDmodifier   = if (is.null(ops$useHT_RDmodifier  )) TRUE  else ops$useHT_RDmodifier  
+  useMORT_RDmodifier = if (is.null(ops$useMORT_RDmodifier)) TRUE  else ops$useMORT_RDmodifier 
   usedHTCap          = if (is.null(ops$usedHTCap))          TRUE  else ops$usedHTCap
   SBW                = if (is.null(ops$SBW))                TRUE  else ops$SBW                           
   rtnVars            = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE","SP",
@@ -2841,6 +2851,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   if (is.null(tree$QMDratio)) tree$QMDratio = NA
   if (is.null(tree$YEAR_CT))  tree$YEAR_CT  = NA
   
+ # ingrowth
+  ops$MinDBH= if (is.null( ops$MinDBH) || is.na( ops$MinDBH) || !is.numeric(ops$MinDBH))  3.0 else  ops$MinDBH
   #set Form & Risk
   if (is.null(tree$Form) || is.null(tree$Risk))   
   {
@@ -2859,6 +2871,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   if (is.null(tree$ELEV))     tree$ELEV   = ELEV
   tree$ELEV=ifelse(is.na(tree$ELEV), ELEV, tree$ELEV)
   
+  # need to catch tree records without valid species code
   tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
   tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
   tree$ba.WP=ifelse(tree$SP=='WP',tree$ba,0)
@@ -3041,9 +3054,9 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   if (verbose)
   {
     cat("In RDmods, Num trees where tree$RD>.9 = ",sum(tree$RD>0.9),"\n")
-    cat("in RDmods - mean(rdMod.dDBH_RDmod) = ",mean(rdMod.dDBH_RDmod),"\n")
-    cat("in RDmods - mean(rdMod.dHT_RDmod) = ",mean(rdMod.dHT_RDmod),"\n")
-    cat("in RDmods - mean(rdMod.dMORT_RDmod) = ",mean(rdMod.dMORT_RDmod),"\n")
+    cat("in RDmods - mean(rdMod.dDBH_RDmod) = ",mean(tree$rdMod.dDBH_RDmod),"\n")
+    cat("in RDmods - mean(rdMod.dHT_RDmod) = ",mean(tree$rdMod.dHT_RDmod),"\n")
+    cat("in RDmods - mean(rdMod.dMORT_RDmod) = ",mean(tree$rdMod.dMORT_RDmod),"\n")
   }
   
   #form and risk
@@ -3153,7 +3166,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
 
  
   tree$dDBH=tree$dDBH*tree$dDBH.thin.mod*tree$dDBH.SBW.mod*tree$dDBH.form.risk.mod*
-    rdMod.dDBH_RDmod
+    tree$rdMod.dDBH_RDmod
   
  
   #height increment  
@@ -3174,7 +3187,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$dHT.SBW.mod=mapply(dHT.SBW.mod,SPP=tree$SP,DBH=tree$DBH,topht=tree$topht,
     CR=tree$CR, avg.DBH.SW=tree$avgDBH.SW, CDEF=tree$CDEF)
 
-  tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod*rdMod.dHT_RDmod
+  tree$dHT=tree$dHT*tree$dHT.SBW.mod*tree$dHT.thin.mod*tree$rdMod.dHT_RDmod
 
   # cap height growth
   dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
@@ -3246,7 +3259,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
     ifelse((tree$stand.pmort^(1/cyclen)) > 
             tree$stand.pmort.cut^(1/cyclen), 
       tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod
-        * (cyclen * exp(tree.mort.lamda * (cyclen - 1))) * rdMod.dMORT_RDmod, 0)   
+        * (cyclen * exp(tree.mort.lamda * (cyclen - 1))) * tree$rdMod.dMORT_RDmod, 0)   
   } else {   
     # Crookston's alternative continuous 
     w=1
@@ -3367,6 +3380,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
     Sum.temp$QA.ING=Sum.temp$pQA.ING*Sum.temp$IPH
     Sum.temp$SM.ING=Sum.temp$pSM.ING*Sum.temp$IPH
     Sum.temp$WC.ING=Sum.temp$pWC.ING*Sum.temp$IPH
+    Sum.temp$YEAR=tree$YEAR[1]
     ingrow = ING.TreeList(Sum.temp,INGROWTH,MinDBH=MinDBH)
     
     if (!is.null(ingrow))
@@ -3391,7 +3405,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   tree$EXPF <- tree$EXPF-tree$dEXPF
   tree$EXPF[tree$EXPF<.00001] = .00001
   tree$CR=(tree$HT-tree$HCB)/tree$HT
-  tree=rbind(tree,ingrow)        
+  tree=dplyr::bind_rows(tree,ingrow)        
  
   #tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,0)
   #tree$SDIadd=(tree$DBH.10/25.4)^1.605*tree$EXPF
