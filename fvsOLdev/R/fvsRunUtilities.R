@@ -853,8 +853,8 @@ mkModMCats <- function(globals)
       "Modify Root Disease bark beetles" = "keyword.wrd3.wrd_brk_btl")))
   catsel = append(catsel,list(   
     "Modify Sprouting" = c(
-      "Turn off Sprouting" = "keyword.estbstrp.NoSprout",
-      "Adjust Sprouting" = "keyword.estbstrp.Sprout"),
+      "Turn off Sprouting" = "Estab keyword.estbstrp.NoSprout",
+      "Adjust Sprouting" = "Estab keyword.estbstrp.Sprout"),
     "Modify Percent Canopy Cover" = c( 
       "Adjust Overlap Correction" = "keyword.base.CCAdj")))
   catsel
