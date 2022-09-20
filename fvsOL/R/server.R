@@ -146,7 +146,7 @@ zipList <- list(
   "Output data base for for all runs"  = "outdb",  
   "Keyword file for current run" = "key",  
   "FVS output file for current run" = "out",  
-  "SVS output files for current run" = "subdir",  
+  "Visualize output files for current run" = "subdir",  
   "Input data base FVS_Data.db" = "FVS_Data", 
   "Spatial data (SpatialData.RData)" = "SpatialData")  
 selZip <- unlist(zipList[1:4])  
@@ -4177,6 +4177,7 @@ cat ("exiting, stop fvschild\n")
           try(stopCluster(fvschild))
           Sys.sleep(0.3)
           unlink(paste0(globals$fvsRun$uuid,".db"))
+          unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
         }) 
         clusterEvalQ(fvschild,library(rFVS))
         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
