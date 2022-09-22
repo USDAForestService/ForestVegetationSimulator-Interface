@@ -1,4 +1,4 @@
-all: data/prms.RData fvsOLmadeTag 
+all: data/fvsOnlineHelpRender.RData data/prms.RData fvsOLmadeTag
 
 data/prms.RData: parms/*
 	Rscript parms/mkpkeys.R
@@ -13,5 +13,5 @@ fvsOLmadeTag: makefile DESCRIPTION R/* inst/extdata/* inst/extdata/www/* data/*
 	touch fvsOLmadeTag
                  
 clean:
-	rm data/prms.RData fvsOLmadeTag                                                                               
+	rm data/prms.RData data/fvsOnlineHelpRender.RData fvsOLmadeTag                                                                               
 	

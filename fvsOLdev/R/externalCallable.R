@@ -1,4 +1,4 @@
-# $Id$
+# $Id: externalCallable.R 4018 2022-07-27 22:59:15Z nickcrookston $
 #
 #' Build an FVS run in a project
 #'
@@ -242,7 +242,7 @@ extnFromRaw = function(x) unserialize(memDecompress(x,type="gzip"))
 #' @export
 extnListRuns <- function (prjDir=getwd())
 {
-  if (!dir.exists(prjDir)) return(NULL) 
+  if (!dir.exists(prjDir)) return(NULL)
   prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db))
@@ -279,7 +279,7 @@ extnDeleteRuns <- function (prjDir=NULL,runUUIDs=NULL,delOutput=TRUE)
 {
   if (is.null(runUUIDs)) stop("runUUIDs must be specified.")
   if (is.null(prjDir)) prjDir=getwd() 
-  if (!dir.exists(prjDir)) return(NULL) 
+  if (!dir.exists(prjDir)) return(NULL)
   prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)         
   on.exit({
@@ -532,7 +532,7 @@ extnGetComponentKwds <- function(prjDir=getwd(),runUUID,returnType="fvsCmp")
 {
   if (missing(runUUID)) stop("runUUID required")
   if (! returnType %in% c("fvsCmp","raw","character")) stop ("invalid value for 'returnType'")
-  prjDir = normalizePath(prjDir)              
+  prjDir = normalizePath(prjDir)
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
@@ -937,7 +937,6 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
 #for testing:
 #prjDir=getwd();runUUID=extnListRuns()[1,1];fvsBin="FVSBin";ncpu=detectCores()
 #keyFileName=NULL;wait=FALSE;verbose=TRUE
-  devVersion <<- "fvsOLdev" %in% (.packages())
   curdir=getwd()
   if (missing(runUUID)) stop("runUUID required")
   setwd(prjDir)

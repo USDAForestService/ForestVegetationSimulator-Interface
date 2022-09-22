@@ -785,7 +785,12 @@ FVSOnlineUI <- fixedPage(
             downloadButton("dlFVSRunkey","Keyword file for current run"),h4(),        
             checkboxGroupInput("dlZipSet","Set contents of FVSProjectData.zip",   
               zipList,selZip,inline=FALSE),  
-            downloadButton("dlFVSRunZip","Download FVSProjectData.zip") 
+            downloadButton("dlFVSRunZip","Download FVSProjectData.zip"),
+            HTML(paste0('<p style="font-size:17px;color:darkgreen"><br>',         
+              'The contents of the FVSProjectData.zip file can be uploaded using the ',               
+              '<i>Import runs and other items</i> tab.<br><br>Note: If you need to create ',
+              'a zip file backup of your entire project, use the "Make a project backup zip file" ',
+              'utility under the <i>Manage project</i> tab.</p>'))
           ) #END Downloads tabPanel                                        
         )  #END  tabsetPanel for toolsPan
       ),  ## END Manage Projects          

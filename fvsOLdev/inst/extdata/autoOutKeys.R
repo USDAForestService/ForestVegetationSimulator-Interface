@@ -36,7 +36,7 @@ autoCarbon = if ("fire" %in% extns) "
 FMIn
 CarbRept        2
 CarbCut
-CarbCalc        0         0
+CarbCalc
 FuelOut         0
 FuelRept
 End
@@ -52,7 +52,7 @@ autoCarbon.withText = if ("fire" %in% extns) "
 FMIn
 CarbRept        2
 CarbCut
-CarbCalc        0         0
+CarbCalc
 FuelOut         0
 FuelRept
 End
