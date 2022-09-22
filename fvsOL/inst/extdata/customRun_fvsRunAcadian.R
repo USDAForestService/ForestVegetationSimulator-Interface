@@ -1,4 +1,4 @@
-# $Id$
+# $Id: customRun_fvsRunAcadian.R 4019 2022-08-31 20:33:55Z nickcrookston $
 
 unlink("Acadian.log")
 
@@ -334,25 +334,25 @@ cat ("in uiAcadian uiAcadianVolume=",
   if (is.null(fvsRun$uiCustomRunOps$uiAcadianSBW.DUR))
               fvsRun$uiCustomRunOps$uiAcadianSBW.DUR  = "10"
   list(
-    fvsOL:::myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:",
+    myRadioGroup("uiAcadianIngrowth", "Simulate ingrowth:",
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianIngrowth),
-    fvsOL:::myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth",
+    myInlineTextInput("uiAcadianMinDBH","Minimum DBH for ingrowth",
                fvsRun$uiCustomRunOps$uiAcadianMinDBH),
-    fvsOL:::myRadioGroup("uiAcadianMort", "Mortality model:",
+    myRadioGroup("uiAcadianMort", "Mortality model:",
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianMort),
-    fvsOL:::myInlineTextInput("uiAcadianCutPoint","CutPoint",
+    myInlineTextInput("uiAcadianCutPoint","CutPoint",
                fvsRun$uiCustomRunOps$uiAcadianCutPoint),
-    fvsOL:::myRadioGroup("uiAcadianVolume", "Merchantable volume logic:",
+    myRadioGroup("uiAcadianVolume", "Merchantable volume logic:",
       c("Acadian","Base Model"),selected=fvsRun$uiCustomRunOps$uiAcadianVolume),
-    fvsOL:::myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:",
+    myRadioGroup("uiAcadianTHIN", "Run with thinning modifiers:",
       c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianTHIN),
-    fvsOL:::myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:",
+    myRadioGroup("uiAcadianSBW", "Run with Spruce Budworm modifiers:",
        c("Yes","No"),selected=fvsRun$uiCustomRunOps$uiAcadianSBW),
-    fvsOL:::myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:",
+    myInlineTextInput("uiAcadianSBWCDEF","Cumulative defoliation:",
                fvsRun$uiCustomRunOps$uiAcadianSBWCDEF),
-    fvsOL:::myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:",
+    myInlineTextInput("uiAcadianSBW.YR","Defoliation start year:",
                fvsRun$uiCustomRunOps$uiAcadianSBW.YR),
-    fvsOL:::myInlineTextInput("uiAcadianSBW.DUR","Defoliation duration (years):",
+    myInlineTextInput("uiAcadianSBW.DUR","Defoliation duration (years):",
                fvsRun$uiCustomRunOps$uiAcadianSBW.DUR)
   )
 }

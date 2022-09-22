@@ -84,6 +84,16 @@ answerForm:
 
 //end   evmon.function.Normal
 
+//start evmon.function.PointID
+
+f1:{numberBox FVS sequential inventory point number}
+f1v:{1}
+
+answerForm:
+{PointID(!1!)}
+
+//end   evmon.function.PointID
+
 //start evmon.function.Decade
 
 f1:{numberBox Value for decade 1}
