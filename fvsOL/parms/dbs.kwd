@@ -312,8 +312,16 @@ StrClsDB  !1,10!}
 
 //start keyword.dbs.Summary
 
-f1:
-{noInput Build the FVS_Summary table.}
+f1:{listButtonString Build FVS_Summary or FVS_Summary2 table}
+f1v:{1 = Build FVS_Summary table.
+>2 = Build FVS_Summary2 table.}
+
+description:
+{FVS_Summary2 contains the same information as FVS_Summary but with removals 
+reported on separate lines.}
+
+parmsForm:{
+Summary  !1,10!}
 
 //end keyword.dbs.Summary
 
