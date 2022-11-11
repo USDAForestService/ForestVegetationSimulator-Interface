@@ -4128,7 +4128,7 @@ cat ("Run data query returned no data to run.\n")
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
-         if (!file.exists(fc))
+        if (!file.exists(fc))
         {
           if(msg=="Wrong active database."){
 cat ("Wrong active database.\n")  
@@ -4138,13 +4138,12 @@ cat ("Wrong active database.\n")
           return()  
           } else {
 cat ("keyword file was not created.\n")
-          progress$set(message = "Error: Keyword file was not created.",
-                      detail = msg, value = 3) 
-          Sys.sleep(5)
-          progress$close()
-          return()
+            progress$set(message = "Error: Keyword file was not created.",detail = msg, value = 3)
+            Sys.sleep(5)
+            progress$close()
+            return()
           }
-         }
+        }
         if(msg=="Stand not found in FVS_ClimAttrs table."){
 cat ("Stand not found in FVS_ClimAttrs table.\n")  
           progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
@@ -4159,7 +4158,6 @@ cat ("No climate attributes data found.\n")
                       detail = NA, value = 3) 
           return()
         }
-        dir.create(globals$fvsRun$uuid)
         if (!dir.exists(globals$fvsBin)) 
         {
           progress$set(message = paste0("Error: ",globals$fvsBin," does not exist."),
@@ -4168,6 +4166,7 @@ cat ("No climate attributes data found.\n")
           progress$close()
           return()
         }
+        dir.create(globals$fvsRun$uuid)
         fvschild = makePSOCKcluster(1)
         #on exit of the reactive context
         on.exit({          
