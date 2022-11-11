@@ -154,14 +154,14 @@ if (file.exists(rsf)) source(rsf) else source(system.file("extdata", rsf,
   package="fvsOL"))
 runScripts <- if (exists("customRunScripts") && length(customRunScripts)) 
                append(x=customRunScripts,after=0,defaultRun) else defaultRun
- 
+
 customRunElements = list(                  
   selectInput("runScript",
               "Select run script (normally, use the default)",
               choices=runScripts,
               selected="fvsRun",multiple=FALSE,selectize=FALSE),
   uiOutput("uiCustomRunOps"))
-                                                        
+                                        
 FVSOnlineServer <- function(input, output, session) 
 {  
 cat ("FVSOnline/OnLocal interface server start\n")
@@ -783,7 +783,8 @@ cat ("tbs7=",tbs,"\n")
       globals$exploring <- FALSE
     }
   })
-    
+  
+  ## changeind  
   observe({
     cat ("changeind=",globals$changeind,"\n")          
     if (globals$changeind == 0){
@@ -2679,7 +2680,7 @@ cat ("in Reload, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
     })
   })
   
-  ##autoOut
+  ## autoOut
   observe({
     input$autoOut
     input$autoSVS
@@ -2695,7 +2696,7 @@ cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
     }
   })
 
-  ## inAdd:    Add Selected Stands
+  ## inAdd: Add Selected Stands
   observe({
     if (input$inAdd > 0) 
     {
@@ -2941,7 +2942,7 @@ cat ("insertStringIntoFocusedTextarea textarea=",textarea," string=",string," st
     if (input$cutCmp == 0) return()
     isolate ({
 cat ("Cut length(input$simCont) = ",length(input$simCont),"\n") 
-      if (length(input$simCont) == 0) return
+      if (length(input$simCont) == 0) return()
       if (moveToPaste(input$simCont[1],globals,globals$fvsRun))
       {
         globals$foundStand=0L 
@@ -3034,6 +3035,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
       if (length(input$simCont) == 0) return ()
       toed = input$simCont[1]
       cmp = findCmp(globals$fvsRun,toed)
+      if (is.null(cmp)) return()
       cmp$kwdName="freeEdit"
       if (substring(cmp$title,1,10) != "Freeform: ") cmp$title=paste("Freeform: ",cmp$title)
       cmp$reopn=character(0)
@@ -3045,7 +3047,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
     })                    
   })
 
-  ## Command Set.
+  ## Command Set
   observe({
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
@@ -3520,7 +3522,7 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
   })
 
   observe({  
-    # schedule by condition condition selection
+    # schedule by condition selection
     if (length(input$schedbox) == 0) return()
     if (length(input$condList) == 0) return()
     if (length(globals$toggleind) && input$schedbox == 1) return()
@@ -3909,7 +3911,8 @@ cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")
       globals$schedBoxPkey <- character(0)
     })
   })
-                  
+          
+  ## changeind
   observe({
 cat ("changeind=",globals$changeind,"\n")
     if (globals$changeind == 0){
@@ -4122,7 +4125,6 @@ cat ("Run data query returned no data to run.\n")
           output$contChange <- renderUI("Run")   
           return()
         }         
-          
         newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
@@ -4584,8 +4586,8 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         topaste = findCmp(globals$fvsRun,input$simCont[1])
         if (is.null(topaste)) return()
         if (nchar(input$kcpTitle) == 0) 
-          updateTextInput(session=session, inputId="kcpTitle", 
-            value=topaste$title)
+        updateTextInput(session=session, inputId="kcpTitle", 
+          value=topaste$title)
         updateTextInput(session=session, inputId="kcpEdit", value=
           paste0(input$kcpEdit,"* ",topaste$title,"\n",topaste$kwds,"\n"))
         session$sendCustomMessage(type="refocus", "kcpEdit")
@@ -4692,15 +4694,16 @@ is.null(input$kcpTitle),"\n")
         } else newTit = trim(input$kcpTitle)
         globals$customCmps[[newTit]] = input$kcpEdit
         customCmps = globals$customCmps
-        # skip <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]=="ENDIF"
-        # if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
-        # {
-        #   updateTextInput(session=session, inputId="kcpEdit", value=
-        #     paste0(customCmps,"EndIf\n"))
-        #   customCmps <-as.list(paste0(customCmps,"EndIf\n"))
-        #   names(customCmps) <- names(globals$customCmps)
-        #   globals$customCmps = customCmps
-        # }
+        skip1 <- strsplit(as.character(customCmps),"\n")[[1]][length(strsplit(as.character(customCmps),"\n")[[1]])]
+        skip <- length(grep("ENDIF", toupper(skip1)))
+        if(length(grep("^--> Kwd",names(globals$kcpAppendConts[length(globals$kcpAppendConts)]))) && !skip)
+        {
+          updateTextInput(session=session, inputId="kcpEdit", value=
+            paste0(customCmps,"EndIf\n"))
+          customCmps <-as.list(paste0(customCmps,"EndIf\n"))
+          names(customCmps) <- names(globals$customCmps)
+          globals$customCmps = customCmps
+        }
         storeOrUpdateObject(dbGlb$prjDB,customCmps)
         updateSelectInput(session=session, inputId="kcpSel",
            choices=names(globals$customCmps),
@@ -5995,13 +5998,13 @@ cat("delete project button.")
     }
     HTML(html)
   }
-  ##tabDescSel
+  ## tabDescSel
   observe({
     tab = input$tabDescSel
 cat ("tabDescSel, tab=",tab,"\n")
     output$tabDesc <- renderUI(mkTableDescription(tab))
   })
-  ##tabDescSel2
+  ## tabDescSel2
   observe({
     tab = input$tabDescSel2
 cat ("tabDescSel2, tab=",tab,"\n")
@@ -8099,7 +8102,7 @@ cat(" input$impSpatialDataDlgBtn=",input$impSpatialDataDlgBtn,"\n")
     })  
   })  
  
-  #runScript selection                                                         
+  # runScript selection                                                         
   observe(if (length(input$runScript)) customRunOps())
 
   customRunOps <- function ()                                             
@@ -8260,6 +8263,7 @@ cat ("launch url:",url,"\n")
     })
   })
   
+  ## Full run/Just groups
   observe({
     mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
     updateSelectInput(session=session, inputId="simCont",       

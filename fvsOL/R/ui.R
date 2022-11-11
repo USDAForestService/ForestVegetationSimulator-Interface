@@ -139,7 +139,7 @@ FVSOnlineUI <- fixedPage(
                  h5(),
                  fileInput("kcpUpload",
                            "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
-                           width="90%"),
+                           accept = c(".kcp", ".RData"),width="90%"),
                  selectInput("kcpSel","Existing component collection", NULL, 
                             NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
                  actionButton("kcpNew","New"),

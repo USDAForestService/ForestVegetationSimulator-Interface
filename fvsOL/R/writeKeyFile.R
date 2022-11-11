@@ -52,8 +52,6 @@ kcpVetting <- function (kcpconts)
   mistkwds <- list("MISTABLE","MISTGMOD","MISTHMOD","MISTMORT","MISTMULT","MISTOFF","MISTPINF",
                    "MISTPREF","MISTPRT")
   extkwds <- c(regenkwds,firekwds,dbkwds,climatekwds,econkwds,coverkwds,rdkwds,mistkwds)
-  altless <- c(4,5,5,8,6) # number of parameters the non-DBS keywords have that are exact in name
-  altmore <- c(1,2,1,1,1,1,1,1) # number of parameters the non-DBS keywords have that are exact in name 
   extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
   condflag <- 0 # denotes whether we are in a conditional block
   computeflag <- 0 # denotes whether we are in a compute block
@@ -103,18 +101,6 @@ kcpVetting <- function (kcpconts)
             condflag <- 0
           }
         }
-        # Maybe I'll come back to this block. Not required--might be nice to have END inserted where the old timers are used to.
-        # If it's a component specifier, for a base keyword and we re already in an extension block
-        # else if(length(suppcomp) && extflag > 0 &&
-        #         strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-1)]=="base"){
-        #   insertkw[k] <- "END"
-        #   insertidx[k] <- j-1
-        #   k <- k+1
-        #   numinserts <- numinserts +1
-        #   extflag <- 0
-        # }
-        
-        # otherwise, ignore the "bam" and move to the next line
         else next
       }
       # if it's an extension invocation keyword and we're not in an extension block,
@@ -530,7 +516,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     autos = if (is.null(names(globals$fvsRun$autoOut))) unlist(globals$fvsRun$autoOut) else 
                 unlist(globals$fvsRun$autoOut[["autoOut"]])
     autos = if ("autoDelOTab" %in% autos) 
-    { 
+    {
       aa = setdiff(autos,"autoDelOTab")
       unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
     } else c(autos,"autoDelOTab")
