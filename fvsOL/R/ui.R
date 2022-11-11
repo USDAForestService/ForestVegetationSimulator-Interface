@@ -1,5 +1,3 @@
-# $Id$
-
 FVSOnlineUI <- fixedPage(
   tags$head(tags$style(HTML(
     ".shiny-notification {height: 80px;width: 500px;position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),

@@ -1,5 +1,3 @@
-# $Id$
-#
 kcpVetting <- function (kcpconts)
 {
   if(!length(kcpconts)) return()
