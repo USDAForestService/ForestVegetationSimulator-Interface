@@ -11,13 +11,12 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     sink()
     sink(logfile,append=TRUE)
   }
-  devVersion <<- "fvsOLdev" %in% (.packages())
   
   #load the growth model R code
   rFn="AcadianGY.R"
   if (file.exists(rFn)) source(rFn) else
   {
-    rFn = system.file("extdata", rFn, package=if (devVersion) "fvsOLdev" else "fvsOL")
+    rFn = system.file("extdata", rFn, package="fvsOL")
     if (! file.exists(rFn)) stop("can not find and load model code")
     source(rFn)
   }
