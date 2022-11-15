@@ -5344,17 +5344,20 @@ cat ("mapDsRunList idxLng=",idxLng," idxLat=",idxLat," names=",names(dbGlb$Spati
         {
 cat ("mapDsRunList trying PlotInit\n")
           inInit = getTableName(dbGlb$dbIcon,"FVS_PlotInit")
-          latLng = try(dbGetQuery(dbGlb$dbIcon, 
+          if (!is.null(inInit)) 
+          {
+            latLng = try(dbGetQuery(dbGlb$dbIcon, 
                      paste0("select Stand_ID,avg(Latitude) as Latitude, ",
                             "avg(Longitude) as Longitude from ",inInit,
                             " group by Stand_ID;")))
-          if (class(latLng)!="try-error")
-          {
-            latLng$Longitude = as.numeric(latLng$Longitude)
-            latLng$Latitude  = as.numeric(latLng$Latitude)
-            latLng = na.omit(latLng)
-            if (nrow(latLng) > 0) latLng = subset(latLng, Latitude != 0 & Longitude != 0)
-          } else latLng = NULL
+            if (class(latLng)!="try-error")
+            {
+              latLng$Longitude = as.numeric(latLng$Longitude)
+              latLng$Latitude  = as.numeric(latLng$Latitude)
+              latLng = na.omit(latLng)
+              if (nrow(latLng) > 0) latLng = subset(latLng, Latitude != 0 & Longitude != 0)
+            } else latLng = NULL
+          } else latlng = NULL
         }
         if (!is.null(latLng) && nrow(latLng)>0)
         {
