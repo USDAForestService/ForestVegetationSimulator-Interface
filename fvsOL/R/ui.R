@@ -286,7 +286,7 @@ FVSOnlineUI <- fixedPage(
                   selectInput("dbhclass", "DBHClasses", size=6, 
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE))),
-                HTML(paste0("<b>",'Databse table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
+                HTML(paste0("<b>",'Database table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
               checkboxGroupInput("browsevars","Select variables",
                   choices = list("None"),selected = NULL,inline=TRUE)
             ),
