@@ -708,6 +708,7 @@ cat ("tbs7=",tbs,"\n")
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
         globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
+          "CmpSummary","CmpSummary_East","CmpSummary_Metric",
           "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
             "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
@@ -804,7 +805,7 @@ cat ("tbs7=",tbs,"\n")
     }
   })
   
-  # selectdbtables
+  ## selectdbtables
   observe({
 cat("selectdbtables\n")    
     if (is.null(input$selectdbtables) ||(length(input$selectdbtables)==1 
@@ -819,6 +820,9 @@ cat("selectdbtables\n")
       while(length(tables)>1)
       {
         if(length(tables)==2 && "FVS_Cases" %in% tables) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_Metric")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_East")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_Metric")) break
