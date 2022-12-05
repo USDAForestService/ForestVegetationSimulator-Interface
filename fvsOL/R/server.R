@@ -540,7 +540,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
         if (!isMetric)
         {
-          if ("FVS_Summary" %in% tbs)
+          if ("FVS_Summary" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary", value = i); i = i+1
@@ -548,7 +548,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
             tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")                             
           }
-          if ("FVS_Summary_East" %in% tbs)
+          if ("FVS_Summary_East" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary_East", value = i); i = i+1
@@ -556,7 +556,7 @@ cat ("tbs1=",tbs,"\n")
             tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
           }
-          if ("FVS_Summary2" %in% tbs)
+          if ("FVS_Summary2" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
@@ -564,7 +564,7 @@ cat ("tbs2=",tbs,"\n")
             tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
           }
-          if ("FVS_Summary2_East" %in% tbs)
+          if ("FVS_Summary2_East" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2_East", value = i); i = i+1
@@ -582,7 +582,7 @@ cat ("tbs4=",tbs,"\n")
 cat ("tbs5=",tbs,"\n") 
           }
         }
-        if ("FVS_Compute" %in% tbs)
+        if ("FVS_Compute" %in% tbs && ncases > 1)
         {
           setProgress(message = "Please wait: performing output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
@@ -604,7 +604,7 @@ cat ("tbs5=",tbs,"\n")
 cat ("tbs6=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
-        if (!isMetric && any(tlprocs)) 
+        if (!isMetric && any(tlprocs) && ncases > 1) 
         {
           tlprocs = names(tlprocs)[tlprocs]
           chtoEast = function(cmd)
@@ -4158,7 +4158,6 @@ cat ("Run data query returned no data to run.\n")
           output$contChange <- renderUI("Run")   
           return()
         }         
-        newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
         msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
         fc = paste0(globals$fvsRun$uuid,".key")
         if (!file.exists(fc))
