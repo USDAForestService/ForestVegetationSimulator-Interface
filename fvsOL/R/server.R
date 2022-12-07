@@ -604,7 +604,7 @@ cat ("tbs5=",tbs,"\n")
 cat ("tbs6=",tbs,"\n")
         }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
-        if (!isMetric && any(tlprocs) && ncases > 1) 
+        if (!isMetric && any(tlprocs)) 
         {
           tlprocs = names(tlprocs)[tlprocs]
           chtoEast = function(cmd)
@@ -4408,12 +4408,15 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       }, contentType=if (length(input$table) && input$dlRDType==".csv") "text/csv" else 
          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
          ### NB: length(input$table) is tested only to force this downloadHandler to fire.
+    ## Download dlFVSDatadb
     output$dlFVSDatadb <- downloadHandler(
        filename="FVS_Data.db",
        content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
+    ## Download dlFVSOutdb
     output$dlFVSOutdb <- downloadHandler(
        filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
+    ## Download dlFVSOutxlsx
     output$dlFVSOutxlsx <- downloadHandler(
        filename= function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
        content = function (tf = paste0(tempfile(),".xlsx"))
