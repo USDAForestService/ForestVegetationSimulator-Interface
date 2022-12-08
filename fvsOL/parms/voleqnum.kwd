@@ -544,7 +544,7 @@ f2v{ws}:{\n
 500DVEW060 = Region 5: Juniper - Pillsbury & Kirkley Equation
 516TRFW060 = Region 5: Juniper - PNW tariff Equation
 532TRFW060 = Region 5: Juniper - PNW tariff Equation
-616BEHW000 = Region 5: Koa - Behre’s Hyperbola
+616BEHW000 = Region 5: Koa - Behres Hyperbola
 500WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model
 532WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model (Scribner 32)
 516TRFW108 = Region 5: Lodgepole pine - PNW tariff Equation
@@ -600,7 +600,7 @@ f2v{ca nc so}:{\n
 500DVEW060 = Region 5: Juniper - Pillsbury & Kirkley Equation
 516TRFW060 = Region 5: Juniper - PNW tariff Equation
 532TRFW060 = Region 5: Juniper - PNW tariff Equation
-616BEHW000 = Region 5: Koa - Behre’s Hyperbola
+616BEHW000 = Region 5: Koa - Behres Hyperbola
 500WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model
 532WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model (Scribner 32)
 516TRFW108 = Region 5: Lodgepole pine - PNW tariff Equation
@@ -1889,7 +1889,7 @@ f3v{ws}:{\n
 500DVEW060 = Region 5: Juniper - Pillsbury & Kirkley Equation
 516TRFW060 = Region 5: Juniper - PNW tariff Equation
 532TRFW060 = Region 5: Juniper - PNW tariff Equation
-616BEHW000 = Region 5: Koa - Behre’s Hyperbola
+616BEHW000 = Region 5: Koa - Behres Hyperbola
 500WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model
 532WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model (Scribner 32)
 516TRFW108 = Region 5: Lodgepole pine - PNW tariff Equation
@@ -1945,7 +1945,7 @@ f3v{ca nc so}:{\n
 500DVEW060 = Region 5: Juniper - Pillsbury & Kirkley Equation
 516TRFW060 = Region 5: Juniper - PNW tariff Equation
 532TRFW060 = Region 5: Juniper - PNW tariff Equation
-616BEHW000 = Region 5: Koa - Behre’s Hyperbola
+616BEHW000 = Region 5: Koa - Behres Hyperbola
 500WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model
 532WO2W108 = Region 5: Lodgepole pine - Wensel & Olsen Profile Model (Scribner 32)
 516TRFW108 = Region 5: Lodgepole pine - PNW tariff Equation
