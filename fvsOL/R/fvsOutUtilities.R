@@ -1,5 +1,3 @@
-# $Id$
-
 initTableGraphTools <- function (globals,session,output,fvsOutData)
 {
 cat ("initTableGraphTools\n")

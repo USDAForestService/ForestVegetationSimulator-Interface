@@ -1,4 +1,3 @@
-# $Id$
 
 ###Adirondack growth and yield model
 AdirondackGY=function(tree,CSI,cyclen=1,INGROWTH="Y",MinDBH=10,CutPoint=0.5,

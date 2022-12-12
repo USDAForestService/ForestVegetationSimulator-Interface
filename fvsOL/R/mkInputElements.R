@@ -1,5 +1,3 @@
-# $Id: mkInputElements.R 4001 2022-05-23 15:04:37Z mshettles521 $
-
 mkeltList <- function (pkeys,prms,globals,input,output,
                        cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
 {

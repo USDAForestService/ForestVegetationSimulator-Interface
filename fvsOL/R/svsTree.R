@@ -1,5 +1,3 @@
-# $Id$
-
 svsTree <- function(tree,treeform)
 {
   # data in the treeform (inforation form Bob's documentation): 

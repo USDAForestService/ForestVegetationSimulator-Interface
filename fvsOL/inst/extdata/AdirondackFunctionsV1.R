@@ -1,4 +1,3 @@
-# $Id$
 
 library(plyr)  #needed for ddply
 
