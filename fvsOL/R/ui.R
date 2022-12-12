@@ -1,5 +1,3 @@
-# $Id$
-
 FVSOnlineUI <- fixedPage(
   tags$head(tags$style(HTML(
     ".shiny-notification {height: 80px;width: 500px;position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
@@ -141,7 +139,7 @@ FVSOnlineUI <- fixedPage(
                  h5(),
                  fileInput("kcpUpload",
                            "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
-                           width="90%"),
+                           accept = c(".kcp", ".RData"),width="90%"),
                  selectInput("kcpSel","Existing component collection", NULL, 
                             NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
                  actionButton("kcpNew","New"),
@@ -288,7 +286,7 @@ FVSOnlineUI <- fixedPage(
                   selectInput("dbhclass", "DBHClasses", size=6, 
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE))),
-                HTML(paste0("<b>",'Databse table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
+                HTML(paste0("<b>",'Database table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
               checkboxGroupInput("browsevars","Select variables",
                   choices = list("None"),selected = NULL,inline=TRUE)
             ),

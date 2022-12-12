@@ -1,4 +1,3 @@
-# $Id$
 
 # specifies the keywords that are loaded when automatic outputs are selected.
 

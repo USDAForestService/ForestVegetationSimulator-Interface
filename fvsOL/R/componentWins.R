@@ -241,9 +241,10 @@ PlantNaturalFullWin <- function(title, prms, globals, input, output, full=TRUE)
 {
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
-  globals$currentCmdDefs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",
-    pnSprt=getPstring(atag=globals$activeVariants[1],pkey="hasSproutingSpecies",
-          pkeys=prms[[pknum]])[[1]],
+  globals$currentCmdDefs <- c(pnDOD="1")
+  if (full) globals$currentCmdDefs <- c(globals$currentCmdDefs,pnYD="1", pnPBrn=" ",pnPMch=" ")
+  globals$currentCmdDefs <- c(globals$currentCmdDefs, pnSprt=getPstring(atag=globals$activeVariants[1],
+                              pkey="hasSproutingSpecies",pkeys=prms[[pknum]])[[1]],
     pnYpn1="1",pnTr1="1",pnSp1=" ", pnTpa1=" ",pnPsv1="100.",pnAge1=" ",
     pnHt1=" ",pnShd1="0",
     pnYpn2="1",pnTr2="1",pnSp2=" ", pnTpa2=" ",pnPsv2="100.",pnAge2=" ",

@@ -1,5 +1,3 @@
-# $Id$
-
 # code taken form shiny-confirm-dialog, Wei Cheng, with thanks!
 modalDialog <- function(id, header = "Confirmation", body = "Confirm action", 
   footer = list(actionButton("confirmDlgOkBtn", "OK")))

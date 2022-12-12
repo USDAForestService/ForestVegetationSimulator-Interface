@@ -1,4 +1,3 @@
-# $Id$
 
 exqury = function (dbcon,x,subExpression=NULL,asSpecies=NULL) 
 {

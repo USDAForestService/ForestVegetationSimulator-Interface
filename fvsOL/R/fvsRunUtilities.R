@@ -1,5 +1,3 @@
-# $Id: fvsRunUtilities.R 3982 2022-05-10 18:07:19Z mshettles521 $
-
 loadStandTableData <- function (globals, dbIcon)
 {
   tbls=myListTables(dbIcon)
@@ -32,7 +30,7 @@ cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",glo
            strip.white=TRUE,sep=" ",quiet=TRUE))))
       vars=vars[vars != ""]
       keep=na.omit(match(vars,globals$activeVariants))
-      if (length(keep) && !is.na(keep)) globals$activeVariants = globals$activeVariants[keep] 
+      if (length(keep)) globals$activeVariants = globals$activeVariants[keep] 
     } 
   }
 cat ("in loadVarData, globals$activeVariants=",globals$activeVariants,"\n")
