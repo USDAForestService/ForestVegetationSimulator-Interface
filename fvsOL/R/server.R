@@ -1839,7 +1839,7 @@ cat ("renderPlot\n")
       }
     } # end of DBHClass fixup
     if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
-    {
+    { 
       for (il in 1:length(levels(dat$Groups)))
       {
         levs = trim(unlist(strsplit(levels(dat$Groups)[il],",")))
@@ -4158,7 +4158,7 @@ cat ("Run data query returned no data to run.\n")
           output$contChange <- renderUI("Run")   
           return()
         }         
-        msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
+        msg=writeKeyFile(globals,dbGlb$dbIcon)
         fc = paste0(globals$fvsRun$uuid,".key")
         if (!file.exists(fc))
         {
