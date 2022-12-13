@@ -265,15 +265,16 @@ f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
 f4{ne ls cs}:{numberBox Minimum top diameter inside bark}
-f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+//f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
 f4:{numberBox Minimum top diameter outside bark}
 f4v{ni ie em bm ec kt wc pn ca}:{4.5}
 f4v{so ut tt ak ws ci nc}:{6}
 f4v{cr sw sp sf lp bp}:{blank}
-f4v{ne ls cs}:{blank}
+//f4v{ne ls cs}:{blank}
+f4v{ne ls cs sn}:{blank}
 
 f5:{numberBox Stump height}
-f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+//f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
 f5v:{1}
 
 f6:{numberBox Form class}
@@ -368,14 +369,15 @@ f3v{ut tt ci}:{8}
 f3v{so ak nc bp}:{9}
 
 f4:{numberBox Minimum top diameter}
-f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+//f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
 f4v{cr sw sp sf lp}:{4}
 f4v{ni ie em ws bm ec kt wc pn ca}:{4.5}
 f4v{so ut tt ak ci nc bp}:{6}
-f4v{ne ls cs}:{blank}
+//f4v{ne ls cs}:{blank}
+f4v{ne ls cs sn}:{blank}
 
 f5:{numberBox Stump height (feet)}
-f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
+//f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
 f5v:{1}
 
 f6:{numberBox Form class}
@@ -441,7 +443,7 @@ dist1:{0.1301 0.3328 0.6035 0.9296 1.0000 1.1502 1.5199 2.1129 3.7703}
 description:
 {Adjusts the percent canopy cover (PCC) overlap correction coefficient  
 for different non-random spatial distributions. The FVS-default overlap 
-correction assumes randomly distributed trees (coefficient=0.01). 
+correction assumes randomly distributed trees (coefficient=1.0). 
 
 This keyword can also be used with the "Thin to a Residual Percent Canopy Cover" 
 management action (ThinCC keyword) for changing the %CC target calculation.

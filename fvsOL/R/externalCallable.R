@@ -666,7 +666,7 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
   prjDir = normalizePath(prjDir)
   prjDB = file.path(prjDir, "FVSProject.db")
   db=dbConnect(SQLite(), dbname = "FVS_Data.db")
-  rtn = writeKeyFile(globals,db,newSum=TRUE,keyFileName,verbose=verbose)
+  rtn = writeKeyFile(globals,db,keyFileName,verbose=verbose)
   if(rtn=="Run data query returned no data to run.") return("wrong active database")
   dbDisconnect(db)
   rtn

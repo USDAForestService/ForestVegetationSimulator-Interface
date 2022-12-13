@@ -136,7 +136,7 @@ trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
 defaultRun <- list("Default useful for all FVS variants"="fvsRun")
 
-# used in Tools, dlZipSet
+## used in Tools, dlZipSet
 zipList <- list(  
   "FVSProject data base (Runs, Custom components (kcp), Custom queries, GraphSettings)" = "fvsProjdb",
   "Output data base for for all runs"  = "outdb",  
@@ -375,7 +375,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     globals$reloadAppIsSet == 0
   })
   
-  ## clearLock, exitNow
+  ## clearLock
   observe({
     if (!is.null(input$clearLock) && input$clearLock==0)
     {
@@ -390,6 +390,8 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
       }, min=1, max=10)
     }
   })
+  
+  ## exitNow
   observe({
     if (!is.null(input$exitNow) && input$exitNow>0)
     {
@@ -398,6 +400,7 @@ cat ("exit now\n")
       session$sendCustomMessage(type = "closeWindow"," ")
     }
   })
+  ## remake the lock file.
   observe({
     if (!is.null(input$clearLock) && input$clearLock>0)
     {
@@ -537,7 +540,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
         input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
         if (!isMetric)
         {
-          if ("FVS_Summary" %in% tbs)
+          if ("FVS_Summary" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary", value = i); i = i+1
@@ -545,7 +548,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
             tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")                             
           }
-          if ("FVS_Summary_East" %in% tbs)
+          if ("FVS_Summary_East" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary_East", value = i); i = i+1
@@ -553,7 +556,7 @@ cat ("tbs1=",tbs,"\n")
             tbs = c(tbs,"CmpSummary_East")
 cat ("tbs2=",tbs,"\n")
           }
-          if ("FVS_Summary2" %in% tbs)
+          if ("FVS_Summary2" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
@@ -561,7 +564,7 @@ cat ("tbs2=",tbs,"\n")
             tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
           }
-          if ("FVS_Summary2_East" %in% tbs)
+          if ("FVS_Summary2_East" %in% tbs && ncases > 1)
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2_East", value = i); i = i+1
@@ -579,7 +582,7 @@ cat ("tbs4=",tbs,"\n")
 cat ("tbs5=",tbs,"\n") 
           }
         }
-        if ("FVS_Compute" %in% tbs)
+        if ("FVS_Compute" %in% tbs && ncases > 1)
         {
           setProgress(message = "Please wait: performing output query", 
             detail  = "Building CmpCompute", value = i); i = i+1
@@ -708,6 +711,7 @@ cat ("tbs7=",tbs,"\n")
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
         globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
+          "CmpSummary","CmpSummary_East","CmpSummary_Metric",
           "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
             "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
@@ -804,7 +808,7 @@ cat ("tbs7=",tbs,"\n")
     }
   })
   
-  # selectdbtables
+  ## selectdbtables
   observe({
 cat("selectdbtables\n")    
     if (is.null(input$selectdbtables) ||(length(input$selectdbtables)==1 
@@ -819,6 +823,9 @@ cat("selectdbtables\n")
       while(length(tables)>1)
       {
         if(length(tables)==2 && "FVS_Cases" %in% tables) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_East")) break
+        if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_Metric")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_East")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_Metric")) break
@@ -889,7 +896,7 @@ cat("selectdbtables\n")
     }
   })
 
-  # selectdbvars
+  ## selectdbvars
   observe({
 cat("selectdbvars\n")    
     if (!is.null(input$selectdbvars)) 
@@ -1448,7 +1455,8 @@ cat ("renderTable, is.null=",is.null(dat)," nrow(dat)=",nrow(dat),"\n")
               rhandsontable(dat,readOnly=TRUE,useTypes=FALSE,contextMenu=FALSE,
               width="100%",height=700))
   }
-         
+  
+  ## browsevars       
   observe({
     if (is.null(input$browsevars)) return()
 cat("filterRows and/or pivot\n")
@@ -1493,7 +1501,7 @@ cat("filterRows and/or pivot\n")
     output$table <- renderTable(dat) 
   })               
           
-  ##Graphs
+  ## Graphs
   observe({                 
     if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
     {
@@ -1510,7 +1518,7 @@ cat ("Graphs pan hit\n")
     }
   })
   
-  ##OPsettings
+  ## OPsettings
   observe({
     if (!is.null(input$OPsettings))
     {
@@ -1545,7 +1553,9 @@ cat ("msg=",msg,"\n")
         } 
       })
     }
-  })      
+  })   
+  
+  ## OPsave
   observe({
     if (input$OPsave > 0) 
     {
@@ -1573,6 +1583,8 @@ cat ("OPsave hit, OPname=",input$OPname,"\n")
       })
     }
   })
+  
+  ## OPdel
   observe({
     if (input$OPdel > 0) 
     {                             
@@ -1598,7 +1610,7 @@ cat("OPdel hit, input$OPname=",input$OPname,"\n")
     }
   })
 
-  ##browsevars/plotType 
+  ## browsevars/plotType 
   observe({
     if (!is.null(input$browsevars) && !is.null(input$plotType)) 
     {
@@ -1732,7 +1744,9 @@ cat ("end of browsevars/plotType\n")
         updateSelectInput(session=session, inputId="vfacet", selected="None")
       if (input$pltby == input$hfacet)
         updateSelectInput(session=session, inputId="hfacet", selected="None")
-  }) }) 
+  }) })
+  
+  ## vfacet change
   observe({
 cat ("vfacet change, globals$gFreeze=",globals$gFreeze,"\n")
     if (is.null(input$vfacet) || input$vfacet  == "None" || globals$gFreeze) return()
@@ -1748,6 +1762,8 @@ cat ("vfacet change, globals$gFreeze=",globals$gFreeze,"\n")
       if (input$vfacet == input$hfacet)
         updateSelectInput(session=session, inputId="hfacet", selected="None")
   }) }) 
+  
+  ## hfacet change
   observe({
 cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
     if (is.null(input$hfacet) || input$hfacet  == "None" || globals$gFreeze) return()                 
@@ -1823,7 +1839,7 @@ cat ("renderPlot\n")
       }
     } # end of DBHClass fixup
     if (!is.null(pb) && pb=="Groups" && length(input$stdgroups) && length(levels(dat$Groups)))
-    {
+    { 
       for (il in 1:length(levels(dat$Groups)))
       {
         levs = trim(unlist(strsplit(levels(dat$Groups)[il],",")))
@@ -2252,6 +2268,7 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
     list(src = outfile) 
   }, deleteFile = FALSE)
 
+  ## copyplot
   observe(  
     if (input$copyplot > 0)
     {
@@ -2295,6 +2312,7 @@ cat ("inVars globals$activeVariants=",globals$activeVariants,
      " globals$activeExtens=",globals$activeExtens," \n")
   })
 
+  ## reloadStandSelection
   reloadStandSelection <- function (session,input)
   isolate({
 cat ("in reloadStandSelection\n")
@@ -2535,6 +2553,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
     }
   })    
 
+  ## updateAutoOut
   updateAutoOut <- function(session,autoOut)
   {
 cat ("updateAutoOut called\n")
@@ -2841,23 +2860,28 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
       session$sendCustomMessage(type="getStartEnd", "freeEdit")
     }
   })
+  ## focusedElement
   observe({
     if (length(input$focusedElement) && 
               input$focusedElement %in% c("freeEdit","condDisp"))
       session$sendCustomMessage(type="getStartEnd", input$focusedElement)    
-  }) 
+  })
+  ## freeSpecies
   observe({
     if (length(input$freeSpecies) && nchar(input$freeSpecies)) 
       insertStringIntoFocusedTextarea(input,input$focusedElement,input$freeSpecies)
   })
+  ## freeVars
   observe({
     if (length(input$freeVars) && nchar(input$freeVars)) 
       insertStringIntoFocusedTextarea(input,input$focusedElement,input$freeVars)
   })
+  ## freeOps
   observe({
     if (length(input$freeOps) && nchar(input$freeOps))
       insertStringIntoFocusedTextarea(input,input$focusedElement,input$freeOps)
   })  
+  ## freeFuncs
   observe({
     if (length(input$freeFuncs) && nchar(input$freeFuncs) && input$freeFuncs != " ") 
     isolate({
@@ -2873,14 +2897,16 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
       }
     })
   })  
-  observe({  #fvsFuncCancel
+  ## fvsFuncCancel
+  observe({  
     if (length(input$fvsFuncCancel) && input$fvsFuncCancel) 
     {
       output$fvsFuncRender <- renderUI (NULL)
       updateSelectInput(session=session, inputId="freeFuncs",selected=1)
     }
   })
-  observe({  #fvsFuncInsert
+  ## fvsFuncInsert
+  observe({
     if (length(input$fvsFuncInsert) && input$fvsFuncInsert)
     isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncs)]]
@@ -2903,6 +2929,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
     })
   }) 
 
+  ## insertStringIntoFocusedTextarea
   insertStringIntoFocusedTextarea <- function(input,textarea,string)
   {
     isolate({
@@ -3026,7 +3053,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
   })
    
   
-  # Change to freeform
+  ## Change to freeform
   observe({
     if (input$mkfree == 0) return()
     isolate ({
@@ -3121,24 +3148,28 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       },
       NULL)   
   })
+  ## kcpEdit
   observe({
     if (length(input$kcpEdit)) 
     {
       session$sendCustomMessage(type="getStartEnd", "kcpEdit")
     }
   })
+  ## freeSpeciesKCP
   observe({
     if (length(input$freeSpeciesKCP) && nchar(input$freeSpeciesKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
       insertStrinIntokcpEdit(input,input$freeSpeciesKCP)
     })
   })
+  ## freeVarsKCP
   observe({
     if (length(input$freeVarsKCP) && nchar(input$freeVarsKCP)) isolate({
       if (length(input$kcpEdit) == 0) return()
       insertStrinIntokcpEdit(input,input$freeVarsKCP)
     })
   })
+  ## freeOpcKCP
   observe({
     if (length(input$freeOpsKCP) && nchar(input$freeOpsKCP)) 
     isolate({
@@ -3146,6 +3177,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       insertStrinIntokcpEdit(input,input$freeOpsKCP)
     })
   })  
+  ## freeFuncsKCP
   observe({
     if (length(input$freeFuncsKCP) && nchar(input$freeFuncsKCP) && input$freeFuncsKCP != " ") 
     isolate({
@@ -3161,15 +3193,17 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
         output$fvsFuncRender <- renderUI(eltList)
       }
     })
-  })  
-  observe({  #fvsFuncCancelKCP
+  }) 
+  ## fvsFuncCancelKCP
+  observe({  
     if (length(input$fvsFuncCancelKCP) && input$fvsFuncCancelKCP) 
     {
       output$fvsFuncRender <- renderUI (NULL)
       updateSelectInput(session=session, inputId="freeFuncsKCP",selected=1)
     }
   })
-  observe({  #fvsFuncInsertKCP
+  ## fvsFuncInsertKCP
+  observe({  
     if (length(input$fvsFuncInsertKCP) && input$fvsFuncInsertKCP)
     isolate({
       pkeys = prms[[paste0("evmon.function.",input$freeFuncsKCP)]]
@@ -3191,7 +3225,7 @@ cat ("compTabSet, input$compTabSet=",input$compTabSet,
       insertStrinIntokcpEdit(input,string)
     })
   }) 
-  
+  ## insertStrinIntokcpEdit
   insertStrinIntokcpEdit <- function(input,string)
   {
     if (is.null(string) || nchar(string) == 0 || string == " ") return()
@@ -3270,7 +3304,8 @@ cat ("insertStrinIntokcpEdit string=",string," start=",start," end=",end," len="
     if (length(input$addEvCmps) && 
         nchar(input$addEvCmps)) renderComponent(input,output,"evn")
   })
-                
+     
+  ## renderComponent           
   renderComponent <- function(input,output,inCode="default")
   {
 cat ("renderComponent, inCode=",inCode,"\n")
@@ -3370,7 +3405,7 @@ cat ("funName=",funName,"\n")
     })
   }
 
-    # Thin from below window observer function
+ ## Thin from below window observer function
  observe({
     if(is.null(input$tbf2)) return()
     if(input$tbf2 == "1" || input$tbf2 == "2") {
@@ -3425,7 +3460,7 @@ cat ("funName=",funName,"\n")
     }
   })
  
- # Thin from above window observer function
+ ## Thin from above window observer function
  observe({
   if(length(input$taf2)==0) return()
   if(input$taf2 == "1" || input$taf2 == "2") {
@@ -3480,7 +3515,7 @@ cat ("funName=",funName,"\n")
   }
 })
   
-  # schedule box toggled.
+  ## schedule box toggled.
   observe({  
     if (length(input$schedbox) == 0) return()
 cat("input$schedbox=",input$schedbox,"\n")
@@ -3521,8 +3556,8 @@ cat("globals$currentCmdPkey=",globals$currentCmdPkey,"\n")
     }
   })
 
+  ## schedule by condition selection
   observe({  
-    # schedule by condition selection
     if (length(input$schedbox) == 0) return()
     if (length(input$condList) == 0) return()
     if (length(globals$toggleind) && input$schedbox == 1) return()
@@ -3551,7 +3586,7 @@ cat("make condElts, input$condList=",input$condList,"\n")
     }
   })
   
-  
+  ## cmdChgToFree
   observe({       
     if (length(input$cmdChgToFree) == 0 || input$cmdChgToFree==0) return()
     isolate({
@@ -3606,13 +3641,12 @@ cat ("cmdChgToFree processing component\n")
        session$sendCustomMessage(type="refocus", "freeEdit")
     })
   })
-
+  ## command Cancel
   observe({  
-    # command Cancel
     if (length(input$cmdCancel) && input$cmdCancel == 0) return()
     closeCmp()
   })
-
+  ## closeCmp
   closeCmp <- function ()
   {
     globals$currentEditCmp <- globals$NULLfvsCmp
@@ -3623,7 +3657,7 @@ cat ("cmdChgToFree processing component\n")
     updateSelectInput(session=session, inputId="addEvCmps",selected = 0)
     output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- renderUI (NULL)
   }
-  
+  ## mkCondKeyWrd
   mkCondKeyWrd <- function (globals,prms,input)
   {
     kwPname = globals$currentCndPkey
@@ -3652,7 +3686,7 @@ cat ("mkCondKeyWrd, kwPname=",kwPname,"\n")
            "\nThen")
     list(reopn=reopn,kwds=kwds)
   }
-  
+  ## buildKeywords
   buildKeywords <- function(oReopn,pkeys,kwPname,globals)
   {
 cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
@@ -3713,9 +3747,8 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     }                        
     ans
   }
-
+  ## Save in run 
   observe({  
-    # Save in run                             
     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
     isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
@@ -3965,7 +3998,7 @@ cat ("changeind=",globals$changeind,"\n")
   })
   
   
-  ##  runwaitback
+  ## runwaitback
   observe(
     output$bkgCpuPrompt <- renderUI(if (input$runwaitback=="Wait for run") NULL else
       list(myInlineNumericInput("bkgNcpu","Background processes",
@@ -4125,8 +4158,7 @@ cat ("Run data query returned no data to run.\n")
           output$contChange <- renderUI("Run")   
           return()
         }         
-        newSum = !("FVS_Summary" %in% try(myListTables(dbGlb$dbOcon)))
-        msg=writeKeyFile(globals,dbGlb$dbIcon,newSum=newSum)
+        msg=writeKeyFile(globals,dbGlb$dbIcon)
         fc = paste0(globals$fvsRun$uuid,".key")
         if (!file.exists(fc))
         {
@@ -4376,12 +4408,15 @@ cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
       }, contentType=if (length(input$table) && input$dlRDType==".csv") "text/csv" else 
          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
          ### NB: length(input$table) is tested only to force this downloadHandler to fire.
+    ## Download dlFVSDatadb
     output$dlFVSDatadb <- downloadHandler(
        filename="FVS_Data.db",
        content = function (tf = tempfile()) file.copy("FVS_Data.db",tf))
+    ## Download dlFVSOutdb
     output$dlFVSOutdb <- downloadHandler(
        filename="FVSOut.db",
        content = function (tf = tempfile()) file.copy("FVSOut.db",tf))
+    ## Download dlFVSOutxlsx
     output$dlFVSOutxlsx <- downloadHandler(
        filename= function () paste0(globals$fvsRun$title,"_FVSoutput.xlsx"),
        content = function (tf = paste0(tempfile(),".xlsx"))
@@ -4805,7 +4840,8 @@ cat ("Visualize hit\n")
       output$SVSImg2      = renderRglwidget(NULL)
     }
   })
-               
+
+  ## mkSVSchoices
   mkSVSchoices <- function(svsRun)
   {
     fns = paste0(svsRun,"_index.svs")
@@ -4858,7 +4894,8 @@ cat ("Visualize hit\n")
     names(choices) = index[,1]
     choices
   }
-            
+     
+  ## SVSRunList1     
   observe({
     if (length(input$SVSRunList1))
     {
@@ -4874,6 +4911,8 @@ cat ("Visualize input$SVSRunList1=",input$SVSRunList1,"\n")
       output$SVSImg1      = renderRglwidget(NULL)
     }
   })
+  
+   ## SVSRunList2 
   observe({
     if (length(input$SVSRunList2))
     {
@@ -4890,6 +4929,7 @@ cat ("Visualize input$SVSRunList2=",input$SVSRunList2,"\n")
     }
   })
 
+  ## renderSVSImage
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
   {
@@ -5121,6 +5161,7 @@ cat("Residual length of svs=",length(svs),"\n")
     session$onFlushed(callBack, once = TRUE)
   }
 
+  ## SVSImgList1
   observe({
     if (length(input$SVSImgList1))
     {
@@ -5137,6 +5178,8 @@ cat ("Visualize SVSImgList1=",input$SVSImgList1," SVSdraw1=",input$SVSdraw1,"\n"
         plotColor=input$svsPlotColor1)
     }
   })
+  
+  ## SVSImgList2
   observe({
     if (length(input$SVSImgList2))
     {
@@ -5176,6 +5219,7 @@ cat ("View On Maps hit\n")
       output$leafletMessage=renderText(NULL)
     }
    })
+  ## mapDsRunList
   observe({
     if (length(input$mapDsRunList) && input$topPan == "View On Maps")
     {
@@ -5208,7 +5252,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       output$leafletMap = renderLeaflet(NULL)
     }
   })
-  
+  ## mapDsTable
   observe({
     if (length(input$mapDsTable))
     {
@@ -5225,6 +5269,8 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       output$leafletMap = renderLeaflet(NULL)
     }
   })
+  
+  ## mapDsVar
   observe({
     if (length(input$mapDsVar) && !is.na(match(input$mapDsVar,setdiff(
       dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
@@ -5915,7 +5961,7 @@ cat("delete project button.")
     }
   })
 
-  ##topHelp
+  ## topHelp
   observe({
     if (input$topPan == "Help")
     {
@@ -5925,6 +5971,7 @@ cat("delete project button.")
     }
   })
 
+  ## df2html
   df2html <- function(sdat=NULL)
   {
     if (is.null(sdat) || nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
@@ -5939,7 +5986,7 @@ cat("delete project button.")
     paste0(html,"</table>")
   }
   
-  
+  ## xlsx2html
   xlsx2html <- function(tab=NULL,xlsxfile=NULL,cols=NULL,addLink=FALSE)
   {
     if (is.null(xlsxfile) || !file.exists(xlsxfile)) return(NULL)
@@ -5975,6 +6022,7 @@ cat("delete project button.")
     } else return (NULL)
   } 
   
+  ## mkTableDescription
   mkTableDescription <- function (tab)
   {
     html = NULL
@@ -6026,7 +6074,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     }
   })
   
-  ##### data upload code  
+  ## data upload code  
   observe({
     if(input$toolsPan == "Import input data")
     {
@@ -6045,6 +6093,7 @@ cat ("Upload inventory data\n")
     }
   })
   
+  ## initNewInputDB
   initNewInputDB <- function (session,output,dbGlb)
   {
     updateSelectInput(session=session, inputId="editSelDBtabs", choices=list()) 
@@ -6059,6 +6108,7 @@ cat ("Upload inventory data\n")
     resetActiveFVS(globals)
   }
   
+  ## installDefaultData
   installDefaultData <- function(empty=FALSE)
   {
     dbDisconnect(dbGlb$dbIcon)
@@ -6804,6 +6854,8 @@ cat ("qry=",qry,"\nrtn=",rtn,"\n")
     initNewInputDB(session,output,dbGlb)
     progress$close()
   }) 
+  
+  ## AppendCSV
   observe({
     if(input$inputDBPan == "Append .csv data to existing tables") 
     {
@@ -7027,7 +7079,7 @@ cat ("insertCount=",insertCount,"\n")
       output$uploadClimActionMsg = renderText(HTML("<b>FVSClimAttrs table deleted if it existed.</b>"))
     }
   })
-
+  ## ClimateMsgs
   observe({
     if (input$topPan == "Manage Projects" && input$inputDBPan == "Upload Climate-FVS data")
     {
@@ -7195,6 +7247,7 @@ cat("insert qry=",qry,"\n")
     progress$close()   
   })  
   
+  ## View and edit existing tables
   observe({
     if(input$inputDBPan == "View and edit existing tables" && input$topPan == "Manage Projects") 
     {
@@ -7219,6 +7272,7 @@ cat ("dataEditor View and edit existing tables\n")
     }
   })                                                                                 
 
+  ## editSelDBtabs
   observe({                      
 cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
      " input$mode=",input$mode,"\n")
@@ -7272,6 +7326,7 @@ cat ("stand_ID query error.\n")
 cat ("editSelDBtabs returns\n")
   })              
   
+  ## editSelDBvars
   observe({              
     if (length(input$editSelDBvars)) 
     {
@@ -7336,6 +7391,8 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
       )
     }
   })
+  
+  ## nextRows
   observe({
     if (length(input$nextRows) && input$nextRows > 0) 
     {
@@ -7351,6 +7408,8 @@ cat ("editSelDBvars, input$editSelDBvars=",input$editSelDBvars," mode=",input$mo
           newBot," of ",nrow(dbGlb$tbl)))
     }
   })
+  
+  ## previousRows
   observe({
     if (length(input$previousRows) && input$previousRows > 0) 
     {
@@ -7528,7 +7587,6 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
                   message = "Are you sure you want to delete all rows from this database table?"))
     }
   })
-  
   observe({
     if(input$clearTableDlgBtn == 0) return()
 cat ("clearTable, tbl=",dbGlb$tblName,"\n")
@@ -7554,7 +7612,7 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
       inputId="mode",selected="Edit"))
   })
 
-##### Map data mapUpload
+   ## Upload Map data
    observe({
     if(input$inputDBPan == "Upload Map data") 
     {
@@ -7602,6 +7660,7 @@ cat ("Map data hit.\n")
       progress$close()
     }
    })
+   ## mapUpload
    observe({
     if(is.null(input$mapUpload)) return()
     {
@@ -7658,6 +7717,7 @@ cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
       }
     }
    })
+   ## mapUpLayers
    observe({
       if (is.null(input$mapUpLayers)) return()
       datadir = dirname(isolate(input$mapUpload$datapath))
@@ -7718,11 +7778,13 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
       }
       progress$close()
    })
+   ## mapUpSelectEPSG
    observe({
      if(length(input$mapUpSelectEPSG))
        updateTextInput(session=session, inputId="mapUpProjection",
             value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
    })
+   ## mapUpSetPrj
    observe({
      if(input$mapUpSetPrj > 0)
      {
@@ -7747,7 +7809,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        }
      }
    })
-   
+   ## prepSpatialData
    prepSpatialData = function(dbGlb)
    {
      if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
@@ -7774,6 +7836,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      rm (spd,envir=dbGlb)    
      return(SpatialData)
    }
+   ## mapUpSave
    observe({
      if(input$mapUpSave > 0)
      {
@@ -7785,6 +7848,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        }
      }
    })
+   ## mapUpAdd 
    observe({
      if(input$mapUpAdd > 0)
      {     
@@ -7801,7 +7865,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        }
      }
    })
-
+   ## Import runs and other items
    observe({
      if(input$toolsPan == "Import runs and other items") 
      {
@@ -7830,7 +7894,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        updateSelectInput(session=session, inputId="impSpatialData",choices=list())
      }  
   })                                     
-
+  ## mkSrcMsgAndList
   mkSrcMsgAndList <- function(db,nruns)
   {
     msg = paste0("File contains ",nruns," runs")
@@ -7927,6 +7991,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
     session$sendCustomMessage(type = "resetFileInputHandler","uploadRunsRdat")          
   })
 
+  ## impPrjSource
   observe({
     if (is.null(input$impPrjSource)) return() 
     {
@@ -7950,7 +8015,8 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       setwd(curdir)
     }    
   })                                                                                   
-           
+  
+  ## doImpRuns        
   observe({
     if (input$doImpRuns > 0) 
     {isolate({
@@ -7977,6 +8043,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
     })}
   })
 
+  ## doImpCustomCmps
   observe({
     if (input$doImpCustomCmps > 0)
     {isolate({
@@ -8003,6 +8070,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
     })}
   })
 
+  ## doImpGraphSettings
   observe({
     if (input$doImpGraphSettings > 0) 
     {isolate({
@@ -8028,6 +8096,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
     })}
   })
 
+  ## doImpCustomQueries
   observe({
     if (input$doImpCustomQueries > 0) 
     {isolate({
@@ -8052,6 +8121,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
       selected=names(customQueries)[1]) 
     })}
   })
+  ## impFVS_Data 
   observe({
     if (input$impFVS_Data > 0)
     {
@@ -8073,6 +8143,7 @@ cat(" input$impFVS_DataDlgBtn=",input$impFVS_DataDlgBtn,"\n")
       } else output$impFVS_DataMsg = renderText("Source FVS_Data.db was NOT found.")
     })  
   })
+  ## impSpatialData
   observe({
     if(input$impSpatialData > 0)
     {           
@@ -8106,7 +8177,7 @@ cat(" input$impSpatialDataDlgBtn=",input$impSpatialDataDlgBtn,"\n")
  
   # runScript selection                                                         
   observe(if (length(input$runScript)) customRunOps())
-
+  ## customRunOps
   customRunOps <- function ()                                             
   {
     isolate({
@@ -8136,7 +8207,7 @@ cat ("globals$fvsRun$uiCustomRunOps$",x,"=",y[[x]],"\n",sep=""),globals$fvsRun$u
 cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     })
   }
-    
+  ## updateProjectSelections   
   updateProjectSelections <- function ()
   {
     selChoices = getProjectList() 
@@ -8216,7 +8287,7 @@ cat ("new project dir=",getwd()," prjid=",prjid,"\n")
       updateProjectSelections()
     })
   }) 
-  
+  ## PrjOpen
   observe(if (length(input$PrjOpen) && input$PrjOpen > 0) 
   {
     isolate({
@@ -8272,6 +8343,7 @@ cat ("launch url:",url,"\n")
          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
   })
 
+  ## saveRun
   saveRun <- function(input,session) 
   {
     isolate({
