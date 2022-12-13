@@ -136,7 +136,7 @@ trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
 defaultRun <- list("Default useful for all FVS variants"="fvsRun")
 
-## used in Tools, dlZipSet
+# used in Tools, dlZipSet
 zipList <- list(  
   "FVSProject data base (Runs, Custom components (kcp), Custom queries, GraphSettings)" = "fvsProjdb",
   "Output data base for for all runs"  = "outdb",  
@@ -1501,7 +1501,7 @@ cat("filterRows and/or pivot\n")
     output$table <- renderTable(dat) 
   })               
           
-  ## Graphs
+  ##Graphs
   observe({                 
     if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
     {
@@ -3748,7 +3748,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     ans
   }
   ## Save in run 
-  observe({  
+  observe({                           
     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
     isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
@@ -5310,7 +5310,7 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
 cat ("length(uidsToGet)=",length(uidsToGet),"\n")
       if (!length(uidsToGet)) return()        
       uidsFound = NULL   
-      library(rgdal) 
+      library(sf) 
       spatdat = "SpatialData.RData"
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
           file.exists(spatdat)) load(spatdat,envir=dbGlb)
@@ -5332,16 +5332,21 @@ cat ("1 matchVar=",matchVar,"\n")
           if (!length(uidsToGet)) break 
           matchVar = attr(map,"MatchesStandID")
 cat ("2 matchVar=",matchVar,"\n")
-          uids=intersect(uidsToGet, map@data[,matchVar])
+          # if the map has class sp, it needs to be converted. This code was added in Nov 2022
+          # and can be removed once all the map data is converted to package sf. Note that
+          # this code allows for some members of the SpatialData to be sf and others sp.
+          qsp = attr(class(map),"package")
+          if (!is.null(qsp) && qsp == "sp") map=st_as_sf(map)
+          uids=intersect(uidsToGet, map[[matchVar]])
           if (length(uids) == 0) next
           uidsFound = c(uidsFound,uids)
-          pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
-          if (class(pp)=="SpatialPolygonsDataFrame") 
+          pp = st_transform(map[match(uids,map[[matchVar]]),],st_crs("epsg:4326"))
+          if (length(grep("POLYGON",st_geometry_type(pp)[1])))
           {
             polys  = if (is.null(polys))   pp   else rbind(polys,pp)
             polyLbs= if (is.null(polyLbs)) uids else rbind(polyLbs,uids)
           }
-          if (class(pp)=="SpatialPointsDataFrame")   
+          if (length(grep("POINT",st_geometry_type(pp)[1])))
           {
             pts   = if (is.null(pts))    pp   else rbind(pts,pp)
             ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
@@ -5440,19 +5445,15 @@ cat ("rows to keep=",length(keep),"\n")
             }
             uids = latLng[,"Stand_ID"]
             uidsFound = c(uidsFound,uids)
-            coordinates(latLng) <- ~Longitude+Latitude
-            setProj <- function (obj) 
-            {
-              proj4string(obj) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-              obj
-            }
-            latLng <- try(setProj(latLng))             
-            if (class(latLng)=="try-error")
+            latLng = st_as_sf(latLng, coords = c("Longitude","Latitude"))
+            latLng <- try(st_set_crs(latLng, 
+                      st_crs("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")))          
+            if ("try-error" %in% class(latLng))
             {
                output$leafletMessage=renderText("Error setting projection in location data.")
                return()
             }
-            pp = spTransform(latLng,CRS("+init=epsg:4326"))
+            pp =    st_transform(latLng,st_crs("epsg:4326"))
             pts=    if (is.null(pts))    pp   else rbind(pts,pp)
             ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
           }
@@ -7587,6 +7588,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
                   message = "Are you sure you want to delete all rows from this database table?"))
     }
   })
+  
   observe({
     if(input$clearTableDlgBtn == 0) return()
 cat ("clearTable, tbl=",dbGlb$tblName,"\n")
@@ -7617,13 +7619,12 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     if(input$inputDBPan == "Upload Map data") 
     {
 cat ("Map data hit.\n")
-      require(rgdal) 
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = "Preparing projection library",value = 2)
       updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
       if (!exists("prjs",envir=dbGlb,inherit=FALSE)) 
       {
-        dbGlb$prjs = make_EPSG()
+        dbGlb$prjs = rgdal::make_EPSG()
         delList = c("Unknown","deprecated","Unable to","Unspecified","Paris","China",
         "Oslo","NZGD","Kalianpur","Hartebeesth","ELD79","Sierra Le","Locodjo","ETRS89",
         "Xian 1980","Italy","GDM2000","KKJ ","Karbala","North Pole","LGD2006","JAD2","GDA94",
@@ -7638,14 +7639,8 @@ cat ("Map data hit.\n")
         "Peru","DRUKREF","TUREF","Korea","Spain","Congo","Katanga","Manoca","LKS9","Tahiti",
         "Argentina","Iraq","Slovenia","Naparima","Mauritania","Maupiti","Martinique","Estonian",
         "Qatar","Doulas","Easter","Qornoq","Rassad","Miquelon","Segara","Tahhaa","Singapore")
-        dbGlb$prjs <- dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
-        for (del in delList)
-        {
-          tod = grep(del,dbGlb$prjs[,2],ignore.case=TRUE)
-# cat ("del=",del," len=",length(tod)," nrow=",nrow(dbGlb$prjs),"\n")
-          if (length(tod)) dbGlb$prjs = dbGlb$prjs[-tod,]
-        }         
-      }
+      tod = unlist(lapply(delList,function (x) grep(x,dbGlb$prjs[,2],ignore.case=TRUE)))
+      dbGlb$prjs = dbGlb$prjs[-tod,]
       dbGlb$prjs = dbGlb$prjs[order(dbGlb$prjs[,2]),]
       grp = c(grep ("NAD",dbGlb$prjs[,2],fixed=TRUE),grep("WGS",dbGlb$prjs[,2],fixed=TRUE))
       dbGlb$prjs = rbind(dbGlb$prjs[grp,],dbGlb$prjs[-grp,])
@@ -7653,13 +7648,13 @@ cat ("Map data hit.\n")
                         selected=0)
       epsg = as.character(1:nrow(dbGlb$prjs))
       names(epsg) = paste0("epsg:",dbGlb$prjs$code," ",dbGlb$prjs$note)
-      updateSelectInput(session=session, inputId="mapUpSelectEPSG", choices=epsg,
-                        selected=0)
+      suppressWarnings(updateSelectInput(session=session, inputId="mapUpSelectEPSG", choices=epsg,
+                                         selected=0))
       updateTextInput(session=session, inputId="mapUpProjection",value="")
       output$mapActionMsg = renderText(" ")
       progress$close()
     }
-   })
+   }})
    ## mapUpload
    observe({
     if(is.null(input$mapUpload)) return()
@@ -7729,38 +7724,41 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
-      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers,
-                                                   drop_unsupported_fields=TRUE)))
+      txtoutput = capture.output(dbGlb$spd <- try(st_read(dir(),input$mapUpLayers)))
       setwd(curdir)
-      if (class(dbGlb$spd) == "try-error")
+      if ("try-error" %in% class(dbGlb$spd))
       {
         output$mapActionMsg = renderText(paste0("Map read error: ",dbGlb$spd))
         progress$close()
         setwd(curdir)
         return()
       }
-      for (col in colnames(dbGlb$spd@data))
+      for (col in colnames(dbGlb$spd))
       {
-        if (is.factor(dbGlb$spd@data[,col])) 
-          dbGlb$spd@data[,col]=levels(dbGlb$spd@data[,col])[as.numeric(dbGlb$spd@data[,col])]
+        if (col != "geometry" && is.factor(dbGlb$spd[,col])) 
+          dbGlb$spd[,col]=levels(dbGlb$spd[,col])[as.numeric(dbGlb$spd[,col])]
       }
       txtoutput = paste0(txtoutput,collapse="\n")
       output$mapActionMsg = renderText(txtoutput)
       progress$set(message = txtoutput,value=3)
-      choices = as.list(names(dbGlb$spd@data))
+      choices = as.list(names(dbGlb$spd))
       names(choices) = choices
       stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
       ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
 cat ("length(ids)=",length(ids),"\n")
-      if (class(ids) == "try-error" || nrow(ids) == 0)
+      if ("try-error" %in% class(ids) || nrow(ids) == 0)
       {
-        selected = grep("ID",names(dbGlb$spd@data),ignore.case=TRUE)[1]
-        selected = if (is.na(selected)) 0 else names(dbGlb$spd@data)[selected]
+        selected = grep("ID",names(dbGlb$spd),ignore.case=TRUE)[1]
+        selected = if (is.na(selected)) 0 else names(dbGlb$spd)[selected]
       } else {
         ids = unlist(ids)
+        spd = as.data.frame(dbGlb$spd)
+        geo = grep("geometry",colnames(spd))
+        if (length(geo)) spd = spd[,-geo]
+        names(ids) = NULL
         cnts = NULL
-        for (col in colnames(dbGlb$spd@data))
-          cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd@data[,col]))))
+        for (col in colnames(spd))
+          cnts = c(cnts,length(na.omit(match(ids,spd[,col]))))
         cnts = cnts/length(ids)*100
         choices = paste0(choices," ",format(cnts,digits=3),"%")
         selected = choices[which.max(cnts)]
@@ -7768,23 +7766,24 @@ cat ("length(ids)=",length(ids),"\n")
 cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected=",selected,"\n")
       updateSelectInput(session=session, inputId="mapUpIDMatch",
           choices=choices,selected=selected)
-      prj = proj4string(dbGlb$spd)
+      prj = st_crs(dbGlb$spd)
+
       if (!is.na(prj)) 
       {
+  
         updateTextInput(session=session, inputId="mapUpProjection",value=prj)
-        i = grep (prj,dbGlb$prjs$prj4,fixed=TRUE)
+        i = regexpr (prj[1],dbGlb$prjs$note,ignore.case=TRUE)
+        i = i[i>0]
         if(length(i) && !is.na(i))
           updateSelectInput(session=session, inputId="mapUpSelectEPSG",selected=i)
       }
       progress$close()
    })
-   ## mapUpSelectEPSG
    observe({
      if(length(input$mapUpSelectEPSG))
        updateTextInput(session=session, inputId="mapUpProjection",
             value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
    })
-   ## mapUpSetPrj
    observe({
      if(input$mapUpSetPrj > 0)
      {
@@ -7809,7 +7808,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        }
      }
    })
-   ## prepSpatialData
+   
    prepSpatialData = function(dbGlb)
    {
      if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
@@ -7822,13 +7821,13 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      names(ids2) = NULL
      keep=union(ids1,ids2)   
      matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
-     keep=na.omit(charmatch(keep,dbGlb$spd@data[,matID]))
+     keep=na.omit(charmatch(keep,dbGlb$spd[,matID]))
      if (length(keep)) 
      {
        SpatialData=dbGlb$spd[keep,]
        attr(SpatialData,"MatchesStandID") =  matID
        output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
-           matID,", Number of objects kept=",nrow(SpatialData@data)))
+           matID,", Number of objects kept=",nrow(SpatialData)))
      } else {
        SpatialData=NULL
        output$mapActionMsg = renderText("No map or data to save.")
