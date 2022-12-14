@@ -7619,42 +7619,12 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     if(input$inputDBPan == "Upload Map data") 
     {
 cat ("Map data hit.\n")
-      progress <- shiny::Progress$new(session,min=1,max=3)
-      progress$set(message = "Preparing projection library",value = 2)
-      updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
-      if (!exists("prjs",envir=dbGlb,inherit=FALSE)) 
-      {
-        dbGlb$prjs = rgdal::make_EPSG()
-        delList = c("Unknown","deprecated","Unable to","Unspecified","Paris","China",
-        "Oslo","NZGD","Kalianpur","Hartebeesth","ELD79","Sierra Le","Locodjo","ETRS89",
-        "Xian 1980","Italy","GDM2000","KKJ ","Karbala","North Pole","LGD2006","JAD2","GDA94",
-        "HTRS96","Bermuda","Pitcairn","Cuba ","Kertau","Portug","Brunei","Jakarta","Abidjan",
-        "Chile","Russia","Japan","Israel","Nahrwan","Fiji","Viti L","PRS92","MAGNA-","Banglade",
-        "Minna","poraloko","Sahara","Zanderij","MGI","Ain el","Afgooye","Barbados","Carthage",
-        "Luzon","Maroc","Massawa","Schwarzeck","Tanana","Timbalai","OSNI","Irish","Trinidad",
-        "Voirol","Yoff","Belge ","Tokyo","British","Amersfoort","Lao ","Yemen ","Brazil",
-        "Indian","Indonesia","Garoua","Fahud","Egypt","Deir ez","Corrego","Cape /","Hong Kong",
-        "Bogota","Camacupa","Beijing","Batavia","Aratu","Adindan","Pulkovo","Lisbon","Hanoi",
-        "Macedonia","Cayman","Arctic","Europe","Krovak","Panama","Sibun G","Ocotepeque",
-        "Peru","DRUKREF","TUREF","Korea","Spain","Congo","Katanga","Manoca","LKS9","Tahiti",
-        "Argentina","Iraq","Slovenia","Naparima","Mauritania","Maupiti","Martinique","Estonian",
-        "Qatar","Doulas","Easter","Qornoq","Rassad","Miquelon","Segara","Tahhaa","Singapore")
-      tod = unlist(lapply(delList,function (x) grep(x,dbGlb$prjs[,2],ignore.case=TRUE)))
-      dbGlb$prjs = dbGlb$prjs[-tod,]
-      dbGlb$prjs = dbGlb$prjs[order(dbGlb$prjs[,2]),]
-      grp = c(grep ("NAD",dbGlb$prjs[,2],fixed=TRUE),grep("WGS",dbGlb$prjs[,2],fixed=TRUE))
-      dbGlb$prjs = rbind(dbGlb$prjs[grp,],dbGlb$prjs[-grp,])
+      library(sf)
       updateSelectInput(session=session, inputId="mapUpLayers", choices=list(),
                         selected=0)
-      epsg = as.character(1:nrow(dbGlb$prjs))
-      names(epsg) = paste0("epsg:",dbGlb$prjs$code," ",dbGlb$prjs$note)
-      suppressWarnings(updateSelectInput(session=session, inputId="mapUpSelectEPSG", choices=epsg,
-                                         selected=0))
-      updateTextInput(session=session, inputId="mapUpProjection",value="")
       output$mapActionMsg = renderText(" ")
-      progress$close()
     }
-   }})
+   })
    ## mapUpload
    observe({
     if(is.null(input$mapUpload)) return()
@@ -7686,18 +7656,16 @@ cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
         progress$set(message = "Getting layers",value = 2)
         if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
         setwd(mapDir)
-        lyrs = try(ogrListLayers(dir(mapDir)))
+        lyrs = try(sf::st_layers(dir(mapDir)))
         setwd(curdir)                                
 cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
-        if (class(lyrs) == "try-error" || length(lyrs) == 0)
+        if ("try-error" %in% class(lyrs) || length(lyrs$name)==0)
         {
           output$mapActionMsg = renderText("Can not find layers in data")
           progress$close()
           return()
         }
-        attributes(lyrs) = NULL
-        lyrs = as.list(lyrs)
-        names(lyrs) = unlist(lyrs)
+        lyrs = as.list(lyrs$name)
         if (length(lyrs) > 1) 
         {
           lyr = grep ("poly",names(lyrs),ignore.case=TRUE)
@@ -7733,32 +7701,24 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
         setwd(curdir)
         return()
       }
-      for (col in colnames(dbGlb$spd))
-      {
-        if (col != "geometry" && is.factor(dbGlb$spd[,col])) 
-          dbGlb$spd[,col]=levels(dbGlb$spd[,col])[as.numeric(dbGlb$spd[,col])]
-      }
       txtoutput = paste0(txtoutput,collapse="\n")
       output$mapActionMsg = renderText(txtoutput)
       progress$set(message = txtoutput,value=3)
-      choices = as.list(names(dbGlb$spd))
-      names(choices) = choices
       stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
       ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
 cat ("length(ids)=",length(ids),"\n")
+      choices = setdiff(names(dbGlb$spd),"geometry")
+      names(choices) = choices
       if ("try-error" %in% class(ids) || nrow(ids) == 0)
       {
-        selected = grep("ID",names(dbGlb$spd),ignore.case=TRUE)[1]
-        selected = if (is.na(selected)) 0 else names(dbGlb$spd)[selected]
+        selected = grep("ID",choices,ignore.case=TRUE)[1]
+        if (is.na(selected)) selected=0
       } else {
         ids = unlist(ids)
-        spd = as.data.frame(dbGlb$spd)
-        geo = grep("geometry",colnames(spd))
-        if (length(geo)) spd = spd[,-geo]
         names(ids) = NULL
         cnts = NULL
-        for (col in colnames(spd))
-          cnts = c(cnts,length(na.omit(match(ids,spd[,col]))))
+        for (col in choices)
+          cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd[,col][[col]])))) 
         cnts = cnts/length(ids)*100
         choices = paste0(choices," ",format(cnts,digits=3),"%")
         selected = choices[which.max(cnts)]
@@ -7766,47 +7726,7 @@ cat ("length(ids)=",length(ids),"\n")
 cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected=",selected,"\n")
       updateSelectInput(session=session, inputId="mapUpIDMatch",
           choices=choices,selected=selected)
-      prj = st_crs(dbGlb$spd)
-
-      if (!is.na(prj)) 
-      {
-  
-        updateTextInput(session=session, inputId="mapUpProjection",value=prj)
-        i = regexpr (prj[1],dbGlb$prjs$note,ignore.case=TRUE)
-        i = i[i>0]
-        if(length(i) && !is.na(i))
-          updateSelectInput(session=session, inputId="mapUpSelectEPSG",selected=i)
-      }
       progress$close()
-   })
-   observe({
-     if(length(input$mapUpSelectEPSG))
-       updateTextInput(session=session, inputId="mapUpProjection",
-            value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
-   })
-   observe({
-     if(input$mapUpSetPrj > 0)
-     {
-       if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
-       {
-         output$mapActionMsg = renderText("No map, upload one then set projection")
-         return()
-       }
-       prjstring = trim(isolate(input$mapUpProjection))
-       if (nchar(prjstring) == 0) 
-       {
-         output$mapActionMsg = renderText("proj4 string is empty")
-         return()
-       }
-       prj = try(CRS(prjstring))
-       if (class(prj) == "try-error") 
-       {
-         output$mapActionMsg = renderText("proj4 string is not valid")
-       } else {
-         proj4string(dbGlb$spd) = prjstring
-         output$mapActionMsg = renderText("proj4 set/reset")
-       }
-     }
    })
    
    prepSpatialData = function(dbGlb)
@@ -7816,12 +7736,16 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      ids1 = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from ',stdInit)))
      ids1 = if (class(ids1)=="try-error") list() else unlist(ids1)
      names(ids1) = NULL
-     ids2 = try(dbGetQuery(dbGlb$dbOcon,'select distinct StandID from FVS_Cases;'))
-     ids2 = if (class(ids2)=="try-error") list() else unlist(ids2)
-     names(ids2) = NULL
-     keep=union(ids1,ids2)   
+     if ("FVS_Cases" %in% 
+       dbGetQuery(dbGlb$dbOcon,"SELECT * FROM sqlite_master where type='table'")$name)
+     {
+       ids2 = try(dbGetQuery(dbGlb$dbOcon,'select distinct StandID from FVS_Cases;'))
+       ids2 = if ("try-error" %in% class(ids2)) list() else unlist(ids2)
+       names(ids2) = NULL
+       keep=union(ids1,ids2) 
+     } else keep=ids1
      matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
-     keep=na.omit(charmatch(keep,dbGlb$spd[,matID]))
+     keep=na.omit(charmatch(keep,dbGlb$spd[,matID][[matID]]))
      if (length(keep)) 
      {
        SpatialData=dbGlb$spd[keep,]
