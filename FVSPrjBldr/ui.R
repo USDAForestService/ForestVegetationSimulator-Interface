@@ -20,10 +20,10 @@ shinyUI(fluidPage(
     textInput("title", "Your new project title"),
     textInput("emailnew", "Your Email address"),
     textInput("emaildup", "Your Email address again"),
-    radioButtons("version",NULL,choices=list( 
-       "Use the production version of the software"="production",
-       "Use the development version"="development"),
-       selected="production"),
+#    radioButtons("version",NULL,choices=list( 
+#       "Use the production version of the software"="production",
+#       "Use the development version"="development"),
+#       selected="production"),
     p("By pressing submit you are certifying that you agree to the Notice posted below."),
     actionButton("submitnew","Submit"),
     tags$style(type="text/css","#actionMsg{color:darkred;}"), 

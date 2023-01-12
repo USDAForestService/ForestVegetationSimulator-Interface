@@ -1,4 +1,4 @@
-library(shiny)
+versionlibrary(shiny)
 
 options(shiny.trace = F)  # change to T for trace
 
@@ -29,10 +29,10 @@ shinyServer(function(input, output, session) {
       workDir = paste0("/home/shiny/FVSwork/",uuid)
       cat("workDir=",workDir,"\n")
       dir.create(workDir)
-      if (input$version == "production") 
+#      if (input$version == "production") 
         cat ('library(fvsOL)\nfvsOL(fvsBin="/home/shiny/FVS/bin")\n',file=paste0(workDir,"/app.R"))
-      if (input$version == "development") 
-        cat ('library(fvsOLdev)\nfvsOL(fvsBin="/home/shiny/FVSdev/bin")\n',file=paste0(workDir,"/app.R"))
+#      if (input$version == "development") 
+#        cat ('library(fvsOLdev)\nfvsOL(fvsBin="/home/shiny/FVSdev/bin")\n',file=paste0(workDir,"/app.R"))
       # projectId file...
 cat("email=",emailnew,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
