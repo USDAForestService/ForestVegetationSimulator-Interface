@@ -1,4 +1,4 @@
-versionlibrary(shiny)
+library(shiny)
 
 options(shiny.trace = F)  # change to T for trace
 
