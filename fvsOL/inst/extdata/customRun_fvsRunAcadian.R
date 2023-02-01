@@ -228,7 +228,8 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     names(tree)[match("TPA",names(tree))] = "EXPF"
 
     tree$CR = round((1-(tree$HCB/tree$HT))*100,1)
-    tofvs = data.frame(id=orgtree$TREE,
+
+    tofvs = data.frame(
               dg=(tree$DBH[orgtree$TREE]-orgtree$DBH)*CMtoIN,
               htg=(tree$HT[orgtree$TREE]-orgtree$HT)*MtoFT,
               # set the crown ratio sign to negetive so that FVS
@@ -262,8 +263,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
         atstop6 = TRUE
         fvsAddTrees(toadd)
       } else cat ("fvsRunAcadian: Not enough room for",newTrees,
-          "new trees. Stand=",fvsGetStandIDs()["standid"],"; Year=",
-          stdInfo["year"],"\n")
+          "new trees; Year=",year,"\n")
     }
 
     # modifying volume?
