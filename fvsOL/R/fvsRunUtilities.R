@@ -442,8 +442,8 @@ resetActiveFVS <- function(globals)
            "ls: Lake States"="ls",
            "ne: Northeast"="ne",
            "sn: Southern"="sn")
-  keep=match(globals$activeVariants,vars)
-  globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
+  keep=na.omit(match(globals$activeVariants,vars))
+  globals$activeVariants = if (length(keep)) vars[keep] else character(0)
   globals$activeExtens=character(0)
 }
 
