@@ -1,6 +1,6 @@
 Package: rFVS
 Title: Interface functions for the Forest Vegetation Simulator
-Version: 2021.05.11
+Version: 2023.02.01
 Authors@R: person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
                   role = c("aut", "cre"))
 Description: Provides a set of R functions that interface with the 
