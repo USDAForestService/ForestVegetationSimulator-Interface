@@ -608,7 +608,7 @@ description:
 {Alters the change in crown by a specified proportion, or in the case
 of dubbing adjusts the dubbed crown by the specified proportion.
 
-This keyword not applicable in NI, IE, CI, and KT variants.
+This keyword not applicable in IE, CI, and KT variants.
 
 Once keyword is in effect, it remains in effect until replaced by
 another multiplier.
@@ -4966,8 +4966,7 @@ automatically computed by the program).
 If the target relative is nonzero and the cutting control
 flag is nonzero, then the cutting efficiency parameter is used.}
 
-description:
-{This keyword can only be used in the Northeast variant.}
+f1:{noInput This keyword can only be used in the Northeast variant.}
 
 f1{ne}:{scheduleBox}
 f2{ne}:{numberBox Residual Relative Density (within specified DBH range)}

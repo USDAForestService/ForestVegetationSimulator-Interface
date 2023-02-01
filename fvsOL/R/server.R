@@ -410,6 +410,26 @@ cat ("exit now\n")
     }
   })
       
+  ## changeind  
+  observe({
+    cat ("changeind=",globals$changeind,"\n")          
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({        
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
+  
   ## Load
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
@@ -536,8 +556,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           setProgress(value = NULL)
           return()
         }
-        isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
+        dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh)
         if (!isMetric)
         {
           if ("FVS_Summary" %in% tbs && ncases > 1)
@@ -788,24 +807,71 @@ cat ("tbs7=",tbs,"\n")
     }
   })
   
-  ## changeind  
-  observe({
-    cat ("changeind=",globals$changeind,"\n")          
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({        
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
+  ## bldstdsk
+  observeEvent(input$bldstdsk,{
+      tbs <- myListTables(dbGlb$dbOcon)
+cat ("tbs related to the run",tbs,"\n")
+      if (length(tbs) == 0) 
+      {
+        updateSelectInput(session, "selectdbtables", choices=list())
+        return()
+      }
+      dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh)
+      tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
+      if (any(tlprocs)) 
+      {
+        tlprocs = names(tlprocs)[tlprocs]
+        chtoEast = function(cmd)
+        {
+          cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
+          cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
+          cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
+          gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
+        }
+        for (tlp in tlprocs)          
+        {
+          if (tlp == "tlwest")
+          {
+            C_StdStkDBHSp  = Create_StdStkDBHSp
+            C_HrvStdStk    = Create_HrvStdStk
+            C_StdStk1Hrv   = Create_StdStk1Hrv
+            C_StdStk1NoHrv = Create_StdStk1NoHrv
+            C_StdStkFinal  = Create_StdStkFinal
+            C_CmpStdStk    = Create_CmpStdStk
+            detail = "Building StdStk from tree lists"
+            stdstk = "StdStk"
+            clname = "FVS_CutList"
+          } else {
+            C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
+            C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
+            C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
+            C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
+            C_StdStkFinal  = chtoEast(Create_StdStkFinal )
+            C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
+            C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
+            C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
+            C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
+            detail = "Building StdStk_East from tree lists"
+            stdstk = "StdStk_East"
+            clname = "FVS_CutList_East"
+          }
+          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          if (clname %in% tbs)
+          {
+            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          } else {
+            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          }
+          exqury(dbGlb$dbOcon,C_StdStkFinal)
+          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+          if (ncases > 1) exqury(dbGlb$dbOcon,C_CmpStdStk)
+        }          
+      }                                  
   })
   
   ## selectdbtables
@@ -1067,8 +1133,9 @@ cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
     if (!is.null(input$sqlSel))
     {
       sel = as.numeric(input$sqlSel)
+      if(is.na(sel)) sel = as.numeric(match(input$sqlSel,names(globals$customQueries)))
 cat ("sqlSel sel=",sel,"\n")
-      if (length(globals$customQueries) >= sel) 
+      if (length(globals$customQueries) >= sel || !is.null(sel)) 
       {
         updateTextInput(session=session, inputId="sqlTitle", 
           value=names(globals$customQueries)[sel])
@@ -2318,8 +2385,10 @@ cat ("inVars globals$activeVariants=",globals$activeVariants,
 cat ("in reloadStandSelection\n")
     if (is.null(input$inTabs) || is.null(input$inVars)) return()
     sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) "StandPlot_ID" else "Stand_ID"      
-    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups from ",input$inTabs,
+    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups, INV_YEAR from ",input$inTabs,
               ' where lower(variant) like "%',tolower(input$inVars),'%"')))
+    grps <- subset(grps, !is.na(INV_YEAR))
+    grps <- subset(grps, INV_YEAR !="")
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
@@ -3828,7 +3897,7 @@ cat ("Editing as freeform\n")
         }  
       }
 cat ("Building a component: kwPname=",kwPname,"\n")
-      ans = if (kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+      ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
           reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
@@ -3943,26 +4012,6 @@ cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")
       closeCmp()
       globals$schedBoxPkey <- character(0)
     })
-  })
-          
-  ## changeind
-  observe({
-cat ("changeind=",globals$changeind,"\n")
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
   })
   
   ## time--start year
@@ -4766,6 +4815,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
           if(length(globals$customCmps)==1){
            customCmps=NULL
             removeObject(dbGlb$prjDB,"customCmps")
+            globals$customCmps <- list()
             updateSelectInput(session=session, inputId="kcpSel", choices=list())
             updateTextInput(session=session, inputId="kcpTitle", value="")
             updateTextInput(session=session, inputId="kcpEdit", value="") 
@@ -4786,6 +4836,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         } else {
           customCmps=NULL
           removeObject(dbGlb$prjDB,"customCmps")
+          globals$customCmps <- list()
           updateSelectInput(session=session, inputId="kcpSel", choices=list())
           updateTextInput(session=session, inputId="kcpTitle", value="")
           updateTextInput(session=session, inputId="kcpEdit", value="")
@@ -4796,7 +4847,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
                                                                      
   ## Download KCP
   output$kcpDownload <- downloadHandler(filename=function ()
-      paste0(input$kcpSel,".kcp"),
+      paste0(input$kcpTitle,".kcp"),
       content=function (tf = tempfile())
       {     
         write(input$kcpEdit,tf)
@@ -7560,7 +7611,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
             rownames(dbGlb$tbl) = dbGlb$tbl$rowid
             for (col in 2:ncol(dbGlb$tbl))
-              if (class(dbGlb$tbl[[col]]) != "character") 
+              if (class(dbGlb$tbl[[col]])[1] != "character") 
                  dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
             if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
             {
@@ -8035,15 +8086,17 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
         } else{
         customQueries = list()
         newtitle = mkNameUnique(curTitle,customQueries)
-      }
+        }
+      globals$customQueries[newtitle]= source[curTitle]
       customQueries[newtitle] = source[curTitle]
       storeOrUpdateObject(dbGlb$prjDB,customQueries)
       output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
        ' is named "',newtitle,'" in your current project.'))   
       updateSelectInput(session=session,inputId="sqlSel",choices=as.list(names(customQueries)), 
-      selected=names(customQueries)[1]) 
+      selected="") 
     })}
   })
+  
   ## impFVS_Data 
   observe({
     if (input$impFVS_Data > 0)
