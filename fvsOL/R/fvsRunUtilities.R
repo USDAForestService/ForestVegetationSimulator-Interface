@@ -442,8 +442,8 @@ resetActiveFVS <- function(globals)
            "ls: Lake States"="ls",
            "ne: Northeast"="ne",
            "sn: Southern"="sn")
-  keep=na.omit(match(globals$activeVariants,vars))
-  globals$activeVariants = if (length(keep)) vars[keep] else character(0)
+  keep=match(globals$activeVariants,vars)
+  globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
   globals$activeExtens=character(0)
 }
 
@@ -616,6 +616,7 @@ mkKeyWrd = function (ansFrm,input,pkeys,variant)
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
+  if(variant!="ne" && length(grep("ThinRDSL",ansFrm))>0) out="ThinRDSL"
   if (is.null(pkeys) || is.null(input) || is.null(ansFrm)) return(out)
   for (i in 1:length(input)){
     if(!is.null(input) && input[i]==" ") next

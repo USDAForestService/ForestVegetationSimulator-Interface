@@ -1,7 +1,6 @@
 //start keyword.phewrd3.BBClear
 
-description:
-{Deactivate the default bark beetle events. The model will automatically
+f1:{noInput Deactivate the default bark beetle events. The model will automatically
 schedule bark beetle events for bark beetle types 1, 3, and 4 using the
 default values unless BBClear, BBType1, BBType2, BBType3, or BBType4 are 
 used.}
@@ -581,8 +580,7 @@ parmsForm=answerForm
 
 //start keyword.phewrd3.RRTreIn
 
-description:
-{Indicates that root disease conditions will be initialized from the 
+f1:{noInput Indicates that root disease conditions will be initialized from the 
 inventory tree list.}
 
 //end keyword.phewrd3.RRTreIn 
