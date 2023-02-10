@@ -547,7 +547,14 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
         if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))) cmp$kwds <- kcpVetting(cmp$kwds)
         if (cmp$atag == "k" && !is.null(lastCnd))
         {
-          if(lastExt != "base" && !EndPrev) cat ("End\n",file=fc,sep="")
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
+        if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
           EndPrev=TRUE
           lastCnd = NULL
@@ -615,19 +622,26 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
                     cmp$kwds,"\n",file=fc,sep="")
           if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
         }
+       EndPrev=FALSE
       }
-      EndPrev=FALSE
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
     {    
       if (length(grep("Addfile:",cmp$title)) || length(grep("Editor:",cmp$title))) cmp$kwds <- kcpVetting(cmp$kwds)
       if (cmp$atag == "k" && !is.null(lastCnd))
       {
-        if(lastExt != "base" && !EndPrev) cat ("End\n",file=fc,sep="")
+        if(lastExt != "base") cat ("End\n",file=fc,sep="")
         cat ("EndIf\n",file=fc,sep="")
         EndPrev=TRUE
         lastCnd = NULL
       }
+      if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
       if (cmp$atag == "c") lastCnd = cmp$uuid
       exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
              unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten

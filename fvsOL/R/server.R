@@ -1942,10 +1942,11 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     nd = NULL
-    sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
-                    nlevels(dat$Species)>1 
-    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) && 
-                    nlevels(dat$DBHClass)>1   
+    specOpts <- c("Species","SpeciesFVS","SpeciesPLANTS","SpeciesFIA")
+    sumOnSpecies= (all(!specOpts %in% vars) && any(specOpts %in% names(dat)) && 
+                   nlevels(dat$Species)>1)
+    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) &&
+                    nlevels(dat$DBHClass)>1
     for (v in vars[(nlv+1):length(vars)])
     {
       if (is.na(v) || !v %in% names(dat)) return(nullPlot())
@@ -1966,7 +1967,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd=subset(nd,DBHClass!="All")
       nd$DBHClass="Sum"
     }
-    if (sumOnSpecies||sumOnDBHClass) 
+    if (sumOnSpecies || sumOnDBHClass) 
     {
       nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
       names(nd)[ncol(nd)]="Y"
@@ -2368,7 +2369,6 @@ cat ("Stands\n")
 cat ("inTabs\n")
   })
   
-  
   ## inVars has changed
   observe({
     if (is.null(input$inVars)) return()
@@ -2387,8 +2387,8 @@ cat ("in reloadStandSelection\n")
     sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) "StandPlot_ID" else "Stand_ID"      
     grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups, INV_YEAR from ",input$inTabs,
               ' where lower(variant) like "%',tolower(input$inVars),'%"')))
-    grps <- subset(grps, !is.na(INV_YEAR))
-    grps <- subset(grps, INV_YEAR !="")
+    grps <- subset(grps, !is.na(grps[grep("inv_year",tolower(names(grps)))]))
+    grps <- subset(grps, grps[grep("inv_year",tolower(names(grps)))] !="")
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
