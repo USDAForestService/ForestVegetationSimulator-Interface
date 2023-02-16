@@ -15,16 +15,16 @@ ATRTLiDB  !1,10!!2,10!}
 
 //end keyword.dbs.ATRTLiDB
 
-//start keyword.dbs.BurnRept
+//start keyword.dbs.BurnReDB
 
 f1:{listButtonString Build FVS_BurnReport table}
 f1v:{1 = Both database and standard output.
 >2 = Database table only.}
 
 parmsForm:{
-BurnRept  !1,10!}
+BurnReDB  !1,10!}
 
-//end keyword.dbs.BurnRept
+//end keyword.dbs.BurnReDB
 
 //start keyword.dbs.CalbStDB
 

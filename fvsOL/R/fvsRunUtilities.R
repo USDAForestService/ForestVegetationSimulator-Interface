@@ -928,6 +928,7 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
           names(globals$pastelistShadow)[1] = toRm$title
         }
       }
+      if(length(fvsRun$stands)==1)fvsRun$grps = list()
       fvsRun$stands[[i]] = NULL
       return(TRUE)
     }

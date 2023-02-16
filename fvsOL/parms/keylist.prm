@@ -1083,7 +1083,7 @@ StatFuel {fire modifier}:
 ATRTLiDB {dbs}:
 {Requests the FVS_ATRTList table be created and populated.}
 
-BurnRept {dbs}:
+BurnReDB {dbs}:
 {Requests the FVS_BurnReport table be created and populated.}
 
 CalbStDB  {dbs}:
