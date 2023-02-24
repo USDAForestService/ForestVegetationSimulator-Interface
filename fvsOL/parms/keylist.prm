@@ -1117,6 +1117,10 @@ FuelReDB {dbs}:
 FuelsOut {dbs}:
 {Requests the FVS_Fuels table be created and populated.}
 
+InvStats {dbs}:
+{Requests the FVS_Stats_Stand and FVS_Stats_Species tables be 
+created and populated.}
+
 MisRpts {dbs}:
 {Requests the FVS_DM_Spp_Sum, FVS_DM_Stnd_Sum, and FVS_DM_Sz_Sum 
 dwarf mistletoe tables be created and populated.}
@@ -1135,6 +1139,9 @@ RDDetail {dbs}:
 
 RDSum {dbs}:
 {Requests the FVS_RD_Sum table be created and populated.}
+
+RegRepts {dbs}:
+{Requests regeneration establishment table(s) be created and populated.}
 
 SnagOuDB {dbs}:
 {Requests the FVS_SnagDet table be created and populated.}

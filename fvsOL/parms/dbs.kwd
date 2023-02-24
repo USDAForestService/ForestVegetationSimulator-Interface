@@ -407,3 +407,17 @@ description:
 output database. Table is written to main output file by default.}
 
 //end keyword.dbs.RDSum
+
+//start keyword.dbs.InvStats
+
+f1:
+{noInput Build the FVS_Stats_Stand and FVS_Stats_Species tables.}
+
+//end keyword.dbs.InvStats
+
+//start keyword.dbs.RegRepts
+
+f1:
+{noInput Build the regeneration establishment tables.}
+
+//end keyword.dbs.RegRepts
