@@ -83,36 +83,38 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
         dplyr::mutate(pCR= (HT-HCB)/HT, # predicted crown ratio
                       CR= case_when(CR == 0 ~pCR, # use predicted crown ratio where value is missing
                                     TRUE ~ CR))
-  tree
+    tree   
   }
-
+               
   # start FVS but return prior to dubbing and calibration to dub in missing
   # heights and crown ratios
-
-  fvsRun(7,0)
-  CSI = fvsGetEventMonitorVariables("csi")
-  if (is.na(CSI)) CSI = fvsGetEventMonitorVariables("site")*FTtoM
-  CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)
-  orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio"))
-  names(orgtree) = toupper(names(orgtree))
-  orgtree$TREE= 1:nrow(orgtree)
-  names(orgtree)[match("SPECIES",names(orgtree))] = "SP"
-  names(orgtree)[match("TPA",names(orgtree))] = "EXPF"
-  orgtree$SP = spcodes[orgtree$SP,1]
-  #change CR to a proportion and take abs; note that in FVS a negative CR
-  #signals that CR change has been computed by the fire or insect/disease model
-  orgtree$CR   = abs(orgtree$CRATIO) * .01
-  orgtree$ba   = orgtree$DBH  * orgtree$DBH * 0.005454 * orgtree$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
-  orgtree$DBH  = orgtree$DBH  * INtoCM
-  orgtree$HT   = orgtree$HT   * FTtoM
-  orgtree$EXPF = orgtree$EXPF * HAtoACR
-  orgtree = dplyr::arrange(orgtree, PLOT, desc(DBH))
-  temp = unlist(by(orgtree$ba,INDICES=orgtree$PLOT,FUN=cumsum))
-  orgtree$BAL = temp-orgtree$ba
-  orgtree = dplyr::arrange(orgtree, TREE)
-  newtree = calc_acd_ht(tree=orgtree)
-  fvsSetTreeAttrs(list(ht    =as.numeric(newtree$HT*MtoFT),
-                       cratio=round(as.numeric(newtree$CR)*100,2)))
+# This code is commented out because at stoppoint 7, 
+# fvsGetEventMonitorVariables("csi") does not yet return the csi.
+#  fvsRun(7,0)
+#  CSI = fvsGetEventMonitorVariables("csi")
+#        cat("stoppoint 7,CSI=",CSI,"\n")
+#  if (is.na(CSI)) CSI = fvsGetEventMonitorVariables("site")*FTtoM
+#  CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)
+#  orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio"))
+#  names(orgtree) = toupper(names(orgtree))
+#  orgtree$TREE= 1:nrow(orgtree)
+#  names(orgtree)[match("SPECIES",names(orgtree))] = "SP"
+#  names(orgtree)[match("TPA",names(orgtree))] = "EXPF"
+#  orgtree$SP = spcodes[orgtree$SP,1]
+#  #change CR to a proportion and take abs; note that in FVS a negative CR
+#  #signals that CR change has been computed by the fire or insect/disease model
+#  orgtree$CR   = abs(orgtree$CRATIO) * .01
+#  orgtree$ba   = orgtree$DBH  * orgtree$DBH * 0.005454 * orgtree$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
+#  orgtree$DBH  = orgtree$DBH  * INtoCM
+#  orgtree$HT   = orgtree$HT   * FTtoM
+#  orgtree$EXPF = orgtree$EXPF * HAtoACR
+#  orgtree = dplyr::arrange(orgtree, PLOT, desc(DBH))
+#  temp = unlist(by(orgtree$ba,INDICES=orgtree$PLOT,FUN=cumsum))
+#  orgtree$BAL = temp-orgtree$ba
+#  orgtree = dplyr::arrange(orgtree, TREE)
+#  newtree = calc_acd_ht(tree=orgtree)
+#  fvsSetTreeAttrs(list(ht    =as.numeric(newtree$HT*MtoFT),
+#                       cratio=round(as.numeric(newtree$CR)*100,2)))
 
   cat ("Starting repeat loop\n")
 
