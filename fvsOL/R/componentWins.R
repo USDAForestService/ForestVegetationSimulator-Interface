@@ -149,7 +149,7 @@ keyword.dbs.SQLOut.Win <- function(title, prms, globals, input, output)
         "the value in the last row of the result table will define the values of ",
         "variables in the Event Monitor.<br>",
         "Example:<br><b>SELECT SDI as MySDI<br>FROM FVS_Summary2<br>",
-        "WHERE Stand_ID = '%StandID%'<br></b>will define ",
+        "WHERE StandID = '%StandID%'<br></b>will define ",
         "MySDI as a variable in the Event Monitor")
         ))  
     ),list())
