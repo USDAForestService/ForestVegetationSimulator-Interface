@@ -308,7 +308,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
           
     # the default SpatialData is distributed with the package, install it if it
     # is not in the project directory.
-    if (!file.exists("FVS_Data.db"))
+    if (!file.exists("FVS_Data.db") || file.size("FVS_Data.db")==0)
     {
       frm=system.file("extdata", "FVS_Data.db.default", package="fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
