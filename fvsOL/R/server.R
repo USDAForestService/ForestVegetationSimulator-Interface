@@ -6602,7 +6602,8 @@ cat ("msg=",msg,"\n")
   ## installNewDB
   observe({
     if (input$installNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return()   
+    if (is.null(dbGlb$newFVSData)) return()
+    if (!file.exists(dbGlb$newFVSData)) || file.size(dbGlb$newFVSData) == 0) return()   
     dbDisconnect(dbGlb$dbIcon)
     file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
     unlink(dbGlb$newFVSData)
