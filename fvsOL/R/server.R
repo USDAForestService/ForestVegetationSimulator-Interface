@@ -2785,23 +2785,58 @@ cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
   })
 
   ## inAdd: Add Selected Stands
-  observe({
-    if (input$inAdd > 0) 
+  observeEvent(input$inAdd, {
+    cat("In inAdd\n")
+    cat("input$inAdd=", input$inAdd, "\n")
+    cat("number of stands to add=", length(input$inStds), "\n")
+    
+    if(length(input$inStds))
     {
-cat ("input$inAdd=",input$inAdd,"\n")
       addStandsToRun(session,input,output,selType="inAdd",globals,dbGlb)
       updateVarSelection(globals,session,input)
     }
-  })  
-  ## inAddGrp: Add all stands in selected groups
-  observe({
-    if (input$inAddGrp > 0) 
+    else
     {
-cat (" input$inAddGrp=",input$inAddGrp,"\n")
+      cat("No stands selected")
+    }
+  })
+  
+  # observe({
+  #   if (input$inAdd > 0)
+  #   {
+  #     cat("Launch inAdd!!!")
+  #     cat ("input$inAdd=",input$inAdd,"\n")
+  # 
+  #     addStandsToRun(session,input,output,selType="inAdd",globals,dbGlb)
+  #     updateVarSelection(globals,session,input)
+  #   }
+  # })
+  
+  ## inAddGrp: Add all stands in selected groups
+  observeEvent(input$inAddGrp, {
+    cat("In inAddGrp\n")
+    cat("input$inAddGrp=", input$inAdd, "\n")
+    cat("number of groups to add=", length(input$inStds), "\n")
+    
+    if(length(input$inGrps))
+    {
       addStandsToRun(session,input,output,selType="inAddGrp",globals,dbGlb)
       updateVarSelection(globals,session,input)
     }
-  })  
+    else
+    {
+      cat("No groups selected")
+    }
+  })
+#   observe({
+#     if (input$inAddGrp > 0) 
+#     {
+# cat (" input$inAddGrp=",input$inAddGrp,"\n")
+#       addStandsToRun(session,input,output,selType="inAddGrp",globals,dbGlb)
+#       updateVarSelection(globals,session,input)
+#     }
+#   })  
+  
   ## inStdFindBut: Find and select stands in the stand list that match the search string
   observe({
     if (input$inStdFindBut > 0) 
@@ -3145,6 +3180,7 @@ cat("paste, class(topaste)=",class(topaste),"\n")
 
   ## Command Set
   observe({
+#    browser()
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
     if(!length(globals$currentEditCmp$kwds) || input$compTabSet !="Management")
@@ -3817,14 +3853,19 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     ans
   }
   ## Save in run 
-  observe({                           
-    if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
-    isolate ({
+  observeEvent(input$cmdSaveInRun, {
+      if(!length(input$simCont))
+      {
+        cat("No Active Stands\n")
+        showNotification("Must have at least one stand in Run Contents to perform this operation",
+                         type = 'warning')
+        return()
+      }
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
           identical(globals$currentCndPkey,character(0))  && 
           identical(globals$currentCmdPkey,character(0))) return()
       if (length(globals$currentEditCmp$reopn) && 
-                 globals$currentEditCmp$reopn == "pasteOnSave")
+          globals$currentEditCmp$reopn == "pasteOnSave")
       {
         globals$currentEditCmp$reopn = character(0)
         globals$currentEditCmp$kwds = input$freeEdit
@@ -3835,26 +3876,26 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         { 
           mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
           updateSelectInput(session=session, inputId="simCont", 
-             choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+                            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         }
         globals$currentEditCmp <- globals$NULLfvsCmp
         closeCmp()                      
         return()
       }     
       if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
-      if (is.null(attr(globals$currentCndPkey,"keywords")))
-      { 
-        kwds = mkCondKeyWrd(globals,prms,input)
-        newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
-                 kwdName=globals$currentCndPkey,title=input$condTitle,
-                 kwds=kwds$kwds,reopn=kwds$reopn)
-      } else {
-        newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",
-                 exten="base",kwdName="freeEdit",title=input$condTitle,
-                 kwds=if (attr(globals$currentCndPkey,"keywords")=="condDisp") 
-                      input$condDisp else input$freeForm,
-                 reopn=character(0))
-      }
+        if (is.null(attr(globals$currentCndPkey,"keywords")))
+        { 
+          kwds = mkCondKeyWrd(globals,prms,input)
+          newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
+                            kwdName=globals$currentCndPkey,title=input$condTitle,
+                            kwds=kwds$kwds,reopn=kwds$reopn)
+        } else {
+          newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",
+                            exten="base",kwdName="freeEdit",title=input$condTitle,
+                            kwds=if (attr(globals$currentCndPkey,"keywords")=="condDisp") 
+                              input$condDisp else input$freeForm,
+                            reopn=character(0))
+        }
       # make or edit a keyword. This section is used for both 
       # building a keyword and editing a keyword or a condition. 
       # if this is true, then we are building a new component
@@ -3878,33 +3919,33 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       } else { # we are editing the component            
         kwPname = globals$currentEditCmp$kwdName
         oReopn  = globals$currentEditCmp$reopn
-cat ("Editing a component: kwPname=",kwPname," oReopn=",oReopn,"\n")
+        cat ("Editing a component: kwPname=",kwPname," oReopn=",oReopn,"\n")
         pkeys = if (length(kwPname)) prms[[kwPname]] else NULL
         if (is.null(pkeys) && length(oReopn) == 0) #this is freeform...
         {
-cat ("Editing as freeform\n")
+          cat ("Editing as freeform\n")
           globals$currentEditCmp$kwds = input$freeEdit
           globals$currentEditCmp$reopn = character(0)
           globals$currentEditCmp$title = input$cmdTitle
           mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],
                     justGrps=input$simContType=="Just groups")
           updateSelectInput(session=session, inputId="simCont", 
-             choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+                            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
           globals$changeind <- 1
           output$contChange <- renderText(HTML("<b>*Run*</b>"))
           closeCmp()
           return()
         }  
       }
-cat ("Building a component: kwPname=",kwPname,"\n")
+      cat ("Building a component: kwPname=",kwPname,"\n")
       ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
-          reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
+                                                                reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
       { 
         cntr <- 0
         if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
-        globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+          globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
         grlist <- list()
         for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" ")
         {
@@ -3928,12 +3969,12 @@ cat ("Building a component: kwPname=",kwPname,"\n")
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
-             variant=globals$activeVariants[1],kwdName= if (length(kwPname)>1) kwPname[2] else kwPname[1],
-             title=input$cmdTitle,
-             reopn=if (is.null(ans$reopn)) character(0) else ans$reopn)
+                          variant=globals$activeVariants[1],kwdName= if (length(kwPname)>1) kwPname[2] else kwPname[1],
+                          title=input$cmdTitle,
+                          reopn=if (is.null(ans$reopn)) character(0) else ans$reopn)
         # find the attachment point. 
         sel = if (length(globals$schedBoxPkey) &&
-              input$schedbox == 3) input$condList else input$simCont[[1]]
+                  input$schedbox == 3) input$condList else input$simCont[[1]]
         grp = findIdx(globals$fvsRun$grps,sel)
         std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
         cmp = NULL
@@ -3968,8 +4009,8 @@ cat ("Building a component: kwPname=",kwPname,"\n")
         }
         # save schedBoxYrLastUsed
         if (length(globals$schedBoxPkey) && input$schedbox == 1 &&
-              length(input[[globals$schedBoxPkey]])) globals$schedBoxYrLastUsed <- 
-                input[[globals$schedBoxPkey]]
+            length(input[[globals$schedBoxPkey]])) globals$schedBoxYrLastUsed <- 
+          input[[globals$schedBoxPkey]]
         # if there is a newcnd, then attach it first.
         if (!is.null(newcnd))
         {
@@ -3977,11 +4018,11 @@ cat ("Building a component: kwPname=",kwPname,"\n")
           if (is.null(grp)) 
           { 
             globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-                append(globals$fvsRun$stands[[std]]$cmps, newcnd) else
+              append(globals$fvsRun$stands[[std]]$cmps, newcnd) else
                 append(globals$fvsRun$stands[[std]]$cmps, newcnd, after=cmp)
           } else { 
             globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-                append(globals$fvsRun$grps[[grp]]$cmps, newcnd) else
+              append(globals$fvsRun$grps[[grp]]$cmps, newcnd) else
                 append(globals$fvsRun$grps[[grp]]$cmps, newcnd, after=cmp)
           }
           if (!is.null(cmp)) cmp <- cmp+1
@@ -3990,29 +4031,232 @@ cat ("Building a component: kwPname=",kwPname,"\n")
         if (is.null(grp)) 
         {
           globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-              append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+            append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
         } else {           
           globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-          append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
-          append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+            append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+              append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
         }
       } else {
         globals$currentEditCmp$kwds=ans$kwds
         globals$currentEditCmp$title=input$cmdTitle
-cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")       
-         globals$currentEditCmp$reopn=if (is.null(ans$reopn)) character(0) else ans$reopn
-         globals$currentEditCmp=globals$NULLfvsCmp
+        cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")       
+        globals$currentEditCmp$reopn=if (is.null(ans$reopn)) character(0) else ans$reopn
+        globals$currentEditCmp=globals$NULLfvsCmp
       }      
       mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
       updateSelectInput(session=session, inputId="simCont", 
-         choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+                        choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
       globals$changeind <- 1
       output$contChange <- renderText(HTML("<b>*Run*</b>"))
       closeCmp()
       globals$schedBoxPkey <- character(0)
     })
-  })
+  
+#   observe({ 
+#     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
+#     isolate ({
+#       if(!length(input$simCont))
+#       {
+#         cat("No Active Stands\n")
+#         showNotification("Must have at least one stand in Run Contents to perform this operation",
+#                          type = 'warning')
+#         return()
+#       }
+#       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
+#           identical(globals$currentCndPkey,character(0))  && 
+#           identical(globals$currentCmdPkey,character(0))) return()
+#       if (length(globals$currentEditCmp$reopn) && 
+#                  globals$currentEditCmp$reopn == "pasteOnSave")
+#       {
+#         globals$currentEditCmp$reopn = character(0)
+#         globals$currentEditCmp$kwds = input$freeEdit
+#         if (!is.null(input$cmdTitle) && nchar(input$cmdTitle)) 
+#           globals$currentEditCmp$title = input$cmdTitle
+#         idx = pasteComponent(globals,input$simCont[1],globals$currentEditCmp)
+#         if (!is.null(idx))
+#         { 
+#           mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups")   
+#           updateSelectInput(session=session, inputId="simCont", 
+#              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+#         }
+#         globals$currentEditCmp <- globals$NULLfvsCmp
+#         closeCmp()                      
+#         return()
+#       }     
+#       if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
+#       if (is.null(attr(globals$currentCndPkey,"keywords")))
+#       { 
+#         kwds = mkCondKeyWrd(globals,prms,input)
+#         newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
+#                  kwdName=globals$currentCndPkey,title=input$condTitle,
+#                  kwds=kwds$kwds,reopn=kwds$reopn)
+#       } else {
+#         newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",
+#                  exten="base",kwdName="freeEdit",title=input$condTitle,
+#                  kwds=if (attr(globals$currentCndPkey,"keywords")=="condDisp") 
+#                       input$condDisp else input$freeForm,
+#                  reopn=character(0))
+#       }
+#       # make or edit a keyword. This section is used for both 
+#       # building a keyword and editing a keyword or a condition. 
+#       # if this is true, then we are building a new component
+#       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
+#       {       
+#         if (length(globals$winBuildFunction))
+#         {
+#           kwPname = globals$winBuildFunction
+#           pkeys = character(0)
+#         } else {
+#           if (!is.null(attr(globals$currentCmdPkey,"keywords"))) 
+#           {
+#             kwPname = attr(globals$currentCmdPkey,"keywords") 
+#             pkeys=NULL
+#           } else {
+#             kwPname = scan(text=globals$currentCmdPkey,what="character",sep=" ",quiet=TRUE)
+#             pkeys = if (length(kwPname)>1) prms[[kwPname[2]]] else prms[[kwPname[1]]]
+#           }
+#         }
+#         oReopn  = character(0) 
+#       } else { # we are editing the component            
+#         kwPname = globals$currentEditCmp$kwdName
+#         oReopn  = globals$currentEditCmp$reopn
+# cat ("Editing a component: kwPname=",kwPname," oReopn=",oReopn,"\n")
+#         pkeys = if (length(kwPname)) prms[[kwPname]] else NULL
+#         if (is.null(pkeys) && length(oReopn) == 0) #this is freeform...
+#         {
+# cat ("Editing as freeform\n")
+#           globals$currentEditCmp$kwds = input$freeEdit
+#           globals$currentEditCmp$reopn = character(0)
+#           globals$currentEditCmp$title = input$cmdTitle
+#           mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],
+#                     justGrps=input$simContType=="Just groups")
+#           updateSelectInput(session=session, inputId="simCont", 
+#              choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+#           globals$changeind <- 1
+#           output$contChange <- renderText(HTML("<b>*Run*</b>"))
+#           closeCmp()
+#           return()
+#         }  
+#       }
+# cat ("Building a component: kwPname=",kwPname,"\n")
+#       ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+#           reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
+#       gensps <- grep("SpGroup", ans$kwds)
+#       if(length(gensps)) 
+#       { 
+#         cntr <- 0
+#         if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
+#         globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
+#         grlist <- list()
+#         for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" ")
+#         {
+#           cntr<-cntr+1
+#           grlist[cntr]<-ans$reopn[spg]
+#         }
+#         # prevent duplicate SpGroup names due to editing & saving non-name changes
+#         grlist[1] <- gsub(" ","", grlist[1])
+#         tmpk <- match(grlist[1], globals$GenGrp)
+#         if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)) 
+#           globals$GenGrp[length(globals$GrpNum)]<-grlist
+#         if (is.na(tmpk) && length(globals$currentEditCmp$kwds))
+#         {
+#           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+#           globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
+#           globals$GenGrp[length(globals$GrpNum)]<-grlist
+#         }
+#         if (!is.na(tmpk) && length(globals$currentEditCmp$kwds))
+#           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+#       } 
+#       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
+#       {
+#         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
+#              variant=globals$activeVariants[1],kwdName= if (length(kwPname)>1) kwPname[2] else kwPname[1],
+#              title=input$cmdTitle,
+#              reopn=if (is.null(ans$reopn)) character(0) else ans$reopn)
+#         # find the attachment point. 
+#         sel = if (length(globals$schedBoxPkey) &&
+#               input$schedbox == 3) input$condList else input$simCont[[1]]
+#         grp = findIdx(globals$fvsRun$grps,sel)
+#         std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
+#         cmp = NULL
+#         if (is.null(grp) && is.null(std)) 
+#         {           
+#           for (grp in 1:length(globals$fvsRun$grps))
+#           {
+#             cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
+#             if (!is.null(cmp)) break
+#           }
+#           if (is.null(cmp)) grp = NULL
+#           if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands))
+#           {
+#             cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
+#             if (!is.null(cmp)) break
+#           }
+#         }
+#         if (length(globals$schedBoxPkey) && input$schedbox == 3) 
+#         {
+#           #tag the component as being linked to the condition.
+#           newcmp$atag = sel
+#           #adjust insert point.
+#           if (is.null(std)) for (i in (cmp+1):length(globals$fvsRun$grps[[grp]]$cmps))
+#           {             
+#             if (i > length(globals$fvsRun$grps[[grp]]$cmps)) break
+#             if (globals$fvsRun$grps[[grp]]$cmps[[i]]$atag == sel) cmp = i
+#           } else for (i in (cmp+1):length(globals$fvsRun$stands[[std]]$cmps))
+#           {
+#             if (i > length(globals$fvsRun$stands[[std]]$cmps)) break
+#             if (globals$fvsRun$stands[[std]]$cmps[[i]]$atag == sel) cmp = i
+#           }
+#         }
+#         # save schedBoxYrLastUsed
+#         if (length(globals$schedBoxPkey) && input$schedbox == 1 &&
+#               length(input[[globals$schedBoxPkey]])) globals$schedBoxYrLastUsed <- 
+#                 input[[globals$schedBoxPkey]]
+#         # if there is a newcnd, then attach it first.
+#         if (!is.null(newcnd))
+#         {
+#           newcmp$atag = newcnd$uuid
+#           if (is.null(grp)) 
+#           { 
+#             globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+#                 append(globals$fvsRun$stands[[std]]$cmps, newcnd) else
+#                 append(globals$fvsRun$stands[[std]]$cmps, newcnd, after=cmp)
+#           } else { 
+#             globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+#                 append(globals$fvsRun$grps[[grp]]$cmps, newcnd) else
+#                 append(globals$fvsRun$grps[[grp]]$cmps, newcnd, after=cmp)
+#           }
+#           if (!is.null(cmp)) cmp <- cmp+1
+#         } 
+#         # attach the new component
+#         if (is.null(grp)) 
+#         {
+#           globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+#               append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+#               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
+#         } else {           
+#           globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+#           append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+#           append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+#         }
+#       } else {
+#         globals$currentEditCmp$kwds=ans$kwds
+#         globals$currentEditCmp$title=input$cmdTitle
+# cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")       
+#          globals$currentEditCmp$reopn=if (is.null(ans$reopn)) character(0) else ans$reopn
+#          globals$currentEditCmp=globals$NULLfvsCmp
+#       }      
+#       mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+#       updateSelectInput(session=session, inputId="simCont", 
+#          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+#       globals$changeind <- 1
+#       output$contChange <- renderText(HTML("<b>*Run*</b>"))
+#       closeCmp()
+#       globals$schedBoxPkey <- character(0)
+#     })
+#   })
   
   ## time--start year
   observe({
@@ -4059,351 +4303,700 @@ cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")
          "cores in this computer.</small></p>")))
   ))
 
+  
+
 
   ## Save and Run
-  observe({
-    if (input$saveandrun == 0) return()    
-    isolate ({
-      if (length(globals$fvsRun$stands) > 0) 
+  observeEvent(input$saveandrun, {
+    if(!length(input$simCont))
+    {
+      cat("No Active Stands\n")
+      showNotification("Must have at least one stand in Run Contents to perform this operation",
+                       type = 'warning')
+      return()
+    }
+      cat("Nulling uiRunPlot at Save and Run\n")
+      output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+      globals$currentQuickPlot = character(0) 
+      # timing checks.
+      thisYr = as.numeric(format(Sys.time(), "%Y"))
+      # First check to see if required start year, end year, or cycle length fields are blank.
+      if (input$startyr =="") {
+        session$sendCustomMessage(type = "infomessage",
+                                  message = paste0("The common starting year is blank."))
+        updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+        return()
+      }
+      if (input$endyr =="") {
+        session$sendCustomMessage(type = "infomessage",
+                                  message = paste0("The common ending year is blank."))
+        updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+        return()
+      }
+      if (input$cyclelen =="") {
+        session$sendCustomMessage(type = "infomessage",
+                                  message = paste0("The growth and reporting interval is blank."))
+        updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+        return()
+      }
+      # other start year checks
+      for(i in 1:length(globals$fvsRun$stands)){
+        if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
+             ((input$startyr !="") && nchar(input$startyr) > 4))){
+          session$sendCustomMessage(type = "infomessage",
+                                    message = paste0("The common starting year of ",input$startyr,
+                                                     " is more than 50 years from the current year of ", thisYr))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+        if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
+          session$sendCustomMessage(type = "infomessage",
+                                    message = paste0("The common starting year of ",input$startyr,
+                                                     " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+      }
+      # other end year checks
+      for(i in 1:length(globals$fvsRun$stands)){
+        if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
+                                   (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
+             ((input$endyr !="") && nchar(input$endyr) > 4))){
+          session$sendCustomMessage(type = "infomessage",
+                                    message = paste0("The common ending year of ", input$endyr,
+                                                     " is more than 40 growth cycles from the current year of ", thisYr))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+        if ((input$endyr !="") && ((as.numeric(input$endyr) < 
+                                    as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
+          session$sendCustomMessage(type = "infomessage",
+                                    message = paste0("The common ending year of ", input$endyr,
+                                                     " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+          return()
+        }
+      }
+      # other cycle length check
+      if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
+          ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
+        session$sendCustomMessage(type = "infomessage",
+                                  message = paste0("The growth interval of ", input$cyclelen,
+                                                   " years is greater than the maximum 50 years"))
+        updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+        return()
+      }
+      baseCycles = seq(as.numeric(globals$fvsRun$startyr),as.numeric(globals$fvsRun$endyr),
+                       as.numeric(globals$fvsRun$cyclelen))
+      cycleat = scan(text=gsub(";"," ",gsub(","," ",globals$fvsRun$cycleat)),
+                     what=0,quiet=TRUE)
+      # Cycle break checks
+      if (length(cycleat)){
+        for(i in 1:length(globals$fvsRun$stands)){
+          for(j in 1:length(cycleat)){
+            if ((cycleat[j] > (thisYr + 400))){
+              session$sendCustomMessage(type = "infomessage",
+                                        message = paste0("The additional reporting year of ", cycleat[j],
+                                                         " is more than 400 years from the current year of", thisYr))
+              updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+              return()
+            }
+            if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+              session$sendCustomMessage(type = "infomessage",
+                                        message = paste0("The additional reporting year of ", cycleat[j],
+                                                         " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+              updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+              return()
+            }
+          }
+        }
+      }  
+      progress <- shiny::Progress$new(session,min=1,
+                                      max=length(globals$fvsRun$stands)+10)
+      progress$set(message = "Run preparation: ", 
+                   detail = "Saving FVS Run", value = 1)
+      saveRun(input,session)
+      updateSelectInput(session=session, inputId="runSel", 
+                        choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]]) 
+      
+      killIfRunning(globals$fvsRun$uuid)
+      # if rerunning a run that is currently selected in the "View Outputs",
+      # then clear those tools.
+      if (globals$fvsRun$uuid %in% input$runs) initTableGraphTools(globals,session,output,fvsOutData)
+      progress$set(message = "Run preparation: ", 
+                   detail = "Deleting old ouputs", value = 2)         
+      removeFVSRunFiles(globals$fvsRun$uuid)
+      updateSelectInput(session=session, inputId="bkgRuns", 
+                        choices=getBkgRunList(),selected=0)
+      progress$set(message = "Run preparation: ", 
+                   detail = "Write .key file and prepare program", value = 3)
+      cat ("runwaitback=",input$runwaitback,"\n")
+      
+      if (input$runwaitback!="Wait for run")
       {
-cat("Nulling uiRunPlot at Save and Run\n")
-        output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
-        globals$currentQuickPlot = character(0) 
-        # timing checks.
-        thisYr = as.numeric(format(Sys.time(), "%Y"))
-        # First check to see if required start year, end year, or cycle length fields are blank.
-        if (input$startyr =="") {
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common starting year is blank."))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-        }
-        if (input$endyr =="") {
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common ending year is blank."))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
-        if (input$cyclelen =="") {
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The growth and reporting interval is blank."))
-          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-          return()
-        }
-        # other start year checks
-        for(i in 1:length(globals$fvsRun$stands)){
-          if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
-               ((input$startyr !="") && nchar(input$startyr) > 4))){
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common starting year of ",input$startyr,
-                    " is more than 50 years from the current year of ", thisYr))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
-          if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common starting year of ",input$startyr,
-                    " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
-        }
-        # other end year checks
-        for(i in 1:length(globals$fvsRun$stands)){
-          if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
-            (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
-               ((input$endyr !="") && nchar(input$endyr) > 4))){
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common ending year of ", input$endyr,
-                    " is more than 40 growth cycles from the current year of ", thisYr))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
-          if ((input$endyr !="") && ((as.numeric(input$endyr) < 
-            as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
-            session$sendCustomMessage(type = "infomessage",
-                    message = paste0("The common ending year of ", input$endyr,
-                    " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-            updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-            return()
-          }
-        }
-        # other cycle length check
-        if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
-             ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
-          session$sendCustomMessage(type = "infomessage",
-                  message = paste0("The growth interval of ", input$cyclelen,
-                  " years is greater than the maximum 50 years"))
-          updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-          return()
-        }
-        baseCycles = seq(as.numeric(globals$fvsRun$startyr),as.numeric(globals$fvsRun$endyr),
-                         as.numeric(globals$fvsRun$cyclelen))
-        cycleat = scan(text=gsub(";"," ",gsub(","," ",globals$fvsRun$cycleat)),
-                       what=0,quiet=TRUE)
-        # Cycle break checks
-        if (length(cycleat)){
-          for(i in 1:length(globals$fvsRun$stands)){
-            for(j in 1:length(cycleat)){
-              if ((cycleat[j] > (thisYr + 400))){
-                session$sendCustomMessage(type = "infomessage",
-                        message = paste0("The additional reporting year of ", cycleat[j],
-                        " is more than 400 years from the current year of", thisYr))
-                updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-                return()
-              }
-              if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
-                session$sendCustomMessage(type = "infomessage",
-                        message = paste0("The additional reporting year of ", cycleat[j],
-                        " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
-                updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
-                return()
-              }
-            }
-          }
-        }  
-        progress <- shiny::Progress$new(session,min=1,
-                           max=length(globals$fvsRun$stands)+10)
+        ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
+          as.numeric(input$bkgNcpu))
+        if (is.na(ncpu)) ncpu=1
         progress$set(message = "Run preparation: ", 
-          detail = "Saving FVS Run", value = 1)
-        saveRun(input,session)
-        updateSelectInput(session=session, inputId="runSel", 
-            choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]]) 
-
-        killIfRunning(globals$fvsRun$uuid)
-        # if rerunning a run that is currently selected in the "View Outputs",
-        # then clear those tools.
-        if (globals$fvsRun$uuid %in% input$runs) initTableGraphTools(globals,session,output,fvsOutData)
-        progress$set(message = "Run preparation: ", 
-          detail = "Deleting old ouputs", value = 2)         
-        removeFVSRunFiles(globals$fvsRun$uuid)
-        updateSelectInput(session=session, inputId="bkgRuns", 
-                          choices=getBkgRunList(),selected=0)
-        progress$set(message = "Run preparation: ", 
-          detail = "Write .key file and prepare program", value = 3)
-cat ("runwaitback=",input$runwaitback,"\n")
-          
-        if (input$runwaitback!="Wait for run")
-        {
-          ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
-               as.numeric(input$bkgNcpu))
-          if (is.na(ncpu)) ncpu=1
-          progress$set(message = "Run preparation: ", 
-             detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
-          updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
-          msg=extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
-                          ncpu=ncpu)
-          if(msg=="wrong active database"){
-cat ("Run data query returned no data to run.\n")  
+                     detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
+        updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
+        msg=extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
+                            ncpu=ncpu)
+        if(msg=="wrong active database"){
+          cat ("Run data query returned no data to run.\n")  
           progress$set(message = "Error: Keyword file was not created. Try re-importing
-                       the inventory database associated with this run.",
-                      detail = msg, value = 3) 
+                     the inventory database associated with this run.",
+                       detail = msg, value = 3) 
           Sys.sleep(5)
           progress$close()
           return()  
-          }
-          refreshTimmer <- reactiveTimer(500,session=session)
-          progress$close()
-          output$contChange <- renderUI("Run")   
-          return()
-        }         
-        msg=writeKeyFile(globals,dbGlb$dbIcon)
-        fc = paste0(globals$fvsRun$uuid,".key")
-        if (!file.exists(fc))
-        {
-          if(msg=="Wrong active database."){
-cat ("Wrong active database.\n")  
+        }
+        refreshTimmer <- reactiveTimer(500,session=session)
+        progress$close()
+        output$contChange <- renderUI("Run")   
+        return()
+      }         
+      msg=writeKeyFile(globals,dbGlb$dbIcon)
+      fc = paste0(globals$fvsRun$uuid,".key")
+      if (!file.exists(fc))
+      {
+        if(msg=="Wrong active database."){
+          cat ("Wrong active database.\n")  
           progress$set(message = "Error: Wrong active database. Try re-importing
-                       the inventory database associated with this run.",
-                      detail = NA, value = 3) 
+                     the inventory database associated with this run.",
+                       detail = NA, value = 3) 
           return()  
-          } else {
-cat ("keyword file was not created.\n")
-            progress$set(message = "Error: Keyword file was not created.",detail = msg, value = 3)
-            Sys.sleep(5)
-            progress$close()
-            return()
-          }
-        }
-        if(msg=="Stand not found in FVS_ClimAttrs table."){
-cat ("Stand not found in FVS_ClimAttrs table.\n")  
-          progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
-                       to ensure all stands in the run are included.",
-                      detail = NA, value = 3) 
-          return()
-        }
-        if(msg=="No Climate attributes data found."){
-cat ("No climate attributes data found.\n")  
-          progress$set(message = "Error: No climate attributes data found. Make sure to either upload it using 
-                       the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
-                      detail = NA, value = 3) 
-          return()
-        }
-        if (!dir.exists(globals$fvsBin)) 
-        {
-          progress$set(message = paste0("Error: ",globals$fvsBin," does not exist."),
-                      detail = "", value = 3) 
+        } else {
+          cat ("keyword file was not created.\n")
+          progress$set(message = "Error: Keyword file was not created.",detail = msg, value = 3)
           Sys.sleep(5)
           progress$close()
           return()
         }
-        dir.create(globals$fvsRun$uuid)
-        fvschild = makePSOCKcluster(1)
-        #on exit of the reactive context
-        on.exit({          
-          progress$close()
-cat ("exiting, stop fvschild\n")          
-          try(stopCluster(fvschild))
-          Sys.sleep(0.3)
-          unlink(paste0(globals$fvsRun$uuid,".db"))
-          unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
-        }) 
-        clusterEvalQ(fvschild,library(rFVS))
-        cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
-             globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"'))")
-cat ("load FVSpgm cmd=",cmd,"\n")          
-        rtn = try(eval(parse(text=cmd)))
-        if (class(rtn) == "try-error") return()          
-        # if not using the default run script, load the one requested.    
-        if (globals$fvsRun$runScript != "fvsRun")
-        {
-          rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
-          if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,
-              package="fvsOL")
-          if (!file.exists(rsFn)) return()
-          cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
-cat ("run script load cmd=",cmd,"\n")
-          rtn = try(eval(parse(text=cmd)))
-          if (class(rtn) == "try-error") return()
-          runOps <- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
-            globals$fvsRun$uiCustomRunOps
-          rtn = try(clusterExport(fvschild,list("runOps"),envir=environment())) 
-          if (class(rtn) == "try-error") return()
-        }
-        foo = paste0(globals$fvsRun$uuid,".key")
-        cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
-cat ("load run cmd=",cmd,"\n")
-        rtn = try(eval(parse(text=cmd))) 
-        if (class(rtn) == "try-error") return()
-cat ("at for start\n") 
-        allSum = list()
-        for (i in 1:length(globals$fvsRun$stands))
-        {
-          detail = paste0("Stand ",i," StandId=",globals$fvsRun$stands[[i]][["sid"]])          
-          progress$set(message = "FVS running", detail = detail, value = i+4) 
-          rtn = if (globals$fvsRun$runScript != "fvsRun")
-            {
-              cmd = paste0("clusterEvalQ(fvschild,",globals$fvsRun$runScript,"(runOps))")
-cat ("custom run cmd=",cmd,"\n")              
-              try(eval(parse(text=cmd)))
-            } else {
-cat ("running normal run cmd\n")
-              try(clusterEvalQ(fvschild,fvsRun()))
-            }
-cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
-          if (class(rtn) == "try-error")
-          { 
-            cat ("run try error\n")
-            return()
-          }
-          rtn = rtn[[1]]
-          if (rtn != 0) break          
-          ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
-          if (class(ids) == "try-error") break
-          ids = ids[[1]]
-          rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
-cat ("rn=",rn,"\n")
-          rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
-          if (class(rtn) == "try-error") break
-          allSum[[i]] = rtn[[1]]
-          names(allSum)[i] = rn
-        }
-cat ("rtn,class=",class(rtn),"\n")
-        try(clusterEvalQ(fvschild,fvsRun()))        
-        progress$set(message = "Scanning output for errors", detail = "", 
-                    value = length(globals$fvsRun$stands)+4)
-        outf=paste0(globals$fvsRun$uuid,".out")
-        errScan = try(extnErrorScan(outf))
-        if (class(errScan) == "try-error") errScan = 
-          "Error scan failed likely due to invalid multibyte strings in output"
-        output$uiErrorScan <- renderUI(list(
-          h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
-          h5("FVS error scan: "),
-          tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
-             "height:150px; font-family:monospace; font-size:90%;}")),
-          HTML(paste(errScan,"<br>"))))
-        if (length(dir(globals$fvsRun$uuid)) == 0) 
-          unlink(globals$fvsRun$uuid,recursive = TRUE, force = TRUE)
-        progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
-                    "FVS finished" else
-                    "FVS run failed", detail = "", 
-                    value = length(globals$fvsRun$stands)+5)
-        Sys.sleep(.1)       
-cat ("length(allSum)=",length(allSum),"\n")
-        if (length(allSum) == 0) {Sys.sleep(.4); return()}
-        progress$set(message = "FVS finished",  
-             detail = "Merging output to master database",
-             value = length(globals$fvsRun$stands)+6)
-        res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
+      }
+      if(msg=="Stand not found in FVS_ClimAttrs table."){
+        cat ("Stand not found in FVS_ClimAttrs table.\n")  
+        progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
+                     to ensure all stands in the run are included.",
+                     detail = NA, value = 3) 
+        return()
+      }
+      if(msg=="No Climate attributes data found."){
+        cat ("No climate attributes data found.\n")  
+        progress$set(message = "Error: No climate attributes data found. Make sure to either upload it using 
+                     the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+                     detail = NA, value = 3) 
+        return()
+      }
+      if (!dir.exists(globals$fvsBin)) 
+      {
+        progress$set(message = paste0("Error: ",globals$fvsBin," does not exist."),
+                     detail = "", value = 3) 
+        Sys.sleep(5)
+        progress$close()
+        return()
+      }
+      dir.create(globals$fvsRun$uuid)
+      fvschild = makePSOCKcluster(1)
+      #on exit of the reactive context
+      on.exit({          
+        progress$close()
+        cat ("exiting, stop fvschild\n")          
+        try(stopCluster(fvschild))
+        Sys.sleep(0.3)
         unlink(paste0(globals$fvsRun$uuid,".db"))
         unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
-        progress$set(message = "Building plot", detail = "", 
-                     value = length(globals$fvsRun$stands)+6)
-        modn = names(allSum)
-        toch = unique(modn)
-        if (length(toch) != length(modn)) 
+      }) 
+      clusterEvalQ(fvschild,library(rFVS))
+      cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
+                   globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"'))")
+      cat ("load FVSpgm cmd=",cmd,"\n")          
+      rtn = try(eval(parse(text=cmd)))
+      if (class(rtn) == "try-error") return()          
+      # if not using the default run script, load the one requested.    
+      if (globals$fvsRun$runScript != "fvsRun")
+      {
+        rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
+        if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,
+                                                   package="fvsOL")
+        if (!file.exists(rsFn)) return()
+        cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
+        cat ("run script load cmd=",cmd,"\n")
+        rtn = try(eval(parse(text=cmd)))
+        if (class(rtn) == "try-error") return()
+        runOps <- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
+          globals$fvsRun$uiCustomRunOps
+        rtn = try(clusterExport(fvschild,list("runOps"),envir=environment())) 
+        if (class(rtn) == "try-error") return()
+      }
+      foo = paste0(globals$fvsRun$uuid,".key")
+      cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
+      cat ("load run cmd=",cmd,"\n")
+      rtn = try(eval(parse(text=cmd))) 
+      if (class(rtn) == "try-error") return()
+      cat ("at for start\n") 
+      allSum = list()
+      for (i in 1:length(globals$fvsRun$stands))
+      {
+        detail = paste0("Stand ",i," StandId=",globals$fvsRun$stands[[i]][["sid"]])          
+        progress$set(message = "FVS running", detail = detail, value = i+4) 
+        rtn = if (globals$fvsRun$runScript != "fvsRun")
         {
-          for (chg in toch)
-          {
-            chrr = chg == modn
-            if ((nch <- sum(chrr)) < 2) next
-            chg = unlist(strsplit(chg,";"))
-            modn[chrr] = sprintf("%s r%03i;%s",chg[1],1:nch,chg[2])
-          }
-          names(allSum) = modn
+          cmd = paste0("clusterEvalQ(fvschild,",globals$fvsRun$runScript,"(runOps))")
+          cat ("custom run cmd=",cmd,"\n")              
+          try(eval(parse(text=cmd)))
+        } else {
+          cat ("running normal run cmd\n")
+          try(clusterEvalQ(fvschild,fvsRun()))
         }
-        X <- Y <- Stand <- NULL
-        unitConv = if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
-           0.0699713 else 1    # note FT3pACRtoM3pHA = 0.0699713
-        for (i in 1:length(allSum)) 
+        cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
+        if (class(rtn) == "try-error")
         { 
-          X = c(X,allSum[[i]][,"Year"])
-          Y = c(Y,allSum[[i]][,"TCuFt"]) * unitConv
-          ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
-          ltag = gsub(x=ltag,pattern="^SId=",replacement="")
-          Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
+          cat ("run try error\n")
+          return()
         }
-        toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
-        toMany = nlevels(toplot$Stand) > 9
-        colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
-        yUnits = expression(Total~(ft^{3}/a))
-        if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
-          yUnits = expression(Merchantable~(ft^{3}/a))
-        else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
-          yUnits = expression(Total~(m^{3}/ha))
-        plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
-            geom_line (aes(x=X,y=Y,color=Stand)) +
-            labs(x="Year", y=yUnits) + 
-            theme(text = element_text(size=6), 
+        rtn = rtn[[1]]
+        if (rtn != 0) break          
+        ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
+        if (class(ids) == "try-error") break
+        ids = ids[[1]]
+        rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
+        cat ("rn=",rn,"\n")
+        rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
+        if (class(rtn) == "try-error") break
+        allSum[[i]] = rtn[[1]]
+        names(allSum)[i] = rn
+      }
+      cat ("rtn,class=",class(rtn),"\n")
+      try(clusterEvalQ(fvschild,fvsRun()))        
+      progress$set(message = "Scanning output for errors", detail = "", 
+                   value = length(globals$fvsRun$stands)+4)
+      outf=paste0(globals$fvsRun$uuid,".out")
+      errScan = try(extnErrorScan(outf))
+      if (class(errScan) == "try-error") errScan = 
+        "Error scan failed likely due to invalid multibyte strings in output"
+      output$uiErrorScan <- renderUI(list(
+        h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
+        h5("FVS error scan: "),
+        tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
+                                           "height:150px; font-family:monospace; font-size:90%;}")),
+        HTML(paste(errScan,"<br>"))))
+      if (length(dir(globals$fvsRun$uuid)) == 0) 
+        unlink(globals$fvsRun$uuid,recursive = TRUE, force = TRUE)
+      progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
+        "FVS finished" else
+          "FVS run failed", detail = "", 
+        value = length(globals$fvsRun$stands)+5)
+      Sys.sleep(.1)       
+      cat ("length(allSum)=",length(allSum),"\n")
+      if (length(allSum) == 0) {Sys.sleep(.4); return()}
+      progress$set(message = "FVS finished",  
+                   detail = "Merging output to master database",
+                   value = length(globals$fvsRun$stands)+6)
+      res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
+      unlink(paste0(globals$fvsRun$uuid,".db"))
+      unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
+      progress$set(message = "Building plot", detail = "", 
+                   value = length(globals$fvsRun$stands)+6)
+      modn = names(allSum)
+      toch = unique(modn)
+      if (length(toch) != length(modn)) 
+      {
+        for (chg in toch)
+        {
+          chrr = chg == modn
+          if ((nch <- sum(chrr)) < 2) next
+          chg = unlist(strsplit(chg,";"))
+          modn[chrr] = sprintf("%s r%03i;%s",chg[1],1:nch,chg[2])
+        }
+        names(allSum) = modn
+      }
+      X <- Y <- Stand <- NULL
+      unitConv = if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+        0.0699713 else 1    # note FT3pACRtoM3pHA = 0.0699713
+      for (i in 1:length(allSum)) 
+      { 
+        X = c(X,allSum[[i]][,"Year"])
+        Y = c(Y,allSum[[i]][,"TCuFt"]) * unitConv
+        ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
+        ltag = gsub(x=ltag,pattern="^SId=",replacement="")
+        Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
+      }
+      toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
+      toMany = nlevels(toplot$Stand) > 9
+      colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
+      yUnits = expression(Total~(ft^{3}/a))
+      if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
+        yUnits = expression(Merchantable~(ft^{3}/a))
+      else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+        yUnits = expression(Total~(m^{3}/ha))
+      plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
+        geom_line (aes(x=X,y=Y,color=Stand)) +
+        labs(x="Year", y=yUnits) + 
+        theme(text = element_text(size=6), 
               legend.position=if (toMany) "none" else "right",
               axis.text = element_text(color="black")) 
-        width=if (toMany) 3 else 4
-        height=2.5
-        CairoPNG("www/quick.png", width=width, height=height, units="in", res=150)
-        print(plt)
-        dev.off()
-        output$uiRunPlot <- renderUI(
-                plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
-        output$runPlot <- renderImage(list(src="www/quick.png", width=(width+1)*144, 
-                height=(height+1)*144), deleteFile=TRUE)
-cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
-        globals$currentQuickPlot = globals$fvsRun$uuid
-        globals$changeind <- 0
-        output$contChange <- renderUI("Run")
-        updateTabsetPanel(session=session, inputId="leftPan",selected="Load")
-      }
-    })
+      width=if (toMany) 3 else 4
+      height=2.5
+      CairoPNG("www/quick.png", width=width, height=height, units="in", res=150)
+      print(plt)
+      dev.off()
+      output$uiRunPlot <- renderUI(
+        plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
+      output$runPlot <- renderImage(list(src="www/quick.png", width=(width+1)*144, 
+                                         height=(height+1)*144), deleteFile=TRUE)
+      cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
+      globals$currentQuickPlot = globals$fvsRun$uuid
+      globals$changeind <- 0
+      output$contChange <- renderUI("Run")
+      updateTabsetPanel(session=session, inputId="leftPan",selected="Load")
   })
+  
+#   ## Save and Run
+#   observe({
+#     if (input$saveandrun == 0) return()    
+#     isolate ({
+#       
+#       if (length(globals$fvsRun$stands) > 0) 
+#       {
+# cat("Nulling uiRunPlot at Save and Run\n")
+#         output$uiRunPlot <- output$uiErrorScan <- renderUI(NULL)
+#         globals$currentQuickPlot = character(0) 
+#         # timing checks.
+#         thisYr = as.numeric(format(Sys.time(), "%Y"))
+#         # First check to see if required start year, end year, or cycle length fields are blank.
+#         if (input$startyr =="") {
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common starting year is blank."))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#         }
+#         if (input$endyr =="") {
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common ending year is blank."))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#           }
+#         if (input$cyclelen =="") {
+#           session$sendCustomMessage(type = "infomessage",
+#                   message = paste0("The growth and reporting interval is blank."))
+#           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#           return()
+#         }
+#         # other start year checks
+#         for(i in 1:length(globals$fvsRun$stands)){
+#           if (((input$startyr !="" && ((as.numeric(input$startyr)) > (thisYr + 50))) ||
+#                ((input$startyr !="") && nchar(input$startyr) > 4))){
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common starting year of ",input$startyr,
+#                     " is more than 50 years from the current year of ", thisYr))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#           }
+#           if ((input$startyr !="") && (input$startyr < globals$fvsRun$stands[[i]]$invyr)){
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common starting year of ",input$startyr,
+#                     " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#           }
+#         }
+#         # other end year checks
+#         for(i in 1:length(globals$fvsRun$stands)){
+#           if (((input$endyr !="" && ((as.numeric(input$endyr)) > 
+#             (as.numeric(input$cyclelen) * 40 + as.numeric(input$startyr)))) ||
+#                ((input$endyr !="") && nchar(input$endyr) > 4))){
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common ending year of ", input$endyr,
+#                     " is more than 40 growth cycles from the current year of ", thisYr))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#           }
+#           if ((input$endyr !="") && ((as.numeric(input$endyr) < 
+#             as.numeric(globals$fvsRun$stands[[i]]$invyr)))){
+#             session$sendCustomMessage(type = "infomessage",
+#                     message = paste0("The common ending year of ", input$endyr,
+#                     " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+#             updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#             return()
+#           }
+#         }
+#         # other cycle length check
+#         if (((input$cyclelen !="" && ((as.numeric(input$cyclelen)) > 50))) ||
+#              ((input$cyclelen !="") && nchar(input$cyclelen) > 4)){
+#           session$sendCustomMessage(type = "infomessage",
+#                   message = paste0("The growth interval of ", input$cyclelen,
+#                   " years is greater than the maximum 50 years"))
+#           updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#           return()
+#         }
+#         baseCycles = seq(as.numeric(globals$fvsRun$startyr),as.numeric(globals$fvsRun$endyr),
+#                          as.numeric(globals$fvsRun$cyclelen))
+#         cycleat = scan(text=gsub(";"," ",gsub(","," ",globals$fvsRun$cycleat)),
+#                        what=0,quiet=TRUE)
+#         # Cycle break checks
+#         if (length(cycleat)){
+#           for(i in 1:length(globals$fvsRun$stands)){
+#             for(j in 1:length(cycleat)){
+#               if ((cycleat[j] > (thisYr + 400))){
+#                 session$sendCustomMessage(type = "infomessage",
+#                         message = paste0("The additional reporting year of ", cycleat[j],
+#                         " is more than 400 years from the current year of", thisYr))
+#                 updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#                 return()
+#               }
+#               if ((cycleat[j] < as.numeric(globals$fvsRun$stands[[i]]$invyr))){
+#                 session$sendCustomMessage(type = "infomessage",
+#                         message = paste0("The additional reporting year of ", cycleat[j],
+#                         " is before the inventory year of ", globals$fvsRun$stands[[i]]$invyr))
+#                 updateTabsetPanel(session=session,inputId="rightPan",selected="Time")
+#                 return()
+#               }
+#             }
+#           }
+#         }  
+#         progress <- shiny::Progress$new(session,min=1,
+#                            max=length(globals$fvsRun$stands)+10)
+#         progress$set(message = "Run preparation: ", 
+#           detail = "Saving FVS Run", value = 1)
+#         saveRun(input,session)
+#         updateSelectInput(session=session, inputId="runSel", 
+#             choices=globals$FVS_Runs,selected=globals$FVS_Runs[[1]]) 
+# 
+#         killIfRunning(globals$fvsRun$uuid)
+#         # if rerunning a run that is currently selected in the "View Outputs",
+#         # then clear those tools.
+#         if (globals$fvsRun$uuid %in% input$runs) initTableGraphTools(globals,session,output,fvsOutData)
+#         progress$set(message = "Run preparation: ", 
+#           detail = "Deleting old ouputs", value = 2)         
+#         removeFVSRunFiles(globals$fvsRun$uuid)
+#         updateSelectInput(session=session, inputId="bkgRuns", 
+#                           choices=getBkgRunList(),selected=0)
+#         progress$set(message = "Run preparation: ", 
+#           detail = "Write .key file and prepare program", value = 3)
+# cat ("runwaitback=",input$runwaitback,"\n")
+#           
+#         if (input$runwaitback!="Wait for run")
+#         {
+#           ncpu=suppressWarnings(if(is.null(input$bkgNcpu)) NA else 
+#                as.numeric(input$bkgNcpu))
+#           if (is.na(ncpu)) ncpu=1
+#           progress$set(message = "Run preparation: ", 
+#              detail = "Starting backgrouind run", value = length(globals$fvsRun$stands)+10)
+#           updateTextInput(session=session, inputId="bkgNcpu",value=as.character(ncpu)) 
+#           msg=extnSimulateRun(runUUID=globals$fvsRun$uuid,fvsBin=globals$fvsBin,
+#                           ncpu=ncpu)
+#           if(msg=="wrong active database"){
+# cat ("Run data query returned no data to run.\n")  
+#           progress$set(message = "Error: Keyword file was not created. Try re-importing
+#                        the inventory database associated with this run.",
+#                       detail = msg, value = 3) 
+#           Sys.sleep(5)
+#           progress$close()
+#           return()  
+#           }
+#           refreshTimmer <- reactiveTimer(500,session=session)
+#           progress$close()
+#           output$contChange <- renderUI("Run")   
+#           return()
+#         }         
+#         msg=writeKeyFile(globals,dbGlb$dbIcon)
+#         fc = paste0(globals$fvsRun$uuid,".key")
+#         if (!file.exists(fc))
+#         {
+#           if(msg=="Wrong active database."){
+# cat ("Wrong active database.\n")  
+#           progress$set(message = "Error: Wrong active database. Try re-importing
+#                        the inventory database associated with this run.",
+#                       detail = NA, value = 3) 
+#           return()  
+#           } else {
+# cat ("keyword file was not created.\n")
+#             progress$set(message = "Error: Keyword file was not created.",detail = msg, value = 3)
+#             Sys.sleep(5)
+#             progress$close()
+#             return()
+#           }
+#         }
+#         if(msg=="Stand not found in FVS_ClimAttrs table."){
+# cat ("Stand not found in FVS_ClimAttrs table.\n")  
+#           progress$set(message = "Error: Stand(s) not found in the existing FVS_ClimAttrs table. Check climate data 
+#                        to ensure all stands in the run are included.",
+#                       detail = NA, value = 3) 
+#           return()
+#         }
+#         if(msg=="No Climate attributes data found."){
+# cat ("No climate attributes data found.\n")  
+#           progress$set(message = "Error: No climate attributes data found. Make sure to either upload it using 
+#                        the Upload Climate-FVS data menu, or check the file name on the ClimData keyword.",
+#                       detail = NA, value = 3) 
+#           return()
+#         }
+#         if (!dir.exists(globals$fvsBin)) 
+#         {
+#           progress$set(message = paste0("Error: ",globals$fvsBin," does not exist."),
+#                       detail = "", value = 3) 
+#           Sys.sleep(5)
+#           progress$close()
+#           return()
+#         }
+#         dir.create(globals$fvsRun$uuid)
+#         fvschild = makePSOCKcluster(1)
+#         #on exit of the reactive context
+#         on.exit({          
+#           progress$close()
+# cat ("exiting, stop fvschild\n")          
+#           try(stopCluster(fvschild))
+#           Sys.sleep(0.3)
+#           unlink(paste0(globals$fvsRun$uuid,".db"))
+#           unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
+#         }) 
+#         clusterEvalQ(fvschild,library(rFVS))
+#         cmd = paste0("clusterEvalQ(fvschild,fvsLoad('",
+#              globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"'))")
+# cat ("load FVSpgm cmd=",cmd,"\n")          
+#         rtn = try(eval(parse(text=cmd)))
+#         if (class(rtn) == "try-error") return()          
+#         # if not using the default run script, load the one requested.    
+#         if (globals$fvsRun$runScript != "fvsRun")
+#         {
+#           rsFn = paste0("customRun_",globals$fvsRun$runScript,".R")
+#           if (!file.exists(rsFn)) rsFn = system.file("extdata", rsFn,
+#               package="fvsOL")
+#           if (!file.exists(rsFn)) return()
+#           cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
+# cat ("run script load cmd=",cmd,"\n")
+#           rtn = try(eval(parse(text=cmd)))
+#           if (class(rtn) == "try-error") return()
+#           runOps <- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
+#             globals$fvsRun$uiCustomRunOps
+#           rtn = try(clusterExport(fvschild,list("runOps"),envir=environment())) 
+#           if (class(rtn) == "try-error") return()
+#         }
+#         foo = paste0(globals$fvsRun$uuid,".key")
+#         cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
+# cat ("load run cmd=",cmd,"\n")
+#         rtn = try(eval(parse(text=cmd))) 
+#         if (class(rtn) == "try-error") return()
+# cat ("at for start\n") 
+#         allSum = list()
+#         for (i in 1:length(globals$fvsRun$stands))
+#         {
+#           detail = paste0("Stand ",i," StandId=",globals$fvsRun$stands[[i]][["sid"]])          
+#           progress$set(message = "FVS running", detail = detail, value = i+4) 
+#           rtn = if (globals$fvsRun$runScript != "fvsRun")
+#             {
+#               cmd = paste0("clusterEvalQ(fvschild,",globals$fvsRun$runScript,"(runOps))")
+# cat ("custom run cmd=",cmd,"\n")              
+#               try(eval(parse(text=cmd)))
+#             } else {
+# cat ("running normal run cmd\n")
+#               try(clusterEvalQ(fvschild,fvsRun()))
+#             }
+# cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
+#           if (class(rtn) == "try-error")
+#           { 
+#             cat ("run try error\n")
+#             return()
+#           }
+#           rtn = rtn[[1]]
+#           if (rtn != 0) break          
+#           ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
+#           if (class(ids) == "try-error") break
+#           ids = ids[[1]]
+#           rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
+# cat ("rn=",rn,"\n")
+#           rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
+#           if (class(rtn) == "try-error") break
+#           allSum[[i]] = rtn[[1]]
+#           names(allSum)[i] = rn
+#         }
+# cat ("rtn,class=",class(rtn),"\n")
+#         try(clusterEvalQ(fvschild,fvsRun()))        
+#         progress$set(message = "Scanning output for errors", detail = "", 
+#                     value = length(globals$fvsRun$stands)+4)
+#         outf=paste0(globals$fvsRun$uuid,".out")
+#         errScan = try(extnErrorScan(outf))
+#         if (class(errScan) == "try-error") errScan = 
+#           "Error scan failed likely due to invalid multibyte strings in output"
+#         output$uiErrorScan <- renderUI(list(
+#           h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
+#           h5("FVS error scan: "),
+#           tags$style(type="text/css", paste0("#errorScan { overflow:auto; ",
+#              "height:150px; font-family:monospace; font-size:90%;}")),
+#           HTML(paste(errScan,"<br>"))))
+#         if (length(dir(globals$fvsRun$uuid)) == 0) 
+#           unlink(globals$fvsRun$uuid,recursive = TRUE, force = TRUE)
+#         progress$set(message = if (length(allSum) == length(globals$fvsRun$stands))
+#                     "FVS finished" else
+#                     "FVS run failed", detail = "", 
+#                     value = length(globals$fvsRun$stands)+5)
+#         Sys.sleep(.1)       
+# cat ("length(allSum)=",length(allSum),"\n")
+#         if (length(allSum) == 0) {Sys.sleep(.4); return()}
+#         progress$set(message = "FVS finished",  
+#              detail = "Merging output to master database",
+#              value = length(globals$fvsRun$stands)+6)
+#         res = addNewRun2DB(globals$fvsRun$uuid,dbGlb$dbOcon)
+#         unlink(paste0(globals$fvsRun$uuid,".db"))
+#         unlink(paste0(globals$fvsRun$uuid,"_genrpt.txt"))
+#         progress$set(message = "Building plot", detail = "", 
+#                      value = length(globals$fvsRun$stands)+6)
+#         modn = names(allSum)
+#         toch = unique(modn)
+#         if (length(toch) != length(modn)) 
+#         {
+#           for (chg in toch)
+#           {
+#             chrr = chg == modn
+#             if ((nch <- sum(chrr)) < 2) next
+#             chg = unlist(strsplit(chg,";"))
+#             modn[chrr] = sprintf("%s r%03i;%s",chg[1],1:nch,chg[2])
+#           }
+#           names(allSum) = modn
+#         }
+#         X <- Y <- Stand <- NULL
+#         unitConv = if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+#            0.0699713 else 1    # note FT3pACRtoM3pHA = 0.0699713
+#         for (i in 1:length(allSum)) 
+#         { 
+#           X = c(X,allSum[[i]][,"Year"])
+#           Y = c(Y,allSum[[i]][,"TCuFt"]) * unitConv
+#           ltag = gsub(x=names(allSum)[i],pattern=";.*$",replacement="")
+#           ltag = gsub(x=ltag,pattern="^SId=",replacement="")
+#           Stand=c(Stand,c(rep(ltag,nrow(allSum[[i]]))))
+#         }
+#         toplot = data.frame(X = X, Y=Y, Stand=as.factor(Stand))
+#         toMany = nlevels(toplot$Stand) > 9
+#         colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
+#         yUnits = expression(Total~(ft^{3}/a))
+#         if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
+#           yUnits = expression(Merchantable~(ft^{3}/a))
+#         else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+#           yUnits = expression(Total~(m^{3}/ha))
+#         plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
+#             geom_line (aes(x=X,y=Y,color=Stand)) +
+#             labs(x="Year", y=yUnits) + 
+#             theme(text = element_text(size=6), 
+#               legend.position=if (toMany) "none" else "right",
+#               axis.text = element_text(color="black")) 
+#         width=if (toMany) 3 else 4
+#         height=2.5
+#         CairoPNG("www/quick.png", width=width, height=height, units="in", res=150)
+#         print(plt)
+#         dev.off()
+#         output$uiRunPlot <- renderUI(
+#                 plotOutput("runPlot",width="100%",height=paste0((height+1)*144,"px")))
+#         output$runPlot <- renderImage(list(src="www/quick.png", width=(width+1)*144, 
+#                 height=(height+1)*144), deleteFile=TRUE)
+# cat ("setting currentQuickPlot, input$runSel=",input$runSel,"\n")
+#         globals$currentQuickPlot = globals$fvsRun$uuid
+#         globals$changeind <- 0
+#         output$contChange <- renderUI("Run")
+#         updateTabsetPanel(session=session, inputId="leftPan",selected="Load")
+#       }
+#     })
+#   })
 
 ## bkgKill  
   observe({  
@@ -4710,19 +5303,22 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   })
   
   ## kcpSaveInRun
-  observe({  
-    if (length(input$kcpSaveInRun) && input$kcpSaveInRun > 0)
-    {
-      isolate ({
-cat ("kcpSaveInRun\n")
+  observeEvent(input$kcpSaveInRun, {  
+        cat ("kcpSaveInRun\n")
+        if(!length(input$simCont)){
+          cat("No Active Stands\n")
+          showNotification("Must have at least one stand in Run Contents to perform this operation",
+                           type = 'warning')
+          return()
+        }
         if (nchar(input$kcpTitle) == 0)
         {
           newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
           updateTextInput(session=session, inputId="kcpTitle", value=newTit)
         } else newTit = paste0("Editor: ",trim(input$kcpTitle))
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
-             variant=globals$activeVariants[1],kwdName="FreeEdit",
-             title=newTit,reopn=character(0))
+                          variant=globals$activeVariants[1],kwdName="FreeEdit",
+                          title=newTit,reopn=character(0))
         # find the attachment point. 
         sel = input$simCont[[1]]
         grp = findIdx(globals$fvsRun$grps,sel)
@@ -4746,22 +5342,80 @@ cat ("kcpSaveInRun\n")
         if (is.null(grp)) 
         {
           globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-              append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+            append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
         } else { 
           globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-              append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+            append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
               append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
         }
         mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
         updateSelectInput(session=session, inputId="simCont", 
-           choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+                          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
         globals$changeind <- 1
         output$contChange <- renderText(HTML("<b>*Run*</b>"))
         globals$schedBoxPkey <- character(0)
-      })
-    }
   })
+  
+#   ## kcpSaveInRun
+#   observe({  
+#     if (length(input$kcpSaveInRun) && input$kcpSaveInRun > 0)
+#     {
+#       isolate ({
+# cat ("kcpSaveInRun\n")
+#         if(!length(input$simCont)){
+#           cat("No Active Stands\n")
+#           showNotification("Must have at least one stand in Run Contents to perform this operation",
+#                            type = 'warning')
+#           return()
+#         }
+#         if (nchar(input$kcpTitle) == 0)
+#         {
+#           newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
+#           updateTextInput(session=session, inputId="kcpTitle", value=newTit)
+#         } else newTit = paste0("Editor: ",trim(input$kcpTitle))
+#         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
+#              variant=globals$activeVariants[1],kwdName="FreeEdit",
+#              title=newTit,reopn=character(0))
+#         # find the attachment point. 
+#         sel = input$simCont[[1]]
+#         grp = findIdx(globals$fvsRun$grps,sel)
+#         std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
+#         cmp = NULL
+#         if (is.null(grp) && is.null(std)) 
+#         {
+#           for (grp in 1:length(globals$fvsRun$grps))
+#           {
+#             cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
+#             if (!is.null(cmp)) break
+#           }
+#           if (is.null(cmp)) grp = NULL
+#           if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands))
+#           {
+#             cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
+#             if (!is.null(cmp)) break
+#           }
+#         }
+#         # attach the new component
+#         if (is.null(grp)) 
+#         {
+#           globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+#               append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+#               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
+#         } else { 
+#           globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+#               append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+#               append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+#         }
+#         mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+#         updateSelectInput(session=session, inputId="simCont", 
+#            choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+#         globals$changeind <- 1
+#         output$contChange <- renderText(HTML("<b>*Run*</b>"))
+#         globals$schedBoxPkey <- character(0)
+#       })
+#     }
+#   })
 
   ## kcpSaveCmps
   observe({
