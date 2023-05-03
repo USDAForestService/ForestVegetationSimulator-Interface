@@ -3857,8 +3857,10 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       if(!length(input$simCont))
       {
         cat("No Active Stands\n")
-        showNotification("Must have at least one stand in Run Contents to perform this operation",
-                         type = 'warning')
+          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                     "'Run Contents' must contain at least one stand or group to perform this operation "))
+        # showNotification("Must have at least one stand in Run Contents to perform this operation",
+        #                  type = 'warning')
         return()
       }
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
@@ -4311,8 +4313,8 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     if(!length(input$simCont))
     {
       cat("No Active Stands\n")
-      showNotification("Must have at least one stand in Run Contents to perform this operation",
-                       type = 'warning')
+      showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                                   "'Run Contents' must contain at least one stand or group to perform this operation "))
       return()
     }
       cat("Nulling uiRunPlot at Save and Run\n")
@@ -5307,8 +5309,8 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
         cat ("kcpSaveInRun\n")
         if(!length(input$simCont)){
           cat("No Active Stands\n")
-          showNotification("Must have at least one stand in Run Contents to perform this operation",
-                           type = 'warning')
+          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                    "'Run Contents' must contain at least one stand or group to perform this operation "))
           return()
         }
         if (nchar(input$kcpTitle) == 0)
