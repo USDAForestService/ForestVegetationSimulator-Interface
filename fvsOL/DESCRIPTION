@@ -1,6 +1,6 @@
 Package: fvsOL
 Title: Forest Vegetation Simulator
-Version: 2023.01.06
+Version: 2023.05.18
 Authors@R: c(person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
                   role = c("aut")),
              person("Michael", "Shettles", email = "michael.a.shettles@usda.gov",
@@ -14,4 +14,5 @@ Depends: R (>= 4.0.0), rFVS (>= 2021.03.15), shiny (>= 1.6.0), Cairo (>= 1.5.11)
 Suggests: rgdal (>= 1.5-23), nlme (>= 3.1-140)
 License: MIT
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
+Encoding: UTF-8

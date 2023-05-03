@@ -136,7 +136,7 @@ trim <- function (x) gsub("^\\s+|\\s+$","",x)
 
 defaultRun <- list("Default useful for all FVS variants"="fvsRun")
 
-## used in Tools, dlZipSet
+# used in Tools, dlZipSet
 zipList <- list(  
   "FVSProject data base (Runs, Custom components (kcp), Custom queries, GraphSettings)" = "fvsProjdb",
   "Output data base for for all runs"  = "outdb",  
@@ -410,6 +410,26 @@ cat ("exit now\n")
     }
   })
       
+  ## changeind  
+  observe({
+    cat ("changeind=",globals$changeind,"\n")          
+    if (globals$changeind == 0){
+      output$contChange <- renderUI("Run")
+      output$srtYr <-renderUI({
+        HTML(paste0("<b>",input$startyr,"</b>"))
+      })
+      output$eYr <-renderUI({        
+        HTML(paste0("<b>",input$endyr,"</b>"))
+      })
+      output$cyLen <-renderUI({
+        HTML(paste0("<b>",input$cyclelen,"</b>"))
+      })
+      output$cyAt <-renderUI({
+        HTML(paste0("<b>",input$cycleat,"</b>"))
+      })
+    }
+  })
+  
   ## Load
   observe({
     if (input$topPan == "View Outputs" && input$leftPan == "Load")
@@ -536,8 +556,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           setProgress(value = NULL)
           return()
         }
-        isolate(dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh))
-        input$bldstdsk # force this section to be reactive to changing "bldstdsk"   
+        dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh)
         if (!isMetric)
         {
           if ("FVS_Summary" %in% tbs && ncases > 1)
@@ -788,24 +807,71 @@ cat ("tbs7=",tbs,"\n")
     }
   })
   
-  ## changeind  
-  observe({
-    cat ("changeind=",globals$changeind,"\n")          
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({        
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
+  ## bldstdsk
+  observeEvent(input$bldstdsk,{
+      tbs <- myListTables(dbGlb$dbOcon)
+cat ("tbs related to the run",tbs,"\n")
+      if (length(tbs) == 0) 
+      {
+        updateSelectInput(session, "selectdbtables", choices=list())
+        return()
+      }
+      dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh)
+      tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
+      if (any(tlprocs)) 
+      {
+        tlprocs = names(tlprocs)[tlprocs]
+        chtoEast = function(cmd)
+        {
+          cmd = gsub("BdFt", "SBdFt",cmd,fixed=TRUE)
+          cmd = gsub("TCuFt","SCuFt",cmd,fixed=TRUE)
+          cmd = gsub("FVS_TreeList","FVS_TreeList_East",cmd,fixed=TRUE)
+          gsub("FVS_CutList","FVS_CutList_East",cmd,fixed=TRUE)
+        }
+        for (tlp in tlprocs)          
+        {
+          if (tlp == "tlwest")
+          {
+            C_StdStkDBHSp  = Create_StdStkDBHSp
+            C_HrvStdStk    = Create_HrvStdStk
+            C_StdStk1Hrv   = Create_StdStk1Hrv
+            C_StdStk1NoHrv = Create_StdStk1NoHrv
+            C_StdStkFinal  = Create_StdStkFinal
+            C_CmpStdStk    = Create_CmpStdStk
+            detail = "Building StdStk from tree lists"
+            stdstk = "StdStk"
+            clname = "FVS_CutList"
+          } else {
+            C_StdStkDBHSp  = chtoEast(Create_StdStkDBHSp )
+            C_HrvStdStk    = chtoEast(Create_HrvStdStk   )
+            C_StdStk1Hrv   = chtoEast(Create_StdStk1Hrv  )
+            C_StdStk1NoHrv = chtoEast(Create_StdStk1NoHrv)
+            C_StdStkFinal  = chtoEast(Create_StdStkFinal )
+            C_StdStkFinal  = gsub(" StdStk"," StdStk_East",C_StdStkFinal)
+            C_CmpStdStk    = chtoEast(Create_CmpStdStk   )
+            C_CmpStdStk    = gsub(" CmpStdStk"," CmpStdStk_East",C_CmpStdStk)
+            C_CmpStdStk    = gsub(" StdStk "," StdStk_East ",C_CmpStdStk)
+            detail = "Building StdStk_East from tree lists"
+            stdstk = "StdStk_East"
+            clname = "FVS_CutList_East"
+          }
+          exqury(dbGlb$dbOcon,C_StdStkDBHSp,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          if (clname %in% tbs)
+          {
+            exqury(dbGlb$dbOcon,C_HrvStdStk,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+            exqury(dbGlb$dbOcon,C_StdStk1Hrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          } else {
+            exqury(dbGlb$dbOcon,C_StdStk1NoHrv,subExpression=dbhclassexp,
+                 asSpecies=paste0("Species",input$spCodes))
+          }
+          exqury(dbGlb$dbOcon,C_StdStkFinal)
+          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+          if (ncases > 1) exqury(dbGlb$dbOcon,C_CmpStdStk)
+        }          
+      }                                  
   })
   
   ## selectdbtables
@@ -1067,8 +1133,9 @@ cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
     if (!is.null(input$sqlSel))
     {
       sel = as.numeric(input$sqlSel)
+      if(is.na(sel)) sel = as.numeric(match(input$sqlSel,names(globals$customQueries)))
 cat ("sqlSel sel=",sel,"\n")
-      if (length(globals$customQueries) >= sel) 
+      if (length(globals$customQueries) >= sel || !is.null(sel)) 
       {
         updateTextInput(session=session, inputId="sqlTitle", 
           value=names(globals$customQueries)[sel])
@@ -1501,7 +1568,7 @@ cat("filterRows and/or pivot\n")
     output$table <- renderTable(dat) 
   })               
           
-  ## Graphs
+  ##Graphs
   observe({                 
     if (input$leftPan == "Explore" && input$outputRightPan == "Graphs")
     {
@@ -1875,10 +1942,11 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
     vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
     nd = NULL
-    sumOnSpecies = !"Species"  %in% vars && "Species"  %in% names(dat) && 
-                    nlevels(dat$Species)>1 
-    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) && 
-                    nlevels(dat$DBHClass)>1   
+    specOpts <- c("Species","SpeciesFVS","SpeciesPLANTS","SpeciesFIA")
+    sumOnSpecies= (all(!specOpts %in% vars) && any(specOpts %in% names(dat)) && 
+                   nlevels(dat$Species)>1)
+    sumOnDBHClass= !"DBHClass" %in% vars && "DBHClass" %in% names(dat) &&
+                    nlevels(dat$DBHClass)>1
     for (v in vars[(nlv+1):length(vars)])
     {
       if (is.na(v) || !v %in% names(dat)) return(nullPlot())
@@ -1899,7 +1967,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
       nd=subset(nd,DBHClass!="All")
       nd$DBHClass="Sum"
     }
-    if (sumOnSpecies||sumOnDBHClass) 
+    if (sumOnSpecies || sumOnDBHClass) 
     {
       nd=ddply(nd,setdiff(names(nd),"Y"),.fun=function (x) sum(x$Y))
       names(nd)[ncol(nd)]="Y"
@@ -2301,7 +2369,6 @@ cat ("Stands\n")
 cat ("inTabs\n")
   })
   
-  
   ## inVars has changed
   observe({
     if (is.null(input$inVars)) return()
@@ -2318,8 +2385,10 @@ cat ("inVars globals$activeVariants=",globals$activeVariants,
 cat ("in reloadStandSelection\n")
     if (is.null(input$inTabs) || is.null(input$inVars)) return()
     sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) "StandPlot_ID" else "Stand_ID"      
-    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups from ",input$inTabs,
+    grps = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,",Groups, INV_YEAR from ",input$inTabs,
               ' where lower(variant) like "%',tolower(input$inVars),'%"')))
+    grps <- subset(grps, !is.na(grps[grep("inv_year",tolower(names(grps)))]))
+    grps <- subset(grps, grps[grep("inv_year",tolower(names(grps)))] !="")
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
@@ -3748,7 +3817,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     ans
   }
   ## Save in run 
-  observe({  
+  observe({                           
     if (length(input$cmdSaveInRun) && input$cmdSaveInRun == 0) return() 
     isolate ({
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
@@ -3828,7 +3897,7 @@ cat ("Editing as freeform\n")
         }  
       }
 cat ("Building a component: kwPname=",kwPname,"\n")
-      ans = if (kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+      ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
           reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
@@ -3943,26 +4012,6 @@ cat ("saving, kwds=",ans$kwds," title=",input$cmdTitle," reopn=",ans$reopn,"\n")
       closeCmp()
       globals$schedBoxPkey <- character(0)
     })
-  })
-          
-  ## changeind
-  observe({
-cat ("changeind=",globals$changeind,"\n")
-    if (globals$changeind == 0){
-      output$contChange <- renderUI("Run")
-      output$srtYr <-renderUI({
-        HTML(paste0("<b>",input$startyr,"</b>"))
-      })
-      output$eYr <-renderUI({
-        HTML(paste0("<b>",input$endyr,"</b>"))
-      })
-      output$cyLen <-renderUI({
-        HTML(paste0("<b>",input$cyclelen,"</b>"))
-      })
-      output$cyAt <-renderUI({
-        HTML(paste0("<b>",input$cycleat,"</b>"))
-      })
-    }
   })
   
   ## time--start year
@@ -4766,6 +4815,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
           if(length(globals$customCmps)==1){
            customCmps=NULL
             removeObject(dbGlb$prjDB,"customCmps")
+            globals$customCmps <- list()
             updateSelectInput(session=session, inputId="kcpSel", choices=list())
             updateTextInput(session=session, inputId="kcpTitle", value="")
             updateTextInput(session=session, inputId="kcpEdit", value="") 
@@ -4786,6 +4836,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
         } else {
           customCmps=NULL
           removeObject(dbGlb$prjDB,"customCmps")
+          globals$customCmps <- list()
           updateSelectInput(session=session, inputId="kcpSel", choices=list())
           updateTextInput(session=session, inputId="kcpTitle", value="")
           updateTextInput(session=session, inputId="kcpEdit", value="")
@@ -4796,7 +4847,7 @@ cat ("kcpDelete, input$kcpSel=",input$kcpSel,"\n")
                                                                      
   ## Download KCP
   output$kcpDownload <- downloadHandler(filename=function ()
-      paste0(input$kcpSel,".kcp"),
+      paste0(input$kcpTitle,".kcp"),
       content=function (tf = tempfile())
       {     
         write(input$kcpEdit,tf)
@@ -5310,7 +5361,7 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
 cat ("length(uidsToGet)=",length(uidsToGet),"\n")
       if (!length(uidsToGet)) return()        
       uidsFound = NULL   
-      library(rgdal) 
+      library(sf) 
       spatdat = "SpatialData.RData"
       if (!exists("SpatialData",envir=dbGlb,inherit=FALSE) && 
           file.exists(spatdat)) load(spatdat,envir=dbGlb)
@@ -5332,16 +5383,21 @@ cat ("1 matchVar=",matchVar,"\n")
           if (!length(uidsToGet)) break 
           matchVar = attr(map,"MatchesStandID")
 cat ("2 matchVar=",matchVar,"\n")
-          uids=intersect(uidsToGet, map@data[,matchVar])
+          # if the map has class sp, it needs to be converted. This code was added in Nov 2022
+          # and can be removed once all the map data is converted to package sf. Note that
+          # this code allows for some members of the SpatialData to be sf and others sp.
+          qsp = attr(class(map),"package")
+          if (!is.null(qsp) && qsp == "sp") map=st_as_sf(map)
+          uids=intersect(uidsToGet, map[[matchVar]])
           if (length(uids) == 0) next
           uidsFound = c(uidsFound,uids)
-          pp = spTransform(map[match(uids,map@data[,matchVar]),],CRS("+init=epsg:4326"))
-          if (class(pp)=="SpatialPolygonsDataFrame") 
+          pp = st_transform(map[match(uids,map[[matchVar]]),],st_crs("epsg:4326"))
+          if (length(grep("POLYGON",st_geometry_type(pp)[1])))
           {
             polys  = if (is.null(polys))   pp   else rbind(polys,pp)
             polyLbs= if (is.null(polyLbs)) uids else rbind(polyLbs,uids)
           }
-          if (class(pp)=="SpatialPointsDataFrame")   
+          if (length(grep("POINT",st_geometry_type(pp)[1])))
           {
             pts   = if (is.null(pts))    pp   else rbind(pts,pp)
             ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
@@ -5440,19 +5496,15 @@ cat ("rows to keep=",length(keep),"\n")
             }
             uids = latLng[,"Stand_ID"]
             uidsFound = c(uidsFound,uids)
-            coordinates(latLng) <- ~Longitude+Latitude
-            setProj <- function (obj) 
-            {
-              proj4string(obj) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-              obj
-            }
-            latLng <- try(setProj(latLng))             
-            if (class(latLng)=="try-error")
+            latLng = st_as_sf(latLng, coords = c("Longitude","Latitude"))
+            latLng <- try(st_set_crs(latLng, 
+                      st_crs("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")))          
+            if ("try-error" %in% class(latLng))
             {
                output$leafletMessage=renderText("Error setting projection in location data.")
                return()
             }
-            pp = spTransform(latLng,CRS("+init=epsg:4326"))
+            pp =    st_transform(latLng,st_crs("epsg:4326"))
             pts=    if (is.null(pts))    pp   else rbind(pts,pp)
             ptsLbs= if (is.null(ptsLbs)) uids else rbind(ptsLbs,uids)
           }
@@ -7559,7 +7611,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
             dbGlb$tbl <- dbGetQuery(dbGlb$dbIcon,qry)
             rownames(dbGlb$tbl) = dbGlb$tbl$rowid
             for (col in 2:ncol(dbGlb$tbl))
-              if (class(dbGlb$tbl[[col]]) != "character") 
+              if (class(dbGlb$tbl[[col]])[1] != "character") 
                  dbGlb$tbl[[col]] = as.character(dbGlb$tbl[[col]])
             if (nrow(dbGlb$tbl) == 0) dbGlb$rows = NULL else 
             {
@@ -7587,6 +7639,7 @@ cat ("after commit, is.null(dbGlb$sids)=",is.null(dbGlb$sids),
                   message = "Are you sure you want to delete all rows from this database table?"))
     }
   })
+  
   observe({
     if(input$clearTableDlgBtn == 0) return()
 cat ("clearTable, tbl=",dbGlb$tblName,"\n")
@@ -7617,47 +7670,10 @@ cat ("clearTable, tbl=",dbGlb$tblName,"\n")
     if(input$inputDBPan == "Upload Map data") 
     {
 cat ("Map data hit.\n")
-      require(rgdal) 
-      progress <- shiny::Progress$new(session,min=1,max=3)
-      progress$set(message = "Preparing projection library",value = 2)
-      updateSelectInput(session=session, inputId="mapUpIDMatch",choices=list())
-      if (!exists("prjs",envir=dbGlb,inherit=FALSE)) 
-      {
-        dbGlb$prjs = make_EPSG()
-        delList = c("Unknown","deprecated","Unable to","Unspecified","Paris","China",
-        "Oslo","NZGD","Kalianpur","Hartebeesth","ELD79","Sierra Le","Locodjo","ETRS89",
-        "Xian 1980","Italy","GDM2000","KKJ ","Karbala","North Pole","LGD2006","JAD2","GDA94",
-        "HTRS96","Bermuda","Pitcairn","Cuba ","Kertau","Portug","Brunei","Jakarta","Abidjan",
-        "Chile","Russia","Japan","Israel","Nahrwan","Fiji","Viti L","PRS92","MAGNA-","Banglade",
-        "Minna","poraloko","Sahara","Zanderij","MGI","Ain el","Afgooye","Barbados","Carthage",
-        "Luzon","Maroc","Massawa","Schwarzeck","Tanana","Timbalai","OSNI","Irish","Trinidad",
-        "Voirol","Yoff","Belge ","Tokyo","British","Amersfoort","Lao ","Yemen ","Brazil",
-        "Indian","Indonesia","Garoua","Fahud","Egypt","Deir ez","Corrego","Cape /","Hong Kong",
-        "Bogota","Camacupa","Beijing","Batavia","Aratu","Adindan","Pulkovo","Lisbon","Hanoi",
-        "Macedonia","Cayman","Arctic","Europe","Krovak","Panama","Sibun G","Ocotepeque",
-        "Peru","DRUKREF","TUREF","Korea","Spain","Congo","Katanga","Manoca","LKS9","Tahiti",
-        "Argentina","Iraq","Slovenia","Naparima","Mauritania","Maupiti","Martinique","Estonian",
-        "Qatar","Doulas","Easter","Qornoq","Rassad","Miquelon","Segara","Tahhaa","Singapore")
-        dbGlb$prjs <- dbGlb$prjs[!is.na(dbGlb$prjs[,3]),]
-        for (del in delList)
-        {
-          tod = grep(del,dbGlb$prjs[,2],ignore.case=TRUE)
-# cat ("del=",del," len=",length(tod)," nrow=",nrow(dbGlb$prjs),"\n")
-          if (length(tod)) dbGlb$prjs = dbGlb$prjs[-tod,]
-        }         
-      }
-      dbGlb$prjs = dbGlb$prjs[order(dbGlb$prjs[,2]),]
-      grp = c(grep ("NAD",dbGlb$prjs[,2],fixed=TRUE),grep("WGS",dbGlb$prjs[,2],fixed=TRUE))
-      dbGlb$prjs = rbind(dbGlb$prjs[grp,],dbGlb$prjs[-grp,])
+      library(sf)
       updateSelectInput(session=session, inputId="mapUpLayers", choices=list(),
                         selected=0)
-      epsg = as.character(1:nrow(dbGlb$prjs))
-      names(epsg) = paste0("epsg:",dbGlb$prjs$code," ",dbGlb$prjs$note)
-      updateSelectInput(session=session, inputId="mapUpSelectEPSG", choices=epsg,
-                        selected=0)
-      updateTextInput(session=session, inputId="mapUpProjection",value="")
       output$mapActionMsg = renderText(" ")
-      progress$close()
     }
    })
    ## mapUpload
@@ -7691,18 +7707,16 @@ cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
         progress$set(message = "Getting layers",value = 2)
         if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
         setwd(mapDir)
-        lyrs = try(ogrListLayers(dir(mapDir)))
+        lyrs = try(sf::st_layers(dir(mapDir)))
         setwd(curdir)                                
 cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
-        if (class(lyrs) == "try-error" || length(lyrs) == 0)
+        if ("try-error" %in% class(lyrs) || length(lyrs$name)==0)
         {
           output$mapActionMsg = renderText("Can not find layers in data")
           progress$close()
           return()
         }
-        attributes(lyrs) = NULL
-        lyrs = as.list(lyrs)
-        names(lyrs) = unlist(lyrs)
+        lyrs = as.list(lyrs$name)
         if (length(lyrs) > 1) 
         {
           lyr = grep ("poly",names(lyrs),ignore.case=TRUE)
@@ -7729,38 +7743,33 @@ cat ("input$mapUpLayers =",input$mapUpLayers,"\n")
       if (length(dir(datadir)) == 1) setwd(datadir)
       progress <- shiny::Progress$new(session,min=1,max=3)
       progress$set(message = paste0("Loading map: ",datadir," Layer: ",input$mapUpLayers),value=2)
-      txtoutput = capture.output(dbGlb$spd <- try(readOGR(dir(),input$mapUpLayers,
-                                                   drop_unsupported_fields=TRUE)))
+      txtoutput = capture.output(dbGlb$spd <- try(st_read(dir(),input$mapUpLayers)))
       setwd(curdir)
-      if (class(dbGlb$spd) == "try-error")
+      if ("try-error" %in% class(dbGlb$spd))
       {
         output$mapActionMsg = renderText(paste0("Map read error: ",dbGlb$spd))
         progress$close()
         setwd(curdir)
         return()
       }
-      for (col in colnames(dbGlb$spd@data))
-      {
-        if (is.factor(dbGlb$spd@data[,col])) 
-          dbGlb$spd@data[,col]=levels(dbGlb$spd@data[,col])[as.numeric(dbGlb$spd@data[,col])]
-      }
       txtoutput = paste0(txtoutput,collapse="\n")
       output$mapActionMsg = renderText(txtoutput)
       progress$set(message = txtoutput,value=3)
-      choices = as.list(names(dbGlb$spd@data))
-      names(choices) = choices
       stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
       ids = try(dbGetQuery(dbGlb$dbIcon,paste0('select Stand_ID from ',stdInit)))
 cat ("length(ids)=",length(ids),"\n")
-      if (class(ids) == "try-error" || nrow(ids) == 0)
+      choices = setdiff(names(dbGlb$spd),"geometry")
+      names(choices) = choices
+      if ("try-error" %in% class(ids) || nrow(ids) == 0)
       {
-        selected = grep("ID",names(dbGlb$spd@data),ignore.case=TRUE)[1]
-        selected = if (is.na(selected)) 0 else names(dbGlb$spd@data)[selected]
+        selected = grep("ID",choices,ignore.case=TRUE)[1]
+        if (is.na(selected)) selected=0
       } else {
         ids = unlist(ids)
+        names(ids) = NULL
         cnts = NULL
-        for (col in colnames(dbGlb$spd@data))
-          cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd@data[,col]))))
+        for (col in choices)
+          cnts = c(cnts,length(na.omit(match(ids,dbGlb$spd[,col][[col]])))) 
         cnts = cnts/length(ids)*100
         choices = paste0(choices," ",format(cnts,digits=3),"%")
         selected = choices[which.max(cnts)]
@@ -7768,48 +7777,9 @@ cat ("length(ids)=",length(ids),"\n")
 cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected=",selected,"\n")
       updateSelectInput(session=session, inputId="mapUpIDMatch",
           choices=choices,selected=selected)
-      prj = proj4string(dbGlb$spd)
-      if (!is.na(prj)) 
-      {
-        updateTextInput(session=session, inputId="mapUpProjection",value=prj)
-        i = grep (prj,dbGlb$prjs$prj4,fixed=TRUE)
-        if(length(i) && !is.na(i))
-          updateSelectInput(session=session, inputId="mapUpSelectEPSG",selected=i)
-      }
       progress$close()
    })
-   ## mapUpSelectEPSG
-   observe({
-     if(length(input$mapUpSelectEPSG))
-       updateTextInput(session=session, inputId="mapUpProjection",
-            value=dbGlb$prjs[as.numeric(input$mapUpSelectEPSG),"prj4"])
-   })
-   ## mapUpSetPrj
-   observe({
-     if(input$mapUpSetPrj > 0)
-     {
-       if (!exists("spd",envir=dbGlb,inherit=FALSE)) 
-       {
-         output$mapActionMsg = renderText("No map, upload one then set projection")
-         return()
-       }
-       prjstring = trim(isolate(input$mapUpProjection))
-       if (nchar(prjstring) == 0) 
-       {
-         output$mapActionMsg = renderText("proj4 string is empty")
-         return()
-       }
-       prj = try(CRS(prjstring))
-       if (class(prj) == "try-error") 
-       {
-         output$mapActionMsg = renderText("proj4 string is not valid")
-       } else {
-         proj4string(dbGlb$spd) = prjstring
-         output$mapActionMsg = renderText("proj4 set/reset")
-       }
-     }
-   })
-   ## prepSpatialData
+   
    prepSpatialData = function(dbGlb)
    {
      if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
@@ -7817,18 +7787,22 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      ids1 = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from ',stdInit)))
      ids1 = if (class(ids1)=="try-error") list() else unlist(ids1)
      names(ids1) = NULL
-     ids2 = try(dbGetQuery(dbGlb$dbOcon,'select distinct StandID from FVS_Cases;'))
-     ids2 = if (class(ids2)=="try-error") list() else unlist(ids2)
-     names(ids2) = NULL
-     keep=union(ids1,ids2)   
+     if ("FVS_Cases" %in% 
+       dbGetQuery(dbGlb$dbOcon,"SELECT * FROM sqlite_master where type='table'")$name)
+     {
+       ids2 = try(dbGetQuery(dbGlb$dbOcon,'select distinct StandID from FVS_Cases;'))
+       ids2 = if ("try-error" %in% class(ids2)) list() else unlist(ids2)
+       names(ids2) = NULL
+       keep=union(ids1,ids2) 
+     } else keep=ids1
      matID = unlist(strsplit(input$mapUpIDMatch," "))[1]
-     keep=na.omit(charmatch(keep,dbGlb$spd@data[,matID]))
+     keep=na.omit(charmatch(keep,dbGlb$spd[,matID][[matID]]))
      if (length(keep)) 
      {
        SpatialData=dbGlb$spd[keep,]
        attr(SpatialData,"MatchesStandID") =  matID
        output$mapActionMsg = renderText(paste0("Map saved for this project, StandID match=",
-           matID,", Number of objects kept=",nrow(SpatialData@data)))
+           matID,", Number of objects kept=",nrow(SpatialData)))
      } else {
        SpatialData=NULL
        output$mapActionMsg = renderText("No map or data to save.")
@@ -8112,15 +8086,17 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
         } else{
         customQueries = list()
         newtitle = mkNameUnique(curTitle,customQueries)
-      }
+        }
+      globals$customQueries[newtitle]= source[curTitle]
       customQueries[newtitle] = source[curTitle]
       storeOrUpdateObject(dbGlb$prjDB,customQueries)
       output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
        ' is named "',newtitle,'" in your current project.'))   
       updateSelectInput(session=session,inputId="sqlSel",choices=as.list(names(customQueries)), 
-      selected=names(customQueries)[1]) 
+      selected="") 
     })}
   })
+  
   ## impFVS_Data 
   observe({
     if (input$impFVS_Data > 0)

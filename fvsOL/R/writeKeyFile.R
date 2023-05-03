@@ -483,6 +483,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
   for (std in globals$fvsRun$stands)
   { 
     RepsDesign=FALSE
+    EndPrev=FALSE
     names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
@@ -548,6 +549,14 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
         {
           if(lastExt != "base") cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
+        if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
@@ -557,7 +566,8 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
         if (lastExt != exten && lastExt != "base") 
         {
           lastExt = "base"
-          cat ("End\n",file=fc,sep="")
+          if(!EndPrev) cat ("End\n",file=fc,sep="")
+          EndPrev=TRUE
         }
         naughty <- "Econ_reports"
         if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
@@ -612,6 +622,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
                     cmp$kwds,"\n",file=fc,sep="")
           if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
         }
+       EndPrev=FALSE
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
@@ -621,15 +632,24 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
       {
         if(lastExt != "base") cat ("End\n",file=fc,sep="")
         cat ("EndIf\n",file=fc,sep="")
+        EndPrev=TRUE
         lastCnd = NULL
       }
+      if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
       if (cmp$atag == "c") lastCnd = cmp$uuid
       exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
              unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
       if (lastExt != exten && lastExt != "base") 
       {
         lastExt = "base"
-        cat ("End\n",file=fc,sep="")
+        if(!EndPrev) cat ("End\n",file=fc,sep="")
+        EndPrev=TRUE
       } 
       naughty <- "Econ_reports"
       if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
@@ -668,13 +688,15 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
                      cmp$kwds,"\n",file=fc,sep="")  
       }
       if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
+      EndPrev=FALSE
     }
     if (!is.null(lastCnd) && lastExt != "base") {
-      cat ("End\n",file=fc,sep="")
+      if(!EndPrev) cat ("End\n",file=fc,sep="")
+      EndPrev=TRUE
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base" && !EndPrev) cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]) && !RepsDesign)
     {
