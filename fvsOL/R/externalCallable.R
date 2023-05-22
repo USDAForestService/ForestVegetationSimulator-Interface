@@ -679,7 +679,7 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character string of the run uuid that is processed
-#' @return a vector of stand ids that are in the run.
+#' @return data.frame of stand ids and corresponding uuids that are in the run.
 #' @examples  
 #' runID <- extnMakeRun(title="Make a run, list the stands",
 #'             standIDs=c("01100202010068","01100205010076","01100202010146"),
@@ -693,9 +693,42 @@ extnListStands <- function(prjDir=getwd(),runUUID)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
   if (!exists("fvsRun")) stop("runUUID run data not loaded")
-  stands = c()
-  for (std in fvsRun$stands) stands=c(stands,std$sid)
-  return(stands)
+  return(data.frame(uuid= unlist(lapply(fvsRun$stands,function(x) x$uuid)),
+                    stand=unlist(lapply(fvsRun$stands,function(x) x$sid ))))
+}
+
+#' Given a project directory a run uuid, this function deletes stands using
+#' the stand's UUIDs. 
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of the run uuid that is processed
+#' @param a vector of stand UUIDs that are in the run that you want deleted.
+#' @return the number of stands deleted.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, list the stands",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' thestands <- extnListStands(runUUID=runID)
+#' todel <- thestands[1,2]  # delete the second stand
+#' extnDeleteStands(prjDir=getwd(),runUUID,todel)
+#' @export
+extnDeleteStands <- function(prjDir=getwd(),runUUID,deleteStandUUIDs)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  if (missing(deleteStandUUIDs)) stop("deleteStandUUIDs required")
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  uuids=unlist(lapply(fvsRun$stands,function(x) x$uuid))
+  del=na.omit(match(deleteStandUUIDs,uuids))
+  if (length(del)) 
+  {
+    fvsRun$stands[del]=NULL
+    storeFVSRun(db,fvsRun)
+  }
+  return(length(del))
 }
 
 #' Fetch a run
@@ -810,8 +843,6 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   }
   allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
   fields = intersect(toupper(fields),toupper(allNeed))
-  if (length(fields) < length(allNeed)) stop("required db fields are missing")
-
   getStds = data.frame(getStds=if (addStandReps) stands else setdiff(stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
   if (nrow(getStds) == 0) return(nadd)
@@ -842,7 +873,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     newstd <- mkfvsStd(sid=sid,uuid=uuidgen(),rep=0,repwt=1,invyr=as.character(invyr))
     
     addfiles = fvsInit[row,"ADDFILES"]
-    if (!is.na(addfiles)) for (addf in names(addfiles))                            
+    if (!is.null(addfiles)) for (addf in names(addfiles))                            
     {                                                  
       nadd$ncmps=nadd$ncmps+1
       newstd$cmps <- append(newstd$cmps,
