@@ -1,5 +1,3 @@
-# $Id: mkInputElements.R 4001 2022-05-23 15:04:37Z mshettles521 $
-
 mkeltList <- function (pkeys,prms,globals,input,output,
                        cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
 {
@@ -436,6 +434,7 @@ mkVarList <- function (globals)
      "BCanCov: Before thin percent canopy cover (StrClass keyword required)"="BCanCov", 
      "BCCF: Before thin CCF"="BCCF", 
      "BDBHwtBA: Before thin average DBH weighted by stand basal area"="BDBHwtBA", 
+     "BHTWTBA: Before thin average height weighted by stand basal area"="BHTWTBA",
      "BMaxHS: Before thin height of tallest tree in uppermost stratum (StrClass keyword required)"="BMaxHS", 
      "BMCuFt: Before thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="BMCuFt", 
      "BMinHS: Before thin height of shortest tree in uppermost stratum (StrClass keyword required)"="BMinHS", 
@@ -480,7 +479,8 @@ mkVarList <- function (globals)
      "ABdFt: After thin board foot (western variants) sawtimber (eastern variants) volume"="ABdFt", 
      "ACanCov: After thin percent canopy cover (StrClass keyword required)"="ACanCov", 
      "ACCF: After thin CCF"="ACCF", 
-     "ADBHwtBA: After thin average DBH weighted by stand basal area"="ADBHwtBA", 
+     "ADBHwtBA: After thin average DBH weighted by stand basal area"="ADBHwtBA",
+     "AHTWTBA: After thin average height weighted by stand basal area"="AHTWTBA",
      "AMaxHS: After thin height of tallest tree in uppermost stratum (StrClass keyword required)"="AMaxHS", 
      "AMCuFt: After thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="AMCuFt", 
      "AMinHS: After thin height of shortest tree in uppermost stratum (StrClass keyword required)"="AMinHS", 

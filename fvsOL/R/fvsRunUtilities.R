@@ -1,5 +1,3 @@
-# $Id: fvsRunUtilities.R 3982 2022-05-10 18:07:19Z mshettles521 $
-
 loadStandTableData <- function (globals, dbIcon)
 {
   tbls=myListTables(dbIcon)
@@ -32,7 +30,7 @@ cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",glo
            strip.white=TRUE,sep=" ",quiet=TRUE))))
       vars=vars[vars != ""]
       keep=na.omit(match(vars,globals$activeVariants))
-      if (length(keep) && !is.na(keep)) globals$activeVariants = globals$activeVariants[keep] 
+      if (length(keep)) globals$activeVariants = globals$activeVariants[keep] 
     } 
   }
 cat ("in loadVarData, globals$activeVariants=",globals$activeVariants,"\n")
@@ -444,8 +442,8 @@ resetActiveFVS <- function(globals)
            "ls: Lake States"="ls",
            "ne: Northeast"="ne",
            "sn: Southern"="sn")
-  keep=match(globals$activeVariants,vars)
-  globals$activeVariants = if (length(keep) && !is.na(keep)) vars[keep] else character(0)
+  keep=na.omit(match(globals$activeVariants,vars))
+  globals$activeVariants = if (length(keep)) vars[keep] else character(0)
   globals$activeExtens=character(0)
 }
 
@@ -618,6 +616,7 @@ mkKeyWrd = function (ansFrm,input,pkeys,variant)
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL
+  if(variant!="ne" && length(grep("ThinRDSL",ansFrm))>0) out="ThinRDSL"
   if (is.null(pkeys) || is.null(input) || is.null(ansFrm)) return(out)
   for (i in 1:length(input)){
     if(!is.null(input) && input[i]==" ") next
@@ -929,6 +928,7 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
           names(globals$pastelistShadow)[1] = toRm$title
         }
       }
+      if(length(fvsRun$stands)==1)fvsRun$grps = list()
       fvsRun$stands[[i]] = NULL
       return(TRUE)
     }

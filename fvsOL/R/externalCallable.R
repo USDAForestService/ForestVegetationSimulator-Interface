@@ -1,5 +1,3 @@
-# $Id: externalCallable.R 4018 2022-07-27 22:59:15Z nickcrookston $
-#
 #' Build an FVS run in a project
 #'
 #' Build an FVS run in a project and add it to the list of runs in the project. 
@@ -38,7 +36,7 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   if (!file.exists("FVS_Data.db"))
   {
     warning("FVS_Data.db did not exist, default training data was loaded.")
-    frm=system.file("extdata", "FVS_Data.db.default", package=if (devVersion) "fvsOLdev" else "fvsOL")
+    frm=system.file("extdata", "FVS_Data.db.default", package="fvsOL")
     file.copy(frm,dbfile)
   }
   if (!file.exists(dbfile)) stop ("FVS_Data.db must exist")
@@ -668,7 +666,7 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
   prjDir = normalizePath(prjDir)
   prjDB = file.path(prjDir, "FVSProject.db")
   db=dbConnect(SQLite(), dbname = "FVS_Data.db")
-  rtn = writeKeyFile(globals,db,newSum=TRUE,keyFileName,verbose=verbose)
+  rtn = writeKeyFile(globals,db,keyFileName,verbose=verbose)
   if(rtn=="Run data query returned no data to run.") return("wrong active database")
   dbDisconnect(db)
   rtn
@@ -681,7 +679,7 @@ extnMakeKeyfile <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character string of the run uuid that is processed
-#' @return a vector of stand ids that are in the run.
+#' @return data.frame of stand ids and corresponding uuids that are in the run.
 #' @examples  
 #' runID <- extnMakeRun(title="Make a run, list the stands",
 #'             standIDs=c("01100202010068","01100205010076","01100202010146"),
@@ -695,9 +693,42 @@ extnListStands <- function(prjDir=getwd(),runUUID)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
   if (!exists("fvsRun")) stop("runUUID run data not loaded")
-  stands = c()
-  for (std in fvsRun$stands) stands=c(stands,std$sid)
-  return(stands)
+  return(data.frame(uuid= unlist(lapply(fvsRun$stands,function(x) x$uuid)),
+                    stand=unlist(lapply(fvsRun$stands,function(x) x$sid ))))
+}
+
+#' Given a project directory a run uuid, this function deletes stands using
+#' the stand's UUIDs. 
+#'
+#' @param prjDir is the path name to the project directory, if null the 
+#'   current directory is the project directory.
+#' @param runUUID a character string of the run uuid that is processed
+#' @param a vector of stand UUIDs that are in the run that you want deleted.
+#' @return the number of stands deleted.
+#' @examples  
+#' runID <- extnMakeRun(title="Make a run, list the stands",
+#'             standIDs=c("01100202010068","01100205010076","01100202010146"),
+#'             variant="ie")                   
+#' thestands <- extnListStands(runUUID=runID)
+#' todel <- thestands[1,2]  # delete the second stand
+#' extnDeleteStands(prjDir=getwd(),runUUID,todel)
+#' @export
+extnDeleteStands <- function(prjDir=getwd(),runUUID,deleteStandUUIDs)
+{
+  if (missing(runUUID)) stop("runUUID required")
+  if (missing(deleteStandUUIDs)) stop("deleteStandUUIDs required")
+  db = connectFVSProjectDB(prjDir)
+  on.exit(dbDisconnect(db)) 
+  fvsRun = loadFVSRun(db,runUUID)
+  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  uuids=unlist(lapply(fvsRun$stands,function(x) x$uuid))
+  del=na.omit(match(deleteStandUUIDs,uuids))
+  if (length(del)) 
+  {
+    fvsRun$stands[del]=NULL
+    storeFVSRun(db,fvsRun)
+  }
+  return(length(del))
 }
 
 #' Fetch a run
@@ -812,8 +843,6 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   }
   allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
   fields = intersect(toupper(fields),toupper(allNeed))
-  if (length(fields) < length(allNeed)) stop("required db fields are missing")
-
   getStds = data.frame(getStds=if (addStandReps) stands else setdiff(stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
   if (nrow(getStds) == 0) return(nadd)
@@ -844,7 +873,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     newstd <- mkfvsStd(sid=sid,uuid=uuidgen(),rep=0,repwt=1,invyr=as.character(invyr))
     
     addfiles = fvsInit[row,"ADDFILES"]
-    if (!is.na(addfiles)) for (addf in names(addfiles))                            
+    if (!is.null(addfiles)) for (addf in names(addfiles))                            
     {                                                  
       nadd$ncmps=nadd$ncmps+1
       newstd$cmps <- append(newstd$cmps,
@@ -970,6 +999,16 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   # adjust location of the input database in the keyword file.  
   indb=grep ("FVS_Data.db$",kwds)
   if (length(indb)) kwds[indb]=paste0("../",kwds[indb])
+  if (length(.libPaths()) > 1)
+  {
+    libpaths=""
+    for (l in .libPaths()) 
+    {
+      libpaths = if (nchar(libpaths)) paste0(libpaths,",") else ".libPaths(c("
+      libpaths=paste0(libpaths,'"',l,'"')
+    }
+    libpaths=paste0(libpaths,"))")
+  } else libpaths=NA
   clindx=1
   for (set in names(asign))
   {
@@ -987,7 +1026,8 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
     close(opnout)
     # make the run script
     opnout = file(file.path(rundir,sub(".key$",".Rscript",keyFileName)),open="wt")
-    cat ("library(rFVS)\n",file=opnout)
+    if (!is.na(libpaths)) cat(libpaths,"\n",file=opnout,append=TRUE)   
+    cat ("library(rFVS)\n",file=opnout,append=TRUE)
     if (dir.exists(fvsBin)) fvsBin=gsub(pattern="\\\\",replacement="/",x=normalizePath(fvsBin))
     cat ("rtn=try(fvsLoad('",fvsRun$FVSpgm,"',bin='",fvsBin,
          "'))\nif(class(rtn)=='try-error') stop('fvs load failed')\n",sep="",file=opnout) 
@@ -997,7 +1037,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
        # look in the system extdata directory to find it in the package
        cmdfil=paste0("customRun_",fvsRun$runScript,".R")
        if (!file.exists(cmdfil)) cmdfil=system.file("extdata", cmdfil, 
-         package = if (devVersion) "fvsOLdev" else "fvsOL")
+         package = "fvsOL")
        if (file.exists(paste=cmdfil))
        {
          cat ("curdir=getwd();setwd('..')\n",file=opnout)
@@ -1021,13 +1061,12 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   cat ('cat (Sys.getpid()," ',fvsRun$title,'; ',ncpu,' CPUs; ",',
        'format(Sys.time(),"%Y-%m-%d_%H_%M_%S"),"\\n",sep="",file="',
        pidStat,'")\n',sep="",file=rscript)
-  if (devVersion) cat('require(fvsOLdev)\n',file=rscript,append=TRUE) else
-                  cat('require(fvsOL)\n',   file=rscript,append=TRUE)
+  if (!is.na(libpaths)) cat(libpaths,"\n",file=rscript,append=TRUE) 
+  cat('require(fvsOL)\n',file=rscript,append=TRUE)
   cat('fvsprocs = makePSOCKcluster(',ncpu,')\n',sep="",file=rscript,append=TRUE)
   cat('pids = unlist(clusterEvalQ(fvsprocs,Sys.getpid()))\n',sep="",file=rscript,append=TRUE)
   cat('cat ("fvsPids:",pids,"\\n",file="',pidStat,'",append=TRUE)\n',sep="",file=rscript,append=TRUE)
-  cat(paste0('clusterEvalQ(fvsprocs,library(',if (devVersion) 'fvsOLdev' else 'fvsOL',
-             '))\n'),sep="",file=rscript,append=TRUE)
+## ??? cat(paste0('clusterEvalQ(fvsprocs,library(fvsOL))\n'),sep="",file=rscript,append=TRUE)
   for (i in 1:ncpu) cat('clusterEvalQ(fvsprocs[',i,'],setwd("',paste0(runUUID,names(asign)[i]),'"))\n',
         sep="",file=rscript,append=TRUE)     
   cat ('try(clusterEvalQ(fvsprocs,source("',runUUID,'.Rscript")))\n',sep="",file=rscript,append=TRUE)
@@ -1056,8 +1095,7 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
       }
     }
     dbDisconnect(dbcon)\n',
-  file=rscript,append=TRUE) 
-  
+  file=rscript,append=TRUE)  
   cat ('file.remove("',paste0(runUUID,".pidStatus"),'")\n',sep="",file=rscript,append=TRUE)
  
   rsloc = if (exists("RscriptLocation")) RscriptLocation else

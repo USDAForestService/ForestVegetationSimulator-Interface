@@ -1,5 +1,3 @@
-# $Id$
-#
 kcpVetting <- function (kcpconts)
 {
   if(!length(kcpconts)) return()
@@ -54,8 +52,6 @@ kcpVetting <- function (kcpconts)
   mistkwds <- list("MISTABLE","MISTGMOD","MISTHMOD","MISTMORT","MISTMULT","MISTOFF","MISTPINF",
                    "MISTPREF","MISTPRT")
   extkwds <- c(regenkwds,firekwds,dbkwds,climatekwds,econkwds,coverkwds,rdkwds,mistkwds)
-  altless <- c(4,5,5,8,6) # number of parameters the non-DBS keywords have that are exact in name
-  altmore <- c(1,2,1,1,1,1,1,1) # number of parameters the non-DBS keywords have that are exact in name 
   extflag <- 0 # denotes whether we are in an extension block, and which extension by it's value (1-8)
   condflag <- 0 # denotes whether we are in a conditional block
   computeflag <- 0 # denotes whether we are in a compute block
@@ -105,18 +101,6 @@ kcpVetting <- function (kcpconts)
             condflag <- 0
           }
         }
-        # Maybe I'll come back to this block. Not required--might be nice to have END inserted where the old timers are used to.
-        # If it's a component specifier, for a base keyword and we re already in an extension block
-        # else if(length(suppcomp) && extflag > 0 &&
-        #         strsplit(kcpconts[j]," ")[[1]][(length(strsplit(kcpconts[j]," ")[[1]])-1)]=="base"){
-        #   insertkw[k] <- "END"
-        #   insertidx[k] <- j-1
-        #   k <- k+1
-        #   numinserts <- numinserts +1
-        #   extflag <- 0
-        # }
-        
-        # otherwise, ignore the "bam" and move to the next line
         else next
       }
       # if it's an extension invocation keyword and we're not in an extension block,
@@ -440,7 +424,7 @@ kcpVetting <- function (kcpconts)
 }
 
 
-writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TRUE)
+writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
 {
   stds = unlist(lapply(globals$fvsRun$stands,function(x) x$sid))
   if (verbose) cat("writeKeyFile, num stds=",length(stds),
@@ -484,7 +468,6 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
   extns = globals$activeFVS[globals$fvsRun$FVSpgm][[1]]
   source(system.file("extdata", "autoOutKeys.R", package = "fvsOL"),local=TRUE)
   defaultOut = sub ("FVSOut",globals$fvsRun$uuid,defaultOut)
-  if (!newSum)  defaultOut = sub ("Summary        2","Summary",defaultOut)
   if (is.null(keyFileName)) keyFileName=paste0(globals$fvsRun$uuid,".key")
   fc = file(description=keyFileName,open="wt")
   cat ("!!title:",globals$fvsRun$title,"\n",file=fc)
@@ -500,6 +483,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
   for (std in globals$fvsRun$stands)
   { 
     RepsDesign=FALSE
+    EndPrev=FALSE
     names(fvsInit) <- toupper(names(fvsInit))
     sRows = match (std$sid, fvsInit$STAND_ID)
     sRowp = match (std$sid, fvsInit$STANDPLOT_ID)
@@ -532,7 +516,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
     autos = if (is.null(names(globals$fvsRun$autoOut))) unlist(globals$fvsRun$autoOut) else 
                 unlist(globals$fvsRun$autoOut[["autoOut"]])
     autos = if ("autoDelOTab" %in% autos) 
-    { 
+    {
       aa = setdiff(autos,"autoDelOTab")
       unlist(lapply(aa,function(a) {aw = paste0(a,".withText"); if (exists(aw)) aw else a}))
     } else c(autos,"autoDelOTab")
@@ -565,6 +549,14 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         {
           if(lastExt != "base") cat ("End\n",file=fc,sep="")
           cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
+        if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
           lastCnd = NULL
         }
         if (cmp$atag == "c") lastCnd = cmp$uuid
@@ -574,7 +566,8 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
         if (lastExt != exten && lastExt != "base") 
         {
           lastExt = "base"
-          cat ("End\n",file=fc,sep="")
+          if(!EndPrev) cat ("End\n",file=fc,sep="")
+          EndPrev=TRUE
         }
         naughty <- "Econ_reports"
         if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
@@ -629,6 +622,7 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
                     cmp$kwds,"\n",file=fc,sep="")
           if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
         }
+       EndPrev=FALSE
       }
     } 
     if (length(std$cmps)) for (cmp in std$cmps)
@@ -638,15 +632,24 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
       {
         if(lastExt != "base") cat ("End\n",file=fc,sep="")
         cat ("EndIf\n",file=fc,sep="")
+        EndPrev=TRUE
         lastCnd = NULL
       }
+      if (cmp$atag == "c" && (cmp$uuid != lastCnd && !is.null(lastCnd)))
+        {
+          if(lastExt != "base") cat ("End\n",file=fc,sep="")
+          cat ("EndIf\n",file=fc,sep="")
+          EndPrev=TRUE
+          lastCnd = NULL
+        }
       if (cmp$atag == "c") lastCnd = cmp$uuid
       exten= if (length(grep("&",cmp$exten,fixed=TRUE)))
              unlist(strsplit(cmp$exten,"&"))[1] else cmp$exten
       if (lastExt != exten && lastExt != "base") 
       {
         lastExt = "base"
-        cat ("End\n",file=fc,sep="")
+        if(!EndPrev) cat ("End\n",file=fc,sep="")
+        EndPrev=TRUE
       } 
       naughty <- "Econ_reports"
       if (lastExt != exten && !any(!is.na(match(naughty,cmp$kwdName))))
@@ -685,13 +688,15 @@ writeKeyFile <- function (globals,dbIcon,newSum=TRUE,keyFileName=NULL,verbose=TR
                      cmp$kwds,"\n",file=fc,sep="")  
       }
       if(substr(cmp$kwds,1,6) == "Design")RepsDesign=TRUE
+      EndPrev=FALSE
     }
     if (!is.null(lastCnd) && lastExt != "base") {
-      cat ("End\n",file=fc,sep="")
+      if(!EndPrev) cat ("End\n",file=fc,sep="")
+      EndPrev=TRUE
       lastExt = "base"
     }
     if (!is.null(lastCnd) && lastExt == "base") cat ("EndIf\n",file=fc,sep="")
-    if (is.null(lastCnd) && lastExt != "base") cat ("End\n",file=fc,sep="")
+    if (is.null(lastCnd) && lastExt != "base" && !EndPrev) cat ("End\n",file=fc,sep="")
     # insert modified sampling weight if needed.
     if (!is.null(wtofix[[std$sid]]) && !RepsDesign)
     {

@@ -1,5 +1,3 @@
-# $Id$
-
 FVSOnlineUI <- fixedPage(
   tags$head(tags$style(HTML(
     ".shiny-notification {height: 80px;width: 500px;position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}"))),
@@ -141,7 +139,7 @@ FVSOnlineUI <- fixedPage(
                  h5(),
                  fileInput("kcpUpload",
                            "Upload an existing Keyword component file (KCP), or Keyword component archive (FVS_kcps.Rdata)",
-                           width="90%"),
+                           accept = c(".kcp", ".RData"),width="90%"),
                  selectInput("kcpSel","Existing component collection", NULL, 
                             NULL, multiple=FALSE,selectize=FALSE,width="65%"),h6(),
                  actionButton("kcpNew","New"),
@@ -288,7 +286,7 @@ FVSOnlineUI <- fixedPage(
                   selectInput("dbhclass", "DBHClasses", size=6, 
                     choices  = list("None loaded"), 
                     selected = NULL, multiple = TRUE, selectize=FALSE))),
-                HTML(paste0("<b>",'Databse table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
+                HTML(paste0("<b>",'Database table(s) selected: ',"</b>",htmlOutput("tbSel", inline=TRUE))),
               checkboxGroupInput("browsevars","Select variables",
                   choices = list("None"),selected = NULL,inline=TRUE)
             ),
@@ -674,18 +672,14 @@ FVSOnlineUI <- fixedPage(
             ),              
             tabPanel("Upload Map data", 
               h4('Upload a stand layer to use in the "View On Maps" feature.'),       
-              h5("Note: Only spatial data found to have corresponding inventory data are stored (so load it first)."),       
+              h5("Note: Only spatial data found to have corresponding inventory data are stored (so load your inventory data first)."),       
               fileInput("mapUpload","Step 1: Upload polygon or point data (.zip that contains spatial data)",
                       width="90%"), h6(),
               selectInput("mapUpLayers", label="Layer",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
               selectInput("mapUpIDMatch", label="Variable that matches StandID",
                 choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-              selectInput("mapUpSelectEPSG", label="Projection library (abridged)",
-                choices  = list(), selected = NULL, multiple = FALSE, selectize=FALSE),
-              textInput("mapUpProjection", label="proj4 projection string",width="70%"),
-              actionButton("mapUpSetPrj","Set/Reset proj4 projection (does not reproject uploaded data)"),h6(),
-               p(strong("Step 2: Do one of the following:")),  
+              p(strong("Step 2: Do one of the following:")),  
               tags$style(type="text/css","#mapUpSave{font-size: 120%; color:green;}"),
               tags$style(type="text/css","#mapUpAdd{font-size: 120%; color:green;}"),
               actionButton("mapUpSave","Install imported spatial data"),           

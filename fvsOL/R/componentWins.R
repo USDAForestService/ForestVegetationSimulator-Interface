@@ -53,7 +53,7 @@ keyword.dbs.StandSQL.Win <- function(title, prms, globals, input, output)
 }
 keyword.dbs.StandSQL.Win.mkKeyWrd <- function(input,output)
 {
-  list(ex="base", 
+  list(ex="dbs", 
     kwds = paste0("StandSQL\n",input$freeEdit,"\nEndSQL\n"),
     reopn = c(freeEdit=input$freeEdit)
   )  
@@ -82,13 +82,11 @@ keyword.dbs.TreeSQL.Win <- function(title, prms, globals, input, output)
 }
 keyword.dbs.TreeSQL.Win.mkKeyWrd <- function(input,output)
 {
-  list(ex="base", 
+  list(ex="dbs", 
     kwds = paste0("TreeSQL\n",input$freeEdit,"\nEndSQL\n"),
     reopn = c(freeEdit=input$freeEdit)
   )  
 }
-
-
 
 keyword.dbs.SQLIn.Win <- function(title, prms, globals, input, output)
 {
@@ -100,21 +98,28 @@ keyword.dbs.SQLIn.Win <- function(title, prms, globals, input, output)
     list (
       mkScheduleBox("f1",prms,NULL,globals,input,output),
       tags$style(type="text/css", 
+        "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$p(id="freeEditCols", 
+             HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+      tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
       tags$p(id="instruct",HTML(paste0(
-            "Run an query on the DSNIn connection. If the query is a SELECT, ",
-            "then the last row of the result table will define the values of ",
-            "variables in the Event Monitor. The variables will have the column names.<br>",
-            "Example:<br><b>Select Inv_Year as MyYear from FVS_StandInit ",
-            "where Stand_ID = '%StandID%';<br></b>will define MyYear in the Event Monitor")
-            ))
+        "Run a query on the DSNIn connection. If the query is a SELECT, ",
+        "the column names from the table are compared to the names of ",
+        "user-defined Event Monitor variables. For any matching variable, ",
+        "the value in the last row of the result table will define the values of ",
+        "variables in the Event Monitor.<br>",
+        "Example:<br><b>SELECT Inv_Year as MyYear<br>FROM FVS_StandInit<br>",
+        "WHERE Stand_ID = '%StandID%'<br></b>will define ",
+        "MyYear as a variable in the Event Monitor")
+        ))  
      ),list())
   ans
 }
 keyword.dbs.SQLIn.Win.mkKeyWrd <- function(input,output)
 {
-  list(ex="base", 
+  list(ex="dbs", 
     kwds = paste0(sprintf("SQLIn     %10s\n",input$f1),input$freeEdit,"\nEndSQL\n"),
     reopn = c(f1=input$f1,freeEdit=input$freeEdit)
   )  
@@ -131,14 +136,28 @@ keyword.dbs.SQLOut.Win <- function(title, prms, globals, input, output)
     list (
       mkScheduleBox("f1",prms,NULL,globals,input,output),
       tags$style(type="text/css", 
+        "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
+      tags$p(id="freeEditCols", 
+             HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+      tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:95%;}"), 
-      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"])),
-    list())
+      tags$textarea(id="freeEdit", rows=10, globals$currentCmdDefs["freeEdit"]),
+          tags$p(id="instruct",HTML(paste0(
+        "Run a query on the DSNOut connection. If the query is a SELECT, ",
+        "the column names from the table are compared to the names of ",
+        "user-defined Event Monitor variables. For any matching variable, ",
+        "the value in the last row of the result table will define the values of ",
+        "variables in the Event Monitor.<br>",
+        "Example:<br><b>SELECT SDI as MySDI<br>FROM FVS_Summary2<br>",
+        "WHERE StandID = '%StandID%'<br></b>will define ",
+        "MySDI as a variable in the Event Monitor")
+        ))  
+    ),list())
   ans
 }
 keyword.dbs.SQLOut.Win.mkKeyWrd <- function(input,output)
 {
-  list(ex="base", 
+  list(ex="dbs", 
     kwds = paste0(sprintf("SQLOut    %10s\n",input$f1),input$freeEdit,"\nEndSQL\n"),
     reopn = c(f1=input$f1,freeEdit=input$freeEdit)
   )  
@@ -241,9 +260,10 @@ PlantNaturalFullWin <- function(title, prms, globals, input, output, full=TRUE)
 {
   pknum = match("management.PlantNatural",names(prms))
   globals$currentCmdPkey = as.character(pknum)  #point to the pkeys.
-  globals$currentCmdDefs <- c(pnDOD="1",pnYD="1",pnPBrn=" ",pnPMch=" ",
-    pnSprt=getPstring(atag=globals$activeVariants[1],pkey="hasSproutingSpecies",
-          pkeys=prms[[pknum]])[[1]],
+  globals$currentCmdDefs <- c(pnDOD="1")
+  if (full) globals$currentCmdDefs <- c(globals$currentCmdDefs,pnYD="1", pnPBrn=" ",pnPMch=" ")
+  globals$currentCmdDefs <- c(globals$currentCmdDefs, pnSprt=getPstring(atag=globals$activeVariants[1],
+                              pkey="hasSproutingSpecies",pkeys=prms[[pknum]])[[1]],
     pnYpn1="1",pnTr1="1",pnSp1=" ", pnTpa1=" ",pnPsv1="100.",pnAge1=" ",
     pnHt1=" ",pnShd1="0",
     pnYpn2="1",pnTr2="1",pnSp2=" ", pnTpa2=" ",pnPsv2="100.",pnAge2=" ",

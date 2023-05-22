@@ -10,7 +10,7 @@ AddFile   {base io}:
 {Permits addition of a file containing keywords.}
 
 ATRTList  {base io}:
-{Prints a list of tree records representing stand conditions after a
+{Prints a list of tree records representing stand conditions after a 
 scheduled treatment to an output treelist file}
 
 BAIMult   {base modifier}:
@@ -20,11 +20,11 @@ BAMax     {base modifier}:
 {Modifies maximum density for the stand and the mortality distribution pattern.}
 
 BFDefect  {base vol}:
-{Specifies species specific board-foot volume defect corrections for board foot
+{Specifies species specific board-foot volume defect corrections for board foot 
 volume estimates.}
 
 BFFDLN     {base vol}:
-{Enters species specific parameters for log-linear form and defect correction for
+{Enters species specific parameters for log-linear form and defect correction for 
 board-foot volume estimates.}
 
 BFVolEqu  {base vol modifier}:
@@ -37,7 +37,7 @@ CalbStat  {base io}:
 {Specify the minimum number of observations required for calibration.}
 
 CCAdj  {base modifier silv}:
-{Adjusts the percent canopy cover (%CC) overlap assumption for clumpy or  
+{Adjusts the percent canopy cover (%CC) overlap assumption for clumpy or 
 uniform stands. Can be used with THINCC to change the %CC target calculation.}
 
 Close     {base io}:
@@ -59,14 +59,14 @@ Compute   {base io}:
 {Defines a user specified variable used by the Event Monitor.}
 
 CrnMult   {base modifier silv}:
-{Alters the change in crown by a specified proportion, or in the case of dubbing
+{Alters the change in crown by a specified proportion, or in the case of dubbing 
 adjusts the dubbed crown by the specified proportion.}
 
 CutEff    {base thin silv}:
 {Changes the cutting efficiency for all thinnings.}
 
 CutList   {base io thin}:
-{Print a list of all harvested tree records or place a copy in a retrievable
+{Print a list of all harvested tree records or place a copy in a retrievable 
 mass storage file.}
 
 CWEqn     {base modifier}:
@@ -88,7 +88,7 @@ Design    {base stdtre inventory}:
 {Specify information about the sampling design used to collect tree data.}
 
 DgStDev   {base modifier}:
-{Change the limits of the normal distribution from which random errors are
+{Change the limits of the normal distribution from which random errors are 
 drawn for diameter increment predictions.}
 
 Echo      {base control}:
@@ -142,7 +142,7 @@ MgmtId    {base stdtre silv}:
 {4-character alphanumeric code identifying the projected silvicultural treatment.}
 
 MinHarv   {base thin vol}:
-{Specify minimum acceptable harvest standards for board-foot volume,
+{Specify minimum acceptable harvest standards for board-foot volume, 
 merchantable cubic-foot volume, or basal area per acre by cycle.}
 
 ModType   {base inventory}:
@@ -159,14 +159,14 @@ NoAutoES  {base control regen}:
 {Suppresses all natural regeneration and ingrowth features.}
 
 NoCalib   {base modifier inventory}:
-{Suppress calculation of scale factors for large tree diameter increment model
+{Suppress calculation of scale factors for large tree diameter increment model 
 and small tree height increment model.}
 
 NoEcho    {base control}:
 {Suppresses keyword echo to the Options Selected by Input in the Main Output file.}
 
 NoHtDReg  {base modifier inventory}:
-{Suppress the calculation of parameters for a local height-diameter equation for
+{Suppress the calculation of parameters for a local height-diameter equation for 
 use in dubbing the heights of trees which have missing recorded heights.}
 
 NoScreen {base io}:
@@ -187,14 +187,14 @@ NumTrip   {base control}:
 {Change the number of times tree records will be tripled.}
 
 Open {base io}:
-{Request for an input or output file. A supplement record is required to specify a
+{Request for an input or output file. A supplement record is required to specify a 
 filename for the unit that is to be opened.}
 
 PointGrp   {base thin silv stdtre}:
 {Defines a group of points referenced by a single name or number.}
 
 PointRef  {base thin silv}:
-{Specifies whether the point number entered on a keyword or Event Monitor function,
+{Specifies whether the point number entered on a keyword or Event Monitor function, 
 refers to the inventory point number or FVS sequential point number.}
 
 PrmFrost   {base modifier}:
@@ -227,7 +227,7 @@ ResetAge  {base control silv}:
 {Resets the stand age to make output correspond to the age of the stand.}
 
 Screen    {base io}:
-{Allows printing of the summary output table to the terminal during program
+{Allows printing of the summary output table to the terminal during program 
 execution.}
 
 SDICalc    {base modifier stdtre}:
@@ -262,18 +262,18 @@ SpecPref  {base thin silv}:
 {Change the species preference for removal.}
 
 StrClass  {base control io}:
-{Calculates structural class values and defines related Event Monitor
+{Calculates structural class values and defines related Event Monitor 
 structural class variables.}
 
 StandCN     {base io}:
 {Enter stand_CN}
 
 Stats     {base control io}:
-{Optional table showing a statistical description of the input data for a
+{Optional table showing a statistical description of the input data for a 
 projection.}
 
 StdIdent  {base stdtre io}:
-{Specify a stand identification code and descriptive title to label output tables,
+{Specify a stand identification code and descriptive title to label output tables, 
 use the Suppose Current Subset Window to identify your stands.}
 
 StdInfo   {base inventory stdtre}:
@@ -313,7 +313,7 @@ ThinMist   {base thin silv}:
 {Schedule the removal of trees with Dwarf Mistletoe Rating}
 
 ThinPRSC  {base thin silv}:
-{Schedule prescription thinning, harvesting trees that were marked for removal
+{Schedule prescription thinning, harvesting trees that were marked for removal 
 on the input tree records.}
 
 ThinPt  {base thin silv}:
@@ -332,7 +332,7 @@ ThinSDI   {base thin silv}:
 {Schedule a thinning with a residual stand density index target.}
 
 TimeInt   {base control}:
-{Specify the length, in years, of any or all projection cycles.  It is best to let
+{Specify the length, in years, of any or all projection cycles.  It is best to let 
 Suppose set the cycle lengths.}
 
 TopKill   {base modifier thin}:
@@ -349,14 +349,14 @@ TreeList  {base io}:
 file.}
 
 TreeSzCp  {base modifier}:
-{Sets limits for maximum tree diameter and height for a given species, and specifies
+{Sets limits for maximum tree diameter and height for a given species, and specifies 
 a minimum mortality rate when tree diameter exceeds the specified limit.}
 
 VolEqNum   {base vol modifier}:
 {Changes the Volume Equation number used to calculate volume}
 
 Volume    {base vol modifier}:
-{Redefine merchantability limits for the merchantable cubic-foot volume
+{Redefine merchantability limits for the merchantable cubic-foot volume 
 equation.}
 
 YardLoss   {base silv thin}:
@@ -389,11 +389,11 @@ ShrbLayr     {cover calib understory}:
 {Provides field data with which to calibrate shrub predictions.}
 
 ShrubHt {cover calib understory}:
-{Supply calibration information where height in feet measurements have been
+{Supply calibration information where height in feet measurements have been 
 gathered for individual species.}
 
 ShrubPC {cover calib understory}:
-{Supply calibration information where percent cover measurements have been
+{Supply calibration information where percent cover measurements have been 
 gathered for individual species.}
 
 Shrubs    {cover control understory}:
@@ -438,7 +438,7 @@ MistPrt   {mist io}:
 
 
 ClimData  {climate}:
-{Signifies that the climate and species-viability data be read from an external file
+{Signifies that the climate and species-viability data be read from an external file 
 and specifies which Global Circulation Model/Scenario desired.}
 
 ClimRept  {climate}:
@@ -469,32 +469,32 @@ AuTally   {estb modifier control inventory}:
 {Generates automatic tallies following thinnings.}
 
 BudWorm   {estb stdtre silv regen}:
-{Input defoliation histories for western spruce budworm and simulate the effects
+{Input defoliation histories for western spruce budworm and simulate the effects 
 of budworm defoliation on regeneration success.}
 
 BurnPrep  {estb strp silv inventory}:
 {Enter the percentage of plots receiving a site preparation by burning.}
 
 Estab          {estb strp control}:
-{Enters the year of disturbance and signal that keywords following are for the
+{Enters the year of disturbance and signal that keywords following are for the 
 Regeneration Establishment extension.}
 
 EZCruise  {estb strp silv inventory}:
-{Predict the small tree component at the time of the inventory if the inventory
+{Predict the small tree component at the time of the inventory if the inventory 
 data does not include small trees.}
 
 HabGroup  {estb io silv stdtre regen}:
 {Prints a table showing habitat types by habitat type group.}
 
 HtAdj          {estb strp modifier io stdtre regen}:
-{Enter a species specific initial height modifier for newly established trees before
+{Enter a species specific initial height modifier for newly established trees before 
 the tree records are passed to the FVS model.}
 
 Ingrow    {estb stdtre regen}:
 {Toggles on the simulation of ingrowth.}
 
 MechPrep  {estb strp silv inventory}:
-{Enter the percentage of regeneration plots receiving a site preparation by
+{Enter the percentage of regeneration plots receiving a site preparation by 
 mechanical scarification.}
 
 MinPlots  {estb strp inventory}:
@@ -516,14 +516,14 @@ Output    {estb strp io control}:
 {Control the kind of printed output described for this extension.}
 
 PassAll   {estb io modifier control}:
-{Specifies the number of "acceptable" predicted seedlings to be passed from the
+{Specifies the number of "acceptable" predicted seedlings to be passed from the 
 regeneration model to the FVS tree list during the tally.}
 
 Plant          {estb strp silv regen}:
 {Specify that planting is to be simulated}
 
 PlotInfo  {estb strp inventory stdtre silv}:
-{Specify plot specific values for slope, aspect, habitat type, topographic position,
+{Specify plot specific values for slope, aspect, habitat type, topographic position, 
 and site preparation.}
 
 ESRanSd  {estb strp modifier}:
@@ -533,14 +533,14 @@ ResetAge  {estb strp control silv}:
 {Resets the stand age to make output correspond to the age of the stand.}
 
 SpecMult  {estb modifier stdtre regen}:
-{Enter a species specific multiplier that adjusts the probability of a species'
+{Enter a species specific multiplier that adjusts the probability of a species' 
 occurrence in natural regeneration.}
 
 Sprout    {estb strp stdtre regen}:
 {Turn on/or change the simulation of sprouting}
 
 StockAdj  {estb modifier inventory regen}:
-{Enter a multiplier to adjust the probability of natural regeneration stocking for
+{Enter a multiplier to adjust the probability of natural regeneration stocking for 
 individual plots.}
 
 Tally          {estb strp control silv inventory}:
@@ -550,7 +550,7 @@ TallyOne  {estb strp inventory}:
 {Schedule the first regeneration tally in a specific year.}
 
 TallyTwo  {estb strp inventory}:
-{Schedule the second regeneration tally at any time after the first tally and up to
+{Schedule the second regeneration tally at any time after the first tally and up to 
 20 years after a disturbance.}
 
 Thrshold  {estb modifier inventory}:
@@ -580,7 +580,7 @@ BBType4  {armwrd3 otherAgent}:
 {Include mountain pine beetle on ponderosa pine in the simulation.}
 
 DNSCalc  {armwrd3 otherAgent}:
-{Alter the method by which the outbreak stand density threshold
+{Alter the method by which the outbreak stand density threshold 
 is computed for bark beetle type 1.}
 
 InfColo  {armwrd3 modifier}:
@@ -593,11 +593,11 @@ InfMult  {armwrd3 modifier}:
 {Modify the probability of root disease transmission.}
 
 InfSims  {armwrd3 io modifier}:
-{Change the number of times to simulate the inside-center infection
+{Change the number of times to simulate the inside-center infection 
 dynamics.  Print results of inside-center simulation.}
 
 InocLife {armwrd3 modifier}:
-{Modify the default rate and patterns of decay of the inoculum in the
+{Modify the default rate and patterns of decay of the inoculum in the 
 infected roots of dead stumps and trees.}
 
 InocSpan {armwrd3 modifier}:
@@ -616,7 +616,7 @@ RRComp   {armwrd3 modifier}:
 {Modify the maximum size of the tree list.}
 
 RRDOut   {armwrd3 control io}:
-{Instruct the model to write a detailed root disease output table to the
+{Instruct the model to write a detailed root disease output table to the 
 main output file.}
 
 RREcho   {armwrd3 control io}:
@@ -627,11 +627,11 @@ RRInit   {armwrd3 inventory}:
 {Specify the number, size, and distribution of disease centers.}
 
 RRJump   {armwrd3 modifier}:
-{Specify the extent to which centers expand through uninfected trees
+{Specify the extent to which centers expand through uninfected trees 
 when the stand is thinned or clearcut.}
 
 RRMinK   {armwrd3 modifier}:
-{Specify years-to-death below which the TTDMult keyword does not
+{Specify years-to-death below which the TTDMult keyword does not 
 influence mortality.}
 
 RRTreIn  {armwrd3 inventory}:
@@ -647,7 +647,7 @@ SDIRMult {armwrd3 modifier}:
 {Modify the calculation of root radius based on SDI.}
 
 SMCOut   {armwrd3 io}:
-{Instruct the model to write a table of root disease center spread
+{Instruct the model to write a table of root disease center spread 
 rates from the Monte Carlo Simulation to a seperate file.}
 
 Spread   {armwrd3 modifier}:
@@ -660,7 +660,7 @@ TDistn   {armwrd3 modifier}:
 {Specify the type of spatial distribution of trees in disease centers.}
 
 TimeDead {armwrd3 inventory}:
-{Change the time since death for dead infected trees and stumps in the
+{Change the time since death for dead infected trees and stumps in the 
 inventory.}
 
 TTDMult  {armwrd3 modifier}:
@@ -693,7 +693,7 @@ BBType4  {phewrd3 otherAgent}:
 {Include mountain pine beetle on ponderosa pine in the simulation.}
 
 DNSCalc  {phewrd3 otherAgent}:
-{Alter the method by which the outbreak stand density threshold
+{Alter the method by which the outbreak stand density threshold 
 is computed for bark beetle type 1.}
 
 InfColo  {phewrd3 modifier}:
@@ -706,11 +706,11 @@ InfMult  {phewrd3 modifier}:
 {Modify the probability of root disease transmission.}
 
 InfSims  {phewrd3 io modifier}:
-{Change the number of times to simulate the inside-center infection
+{Change the number of times to simulate the inside-center infection 
 dynamics.  Print results of inside-center simulation.}
 
 InocLife {phewrd3 modifier}:
-{Modify the default rate and patterns of decay of the inoculum in the
+{Modify the default rate and patterns of decay of the inoculum in the 
 infected roots of dead stumps and trees.}
 
 InocSpan {phewrd3 modifier}:
@@ -729,7 +729,7 @@ RRComp   {phewrd3 modifier}:
 {Modify the maximum size of the tree list.}
 
 RRDOut   {phewrd3 control io}:
-{Instruct the model to write a detailed root disease output table to the
+{Instruct the model to write a detailed root disease output table to the 
 main output file.}
 
 RREcho   {phewrd3 control io}:
@@ -740,11 +740,11 @@ RRInit   {phewrd3 inventory}:
 {Specify the number, size, and distribution of disease centers.}
 
 RRJump   {phewrd3 modifier}:
-{Specify the extent to which centers expand through uninfected trees
+{Specify the extent to which centers expand through uninfected trees 
 when the stand is thinned or clearcut.}
 
 RRMinK   {phewrd3 modifier}:
-{Specify years-to-death below which the TTDMult keyword does not
+{Specify years-to-death below which the TTDMult keyword does not 
 influence mortality.}
 
 RRTreIn  {phewrd3 inventory}:
@@ -760,7 +760,7 @@ SDIRMult {phewrd3 modifier}:
 {Modify the calculation of root radius based on SDI.}
 
 SMCOut   {phewrd3 io}:
-{Instruct the model to write a table of root disease center spread
+{Instruct the model to write a table of root disease center spread 
 rates from the Monte Carlo Simulation to a seperate file.}
 
 Spread   {phewrd3 modifier}:
@@ -773,7 +773,7 @@ TDistn   {phewrd3 modifier}:
 {Specify the type of spatial distribution of trees in disease centers.}
 
 TimeDead {phewrd3 inventory}:
-{Change the time since death for dead infected trees and stumps in the
+{Change the time since death for dead infected trees and stumps in the 
 inventory.}
 
 TTDMult  {phewrd3 modifier}:
@@ -805,11 +805,11 @@ BBType4  {ardwrd3 otherAgent}:
 {Include mountain pine beetle on ponderosa pine in the simulation.}
 
 Borate   {ardwrd3 mgmt}:
-{Simulate the application of borax to stumps (to prevent the
+{Simulate the application of borax to stumps (to prevent the 
 colonization by spores) after each harvest.}
 
 DNSCalc  {ardwrd3 otherAgent}:
-{Alter the method by which the outbreak stand density threshold
+{Alter the method by which the outbreak stand density threshold 
 is computed for bark beetle type 1.}
 
 InfColo  {ardwrd3 modifier}:
@@ -822,11 +822,11 @@ InfMult  {ardwrd3 modifier}:
 {Modify the probability of root disease transmission.}
 
 InfSims  {ardwrd3 io modifier}:
-{Change the number of times to simulate the inside-center infection
+{Change the number of times to simulate the inside-center infection 
 dynamics.  Print results of inside-center simulation.}
 
 InocLife {ardwrd3 modifier}:
-{Modify the default rate and patterns of decay of the inoculum in the
+{Modify the default rate and patterns of decay of the inoculum in the 
 infected roots of dead stumps and trees.}
 
 InocSpan {ardwrd3 modifier}:
@@ -845,11 +845,11 @@ RRComp   {ardwrd3 modifier}:
 {Modify the maximum size of the tree list.}
 
 RRDOut   {ardwrd3 control io}:
-{Instruct the model to write a detailed root disease output table to the
+{Instruct the model to write a detailed root disease output table to the 
 main output file.}
 
 RREcho   {ardwrd3 control io}:
-{Instruct the model to write the disease summary table
+{Instruct the model to write the disease summary table 
 to a seperate file.}
 
 RRHosts  {ardwrd3 modifier}:
@@ -859,11 +859,11 @@ RRInit   {ardwrd3 inventory}:
 {Specify the number, size, and distribution of disease centers.}
 
 RRJump   {ardwrd3 modifier}:
-{Specify the extent to which centers expand through uninfected trees
+{Specify the extent to which centers expand through uninfected trees 
 when the stand is thinned or clearcut.}
 
 RRMinK   {ardwrd3 modifier}:
-{Specify years-to-death below which the TTDMult keyword does not
+{Specify years-to-death below which the TTDMult keyword does not 
 influence mortality.}
 
 RRTreIn  {ardwrd3 inventory}:
@@ -882,7 +882,7 @@ SDIRMult {ardwrd3 modifier}:
 {Modify the calculation of root radius based on SDI.}
 
 SMCOut   {ardwrd3 io}:
-{Instruct the model to write a table of root disease center spread
+{Instruct the model to write a table of root disease center spread 
 rates from the Monte Carlo Simulation to a seperate file.}
 
 Spore    {ardwrd3 modifier}:
@@ -947,15 +947,15 @@ DWDVlOut  {fire io}:
 {Request the down wood volume report.}
 
 FireCalc {fire control modifier}:
-{Adjust the fuel model selection logic used or select the option of using
+{Adjust the fuel model selection logic used or select the option of using 
 modelled fuel loads directly to predict fire behavior.}
 
 FlameAdj {fire control modifier}:
-{Modify or set the flame length for a fire simulated using the
+{Modify or set the flame length for a fire simulated using the 
 SIMFIRE keyword scheduled for the same year.}
 
 FModList {fire control modifier}:
-{Adjust the fuel models available for selection in conjuction with the new
+{Adjust the fuel models available for selection in conjuction with the new 
 fuel model logic (see FireCalc keyword).}
 
 FMortMlt {fire modifier}:
@@ -987,33 +987,33 @@ FuelPool {fire modifier}:
 {Set the decay rate (very slow, slow, medium, fast) for each tree species.}
 
 FuelRept {fire io}:
-{Request a fuel consumption and physical effects report be generated
+{Request a fuel consumption and physical effects report be generated 
 when a fire occurs.}
 
 FuelSoft {fire inventory modifier}:
 {Set the initial soft/rotten fuel loads for each fuel size class.}
 
 FuelTret {fire mgmt modifier}:
-{Set the fuel treatment (lopping, chopping, etc) and harvest type
+{Set the fuel treatment (lopping, chopping, etc) and harvest type 
 (skidding, high lead, etc) so as to modify the fuel depth.}
 
 Moisture {fire modifier}:
 {Set the fuel moisture conditions for each fuel category.}
 
 MortClas {fire io modifier}:
-{Set the lower bounds for the seven classes used in reporting
+{Set the lower bounds for the seven classes used in reporting 
 fire-caused mortality.}
 
 MortRept {fire io}:
-{Request that a fire-caused tree mortality report be generated when a
+{Request that a fire-caused tree mortality report be generated when a 
 fire occurs.}
 
 PileBurn {fire mgmt modifier}:
-{Schedule a pile or jackpot burn and modify tree mortality rates
+{Schedule a pile or jackpot burn and modify tree mortality rates 
 resulting from this fuel treatment.}
 
 PotFire {fire io}:
-{Request that a report on potential fires under nominal burn
+{Request that a report on potential fires under nominal burn 
 conditions be generated.}
 
 PotFMois {fire modifier}:
@@ -1044,7 +1044,7 @@ SnagBrk  {fire modifier}:
 {Set the parameters for breaking (cause height loss) of standing snags.}
 
 SnagClas {fire io modifier}:
-{Set the dbh size class boundaries for the snag report (see SnagOut
+{Set the dbh size class boundaries for the snag report (see SnagOut 
 and SnagSum).}
 
 SnagDCay {fire modifier}:
@@ -1054,7 +1054,7 @@ SnagFall {fire modifier}:
 {Modify the snag fall rate by tree species.}
 
 SnagInit {fire inventory}:
-{Add a snag record of a given species, size, height, age, and density
+{Add a snag record of a given species, size, height, age, and density 
 to the snag list.}
 
 SnagOut  {fire io}:
@@ -1083,14 +1083,14 @@ StatFuel {fire modifier}:
 ATRTLiDB {dbs}:
 {Requests the FVS_ATRTList table be created and populated.}
 
-BurnRept {dbs}:
+BurnReDB {dbs}:
 {Requests the FVS_BurnReport table be created and populated.}
 
 CalbStDB  {dbs}:
 {Requests the FVS_CalbStat table be created and populated.}
 
 CarbReDB {dbs}:
-{Requests the FVS_Carbon and FVS_Hrv_Carbon tables be
+{Requests the FVS_Carbon and FVS_Hrv_Carbon tables be 
 created and populated.}
 
 ClimReDB {dbs}:
@@ -1117,6 +1117,10 @@ FuelReDB {dbs}:
 FuelsOut {dbs}:
 {Requests the FVS_Fuels table be created and populated.}
 
+InvStats {dbs}:
+{Requests the FVS_Stats_Stand and FVS_Stats_Species tables be 
+created and populated.}
+
 MisRpts {dbs}:
 {Requests the FVS_DM_Spp_Sum, FVS_DM_Stnd_Sum, and FVS_DM_Sz_Sum 
 dwarf mistletoe tables be created and populated.}
@@ -1136,6 +1140,9 @@ RDDetail {dbs}:
 RDSum {dbs}:
 {Requests the FVS_RD_Sum table be created and populated.}
 
+RegRepts {dbs}:
+{Requests regeneration establishment table(s) be created and populated.}
+
 SnagOuDB {dbs}:
 {Requests the FVS_SnagDet table be created and populated.}
 
@@ -1143,15 +1150,15 @@ SnagSuDB {dbs}:
 {Requests the FVS_SnagSum table be created and populated.}
 
 StandSQL {dbs}:
-{Specify an SQL statement that from which stand-level
+{Specify an SQL statement that from which stand-level 
 FVS variables are initialized.}
 
 SQLIn {dbs}:
-{Requests that an SQL statement be run on the input
+{Requests that an SQL statement be run on the input 
 database connection (DSNIN).}
 
 SQLOut {dbs}:
-{Requests that an SQL statement be run on the output
+{Requests that an SQL statement be run on the output 
 database connection (DSNIN).}
 
 StrClsDB {dbs}:
@@ -1160,11 +1167,11 @@ StrClsDB {dbs}:
 Summary {dbs}:
 {Requests the FVS_Summary table be created and populated.}
 
-TreeList {dbs}:
+TreeLiDB {dbs}:
 {Requests the FVS_Treelist table be created and populated.}
 
-TreeLiDB {dbs}:
-{Specify an SQL statement that from which tree-level
+TreeSQL {dbs}:
+{Specify an SQL statement that from which tree-level 
 FVS variables are initialized.}
 
 ! ---------------------------------------
@@ -1187,7 +1194,7 @@ HrvVrCst  {econ}:
 {Specifies commercial thinning or harvest cost by unit-of-measure and tree DBH.}
 
 HrvRvn  {econ}:
-{Specifies commercial thinning or harvest price by unit-of-measure by species
+{Specifies commercial thinning or harvest price by unit-of-measure by species 
 by diameter-class.}
 
 LbsCfv  {econ}:
@@ -1203,7 +1210,7 @@ PctFxCst  {econ}:
 {Specifies per acre pre-commercial thinning cost.}
 
 PctSpec  {econ}:
-{Specifies removal parameters differentiating pre-commercial
+{Specifies removal parameters differentiating pre-commercial 
 thinning from commercial thinning or harvest.}
 
 PctVrCst  {econ}:
@@ -1213,7 +1220,7 @@ PlantCst  {econ}:
 {Specifies planting cost.}
 
 Pretend  {econ}:
-{Requests that economic benefits and costs be calculated
+{Requests that economic benefits and costs be calculated 
 for a hypothetical stand harvest.}
 
 SpecCst  {econ}:
