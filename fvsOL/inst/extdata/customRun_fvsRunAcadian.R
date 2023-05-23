@@ -210,7 +210,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
       tree$YEAR = year
       cat ("fvsRunAcadian: calling AcadianGY, year=",year,"\n")
       treeout = try(AcadianGYOneStand(tree, stand=stand,ops=ops))
-      if (class(treeout)=="try-error" || any(is.na(treeout$DBH)) || 
+       if (inherits(treeout, "try-error") || any(is.na(treeout$DBH)) ||
                any(is.na(treeout$HT)) || any(is.na(treeout$EXPF)))
       {
         cat("AcadianGYOneStand failed in year=",year,"\n")

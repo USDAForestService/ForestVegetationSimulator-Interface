@@ -1,4 +1,3 @@
-# $Id: AcadianGY.R 3968 2022-04-28 10:36:05Z nickcrookston $
 ################################################################################
 # v12.3.1.r 
 #
@@ -1948,6 +1947,8 @@ make_fvs_tree=function(tree.list, orgtree.list, num.plots, mort.model){
       dplyr::select(-mort)
   }
     
+  #tibble to dataframe
+  tree=as.data.frame(tree)
   
   tree
 }
@@ -1976,7 +1977,10 @@ make_fvs_regen=function(tree.list, orgtree.list, num.plots, spcodes){
                      cratio= dplyr::coalesce(round((1-(HCB/HT))*-100, 1), 0),
                      plot= as.numeric(PLOT),
                      tpa= EXPF*ACRtoHA)
-     
+
+  #tibble to dataframe
+  regen=as.data.frame(regen)
+
   regen
 }
 # arguments 
@@ -2544,7 +2548,9 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
  
   
   rtnVars=intersect(rtnVars,colnames(tree))
-  tree<-subset(tree,select=rtnVars)                    
+  tree=subset(tree,
+              select=rtnVars) %>%
+    as.data.frame()
 
 }         
 
