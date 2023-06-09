@@ -217,7 +217,7 @@ drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
   select MgmtID,sum(SamplingWt) as CmpSmpWt from FVS_Cases where
   CaseID in (select CaseID from temp.Cases)
-  group by MgmtID;    
+  group by MgmtID;
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
     sum(LiveTPA  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpLiveTPA,
@@ -575,7 +575,6 @@ create table CmpSummary2_East as
 drop table if exists temp.CmpSummary2_EastA;
 drop table if exists temp.CmpSummary2_EastB;"
 
-
 Create_CmpCompute = "
 drop table if exists CmpCompute;
 create table CmpCompute as
@@ -599,3 +598,52 @@ from FVS_Down_Wood_Cov inner join FVS_Down_Wood_Vol
   on FVS_Down_Wood_Cov.CaseID = FVS_Down_Wood_Vol.CaseID and
      FVS_Down_Wood_Cov.Year = FVS_Down_Wood_Vol.Year;"
 
+Create_CmpCalibStats = "
+drop table if exists temp.CmpCalibStatsLG; 
+create table temp.CmpCalibStatsLG as 
+  select MgmtID,asSpecies,'LG' as TreeSize,
+    COUNT(TreeSize) as NumStands,
+    MIN(ScaleFactor) as MinSF,
+    AVG(ScaleFactor) as MeanSF,    
+    MAX(ScaleFactor) as MaxSF,
+    SQRT(((sum(ScaleFactor * ScaleFactor) - 
+      (sum(ScaleFactor) * sum(ScaleFactor))/count(TreeSize))/ 
+      (count(TreeSize)-1))) as StDevSF,
+    SUM(NumTrees) as TotNumTrees,
+    SUM(NumTrees*ReadCorMult)/sum(NumTrees) as MeanReadCorMult
+  from (select * from FVS_CalibStats where TreeSize == 'LG' and
+        CaseID in (select CaseID from temp.Cases))
+  join FVS_Cases using (CaseID) 
+  group by MgmtID,Species;
+  
+drop table if exists temp.CmpCalibStatsSM;
+create table temp.CmpCalibStatsSM as
+  select MgmtID,asSpecies,'SM' as TreeSize,
+    COUNT(TreeSize) as NumStands,
+    MIN(ScaleFactor) as MinSF,
+    AVG(ScaleFactor) as MeanSF,
+    MAX(ScaleFactor) as MaxSF,
+    SQRT(((sum(ScaleFactor * ScaleFactor) - 
+      (sum(ScaleFactor) * sum(ScaleFactor))/count(TreeSize))/ 
+      (count(TreeSize)-1))) as StDevSF,
+    SUM(NumTrees) as TotNumTrees,
+    SUM(NumTrees*ReadCorMult)/sum(NumTrees) as MeanReadCorMult
+  from (select * from FVS_CalibStats where TreeSize == 'SM' and
+        CaseID in (select CaseID from temp.Cases))
+  join FVS_Cases using (CaseID)       
+  group by MgmtID,Species;         
+
+insert into temp.CmpCalibStatsLG 
+  select MgmtID,Species,TreeSize,NumStands,MinSF,MaxSF,MeanSF,StDevSF,
+    TotNumTrees,MeanReadCorMult
+  from temp.CmpCalibStatsSM
+  group by MgmtID,Species;
+  
+drop table if exists CmpCalibStats;
+create table CmpCalibStats as 
+  select distinct MgmtID,Species,TreeSize,NumStands,MinSF,MaxSF,
+    MeanSF,StDevSF,TotNumTrees,MeanReadCorMult
+  from temp.CmpCalibStatsLG
+  order by MgmtID,Species;
+drop table if exists temp.CmpCalibStatsLG;
+drop table if exists temp.CmpCalibStatsSM;"

@@ -622,6 +622,21 @@ cat ("tbs5=",tbs,"\n")
           tbs = c(tbs,"CmpCompute")    
 cat ("tbs6=",tbs,"\n")
         }
+        if ("FVS_CalibStats" %in% tbs && ncases > 1)
+        {
+          setProgress(message = "Please wait: performing output query", 
+            detail  = "Building CmpCalibStats", value = i); i = i+1
+          exqury(dbGlb$dbOcon,Create_CmpCalibStats,asSpecies=paste0("Species",input$spCodes))
+          cmp = dbGetQuery(dbGlb$dbOcon,"Select * from CmpCalibStats;")
+          keep = apply(cmp,2,function (x) !(all(is.na(x))))
+          if (!all(keep)) 
+          {
+            cmp = cmp[,keep]
+            dbWriteTable(dbGlb$dbOcon,"CmpCalibStats",cmp,overwrite=TRUE)
+          }
+          tbs = c(tbs,"CmpCalibStats")    
+cat ("tbs6=",tbs,"\n")
+        }
         tlprocs = c("tlwest"="FVS_TreeList" %in% tbs, "tleast"="FVS_TreeList_East" %in% tbs)
         if (!isMetric && any(tlprocs)) 
         {
@@ -729,7 +744,7 @@ cat ("tbs7=",tbs,"\n")
         if (length(sel)==0) sel = intersect(tbs, c("FVS_Summary","FVS_Summary_East")) #not both!
         if (length(sel)>1) sel = sel[1]
         # rearrange the table list so be organized by levels (i.e., tree level, stand level)
-        globals$simLvl <- list("CmpCompute","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
+        globals$simLvl <- list("CmpCompute","CmpCalibStats","CmpStdStk","CmpStdStk_East","CmpStdStk_Metric",
           "CmpSummary","CmpSummary_East","CmpSummary_Metric",
           "CmpSummary2","CmpSummary2_East","CmpSummary2_Metric","CmpMetaData")
         globals$stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
@@ -1205,7 +1220,7 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
         if (length(cols) == 0) return()
         tbgroup=c("CmpMetaData"="0","CmpSummary"=1, "CmpSummary_East"=1, 
           "CmpSummary2"=1, "CmpSummary2_East"=1,"CmpSummary2_Metric"=1,
-          "CmpCompute"=1, "CmpStdStk"=1, "CmpStdStk_East"=1, "CmpStdStk_Metric"=1, 
+          "CmpCompute"=1, "CmpCalibStats"=1,"CmpStdStk"=1, "CmpStdStk_East"=1, "CmpStdStk_Metric"=1, 
           "StdStk"=3, "StdStk_East"=3, "StdStk_Metric"=3, "FVS_ATRTList"=8,
           "FVS_Cases"=2, "FVS_Climate"=4, "FVS_Compute"=2, "FVS_CutList"=8,
           "FVS_EconHarvestValue"=2, "FVS_EconSummary"=2, "FVS_BurnReport"=2,
