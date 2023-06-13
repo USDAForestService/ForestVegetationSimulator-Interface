@@ -375,6 +375,9 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     globals$reloadAppIsSet == 0
   })
   
+  volumes <-c(getVolumes()())
+  shinyFileChoose(input, "openProject", roots= volumes, session= session, filetypes= "txt", restrictions= system.file(package = "base"))
+  shinyDirChoose(input, "saveProject", roots= volumes, session= session, restrictions = system.file(package = "base"))
   ## clearLock
   observe({
     if (!is.null(input$clearLock) && input$clearLock==0)
@@ -8981,6 +8984,78 @@ cat ("launch url:",url,"\n")
         updateProjectSelections()
       }          
     })
+  })
+  
+  ## Open existing project from User specified Dir Location
+  observeEvent(input$openProject, {
+   # browser() #set debugger breakpoint
+   
+    # ObserverEvent triggers multipletimes, so need to check length to ensure input was created in dialog
+    if(length(input$openProject) > 1){
+      projectPath<- parseFilePaths(volumes, input$openProject)
+      
+      # Send project path to validation function, return 1 (double) if invalid, and notifies user if invalid
+      if(is.double(validateProjectOpen(projectPath))){
+        cat("Improper file specified")
+        showModal(shiny::modalDialog(
+          title = "Improper File Specified",
+          "Please select a valid projectId.txt file",
+          easyClose = F))
+        return()
+      }
+      
+      # Get directory path from validated file object
+      projectDir= substr(projectPath$datapath, 1, nchar(projectPath$datapath)- 14)
+      
+      # Verify user has write permission to path
+      if(!(file.access(projectDir, 2) == 0)){
+        cat("User write permissions denied")
+        showModal(shiny::modalDialog(
+          title = "Write Permission Denied",
+          "Sorry, you do not have permissions to write to this folder, please select another location.",
+          easyClose = F))
+        return()
+      }
+        
+      # Open selected project
+      change_project_dir(projectDir)
+      updateProjectSelections()
+    }
+  })
+  
+  observeEvent(input$saveProject, {
+   ## browser()
+
+    if(length(input$saveProject) > 1){
+      savePath<- parseDirPath(volumes, input$saveProject)
+      print(savePath)
+      
+      # Verify user has write permission to path
+      if(!(file.access(savePath, 2) == 0)){
+        cat("User write permissions denied")
+        showModal(shiny::modalDialog(
+          title = "Write Permission Denied",
+          "Sorry, you do not have permissions to write to this folder, please select another location.",
+          easyClose = F))
+        return()
+        
+      }
+      curntDir= (getwd())
+      folder= basename(getwd())
+      newDir= paste0(savePath, substr(curntDir, nchar(curntDir)- nchar(folder), nchar(curntDir)))
+      print(paste("newDir: ", newDir))
+      if(file.exists(newDir)){
+        message= paste0("A project named ", folder, " already exists in the specified location.\n
+                 Please either choose a different location or use the 'Select Project' button")
+        showModal(shiny::modalDialog(
+          title= "Project Already Exists",message))
+        return()
+      }
+      file.copy(getwd(), savePath, recursive= T)
+      file.remove(paste0(newDir, "/projectIsLocked.txt"))
+      change_project_dir(newDir)
+      Sys.sleep(5)
+    }
   })
   
   ## Full run/Just groups
