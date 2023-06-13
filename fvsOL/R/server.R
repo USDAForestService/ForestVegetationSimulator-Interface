@@ -308,7 +308,7 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
           
     # the default SpatialData is distributed with the package, install it if it
     # is not in the project directory.
-    if (!file.exists("FVS_Data.db"))
+    if (!file.exists("FVS_Data.db") || file.size("FVS_Data.db")==0)
     {
       frm=system.file("extdata", "FVS_Data.db.default", package="fvsOL")
       file.copy(frm,"FVS_Data.db",overwrite=TRUE)
@@ -2720,7 +2720,7 @@ cat("setting uiRunPlot to NULL\n")
       tmp = unlist(globals$activeFVS[globals$fvsRun$FVSpgm])
       globals$lastRunVar = if (length(tmp) && !is.null(tmp)) tmp[1] else 
         if (length(globals$fvsRun$FVSpgm) && nchar(globals$fvsRun$FVSpgm)>4) 
-          substring(globals$fvsRun$FVSpgm,4) else character(0)         
+          substring(globals$fvsRun$FVSpgm,4) else globals$lastRunVar       
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
       output$uiCustomRunOps = renderUI(NULL)    
@@ -6480,8 +6480,8 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
     cnts = zip_list(input$pickBackup)
     if (length(cnts)==0) return()
-    if(length(grep("FVSbin",cnts$filename)) || length(grep("^FVS[a-z]*.so$",cnts$filename)) ||
-       length(grep("^FVS[a-z]*.dll$",cnts$filename)))
+    if(length(grep("FVSbin",cnts$filename)) || 
+       length(grep(paste0("FVS[a-z]*",.Platform$dynlib.ext,"$"),cnts$filename)))
     {
       output$btnA <-renderUI(HTML("Project files only"))
       output$btnB <-renderUI(HTML("Project files and FVS software"))
@@ -6534,7 +6534,7 @@ cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")
           for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
                           "^FVSbin","prms.RData",".log$")) del = c(del,grep (todel,zipConts))
           if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
-          pgms=if(.Platform$OS.type == "windows") dir(td,pattern="^FVS[a-z]*.dll$") else dir(td,pattern="^FVS[a-z]*.so$")
+          pgms=dir(td,pattern=paste0("FVS[a-z]*",.Platform$dynlib.ext,"$"))
           if (length(pgms)) lapply(paste0(td,"/",pgms),unlink,recursive=TRUE)
           curcnts=dir()
           tokeep = grep("^ProjectBackup",curcnts)
@@ -6592,7 +6592,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           if (length(del)) lapply(paste0(td,"/",zipConts[del]),unlink,recursive=TRUE)
           mkFVSProjectDB()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
-          pgms=if(.Platform$OS.type == "windows") dir(td,pattern="^FVS[a-z]*.dll$") else dir(td,pattern="^FVS[a-z]*.so$")
+          pgms=dir(td,pattern=paste0("FVS[a-z]*",.Platform$dynlib.ext,"$"))
           if (length(pgms)) 
           {
             frompgms=paste0(td,"/",pgms)
@@ -6610,7 +6610,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           if (globals$fvsBin != "FVSbin" && length(topgms))
           {
             progress$set(message = "Copying backup contents",value = 4)
-            zipContsFVS <- dir(paste0(td,"/FVSbin"),pattern="^FVS[a-z]*.dll$")
+            zipContsFVS <- dir(paste0(td,"/FVSbin"),pattern=paste0("FVS[a-z]*",.Platform$dynlib.ext,"$"))
             zipContsPrj <- zipConts[-(match(zipContsFVS,zipConts))]
             lapply(zipContsFVS,function(x,td) file.copy(from=paste0(td,"/FVSbin/",x),to=globals$fvsBin,overwrite=TRUE),td)
             lapply(zipContsPrj,function(x,td) file.copy(from=paste0(td,"/",x),to=x,overwrite=TRUE),td)
@@ -7276,7 +7276,8 @@ cat ("msg=",msg,"\n")
   ## installNewDB
   observe({
     if (input$installNewDB == 0) return()
-    if (is.null(dbGlb$newFVSData)) return()   
+    if (is.null(dbGlb$newFVSData)) return()
+    if (!file.exists(dbGlb$newFVSData) || file.size(dbGlb$newFVSData) == 0) return()
     dbDisconnect(dbGlb$dbIcon)
     file.copy(dbGlb$newFVSData,"FVS_Data.db",overwrite=TRUE) 
     unlink(dbGlb$newFVSData)
