@@ -67,6 +67,6 @@ change_project_dir <- function(newPrjDir){
       rtn=try(system (cmd,wait=FALSE))
       cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
     }
-    Sys.sleep(5)
+    # Sys.sleep(5)
   }
 }

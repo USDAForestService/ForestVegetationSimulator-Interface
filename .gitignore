@@ -18,3 +18,4 @@ fvsOL/fvsOLmadeTag
 fvsOL/man/*
 rFVS/man/*
 *.gz
+.Rproj.user

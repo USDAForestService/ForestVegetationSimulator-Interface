@@ -9055,7 +9055,7 @@ cat ("launch url:",url,"\n")
       file.copy(getwd(), savePath, recursive= T)
       file.remove(paste0(newDir, "/projectIsLocked.txt"))
       change_project_dir(newDir)
-      Sys.sleep(5)
+     # Sys.sleep(5)
     }
   })
   
