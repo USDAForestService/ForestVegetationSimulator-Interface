@@ -277,6 +277,7 @@ cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
     email=trim(unlist(strsplit(email,split="=",fixed=TRUE))[2])
     tstring = paste0("Project title: <b>",tit,"</b>",
            if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
+           if (isLocal())(paste0("<br>Current Location: <b>", getwd(),"</b>")),
            "<br>Last accessed: <b>",
            format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
 cat ("tstring=",tstring,"\n")    
@@ -8883,7 +8884,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
       backups = sort(backups,decreasing=TRUE)
       names(backups) = backups 
     } else backups=list()
-    updateSelectInput(session=session, inputId="pickBackup", 
+    updateSelectInput(session=session, inputId="pickBackup",
       choices = backups, selected=NULL)
   }
 

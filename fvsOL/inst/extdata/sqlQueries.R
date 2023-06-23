@@ -604,8 +604,8 @@ create table temp.CmpCalibStatsLG as
   select MgmtID,asSpecies,'LG' as TreeSize,
     COUNT(TreeSize) as NumStands,
     MIN(ScaleFactor) as MinSF,
-    AVG(ScaleFactor) as MeanSF,    
     MAX(ScaleFactor) as MaxSF,
+    AVG(ScaleFactor) as MeanSF,    
     SQRT(((sum(ScaleFactor * ScaleFactor) - 
       (sum(ScaleFactor) * sum(ScaleFactor))/count(TreeSize))/ 
       (count(TreeSize)-1))) as StDevSF,
@@ -621,8 +621,8 @@ create table temp.CmpCalibStatsSM as
   select MgmtID,asSpecies,'SM' as TreeSize,
     COUNT(TreeSize) as NumStands,
     MIN(ScaleFactor) as MinSF,
-    AVG(ScaleFactor) as MeanSF,
     MAX(ScaleFactor) as MaxSF,
+    AVG(ScaleFactor) as MeanSF,
     SQRT(((sum(ScaleFactor * ScaleFactor) - 
       (sum(ScaleFactor) * sum(ScaleFactor))/count(TreeSize))/ 
       (count(TreeSize)-1))) as StDevSF,
