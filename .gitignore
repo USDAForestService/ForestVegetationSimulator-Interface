@@ -5,11 +5,10 @@
 BuildfvsOL.R
 ForestVegetationSimulator-Interface.Rproj
 fvsOL/.Rhistory
-fvsOL/data/*
 fvsOL/LaunchFVS.R
 build_fvsOL.R
 fvsOL/data/fvsOnlineHelpRender.RData
-fvsOL/data/fvsOnlineHelpRender.RData
+fvsOL/data/prms.RData
 fvsOL/launch.R
 fvsOL/NAMESPACE
 rFVS/NAMESPACE
