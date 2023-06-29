@@ -8866,7 +8866,7 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     nsel = charmatch(basename(getwd()),selChoices)
     if(length(globals$lastNewPrj)) nsel = charmatch(globals$lastNewPrj,selChoices)
     sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
-    updateSelectInput(session=session, inputId="PrjSelect", 
+    updateSelectInput(session=session, inputId="PrjSelect",
         choices=selChoices,selected=sel)
     ### Block the ability to delete Project_1 on windows
     if(.Platform$OS.type == "windows")
