@@ -3886,7 +3886,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
           identical(globals$currentCndPkey,character(0))  && 
           identical(globals$currentCmdPkey,character(0))) return()
       if (length(globals$currentEditCmp$reopn) && 
-          globals$currentEditCmp$reopn == "pasteOnSave")
+          globals$currentEditCmp$reopn[1] == "pasteOnSave")
       {
         globals$currentEditCmp$reopn = character(0)
         globals$currentEditCmp$kwds = input$freeEdit
