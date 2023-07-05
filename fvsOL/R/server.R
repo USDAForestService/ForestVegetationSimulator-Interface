@@ -3200,7 +3200,6 @@ cat("paste, class(topaste)=",class(topaste),"\n")
 
   ## Command Set
   observe({
-#    browser()
 cat ("compTabSet, input$compTabSet=",input$compTabSet,
      " input$simCont=",length(input$simCont),"\n")
     if(!length(globals$currentEditCmp$kwds) || input$compTabSet !="Management")
