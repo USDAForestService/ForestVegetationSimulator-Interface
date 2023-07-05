@@ -89,35 +89,53 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   tree
   }
 
-  # start FVS but return prior to dubbing and calibration to dub in missing
-  # heights and crown ratios
+  # start FVS but return prior to dubbing and calibration to detect which treees
+  # have dubbed heights and crown ratios.
 
-  
-  # 3/22/2023 comment out stop point 7 actions until Nick can resolve stop point 7 error 
-  # fvsRun(7,0)
-  # CSI = fvsGetEventMonitorVariables("csi")
-  # if (is.na(CSI)) {CSI = fvsGetEventMonitorVariables("site")*FTtoM
-  # CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)} ##############################################
-  # orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio"))
-  # names(orgtree) = toupper(names(orgtree))
-  # orgtree$TREE= 1:nrow(orgtree)
-  # names(orgtree)[match("SPECIES",names(orgtree))] = "SP"
-  # names(orgtree)[match("TPA",names(orgtree))] = "EXPF"
-  # orgtree$SP = spcodes[orgtree$SP,1]
-  # #change CR to a proportion and take abs; note that in FVS a negative CR
-  # #signals that CR change has been computed by the fire or insect/disease model
-  # orgtree$CR   = abs(orgtree$CRATIO) * .01
-  # orgtree$ba   = orgtree$DBH  * orgtree$DBH * 0.005454 * orgtree$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
-  # orgtree$DBH  = orgtree$DBH  * INtoCM
-  # orgtree$HT   = orgtree$HT   * FTtoM
-  # orgtree$EXPF = orgtree$EXPF * HAtoACR
-  # orgtree = dplyr::arrange(orgtree, PLOT, desc(DBH))
-  # temp = unlist(by(orgtree$ba,INDICES=orgtree$PLOT,FUN=cumsum))
-  # orgtree$BAL = temp-orgtree$ba
-  # orgtree = dplyr::arrange(orgtree, TREE)
-  # newtree = calc_acd_ht(tree=orgtree)
-  # fvsSetTreeAttrs(list(ht    =as.numeric(newtree$HT*MtoFT),
-  #                      cratio=round(as.numeric(newtree$CR)*100,2)))
+  fvsRun(7,0)
+
+  treesBeforeDub = fvsGetTreeAttrs(c("ht","cratio"))
+
+  # run fvs upto stop point 1 and change the dubbed values if there are any
+  fvsRun(1,-1)
+
+  # fetch CSI from the Event Monitor
+  CSI = fvsGetEventMonitorVariables("csi")
+  if (is.na(CSI)) {CSI = fvsGetEventMonitorVariables("site")*FTtoM
+  CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)}
+
+  dubHtRows = treesBeforeDub$ht == 0
+  dubCrRows = treesBeforeDub$cratio == 0
+
+  # run the Acadian dubbing logic if any of the Ht or Cratio values are missing.
+
+  if (any(dubHtRows) || any(dubCrRows))
+  {
+    # at this point tpa is computed.
+    treesAfterDub = fvsGetTreeAttrs(c("id","plot","species","tpa","dbh"))
+    names(treesAfterDub) = toupper(names(treesAfterDub))
+    treesAfterDub$TREE= 1:nrow(treesAfterDub)
+    names(treesAfterDub)[match("SPECIES",names(treesAfterDub))] = "SP"
+    names(treesAfterDub)[match("TPA",names(treesAfterDub))] = "EXPF"
+    treesAfterDub$SP = spcodes[treesAfterDub$SP,1]
+    treesAfterDub$ba = treesAfterDub$DBH  * treesAfterDub$DBH * 0.005454 * treesAfterDub$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
+    treesAfterDub$DBH  = treesAfterDub$DBH  * INtoCM
+    treesAfterDub$EXPF = treesAfterDub$EXPF * HAtoACR
+    treesAfterDub = dplyr::arrange(treesAfterDub, PLOT, desc(DBH))
+    temp = unlist(by(treesAfterDub$ba,INDICES=treesAfterDub$PLOT,FUN=cumsum))
+    treesAfterDub$BAL = temp-treesAfterDub$ba
+    treesAfterDub = dplyr::arrange(treesAfterDub, TREE)
+    treesAfterDub$CSI = CSI
+    treesAfterDub$HT  = 0
+    treesAfterDub$CR  = 0
+    treesAfterDub = calc_acd_ht(tree=treesAfterDub)
+    treesAfterDub = as.data.frame(treesAfterDub)
+    treesAfterDub = treesAfterDub[treesAfterDub$TREE,c("CR","HT")]
+    # replace the FVS dubbing with the values from calc_acd_ht for both HT and CR
+    if (any(dubHtRows)) treesBeforeDub$ht[dubHtRows] = treesAfterDub[dubHtRows,"HT"]*MtoFT
+    if (any(dubCrRows)) treesBeforeDub$cratio[dubCrRows] = round(treesAfterDub[dubCrRows,"CR"]*100,2)
+    fvsSetTreeAttrs(treesBeforeDub[,c("ht","cratio")])
+  }
 
   cat ("Starting repeat loop\n")
 
@@ -228,7 +246,6 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     # put the PLOT variable back to a character string (defactor it).
     if (is.factor(tree$PLOT)) tree$PLOT = levels(tree$PLOT)[as.numeric(tree$PLOT)]
     
-
     cat ("fvsRunAcadian: is.null(tree$EXPF)=",is.null(tree$EXPF),"\n") 
     
     # tree list to hand back to FVS
@@ -236,8 +253,27 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                         orgtree.list=orgtree,
                         num.plots=as.numeric(room['nplots']),  
                         mort.model=mortModel)
-    
-    
+
+    #fetch the height, ba and mortality multipliers, veriable "mults" where the rows are
+    # fvs species index values and the columns are the attributes.
+    # baimult    basal area increment multiplier for each species
+    # htgmult    height growth multiplier for each species
+    # mortmult   mortality rate multiplier for each species
+    # mortdia1   lower diameter limit to apply the multiplier for each species
+    # mortdia2   upper diameter limit to apply the multiplier for each species
+
+    mults = fvsGetSpeciesAttrs(c("baimult","htgmult","mortmult","mortdia1","mortdia2"))
+    for (mult in names(mults)) cat("mult=",mult,mults[,mult],"\n")
+
+    tofvs$SP  = match(tofvs$SP,fvsGetSpeciesCodes()[,1])
+    tofvs$dg  = tofvs$dg*mults[tofvs$SP,"baimult"]
+    tofvs$htg = tofvs$htg*mults[tofvs$SP,"htgmult"]
+    mm = ifelse(tofvs$DBH >= mults[tofvs$SP,"mortdia1"] &
+                tofvs$DBH <= mults[tofvs$SP,"mortdia2"], mults[tofvs$SP,"mortmult"],1)
+    tofvs$mort= tofvs$mort*mm
+    tofvs$SP=NULL
+    tofvs$DBH=NULL
+
     fvsSetTreeAttrs(tofvs)
 
     atstop6 = FALSE
