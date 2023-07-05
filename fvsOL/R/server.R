@@ -527,14 +527,15 @@ cat ("ncases=",ncases,"\n")
             return()
         }          
         for (tb in tbs) 
-        {                     
+        {
+          cat(tbs)
 cat ("tb=",tb,"\n")                             
           cnt = 0
           if (tb == "FVS_Cases") next
           if (tb %in% c("CmpSummary","CmpSummary_East", "CmpSummary2",
               "CmpSummary2_East","CmpSummary2_Metric", "StdStk","CmpStdStk",
               "StdStk_East","CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric",
-              "CmpMetaData","CmpCompute"))
+              "CmpMetaData","CmpCompute", "CmpCalibStats"))
           {
 cat ("drop tb=",tb,"\n")
              dbExecute(dbGlb$dbOcon,paste0("drop table if exists ",tb))
