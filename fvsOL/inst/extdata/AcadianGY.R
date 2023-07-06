@@ -1,3 +1,4 @@
+# $Id: AcadianGY.R 3968 2022-04-28 10:36:05Z nickcrookston $
 ################################################################################
 # v12.3.1.r 
 #
@@ -1916,38 +1917,51 @@ make_fvs_tree=function(tree.list, orgtree.list, num.plots, mort.model){
   MtoFT   = fvsUnitConversion("MtoFT")
   ACRtoHA = fvsUnitConversion("ACRtoHA")
   
-  tree=orgtree.list %>% 
+  # tree records not handled by ACD
+  tree.org=orgtree.list %>% 
     dplyr::select(TREE, 
-           dbh.fvs=DBH,
-           ht.fvs=HT,
-           expf.fvs=EXPF, # stand level TPH 
-           dg.fvs=DG, 
-           htg.fvs=HTG,
-           mort.fvs=MORT, # stand level TPH
-           cratio.fvs=CRATIO) %>% 
-    dplyr::left_join(tree.list, # left join excludes regeneration
-              by='TREE') %>% 
-    dplyr::arrange(TREE) %>% 
-    dplyr::mutate(EXPF= EXPF/dplyr::coalesce(num.plots, 1), # calculate stand level TPH
-                  dg=dplyr::coalesce((DBH-dbh.fvs)*CMtoIN, dg.fvs, 0), # diameter growth
-                  htg=dplyr::coalesce((HT-ht.fvs)*MtoFT, htg.fvs, 0),  # height growth
+                  dbh=DBH,
+                  ht=HT,
+                  expf=EXPF, # stand level TPH 
+                  dg=DG, 
+                  htg=HTG,
+                  mort=MORT, # stand level TPH
+                  cratio.fvs=CRATIO) %>% 
+    dplyr::anti_join(tree.list, 
+                     by='TREE')
+  
+  
+  tree=orgtree.list %>% 
+      dplyr::select(TREE, 
+                    dbh.fvs=DBH,
+                    ht.fvs=HT, 
+                    expf.fvs=EXPF) %>% 
+      dplyr::left_join(tree.list, # left join excludes regeneration
+                       by='TREE') %>% 
+      dplyr::mutate(EXPF= EXPF/dplyr::coalesce(num.plots, 1), # calculate stand level TPH
+                    dg=(DBH-dbh.fvs)*CMtoIN, # diameter growth
+                    htg=(HT-ht.fvs)*MtoFT,  # height growth
                     # set the crown ratio sign to negative so that FVS doesn't change them. 
-                  cratio = dplyr::coalesce(round((1-(HCB/HT))*-100, 1), cratio.fvs, 0), # missing values set to orgtree$CRATIO
-                  # special=as.numeric(substr(Form,2,2))*10+ # will need this when we allow Acadian model to set Form and Risk 
-                  #   as.numeric(substr(Risk,2,2)),
-                  mort=dplyr::coalesce((expf.fvs-EXPF)*ACRtoHA, mort.fvs, 0)) %>%  # mortality TPH stand level
-    dplyr::select(dg,
-                  htg,
-                  cratio,
-                  #special,
-                  mort)
+                    cratio = round((1-(HCB/HT))*-100, 1), # missing values set to orgtree$CRATIO
+                    # special=as.numeric(substr(Form,2,2))*10+ # will need this when we allow Acadian model to set Form and Risk 
+                    #   as.numeric(substr(Risk,2,2)),
+                    mort=(expf.fvs-EXPF)*ACRtoHA) %>%  # mortality TPH stand level
+      dplyr::bind_rows(tree.org) %>% # append tree records not handled by ACD
+      dplyr::arrange(TREE) %>% 
+      dplyr::select(DBH,SP,dg,
+                    htg,
+                    cratio,
+                    #special,
+                    mort)
+  
+  
   
   if (mort.model != "Acadian") {
-    tree=tree %>% 
-      dplyr::select(-mort)
+      tree=tree %>% 
+          dplyr::select(-mort)
   }
-    
-  #tibble to dataframe
+  
+  #tibble to dataframe  
   tree=as.data.frame(tree)
   
   tree
@@ -1977,10 +1991,10 @@ make_fvs_regen=function(tree.list, orgtree.list, num.plots, spcodes){
                      cratio= dplyr::coalesce(round((1-(HCB/HT))*-100, 1), 0),
                      plot= as.numeric(PLOT),
                      tpa= EXPF*ACRtoHA)
-
-  #tibble to dataframe
+  
+  #tibble to dataframe  
   regen=as.data.frame(regen)
-
+  
   regen
 }
 # arguments 
@@ -2549,8 +2563,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   
   rtnVars=intersect(rtnVars,colnames(tree))
   tree=subset(tree,
-              select=rtnVars) %>%
-    as.data.frame()
+              select=rtnVars) %>% 
+    as.data.frame()                          
 
 }         
 
