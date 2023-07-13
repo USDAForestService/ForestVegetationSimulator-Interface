@@ -564,15 +564,7 @@ FVSOnlineUI <- fixedPage(
               actionButton("PrjOpen","Open selected project"),h4(),
               h4("Create a new project"),
               textInput("PrjNewTitle", "New project title", ""), 
-              actionButton("PrjNew","Make new project"),
-              if(isLocal()){
-                div(style= "margin-top: 48px;",
-                h4("Change Project Working Directory"),
-                p("VDI users please select network location"),
-                shinyFiles::shinyDirButton("saveProject", "Save Project", "Select Directory Location to Copy Current Project"),
-                shinyFiles::shinyFilesButton('openProject', 'Select Project',
-                                              'Please select a project.txt file (please allow a few moments for directories to populate)', FALSE)
-              )} 
+              actionButton("PrjNew","Make new project")
             ),
             div(style= "margin-top: 48px;",
             h4("Make new project backup file"),
