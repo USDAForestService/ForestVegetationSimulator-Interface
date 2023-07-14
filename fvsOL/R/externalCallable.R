@@ -1170,6 +1170,7 @@ extnErrorScan <- function (outfile)
     {
       if (length(grep("STANDARD ERRORS",toupper(line),fixed=TRUE))) next
       if (length(grep("SAMPLING",toupper(line),fixed=TRUE))) next
+      if (length(grep("MAY CAUSE MATHEMATICAL ERRORS", toupper(line), fixed = TRUE))) next
       err <- c(l1,line)
       names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-1,ln)))
       errs<-append(errs,err)
