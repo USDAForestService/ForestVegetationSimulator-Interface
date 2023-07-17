@@ -21,6 +21,3 @@ modalTriggerButton <- function(inputId, target, label)
     class = "btn action-button btn-primary", 'data-toggle' = "modal", 
     'data-target' = target, label)
 }
-
-
-

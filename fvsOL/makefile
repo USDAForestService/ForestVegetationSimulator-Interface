@@ -13,5 +13,5 @@ fvsOLmadeTag: makefile DESCRIPTION R/* inst/extdata/* inst/extdata/www/* data/*
 	touch fvsOLmadeTag
                  
 clean:
-	rm data/prms.RData data/fvsOnlineHelpRender.RData fvsOLmadeTag                                                                               
+	rm data/prms.RData data/fvsOnlineHelpRender.RData fvsOLmadeTag
 	
