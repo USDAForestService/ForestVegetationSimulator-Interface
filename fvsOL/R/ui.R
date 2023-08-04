@@ -331,6 +331,7 @@ FVSOnlineUI <- fixedPage(
                    myRadioGroup("dlRDType","Type", c(".xlsx",".csv"))),
             tags$style(type="text/css","#tableLimitMsg{color:darkred;}"),          
             fixedRow(column(width=12,textOutput("tableLimitMsg"))),
+            #div(id='testDiv', overflow-scroll),
             fixedRow(column(width=12,rHandsontableOutput("table")))
           ) ),
           tabPanel("Graphs",
@@ -549,37 +550,24 @@ FVSOnlineUI <- fixedPage(
            textOutput("leafletMessage"),
            leafletOutput("leafletMap",height="800px",width="100%")))
       ), #END View On Maps
+      
+        # START Manage Projects Tab
         tabPanel("Manage Projects",
         tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
         tabsetPanel(id="toolsPan", 
-          tabPanel("Manage project",   
-              h4(),h4("Start another project"), 
+          # START Manage project sub tab
+          tabPanel("Manage project",
+            div(
+              h4("Start another project"), 
               selectInput("PrjSelect", "Select project", multiple=FALSE,
                  choices = list(), selectize=FALSE),       
               actionButton("PrjOpen","Open selected project"),h4(),
               h4("Create a new project"),
               textInput("PrjNewTitle", "New project title", ""), 
-              actionButton("PrjNew","Make new project"),
-            h4("Delete outputs in current project"),
-            list(
-              modalTriggerButton("deleteAllOutputs", "#deleteAllOutputsDlg", 
-                "Delete ALL outputs in current project"),
-              modalDialog(id="deleteAllOutputsDlg", footer=list(
-                modalTriggerButton("deleteAllOutputsDlgBtn", "#deleteAllOutputsDlg", 
-                  "Yes"),
-                tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel")))
-            ),                      
-            h4(),h4("Delete runs in current project"),
-            list(
-              modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", 
-                "Delete ALL runs and related outputs in current project"),
-              modalDialog(id="deleteAllRunsDlg", footer=list(
-                modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", 
-                  "Yes"),tags$button(type = "button", class = "btn btn-primary", 
-                  'data-dismiss' = "modal", "Cancel")))
-            ),  
-            h4(),h4("Make new project backup file"),
+              actionButton("PrjNew","Make new project")
+            ),
+            div(style= "margin-top: 48px;",
+            h4("Make new project backup file"),
             radioButtons("prjBckCnts",NULL,width="50%",choices=
                list("Project files only"="projOnly",
                     "Project files and FVS software"="projFVS"),
@@ -602,10 +590,11 @@ FVSOnlineUI <- fixedPage(
                 modalTriggerButton("restorePrjBackupDlgBtnC", "#restorePrjBackupDlg", 
                   "Cancel"))) 
               ),
-            if(isLocal()) h4(),
-            if(isLocal()) h4("Upload existing project backup file into current project"),
-            if(isLocal()) fileInput("upZipBackup","Upload project backup zip file",
-                                    width="30%"),
+            if(isLocal()){div(
+              h4("Upload existing project backup file into current project"),
+              fileInput("upZipBackup","Upload project backup zip file",width="30%"))
+            }),
+            div(style= "margin-top: 32px; margin-bottom: 12px;",
             uiOutput("delPrjActionMsg"),
             h4("Delete entire project"),
             selectInput("PrjDelSelect", "Select project to delete", multiple=FALSE,
@@ -613,10 +602,24 @@ FVSOnlineUI <- fixedPage(
             list(modalTriggerButton("PrjDelete", "#PrjDeleteDlg", "Delete project"),
                  modalDialog(id="PrjDeleteDlg", footer=list(
                  modalTriggerButton("PrjDeleteDlgBtn", "#PrjDeleteDlg","Yes"),
-                 tags$button(type = "button", class = "btn btn-primary", 
-                            'data-dismiss' = "modal", "No")))),
-            h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}") 
-          ),  # END Manage Project   
+                 tags$button(type = "button", class = "btn btn-primary",'data-dismiss' = "modal", "No")))),
+            h6(),tags$style(type="text/css","#delPrjActionMsg{color:darkred;}"),
+            h4("Delete outputs in current project"),
+            list(
+              modalTriggerButton("deleteAllOutputs", "#deleteAllOutputsDlg", "Delete ALL outputs in current project"),
+              modalDialog(id="deleteAllOutputsDlg", footer=list(
+                modalTriggerButton("deleteAllOutputsDlgBtn", "#deleteAllOutputsDlg", "Yes"),
+                tags$button(type = "button", class = "btn btn-primary", 'data-dismiss' = "modal", "Cancel")))
+            ),                      
+            h4(),h4("Delete runs in current project"),
+            list(
+              modalTriggerButton("deleteAllRuns", "#deleteAllRunsDlg", "Delete ALL runs and related outputs in current project"),
+              modalDialog(id="deleteAllRunsDlg", footer=list(modalTriggerButton("deleteAllRunsDlgBtn", "#deleteAllRunsDlg", "Yes"),
+                                                             tags$button(type = "button", class = "btn btn-primary", 'data-dismiss' = "modal", "Cancel")))
+             )
+            )
+          ),  # END Manage project sub tab   
+          
         tabPanel("Import input data", 
         fixedRow(column(width=12,offset=0,
           tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),

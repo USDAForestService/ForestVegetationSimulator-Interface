@@ -438,14 +438,14 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
 extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
    startyr=NULL,endyr=NULL,cyclelen=NULL,cycleat=NULL)
 {
-  changed=FALSE
   if (missing(runUUID)) stop("runUUID required")
+  changed=FALSE
   prjDir = normalizePath(prjDir)
   if (file.exists(file.path(prjDir,"/projectIsLocked.txt"))) stop("project is locked")
   db = connectFVSProjectDB(prjDir)
   on.exit(dbDisconnect(db)) 
   fvsRun = loadFVSRun(db,runUUID)
-  if (!exists("fvsRun")) stop("runUUID run data not loaded")
+  if (!exists("fvsRun")) stop(paste0(runUUID," run data not loaded"))
   if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   if (!is.null(autoOut))
   {
@@ -457,7 +457,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
       autoRD_Det = "RD_Det", autoRD_Beetle = "RD_Beetle", autoInvStats = "InvStats",  
       autoRegen = "Regen", autoDelOTab = "KeepTextTables")
     set=intersect(tolower(autoOut),tolower(autoSets))
-    if (length(set)==0) warning(paste0("autoOut does not contains one or more of: ",
+    if (length(set)==0) warning(paste0("autoOut does not contain one or more of: ",
                         paste0(autoSets,collapse=", "))) else
     { 
       set = charmatch(set,tolower(autoSets))
@@ -1170,6 +1170,7 @@ extnErrorScan <- function (outfile)
     {
       if (length(grep("STANDARD ERRORS",toupper(line),fixed=TRUE))) next
       if (length(grep("SAMPLING",toupper(line),fixed=TRUE))) next
+      if (length(grep("MAY CAUSE MATHEMATICAL ERRORS", toupper(line), fixed = TRUE))) next
       err <- c(l1,line)
       names(err) <- paste0("Std=",sid,";Line=",as.character(c(ln-1,ln)))
       errs<-append(errs,err)
