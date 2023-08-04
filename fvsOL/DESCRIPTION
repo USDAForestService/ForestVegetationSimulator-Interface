@@ -1,9 +1,9 @@
 Package: fvsOL
 Title: Forest Vegetation Simulator
-Version: 2023.05.18
+Version: 2023.07.28
 Authors@R: c(person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
                   role = c("aut")),
-             person("Michael", "Shettles", email = "michael.a.shettles@usda.gov",
+             person("FVS", "Staff", email = "sm.fs.fvs-support@usda.gov",
                   role = c("aut", "cre")))
 Description: An R-Shiny interface to the Forest Vegetation Simulator which can be
  run as an "Online" or "Onlocal" configuration.

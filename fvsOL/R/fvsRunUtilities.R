@@ -408,9 +408,9 @@ resetActiveFVS <- function(globals)
               "cover", "wrd3", "phewrd3",  "armwrd3", "ardwrd3"), 
     FVSws = c("ws", "strp", "dbs", "cover",  "mist", "fire", "climate", 
               "econ", "wrd3", "phewrd3", "armwrd3", "ardwrd3" )) 
-  avalFVS <- dir(globals$fvsBin,pattern=paste0("[.]",
-                 substr(.Platform$dynlib.ext,2,999),"$"))
-  avalFVS <- unique(sub(.Platform$dynlib.ext,"",avalFVS))
+  avalFVS <- dir(globals$fvsBin,pattern=paste0("FVS[a-z]*",.Platform$dynlib.ext,"$"))
+  avalFVS <- unique(sub(paste0(.Platform$dynlib.ext,"$"),"",avalFVS))
+cat ("in resetActiveFVS, avalFVS=",avalFVS,"\nglobals$lastRunVar=",globals$lastRunVar,"\n")
   if (length(avalFVS)) globals$activeFVS = globals$activeFVS[avalFVS] 
   globals$activeVariants <- unlist(lapply(globals$activeFVS, function(x) x[1]))
   vars = c("ak: Alaska"="ak",
@@ -458,7 +458,8 @@ nextMgmtID <- function(nruns=0)
 
 resetGlobals <- function(globals,runDef)
 {
-cat("resetGlobals, runDef=",runDef,"\n")
+cat("resetGlobals, runDef=",runDef,"\nglobals$lastRunVar=",globals$lastRunVar,
+    " globals$activeVariants=",globals$activeVariants,"\n")
   resetActiveFVS(globals)
   globals$schedBoxYrLastUsed=character(0)
   globals$currentEditCmp=globals$NULLfvsCmp
@@ -501,7 +502,7 @@ updateVarSelection <- function (globals,session,input)
   if (length(globals$fvsRun$FVSpgm) == 0) 
   {
     vlst = as.list(globals$activeVariants)
-    selected = if (length(globals$lastRunVar)) globals$lastRunVar else globals$activeVariants[1]
+    selected = if (length(globals$lastRunVar)) globals$lastRunVar[1] else globals$activeVariants[1]
   } else {
     if (is.null(globals$activeFVS[[globals$fvsRun$FVSpgm]])) 
     {
