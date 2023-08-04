@@ -8,4 +8,4 @@ Description: Provides a set of R functions that interface with the
 Depends: R (>= 4.0.0)
 License: MIT
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
