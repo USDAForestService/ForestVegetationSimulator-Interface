@@ -37,6 +37,9 @@ FVSOnlineUI <- fixedPage(
       tabPanel("Simulate",
         fixedRow(column(width=4,offset=0,h6(),
           tags$style(type="text/css", "#runSel { width: 100%; }"),
+          if(isLocal()) {
+            div(h5("VDI Users: Please see important message to the right side 
+                  of the 'Stands' subtab", style = "color:red;"))},
           selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
                       selectize=FALSE),
           actionButton("newRun","New"),
@@ -68,23 +71,22 @@ FVSOnlineUI <- fixedPage(
           selectInput("selpaste","Components available to paste", NULL, 
                       NULL, multiple=FALSE, selectize=FALSE), 
           myInlineTextInput("searchString", "Find stand:", value = "", size="25%"),
-          actionButton("searchNext","Find")
+          actionButton("searchNext", "Find")
         ),
         column(width=8,offset=.2,
           tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
           tabsetPanel(id = "rightPan",
-            tabPanel("Stands",fixedRow(
-              column(width=6,uiOutput("sayDataSource")),
-              column(width=6,h5(),div("Quick link to: ",
-                actionButton("uploadData","Upload inventory database")))),
-              selectInput("inTabs","Inventory Data Tables", NULL, NULL, 
+            tabPanel("Stands", fixedRow(
+              column(width = 6,uiOutput("sayDataSource"),
+              selectInput("inTabs","Inventory Data Tables", NULL, NULL,
                         multiple=FALSE, selectize=FALSE),
               selectInput("inVars","Variants", NULL, NULL, 
                         multiple=FALSE, selectize=FALSE),
               selectInput("inGrps","Groups", NULL, NULL, 
                         multiple=TRUE, selectize=FALSE, size=6),
-              myRadioGroup("inAnyAll", "Stands must be in any or all selected groups ", 
-                c("Any","All")),               
+              myRadioGroup("inAnyAll", 
+                            "Stands must be in any or all selected groups ", 
+                            c("Any","All")),
               tags$style(type="text/css", "#inStds { height: 300px;}"),
               selectInput("inStds", NULL, NULL, NULL, 
                         multiple=TRUE, selectize=FALSE),
@@ -96,8 +98,19 @@ FVSOnlineUI <- fixedPage(
               actionButton("inAddGrp","Add stands in selected groups"), 
               h6(),
               myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
-              actionButton("inStdFindBut","Find")
-            ), 
+              actionButton("inStdFindBut","Find")),
+              column(width=6,h5(),div("Quick link to: ",
+                actionButton("uploadData","Upload inventory database")),
+                if (isLocal()) {
+                  div(h4("VDI Users:", style = "color:red;"),
+                    p("Due to the nature of C: drive memory when working in 
+                    a virtual desktop environment (VDI), VDI users are directed
+                    to change their working directory on the Manage Projects -> 
+                    Manage project tab, prior to beginning work."))
+                }
+              )
+            ),
+          ),
             tabPanel("Time",
               textInput("startyr",  "Common starting year", ""), 
               textInput("endyr",    "Common ending year",   ""),                                        
@@ -559,12 +572,19 @@ FVSOnlineUI <- fixedPage(
           tabPanel("Manage project",
             div(
               h4("Start another project"), 
+              if (isLocal()){
+                p("VDI Users should change to a network directory")
+              },
               selectInput("PrjSelect", "Select project", multiple=FALSE,
-                 choices = list(), selectize=FALSE),       
-              actionButton("PrjOpen","Open selected project"),h4(),
+                 choices = list(), selectize=FALSE),  
+              p(actionButton("PrjOpen","Open selected project"),
+                if(isLocal()){
+                  shinyFiles::shinyDirButton("Change_wd", "Change Working Directory", "Select Network Project Directory")}
+                ,h4())
+              ,
               h4("Create a new project"),
               textInput("PrjNewTitle", "New project title", ""), 
-              actionButton("PrjNew","Make new project")
+              actionButton("PrjNew","Make new project"),
             ),
             div(style= "margin-top: 48px;",
             h4("Make new project backup file"),

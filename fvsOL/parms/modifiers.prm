@@ -88,27 +88,27 @@ f3title{ni ie ut tt ak em ws ci cr bp sw sp sf lp kt nc so bm ec wc pn ca oc op}
 {-------------SET BOARDFOOT MERCHANTIBILITY LIMITS-------------}
 
 f3:{numberBox Minimum merchantable DBH}
-f3v{ni ie em bm ec kt wc pn ca oc op}:{7}
-f3v{so ak nc}:{9}
-f3v{ut tt ci}:{8}
-f3v{ws}:{10}
+f3v{ni ie em bm ec kt wc pn ca oc op}:{blank}
+f3v{so ak nc}:{blank}
+f3v{ut tt ci}:{blank}
+f3v{ws}:{blank}
 f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
 f4:{numberBox Minimum top diameter inside bark}
 f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
-f4v{ni ie em bm ec kt wc pn ca oc op}:{4.5}
-f4v{so ut tt ak ws ci nc}:{6}
+f4v{ni ie em bm ec kt wc pn ca oc op}:{blank}
+f4v{so ut tt ak ws ci nc}:{blank}
 f4v{cr sw sp sf lp bp}:{blank}
 f4v{ls ne cs}:{blank}
 
 f5:{numberBox Stump height}
 f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
-f5v:{1}
+f5v:{blank}
 
 f6:{numberBox Form class}
-f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{80}
-f6v{nc so bm ec wc pn ca oc op}:{0}
+f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{blank}
+f6v{nc so bm ec wc pn ca oc op}:{blank}
 
 f7:{longListButton Volume calculation method}
 f7v{cs ls ne}:{\
@@ -120,7 +120,8 @@ f7v{cs ls ne}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Original TWIGS volume equations
-9 = NATCRS equations with international 1/4-inch board foot volumes}
+9 = NATCRS equations with international 1/4-inch board foot volumes
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 f7v{cr bp sw sp sf lp sn}:{\
 1 = Kemp equations with Allen adjustments
 2 = User defined equation via BFVOLEQU keyword
@@ -130,7 +131,8 @@ f7v{cr bp sw sp sf lp sn}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = NATCRS equations with international 1/4-inch board foot volumes}
+9 = NATCRS equations with international 1/4-inch board foot volumes
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 f7v:{\
 1 = Kemp equations with Allen adjustments
 2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
@@ -140,7 +142,8 @@ f7v:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = NATCRS equations with international 1/4-inch board foot volumes}
+9 = NATCRS equations with international 1/4-inch board foot volumes
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 
 f8title{ls ne cs sn}:
 {-------------SET PULPWOOD MERCHANTIBILITY LIMITS-------------}
@@ -149,23 +152,23 @@ f8title{ni ie ut tt ak em ws ci cr bp sw sp sf lp kt nc so bm ec wc pn ca oc op}
 
 f8:{numberBox Minimum DBH}
 f8v{ls cs ne sn cr sw sp sf lp bp}:{blank}
-f8v{ni ie em ws bm ec kt wc pn ca oc op}:{7}
-f8v{ut tt ci}:{8}
-f8v{so ak nc}:{9}
+f8v{ni ie em ws bm ec kt wc pn ca oc op}:{blank}
+f8v{ut tt ci}:{blank}
+f8v{so ak nc}:{blank}
 
 f9:{numberBox Minimum top diameter}
 f9{sn}:{noInput Minimum top diameter can not be changed in Southern US}
-f9v{ni ie em ws bm ec kt wc pn ca oc op}:{4.5}
-f9v{so ut tt ak ci nc}:{6}
+f9v{ni ie em ws bm ec kt wc pn ca oc op}:{blank}
+f9v{so ut tt ak ci nc}:{blank}
 f9v{ls ne cs cr sw sp sf lp bp}:{blank}
 
 f10:{numberBox Stump height (feet)}
 f10{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
-f10v:{1}
+f10v:{blank}
 
 f11:{numberBox Form class}
-f11v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{80}
-f11v{ni ie so bm ec wc pn nc ca oc op}:{0}
+f11v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{blank}
+f11v{ni ie so bm ec wc pn nc ca oc op}:{blank}
 
 f12:{longListButton Method of volume calculation}
 f12v{ls cs ne}:{\
@@ -176,7 +179,9 @@ f12v{ls cs ne}:{\
 5 = Gevorkiantz volume equations
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Original TWIGS volume equations}
+8 = Original TWIGS volume equations
+9 = not currently used
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 f12v{ni ie so ut tt ak em ws bm ec ci nc}:{\
 1 = Regression model equations. Wykoff, Allen, et.al.
 2 = Region 6 eastside taper equations previously in FVS
@@ -185,7 +190,9 @@ f12v{ni ie so ut tt ak em ws bm ec ci nc}:{\
 5 = not currently used
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)}
+8 = Other volume calculation method (varies by Region)
+9 = not currently used
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 f12v:{\
 1 = User defined equation via CFVOLEQU keyword
 2 = Region 6 eastside taper equations previously in FVS
@@ -194,13 +201,15 @@ f12v:{\
 5 = not currently used
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)}
+8 = Other volume calculation method (varies by Region)
+9 = not currently used
+10 = National Scale Volume Biomass Estimators (Sept 2023)}
 
 answerForm:{\
 BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!
 Volume    !1,10!!2,10!!8,10!!9,10!!10,10!!11,10!!12,10,numbers!
 }
-numbers:{1 2 3 4 5 6 7 8 9}
+numbers:{1 2 3 4 5 6 7 8 9 10}
 
 //end merch_vol
 

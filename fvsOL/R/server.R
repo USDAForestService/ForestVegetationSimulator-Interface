@@ -205,7 +205,7 @@ cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
 cat ("Project is locked.\n")
       output$appLocked<-renderUI(HTML(paste0('<h4 style="color:#FF0000">',
         'Warning: This project may already be opened.</h4>',
-        '<h5>Insure the project is not opened in another window.</h5>',
+        '<h5>Ensure the project is not opened in another window.</h5>',
         '<button id="clearLock" type="button" class="btn btn-default ',
         'action-button">Clear this message and proceed</button>',
         '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" ',
@@ -277,6 +277,7 @@ cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
     email=trim(unlist(strsplit(email,split="=",fixed=TRUE))[2])
     tstring = paste0("Project title: <b>",tit,"</b>",
            if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
+           if (isLocal())(paste0("<br>Current Location: <b>", getwd(), "</b>")),
            "<br>Last accessed: <b>",
            format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
 cat ("tstring=",tstring,"\n")    
@@ -375,6 +376,11 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     globals$reloadAppIsSet == 0
   })
   
+  if (isLocal()) {
+    volumes <-c(shinyFiles::getVolumes()())
+    shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
+  }
+
   ## clearLock
   observe({
     if (!is.null(input$clearLock) && input$clearLock==0)
@@ -2456,7 +2462,7 @@ cat ("in reloadStandSelection\n")
     if (input$topPan == "Simulate" || input$rightPan == "Stands")
     {
 cat ("inGrps inAnyAll inStdFindBut\n")
-      # insure reactivity to inStdFindBut
+      # Ensure reactivity to inStdFindBut
       input$inStdFindBut
       if (is.null(input$inGrps))          
       {
@@ -6466,7 +6472,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
     {
       fiaMsg=NULL
       progress$set(message = "FIA data detected, most checks skipped", value = 1) 
-      # insure that the DSNIn keywords address FVS_Data.db in the FVS_GroupAddFilesAndKeywords table
+      # Ensure that the DSNIn keywords address FVS_Data.db in the FVS_GroupAddFilesAndKeywords table
       grpAdd = try(dbGetQuery(dbo,'select * from "fvs_groupaddfilesandkeywords"'))
       if (class(grpAdd) != "try.error") 
       {
@@ -8374,6 +8380,36 @@ cat ("launch url:",url,"\n")
     })
   })
   
+  ############################################################################################################
+  #
+  # Event Handler for input$Change_wd
+  #
+  ############################################################################################################
+  
+  if (isLocal()) {
+      observeEvent(input$Change_wd, {
+        # ObserverEvent triggers multiple times, so need to check length to ensure input was created in dialog
+        if(length(input$Change_wd) > 1)
+        {
+          dirPath<- parseDirPath(volumes, input$Change_wd)
+          cat(paste0("User selected: ", dirPath))
+
+                # Verify user has write permission to path
+          if(!(file.access(dirPath, 2) == 0)){
+            cat("User write permissions denied")
+            showModal(shiny::modalDialog(
+              title = "Write Permission Denied",
+              "Sorry, you do not have permissions to write to this folder, please select another location.",
+              easyClose = F))
+            return()
+          }
+          change_project_dir(dirPath)
+          updateProjectSelections()
+        }
+    }) # End Event Handler for input$Change_wd
+  }
+
+    
   ## Full run/Just groups
   observe({
     mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 

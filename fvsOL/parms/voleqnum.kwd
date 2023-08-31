@@ -1305,28 +1305,14 @@ f3v{ls ne cs}:{\n
 
 f2v{sn}:{\n
 >
-894CLKE = Clark Profile Model
-844CLKE = Clark Profile Model
 814CLKE = Clark Profile Model
-834CLKE = Clark Profile Model
-834CLKE = Clark Profile Model
 824CLKE = Clark Profile Model
 834CLKE = Clark Profile Model
-814CLKE = Clark Profile Model
+844CLKE = Clark Profile Model
 854CLKE = Clark Profile Model
-854CLKE = Clark Profile Model
+864CLKE = Clark Profile Model
 874CLKE = Clark Profile Model
-844CLKE = Clark Profile Model
-834CLKE = Clark Profile Model
-864CLKE = Clark Profile Model
-864CLKE = Clark Profile Model
-814CLKE = Clark Profile Model
-824CLKE = Clark Profile Model
-834CLKE = Clark Profile Model
-824CLKE = Clark Profile Model
-834CLKE = Clark Profile Model
-814CLKE = Clark Profile Model
-854CLKE = Clark Profile Model}
+894CLKE = Clark Profile Model}
 
 f3{sn}:{listButtonString FIA species number for equation above:}
 f3v{sn}:{\n
@@ -1857,7 +1843,6 @@ I15FW2W017 = Region 4: White fir - Flewelling Profile Model
 400MATW108 = Region 4: Whitebark pine - Rustagi Profile Model
 401MATW108 = Region 4: Whitebark pine - Rustagi Profile Model
 401MATW108 = Region 4: Whitebark pine - Rustagi Profile Model
-
 }
 
 f3v{ws}:{\n
@@ -2666,8 +2651,7 @@ f5v{ls ne cs}:{\n
 371 = Yellow birch      
 621 = Yellow popular}
 
-f4{sn}:{longlistButtonString Board Foot Volume Equation Number:}
-
+f4{sn}:{longListButtonString Board Foot Volume Equation Number:}
 f4v{sn}:{\n
 >
 801DVEE = Lasher Equations
@@ -2703,7 +2687,7 @@ f4v{sn}:{\n
 831DVEE = Lasher Equations
 832DVEE = Lasher Equations}
 
-f5{sn}:{listButtonString FIA species number for equation above:}
+f5{sn}:{listButtonString FIA species number for board foot equation above:}
 f5v{sn}:{\n
 >
 100 = pine spp.
