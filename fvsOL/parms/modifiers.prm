@@ -120,8 +120,8 @@ f7v{cs ls ne}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Original TWIGS volume equations
-9 = NATCRS equations with international 1/4-inch board foot volumes
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+
 f7v{cr bp sw sp sf lp sn}:{\
 1 = Kemp equations with Allen adjustments
 2 = User defined equation via BFVOLEQU keyword
@@ -131,8 +131,8 @@ f7v{cr bp sw sp sf lp sn}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = NATCRS equations with international 1/4-inch board foot volumes
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = NATCRS equations with international 1/4-inch board foot volumes}
+
 f7v:{\
 1 = Kemp equations with Allen adjustments
 2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
@@ -142,8 +142,7 @@ f7v:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via BFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = NATCRS equations with international 1/4-inch board foot volumes
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = NATCRS equations with international 1/4-inch board foot volumes}
 
 f8title{ls ne cs sn}:
 {-------------SET PULPWOOD MERCHANTIBILITY LIMITS-------------}
@@ -180,8 +179,8 @@ f12v{ls cs ne}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
 8 = Original TWIGS volume equations
-9 = not currently used
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = not currently used}
+
 f12v{ni ie so ut tt ak em ws bm ec ci nc}:{\
 1 = Regression model equations. Wykoff, Allen, et.al.
 2 = Region 6 eastside taper equations previously in FVS
@@ -191,8 +190,8 @@ f12v{ni ie so ut tt ak em ws bm ec ci nc}:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = not currently used
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = not currently used}
+
 f12v:{\
 1 = User defined equation via CFVOLEQU keyword
 2 = Region 6 eastside taper equations previously in FVS
@@ -202,8 +201,7 @@ f12v:{\
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
-9 = not currently used
-10 = National Scale Volume Biomass Estimators (Sept 2023)}
+9 = not currently used}
 
 answerForm:{\
 BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!
