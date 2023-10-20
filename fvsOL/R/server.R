@@ -170,6 +170,10 @@ cat ("FVSOnline/OnLocal interface server start\n")
   serverDate=as.character(packageVersion("fvsOL"))
   serverDate=unlist(strsplit(serverDate,".",fixed=TRUE))
   for (i in 2:3) if (nchar(serverDate[i])==1) serverDate[i]=paste0("0",serverDate[i])
+  if(!is.na(serverDate[4])){
+    if (nchar(serverDate[4])==1) serverDate[4]=paste0("0",serverDate[4])
+    serverDate[4]= paste0(".", serverDate[4])
+  }
   serverDate=paste0(serverDate,collapse="")
 
 cat ("ServerDate=",serverDate,"\n")
@@ -255,7 +259,7 @@ cat ("Project is locked.\n")
         paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
         paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") 
     } else {
-      paste0(paste0("Release date: ",serverDate,"<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
+      paste0(paste0("Release date: ",serverDate, "<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
     }
     hostedByLogo=system.file("extdata","www/hostedByLogo.png",
       package="fvsOL")
