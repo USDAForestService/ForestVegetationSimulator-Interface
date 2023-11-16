@@ -22,7 +22,12 @@
 #'    mortdia1   \tab lower diameter limit to apply the multiplier for each species \cr
 #'    mortdia2   \tab upper diameter limit to apply the multiplier for each species \cr
 #'    regdmult   \tab multiplier for diameter growth of regeneration for each species \cr
-#'    reghmult   \tab multiplier for height growth of regeneration for each species}
+#'    reghmult   \tab multiplier for height growth of regeneration for each species \cr
+#'    maxdbh     \tab morphological maximum diameter for each species from TreeSZCp keyword \cr
+#'    minmort    \tab minimum proportion of the tree record that will be killed for each species from TreeSZCp keyword \cr
+#'    maxdbhcd   \tab morphological maximum diameter use coad for each species from TreeSZCp keyword \cr
+#'    maxht      \tab morphological maximum height for each species from TreeSZCp keyword \cr
+#'    }
 #' @return a data.frame where the columns are attributes and the rows are species. 
 #' @examples
 #'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
