@@ -4,9 +4,7 @@ description{ls ne cs}:
 {Change the merchantability specification for sawlog volume and pulpwood volume 
 
 With the LS, NE, and CS variants, default minimum DBH for sawlog and pulpwood
-volumes vary by Forest. See the FVS Keyword Guide for defaults. 
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+volumes vary by Forest. See the FVS Keyword Guide for defaults.}
 
 description{sn}:
 {Change the merchantability specification for sawlog volume and pulpwood volume 
@@ -16,28 +14,19 @@ softwoods and 12.0" for hardwoods. The default pulpwood minimum DBH is 4.0" for
 hardwoods and softwoods.
 
 The default minimum top diameter for sawlogs is 7.0" for softwoods and 9.0" 
-for hardwoods. These values are fixed. Changing them will cause an error.
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+for hardwoods. These values are fixed. Changing them will cause an error.}
 
 description{ni ie kt em}:
 {Change the merchantability limits for board-foot volume and cubic foot volume 
 
 With the NI, IE, KT, and EM variants: Board-foot and cubic foot, minimum 
-merchantable DBH is 7.0", except for lodgepole pine which is 6.0" DBH
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+merchantable DBH is 7.0", except for lodgepole pine which is 6.0" DBH}
 
 description{ci tt ut}:
 {Change the merchantability limits for board-foot volume and cubic foot volume
 
 With the CI, UT, and UT variants: Board-foot and cubic foot, minimum 
-merchantable DBH is 8.0", except for lodgepole pine which is 7.0" DBH
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+merchantable DBH is 8.0", except for lodgepole pine which is 7.0" DBH}
 
 description{cr sw sp bp sf lp}:
 {Change the merchantability limits for board-foot volume and cubic foot volume
@@ -46,22 +35,13 @@ See variant overview for default specifications.
 }
 
 description{ws nc ca}:
-{Change the merchantability limits for board-foot volume and cubic foot volume.
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+{Change the merchantability limits for board-foot volume and cubic foot volume.}
 
 description{ak}:
 {Change the merchantability limits for board-foot volume and cubic foot volume
 
-Board-foot defaults:
-Minimum merchantable DBH is 9.0", except for sitka spruce which is 8.0".
-Cubic foot defaults:
-Minimum merchantable DBH for hardwoods is 11.0".
-Minimum top diameter for hardwoods is 9.0"
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+Please refer to Chapter 7 of the Alaska Variant Overview for default 
+merchantability specifications.}
 
 description{bm ec so wc pn oc op}:
 {Change the merchantability limits for board-foot volume and cubic foot volume
@@ -72,10 +52,7 @@ DBH is 7.0", except for lodgepole pine which is 6.0".
 Form class default by forest, species, and size classes.  See "Region
 6 Form Class Defaults used in the Forest Vegetation Simulator (FVS)
 Variants", Gary Dixon, Forest Management Service Center, Fort Collins,
-CO. 8/13/96. 17p.
-
-CAUTION:
-Species specific defaults are not yet supported within Suppose.}
+CO. 8/13/96. 17p.}
 
 f1title:
 {Year/Cycle must be "0" for changes to effect inventory year}

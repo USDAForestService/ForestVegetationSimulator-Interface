@@ -104,7 +104,7 @@ answerForm:{\
 *     Y2I=(((-1)*((TargBA-(BBAAP+BBAAS))-(BBARM)))*X2I*RSI)
 
 
-* Initialize Variables from Suppose
+* Initialize Variables
 Compute            1
 _Entry =!1!
 _TargBA=!2!

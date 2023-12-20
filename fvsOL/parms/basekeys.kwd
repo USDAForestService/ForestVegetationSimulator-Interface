@@ -8,7 +8,7 @@ to with the data set reference number.
 
 WARNING:
 When you used this keyword, you specify a number that refers to a
-data set that FVS will read.  Suppose does not insure that the file is
+data set that FVS will read.  System does not insure that the file is
 present nor that it contains correct FVS input.}
 
 f1title:{FVS input will be read from the data set you refer to below:}
@@ -963,7 +963,7 @@ description:
 data.
 
 NOTE:
-Most Design cards are built for you by Suppose based on stand and plot
+Most Design cards are built for you based on stand and plot
 data.  To override any field of the generated Design card, only enter
 values in the fields to be overridden.}
 
@@ -1372,10 +1372,10 @@ description:
 
 CAUTION:
 The default inventory year is read from your data.  This default is
-used by Suppose to insure that the simulation starting year is not set
-to a year prior to this default inventory year.  This version of
-Suppose does not insure that the value you enter using this keyword is
-correct, nor does Suppose recognize that this value may cause an
+used to insure that the simulation starting year is not set
+to a year prior to this default inventory year.  This does not insure 
+that the value you enter using this keyword is
+correct, nor does the system recognize that this value may cause an
 incorrect result.}
 
 f1:{numberBox Starting date for the stand projection (eg. 1991).}
@@ -2089,9 +2089,9 @@ description:
 {Specify the number of cycles to run the projection.
 
 CAUTION:
-The number of cycles needed for a run is computed by Suppose.  This
-version of Suppose does not insure that the value you enter using the
-NumCycle keyword is correct, nor does Suppose recognize that this
+The number of cycles needed for a run is computed by FVS.  This
+version does not insure that the value you enter using the
+NumCycle keyword is correct, nor does the system recognize that this
 value may cause an incorrect result.}
 
 f1:{numberBox Number of cycles to be projected.}
@@ -2150,7 +2150,7 @@ f4v:{80}
 f5:{listButton File format switch}
 f5v:{Formatted
      Unformatted}
-f6:{longTextEdit File name (Suppose does not insure this file exists):}
+f6:{longTextEdit File name (System does not insure this file exists):}
 
 answerForm:
 {Open      !1,10!!2,10!!3,10!!4,10!!5,10!
@@ -3916,11 +3916,10 @@ You must type the new 4 character long code exactly as you want it,
 including blanks.  Note that " WP " (blank, WP, followed by one blank)
 is a different than "WP  " or "  WP".
 
-You can only change one species code with each use of this keyword
-using Suppose.  FVS supports an additional form of this keyword that
+You can only change one species code with each use of this keyword.  
+FVS supports an additional form of this keyword that
 allows you to change all the codes at once.  If you need this
-additional capability, code your SpCodes keyword outside of Suppose
-and add it to the run using the Edit Simulation window.}
+additional capability, code your SpCodes keyword within the Editor window.}
 
 f1:{speciesSelection Species to be identified with a new code}
 f1v:{deleteAll}
@@ -4289,7 +4288,7 @@ StdIdent
 parmsForm=answerForm
 
 description:{\
-It is best to use the Suppose "Change Group Membership" window to
+It is best to use the "Change Group Membership" window to
 specify the stand and management identifications.}
 
 //end keyword.base.StdIdent
@@ -4306,7 +4305,7 @@ MgmtId
 parmsForm=answerForm
 
 description:{\
-It is best to use the Suppose "Change Group Membership" window to
+It is best to use the "Change Group Membership" window to
 specify the stand and management identifications.}
 
 //end keyword.base.MgmtId
@@ -5094,8 +5093,8 @@ description:
 
 CAUTION:
 The number and length of cycles needed for a run is computed by
-Suppose.  This version of Suppose does not insure that the value you
-enter using the TimeInt keyword is correct, nor does Suppose recognize
+FVS.  This does not insure that the value you
+enter using the TimeInt keyword is correct, nor does FVS recognize
 that this value may cause an incorrect result.}
 
 parmsForm:{

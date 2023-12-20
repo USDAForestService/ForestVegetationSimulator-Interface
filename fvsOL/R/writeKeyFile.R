@@ -71,8 +71,8 @@ kcpVetting <- function (kcpconts)
     expression <- grep("=",kcpconts[j])
     ifkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="IF"
     thenkw <- toupper(kcpconts[j])=="THEN"
-    endkw <- match("END", toupper(kcpconts[j]))
-    endifkw <- match("ENDIF", toupper(kcpconts[j]))
+    endkw <- match("END", gsub(" ","",toupper(kcpconts[j])))
+    endifkw <- match("ENDIF", gsub(" ","",toupper(kcpconts[j])))
     commkw <- grep("COMMENT", toupper(kcpconts[j]))
     commkw <- length(commkw)
     compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"

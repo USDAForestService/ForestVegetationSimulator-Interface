@@ -324,7 +324,37 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     globals$exploring <- FALSE
-    
+
+    # Check for improper loaded database
+    initial_check <- checkMinColumnDefs(dbGlb$dbIcon)
+    if(!is.null(initial_check)) {
+      cat("Detected invalid database installed")
+      url <- a("Chapter 3 of the Database Users Guide", 
+               href="https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf",
+               target="_blank", rel="noopener noreferrer")
+      showModal(shiny::modalDialog(
+        title = "Invalid database detected",
+        tagList(HTML(initial_check),p(
+        "Pre-load checks have detected an installed database that does not conform to input database requirements.
+        Please see input database requirements in", url),         
+        p("The default training dataset will now be installed.  If a custom database is desired, 
+        please load it through the Upload inventory database tab.")),
+        easyClose = F,
+        footer = tagList(modalButton("Acknowledge"))))
+
+      # Disconnect from bad database
+      dbDisconnect(dbGlb$dbIcon)
+
+      # copy in default training data
+      frm=system.file("extdata", "FVS_Data.db.default", package="fvsOL")
+      file.copy(frm,"FVS_Data.db",overwrite=TRUE)
+      frm=system.file("extdata", "SpatialData.RData.default",package=sub("package:","",find('fvsOL')[1]))
+      file.copy(frm,"SpatialData.RData",overwrite=TRUE)
+
+      # Reconnect to FVS_Data.db
+      dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    }
+
     setProgress(value = NULL)          
   }, min=1, max=6)
   observe({
@@ -6193,7 +6223,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
       updateTabsetPanel(session=session, inputId="toolsPan",
         selected="Import input data")
       updateTabsetPanel(session=session, inputId="inputDBPan", 
-        selected="Upload inventory data")
+        selected="Upload inventory database")
     }
   })
   
@@ -6202,17 +6232,21 @@ cat ("tabDescSel2, tab=",tab,"\n")
     if(input$toolsPan == "Import input data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
-        selected="Upload inventory data")
+        selected="Upload inventory database")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
     }
   })
   observe({
-    if(input$inputDBPan == "Upload inventory data") 
+    if(input$inputDBPan == "Upload inventory database") 
     {
-cat ("Upload inventory data\n")
+      cat ("Upload inventory data\n")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installNewDB').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#addNewDB').prop('disabled',true)"))
     }
   })
   
@@ -6279,32 +6313,27 @@ cat ("Upload inventory data\n")
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
+    validdb = FALSE
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
-cat ("fext=",fext,"\n")
+    cat ("fext=",fext,"\n")
     session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#input$installNewDB').prop('disabled',true)"))
+                          list(code= "$('#installNewDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#input$addNewDB').prop('disabled',true)"))
+                          list(code= "$('#addNewDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installTrainDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installEmptyDB').prop('disabled',true)"))
-    if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
-    {
+    if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) {
       output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installTrainDB').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installEmptyDB').prop('disabled',false)"))
       return()
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installNewDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#addNewDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installTrainDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installEmptyDB').prop('disabled',true)"))
     }
     fdir = dirname(input$uploadNewDB$datapath)
     progress <- shiny::Progress$new(session,min=1,max=20)
@@ -6319,10 +6348,18 @@ cat ("fext=",fext,"\n")
         output$step1ActionMsg = renderText(".zip contains more than one file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       } else if (length(fname) == 0) {
         output$actionMsg = renderText(".zip was empty.")
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       } 
       fext = tools::file_ext(fname)
@@ -6331,6 +6368,10 @@ cat ("fext=",fext,"\n")
         output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
     } else fname = basename(input$uploadNewDB$datapath)
@@ -6354,6 +6395,10 @@ cat ("cmd=",cmd,"\n")
         if (schema[1] =="Unknown Jet version.") output$step1ActionMsg = renderText("Unknown Jet version. Possible corrupt database.") else
         output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
@@ -6380,11 +6425,21 @@ cat ("cmd=",cmd,"\n")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Extract data", value = 3)  
-      if(!length(grep("FVS_StandInit",tbln,ignore.case=TRUE))){
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
+                        FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b",
+                        tbln, ignore.case = TRUE))) {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export") else "mdb-export"
@@ -6410,13 +6465,22 @@ cat ("cmd done.\n")
     {
       progress$set(message = "Get data sheets", value = 3)
       sheets = getSheetNames(fname)
-      sheetsU <- toupper(sheets)
-      if(!length(grep("FVS_STANDINIT",sheetsU)))
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
+                       FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b"
+                       ,sheets, ignore.case = TRUE)))
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
@@ -6433,7 +6497,7 @@ cat ("cmd done.\n")
       for (sheet in sheets)
       {
         i = i+1
-cat ("sheet = ",sheet," i=",i,"\n")
+        cat ("sheet = ",sheet," i=",i,"\n")
         progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
         sdat[[3]] <- gsub("_x000D_", "", sdat[[3]])
@@ -6459,13 +6523,21 @@ cat ("sheet = ",sheet," i=",i,"\n")
       i = 0
       file.rename(from=fname,to="FVS_Data.db")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      tabs = toupper(myListTables(dbo))
-      if(!length(grep("FVS_STANDINIT",tabs)))
+      tabs = myListTables(dbo)
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|
+                       FVS_StandInit_Plot|FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b"
+                       ,tabs, ignore.case = TRUE)))
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode", list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode", list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
     }
@@ -6492,11 +6564,12 @@ cat ("sheet = ",sheet," i=",i,"\n")
           }
         }
       }
+      validdb = TRUE
     } else {
       # get rid of "NRIS_" part of names if any
       for (tab in tabs)
       {
-cat("loaded table=",tab,"\n")      
+        cat("loaded table=",tab,"\n")      
         nn = sub("NRIS_","",tab)
         if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
       }
@@ -6512,7 +6585,7 @@ cat("loaded table=",tab,"\n")
         if (class(addgrps)!="try-error")
         {
           addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
+          cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
           for (idx in fixTabs)
           {
             tab2fix=tabs[idx]
@@ -6645,24 +6718,32 @@ cat ("calling fixFVSKeywords\n")
       canuse=class(tt) == "NULL"
       if (class(tt)=="character") msg = paste0(msg,
         "<br>Checking keywords: ",tt)
-      progress$set(message = "Checking for minimum column definitions", value = 8)      
+      progress$set(message = "Checking for minimum column definitions", value = 8)     
       tt = try(checkMinColumnDefs(dbo,progress,9))
       canuse=canuse && class(tt) == "NULL"
       if (class(tt)=="character") msg = paste0(msg,"<br>Checking columns: ",tt)
-      if (!canuse) msg = paste0(msg,
-        "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
-cat ("msg=",msg,"\n")
+      if (!canuse) {msg = paste0(msg,
+        "<h4>Data checks indicate there are unresolved problems in the input.<br>
+        Please review input database requirements in 
+            <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+            target='_blank' rel='noopener noreferrer'>
+            Chapter 3 of the Database Users Guide</a></h4>")
+        cat ("msg=",msg,"\n")
+      }
+      else validdb = TRUE
     } else msg = paste0(msg,if (!is.null(fiaMsg)) paste0("<br>",fiaMsg) else "",
         "<h4>Data checks are skipped when FIA data is detected.</h4>")
     output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
     dbDisconnect(dbo)
-    file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
-    session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installNewDB').prop('disabled',false)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#addNewDB').prop('disabled',false)"))
+    if (validdb) {
+      file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
+      session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installNewDB').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#addNewDB').prop('disabled',false)"))
+    }
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installTrainDB').prop('disabled',false)"))
     session$sendCustomMessage(type="jsCode",
@@ -7403,7 +7484,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     if (length(input$editSelDBtabs)) 
     {         
       dbGlb$tblName <- input$editSelDBtabs
-      fixEmptyTable(dbGlb)                                
+      fixEmptyTable(dbGlb)       
       msg=checkMinColumnDefs(dbGlb$dbIcon)
 cat ("msg=",msg,"\n")
       dbGlb$tbl <- NULL                                           
