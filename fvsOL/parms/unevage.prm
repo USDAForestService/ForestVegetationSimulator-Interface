@@ -139,7 +139,7 @@ answerForm:{\
 * TOTALS:   139.23                 51.35                 50.00       135.56
 
 *   Definition of Compute Variables:
-*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*   > Supplied via Management Action: ITS-BA Target window
 *     _BC = Beginning Cycle       
 *     _BA = Target Basal Area/Acre
 *      _Q = Q-Factor
@@ -577,7 +577,7 @@ answerForm:{\
 * TOTALS:   139.23                 51.35                 50.00       135.56
 
 *   Definition of Compute Variables:
-*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*   > Supplied via Management Action: ITS-BA Target window
 *     _BC = Beginning Cycle       
 *     _BA = Target Basal Area/Acre
 *      _Q = Q-Factor
@@ -1016,7 +1016,7 @@ answerForm:{\
 * TOTALS:   139.23      89.190                 130.00      202.95       74.84   
 
 *   Definition of Compute Variables:
-*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*   > Supplied via Management Action: ITS-BA Target window
 *     _BC = Beginning Cycle       
 *    _SDI = Target Stand Density Index
 *      _Q = Q-Factor
@@ -1631,7 +1631,7 @@ answerForm:{\
 * TOTALS:   139.23      89.190                 130.00      202.95       74.84   
 
 *   Definition of Compute Variables:
-*   > Supplied via Suppose - Management Action: ITS-BA Target window
+*   > Supplied via Management Action: ITS-BA Target window
 *     _BC = Beginning Cycle       
 *    _SDI = Target Stand Density Index
 *      _Q = Q-Factor
@@ -2280,7 +2280,7 @@ answerForm:{\
 *   Group Age 160: Commercial Thin PP to 60 BA, 10"=< dbh < 99"                         
 
 *   Definition of Compute Variables:
-*   > Supplied via Suppose - Management Action: Grp Select Target window
+*   > Supplied via Management Action: Grp Select Target window
 *     01. _BegCycl = Beginning Cycle       
 *     02. _TallTre = Tallest Tree Height              
 *     03. _HgtMult = Height Multiple                  
@@ -2305,7 +2305,7 @@ answerForm:{\
 *         _CmPThin = Number of Groups receiving Commercial POL Thinning
 *         _Cut     = Cut Indicator
 
-* Initialize Variables from Suppose
+* Initialize Variables
 Compute            1
 _BegCycl=!1!
 _TallTre=!2!
