@@ -101,8 +101,10 @@ mkCheckBox <- function (pkey, pmt, choices, fpvs)
   tmp <- if (is.null(fpvs)) FALSE else (as.character(fpvs) == "1" ||
                                         fpvs == "TRUE")
   checked <- if (tmp) "checked=\"checked\"" else ""
-  list(HTML(paste0('<form><input id="',pkey,'" type="checkbox" ',checked,
-       ' value="',fpvs,'">&nbsp;',pmt,'</form>')))
+  list(HTML(paste0('<div class="form-group shiny-input-checkboxgroup 
+  shiny-input-container">', '<div calss="checkbox">','<label>
+  <input id="',pkey,'" type="checkbox" ',checked, ' value="',fpvs,
+  '">&nbsp;',pmt,'</label>', '</div>', '</div>')))
 }
 
 

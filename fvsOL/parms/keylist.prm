@@ -123,7 +123,7 @@ HtgStop   {base modifier thin}:
 {Stop the height growth to reflect temporary damage.}
 
 InvYear   {base stdtre inventory}:
-{Specify the starting date for a projection (usually not used in Suppose).}
+{Specify the starting date for a projection.}
 
 Locate   {base inventory stdtre}:
 {Specify coordinates where the stand is located.}
@@ -273,8 +273,7 @@ Stats     {base control io}:
 projection.}
 
 StdIdent  {base stdtre io}:
-{Specify a stand identification code and descriptive title to label output tables, 
-use the Suppose Current Subset Window to identify your stands.}
+{Specify a stand identification code and descriptive title to label output tables.}
 
 StdInfo   {base inventory stdtre}:
 {Describes the site characteristics where the stand is located.}
@@ -333,7 +332,7 @@ ThinSDI   {base thin silv}:
 
 TimeInt   {base control}:
 {Specify the length, in years, of any or all projection cycles.  It is best to let 
-Suppose set the cycle lengths.}
+FVS set the cycle lengths.}
 
 TopKill   {base modifier thin}:
 {Kill a portion of the top of a tree to reflect damage from logging or insects.}
