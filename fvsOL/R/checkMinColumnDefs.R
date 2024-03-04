@@ -12,8 +12,25 @@ checkMinColumnDefs <- function(dbo, progress = NULL, pn = 0) {
 
   FVS_StandInit = FALSE
   valid_table_found = FALSE
-  for (initnm in c("FVS_StandInit", "FVS_PlotInit", 
-                   "FVS_StandInit_Plot", "FVS_PlotInit_Plot", "FVS_StandInit_Cond")) {
+  FIA_dataset = FALSE
+  FIA_Tables = c("FVS_StandInit_Plot", "FVS_PlotInit_Plot", "FVS_StandInit_Cond")
+  for (table in FIA_Tables) {
+    tryCatch(
+      # Try to read table from db connection
+      {
+        stdInit <- dbReadTable(dbo, table)
+        FIA_dataset = TRUE
+      },
+
+      # if an error . . .
+      error = function(e) {
+        cat(paste0("Table: ", table, " not found in database\n"))
+      }
+    )
+  }
+  if (FIA_dataset) return(NULL)
+
+  for (initnm in c("FVS_StandInit", "FVS_PlotInit")) {
     initnm_exists = FALSE
     tryCatch(
       # Try to read table from db connection
@@ -61,7 +78,7 @@ checkMinColumnDefs <- function(dbo, progress = NULL, pn = 0) {
            " NOT REGEXP '[A-Za-z0-9_]' OR ", e, " IS NULL")
         
         if (tolower(e) == 'inv_year'){
-          q <- paste0("SELECT COUNT (*) FROM ", initnm, " WHERE INV_YEAR <= 0 OR INV_YEAR IS NULL")
+          q <- paste0("SELECT COUNT (*) FROM ", initnm, " WHERE CAST(INV_YEAR AS INT) <= 0 OR INV_YEAR IS NULL")
         }
            tryCatch(
            {
