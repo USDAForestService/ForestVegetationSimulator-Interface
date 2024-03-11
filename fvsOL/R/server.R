@@ -4005,7 +4005,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         }  
       }
       cat ("Building a component: kwPname=",kwPname,"\n")
-      ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+      ans = if (length(kwPname)==1 && toupper(kwPname) == toupper("freeEdit")) list(ex=attr(globals$currentCmdPkey,"extension"),
                                                                 reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
@@ -4897,7 +4897,7 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
       updateTextInput(session=session, inputId="kcpTitle", value=newTit)
     } else newTit = paste0("Editor: ",trim(input$kcpTitle))
     newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
-                      variant=globals$activeVariants[1],kwdName="FreeEdit",
+                      variant=globals$activeVariants[1],kwdName="freeEdit",
                       title=newTit,reopn=character(0))
     # find the attachment point. 
     sel = input$simCont[[1]]

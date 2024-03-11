@@ -980,11 +980,13 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
               tmpList <- strsplit(fvsRun$grps[[i]]$cmps[[j]]$kwds, split = '[[:space:]]+')
               chkGrp <- tmpList[[1]][2]
             }
-            for (k in length(globals$GenGrp):1){
-              if (chkGrp ==  globals$GenGrp[[k]]) {
-                globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-                globals$GenGrp<- globals$GenGrp[-k]
-                break
+            if(length(globals$GenGrp)){
+              for (k in length(globals$GenGrp):1){
+                if (chkGrp ==  globals$GenGrp[[k]]) {
+                  globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+                  globals$GenGrp<- globals$GenGrp[-k]
+                  break
+                }
               }
             }
           }
@@ -1918,15 +1920,17 @@ areFilesIdentical <- function (f1=NULL, f2=NULL)
 # with automatically generated duplicated, sequentially labeled species groups
 #
 # DWagner
-# Last modified: February 21, 2024
+# Last modified: March 06, 2024
 ##################################################################################
 
 DupSpGrpKwdFormat <- function(orgName, dupName, orgKwd){
   draftKwd <- sub(orgName, dupName, orgKwd)
-  newlineIdx <-unlist(gregexpr("\\n", draftKwd))
-  difference = if (newlineIdx > 21) difference = newlineIdx - 21 else 0
-  oldStr <- substr(orgKwd, 8, 20)
-  newStr <- substr(draftKwd, 8 + difference, newlineIdx - 1)
+  draftnewlineIdx <-unlist(gregexpr("\\n", draftKwd))[1]
+  difference = if (draftnewlineIdx > 21) difference = draftnewlineIdx - 21 else 0
+
+  oldnewlineIdx <-unlist(gregexpr("\\n", orgKwd))[1]
+  oldStr <- substr(orgKwd, 8, oldnewlineIdx -1)
+  newStr <- substr(draftKwd, 8 + difference, draftnewlineIdx - 1)
   replacementkwd <- sub(oldStr, newStr, orgKwd)
   
   return(replacementkwd)
