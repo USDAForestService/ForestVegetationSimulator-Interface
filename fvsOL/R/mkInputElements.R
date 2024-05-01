@@ -41,7 +41,6 @@ mkeltList <- function (pkeys,prms,globals,input,output,
     else if (funcflag) pkey = paste0("func.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
  "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,"\n")
-
     elt = switch(elt,
       listButton     = mkSelectInput (pkey, pmt, choices, fpvs),
       longListButton = mkSelectInput (pkey, pmt, choices, fpvs),

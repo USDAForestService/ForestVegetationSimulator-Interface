@@ -3801,6 +3801,10 @@ SetPthin  !1,10!     Parms(!2!, !3,,numbers!)}
 description:
 {Changes the habitat type, plant association, ecological unit, 
 and/or site index over the projection cycle.
+
+NOTE:
+Due to the internal processing sequence in FVS, conditional implementations of SETSITE 
+will not affect FVS computation until the cycle after the condition is found true
 }
 
 f1:{scheduleBox}

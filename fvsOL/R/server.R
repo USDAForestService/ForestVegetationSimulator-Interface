@@ -2723,7 +2723,8 @@ cat("setting uiRunPlot to NULL\n")
       if (! identical(attributes(class(saveFvsRun)),attributes(class(globals$fvsRun))))
         attributes(class(saveFvsRun)) = attributes(class(globals$fvsRun))
       globals$fvsRun = saveFvsRun
-
+      if (length(globals$GenGrp)) globals$GenGrp <- list()
+      if (length(globals$GrpNum)) globals$GrpNum <- numeric(0)
       if (length(globals$fvsRun$stands)) for (i in 1:length(globals$fvsRun$stands))
       {
         if (length(globals$fvsRun$stands[[i]]$grps) > 0) 
@@ -3183,14 +3184,23 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
 cat("paste, pidx=",pidx,"\n")
       if (is.null(pidx)) return()
       topaste = globals$pastelist[[pidx]]
-      if (length(grep("^SpGroup",topaste$kwds)))
-      {
-cat("paste, SpGroup hit\n")
+
+      if (length(grep("^SpGroup",topaste$kwds))){
+        cat("paste, SpGroup hit\n")
         cntr <- 0
-        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
+        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 
+        else {
           globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-        globals$GenGrp[length(globals$GrpNum)] <- topaste$reopn[[1]]
+        }
+        pastedName <- strsplit(topaste$kwds, split = '[[:space:]]+')[[1]][2]
+        grpName <- gsub(" ", "",mkNameUnique(pastedName, globals$GenGrp, spgroup = TRUE), fixed =TRUE)
+        topaste$kwds <- DupSpGrpKwdFormat(pastedName, grpName, topaste$kwds)
+        if(!is.null(topaste$reopn)){
+          topaste$reopn[["f1"]] = toString(grpName)
+        }
+        globals$GenGrp[length(globals$GrpNum)] <- grpName
       }
+
 cat("paste, class(topaste)=",class(topaste),"\n")
       if (class(topaste) != "fvsCmp") return()
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
@@ -3912,15 +3922,15 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       if(!length(input$simCont))
       {
         cat("No Active Stands\n")
-          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
-                     "'Run Contents' must contain at least one stand or group to perform this operation "))
-        # showNotification("Must have at least one stand in Run Contents to perform this operation",
-        #                  type = 'warning')
+        showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                  "'Run Contents' must contain at least one stand or group 
+                  to perform this operation "))
         return()
       }
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
           identical(globals$currentCndPkey,character(0))  && 
           identical(globals$currentCmdPkey,character(0))) return()
+
       if (length(globals$currentEditCmp$reopn) && 
           globals$currentEditCmp$reopn[1] == "pasteOnSave")
       {
@@ -3939,9 +3949,9 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         closeCmp()                      
         return()
       }     
+
       if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
-        if (is.null(attr(globals$currentCndPkey,"keywords")))
-        { 
+        if (is.null(attr(globals$currentCndPkey,"keywords"))){ 
           kwds = mkCondKeyWrd(globals,prms,input)
           newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
                             kwdName=globals$currentCndPkey,title=input$condTitle,
@@ -3995,34 +4005,98 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         }  
       }
       cat ("Building a component: kwPname=",kwPname,"\n")
-      ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+      ans = if (length(kwPname)==1 && toupper(kwPname) == toupper("freeEdit")) list(ex=attr(globals$currentCmdPkey,"extension"),
                                                                 reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
       { 
         cntr <- 0
+        # This globals$GrpNum section might should be relocated ???
         if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
           globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
         grlist <- list()
-        for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" ")
-        {
-          cntr<-cntr+1
-          grlist[cntr]<-ans$reopn[spg]
+        # Initial SpGroups in Freeform will have NULL reopn, which will cause GSOD if not checked
+        if (!is.null(ans$reopn)){
+          for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" "){
+            cntr<-cntr+1
+            grlist[cntr]<-ans$reopn[spg]
+          }
         }
+        else {
+          kwdSplit <- strsplit(ans$kwds, split = '[[:space:]]+')
+          for (p in 2:length(kwdSplit[[1]])){
+            cntr<-cntr+1
+            grlist[cntr] <- kwdSplit[[1]][p]
+          }
+        }
+
         # prevent duplicate SpGroup names due to editing & saving non-name changes
         grlist[1] <- gsub(" ","", grlist[1])
+        # Check for matching existing name
         tmpk <- match(grlist[1], globals$GenGrp)
+
+        # If requested name does not exist in globals, AND request not associated
+        # with editing of existing component, add name to globals
         if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)) 
           globals$GenGrp[length(globals$GrpNum)]<-grlist
-        if (is.na(tmpk) && length(globals$currentEditCmp$kwds))
-        {
+
+        # If requested name does not exist in globals, BUT request IS associated with
+        # editing of existing component, remove existing name and replace with new name
+        # EDIT THIS SECTION NEEDS WORK, CURRENTLY REMOVE LAST GROUP NAME, NOT EDITED NAME
+        # WHICH SHOULD BE IN GLOBALS$CURRENTEDITCMP --EDIT: SECTION SHOULD BE WORKING NOW, 
+        # NEEDS MORE TESTING (DW 2/6/24)
+        if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+          EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
+          removeGrpIdx <- match(EditGrpName, globals$GenGrp)
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-          globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
+          globals$GenGrp <- globals$GenGrp[-removeGrpIdx]
           globals$GenGrp[length(globals$GrpNum)]<-grlist
         }
-        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds))
+
+        # If requested name exists in globals, AND is an edit of existing component
+        # ie, is either a rename of a group to an existing name, or be a non-name edit, 
+        # do not allow grpNum to increment
+        # If attempt to rename existing group to the name of another existing group, 
+        # ie. incoming names does not match value in globals$currentEditCmp$kwds,
+        # Create duplicate name, and remove existing name from globals$GenGrp
+        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-      } 
+          EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
+          # Temporarly store duplicated name
+          dupTemp <- grlist[1]
+          if(!(grlist[1] == EditGrpName)) {
+            grlist[1] <- gsub(" ", '', mkNameUnique(toString(grlist[1]), globals$GenGrp, spgroup=TRUE))
+            # Change ans$kwds to match incremented name
+            ans$kwds <- DupSpGrpKwdFormat(dupTemp, grlist[1], ans$kwds)
+            #ans$kwds <-sub(dupTemp, grlist[1], ans$kwds)
+
+            if(!is.null(ans$reopn)) {
+              ans$reopn[["f1"]] = toString(grlist[1])
+            }
+            removeGrpIdx <- match(EditGrpName, globals$GenGrp)
+            globals$GenGrp <- globals$GenGrp[-removeGrpIdx]
+            globals$GenGrp[length(globals$GrpNum)]<-grlist
+          }
+        }
+
+        # If requested name exists in globals, and is a new group request, 
+        # not an edit of an existing component, increment name and add to globals
+        if (!is.na(tmpk) && !length(globals$currentEditCmp$kwds)) {
+          # Temporarly store duplicated name
+          dupTemp <- grlist[1]
+          # Increment name in grlist[1]
+          grlist[1] <- gsub(" ", '', mkNameUnique(toString(grlist[1]), globals$GenGrp, spgroup=TRUE))
+          # Change ans$kwds to match incremented name
+          ans$kwds <- DupSpGrpKwdFormat(dupTemp, grlist[1], ans$kwds)
+          #ans$kwds <-sub(dupTemp, grlist[1], ans$kwds, fixed = TRUE)
+
+          if(!is.null(ans$reopn)){
+            ans$reopn[["f1"]] = toString(grlist[1])
+          }
+          globals$GenGrp[length(globals$GrpNum)]<-grlist
+        }
+      } # End checks for general species groups
+
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
@@ -4810,58 +4884,53 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   })
   
   ## kcpSaveInRun
-  observeEvent(input$kcpSaveInRun, {  
-        cat ("kcpSaveInRun\n")
-        if(!length(input$simCont)){
-          cat("No Active Stands\n")
-          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
-                    "'Run Contents' must contain at least one stand or group to perform this operation "))
-          return()
-        }
-        if (nchar(input$kcpTitle) == 0)
-        {
-          newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
-          updateTextInput(session=session, inputId="kcpTitle", value=newTit)
-        } else newTit = paste0("Editor: ",trim(input$kcpTitle))
-        newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
-                          variant=globals$activeVariants[1],kwdName="FreeEdit",
-                          title=newTit,reopn=character(0))
-        # find the attachment point. 
-        sel = input$simCont[[1]]
-        grp = findIdx(globals$fvsRun$grps,sel)
-        std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
-        cmp = NULL
-        if (is.null(grp) && is.null(std)) 
-        {
-          for (grp in 1:length(globals$fvsRun$grps))
-          {
-            cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
-            if (!is.null(cmp)) break
-          }
-          if (is.null(cmp)) grp = NULL
-          if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands))
-          {
-            cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
-            if (!is.null(cmp)) break
-          }
-        }
-        # attach the new component
-        if (is.null(grp)) 
-        {
-          globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-            append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+  observeEvent(input$kcpSaveInRun, {
+    cat ("kcpSaveInRun\n")
+    if(!length(input$simCont)) {
+      cat("No Active Stands\n")
+      showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                "'Run Contents' must contain at least one stand or group to perform this operation "))
+      return()
+    }
+    if (nchar(input$kcpTitle) == 0) {
+      newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
+      updateTextInput(session=session, inputId="kcpTitle", value=newTit)
+    } else newTit = paste0("Editor: ",trim(input$kcpTitle))
+    newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
+                      variant=globals$activeVariants[1],kwdName="freeEdit",
+                      title=newTit,reopn=character(0))
+    # find the attachment point. 
+    sel = input$simCont[[1]]
+    grp = findIdx(globals$fvsRun$grps,sel)
+    std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
+    cmp = NULL
+    if (is.null(grp) && is.null(std)) {
+      for (grp in 1:length(globals$fvsRun$grps)) {
+        cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
+        if (!is.null(cmp)) break
+      }
+      if (is.null(cmp)) grp = NULL
+      if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands)) {
+        cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
+        if (!is.null(cmp)) break
+      }
+    }
+    # attach the new component
+    if (is.null(grp)) {
+      globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+      append(globals$fvsRun$stands[[std]]$cmps, newcmp) else 
               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
-        } else { 
-          globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-            append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
-              append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
-        }
-        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
-        updateSelectInput(session=session, inputId="simCont", 
-                          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        globals$changeind <- 1
-        output$contChange <- renderText(HTML("<b>*Run*</b>"))
-        globals$schedBoxPkey <- character(0)
+    } else { 
+      globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+      append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+      append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+    }
+    mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+    updateSelectInput(session=session, inputId="simCont", 
+                      choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+    globals$changeind <- 1
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
+    globals$schedBoxPkey <- character(0)
   })
 
   ## kcpSaveCmps

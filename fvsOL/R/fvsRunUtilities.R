@@ -961,7 +961,6 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
       return(TRUE)
     }
   }
-  cntr <- 0
   # remove a component from a grp... 
   if (length(fvsRun$grps)) for (i in length(fvsRun$grps):1)
   {
@@ -969,15 +968,28 @@ moveToPaste <- function(item,globals,fvsRun,atag=NULL)
     {
       for (j in length(fvsRun$grps[[i]]$cmps):1)
       {
-          spgtest <- grep("^SpGroup",fvsRun$grps[[i]]$cmps[[j]]$kwds)
-          if (length(spgtest) && cntr == 0){
-            globals$GrpNum <- globals$GrpNum[-(length(globals$GrpNum))]
-            globals$GenGrp<- globals$GenGrp[-(length(globals$GenGrp))]
-            cntr <- cntr +1
-            }
         if ((!is.null(item) && fvsRun$grps[[i]]$cmps[[j]]$uuid == item) || 
             (!is.null(atag) && fvsRun$grps[[i]]$cmps[[j]]$atag == atag))
         {
+          spgtest <- grep("^SpGroup",fvsRun$grps[[i]]$cmps[[j]]$kwds)
+          if (length(spgtest)){
+            if(!is.null(fvsRun$grps[[i]]$cmps[[j]]$reopn) && length(fvsRun$grps[[i]]$cmps[[j]]$reopn) > 0){
+              chkGrp <- trim(fvsRun$grps[[i]]$cmps[[j]]$reopn[[1]])
+            }
+            else {
+              tmpList <- strsplit(fvsRun$grps[[i]]$cmps[[j]]$kwds, split = '[[:space:]]+')
+              chkGrp <- tmpList[[1]][2]
+            }
+            if(length(globals$GenGrp)){
+              for (k in length(globals$GenGrp):1){
+                if (chkGrp ==  globals$GenGrp[[k]]) {
+                  globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
+                  globals$GenGrp<- globals$GenGrp[-k]
+                  break
+                }
+              }
+            }
+          }
           toRm = fvsRun$grps[[i]]$cmps[[j]]
           globals$pastelist <- append(globals$pastelist,toRm,after=0)
           globals$pastelistShadow <- append(globals$pastelistShadow,toRm$uuid,after=0)
@@ -1593,7 +1605,7 @@ myListTables <- function(db)
   dbGetQuery(db,"select name from sqlite_master where type = 'table';")[,1]
 }
     
-mkNameUnique <- function(name,setOfNames=NULL)
+mkNameUnique <- function(name,setOfNames=NULL, spgroup=FALSE)
 {
   if (!name %in% setOfNames) return(name)
   i=1
@@ -1602,6 +1614,7 @@ mkNameUnique <- function(name,setOfNames=NULL)
   {
     sp=unlist(strsplit(name,split="")) 
     pl = grep("\\(",sp)
+    if(spgroup) pl = grep("#", sp)
     if (length(pl) > 0)
     {
       pl = max(pl)
@@ -1616,13 +1629,25 @@ mkNameUnique <- function(name,setOfNames=NULL)
       nn=i 
       kp = length(sp)
       ac = " ("
-    } else {
+      if (spgroup) ac = "#"
+    } 
+    else {
       kp = pl
       nn=nn+1
       ac = ""
-    }   
+    }
+
     sp = sp[1:kp]
     name = paste0(c(sp,ac,as.character(nn),")"),collapse="")
+
+    if (spgroup) name = paste0(c(sp,ac,as.character(nn)),collapse="")
+
+    if (spgroup && nchar(name) > 10) {
+      suffix = substr(name, nchar(name) - nchar(as.character(nn)) -1, nchar(name))
+      prefix = substr(name, 1, 10 - nchar(suffix))
+      name = paste0(prefix, suffix)
+    }
+
     if (!name %in% setOfNames) return(name)
     i = i+1
   } 
@@ -1887,4 +1912,26 @@ areFilesIdentical <- function (f1=NULL, f2=NULL)
   f2bin=readBin(f2,what="raw",size=1,n=f2sz)
   identical(f1bin,f2bin)
 }
+
+################################################################################
+# DupSpGrpDwdFormat
+#
+# Helper function to properly format keyword spacing when dealing
+# with automatically generated duplicated, sequentially labeled species groups
+#
+# DWagner
+# Last modified: March 06, 2024
+##################################################################################
+
+DupSpGrpKwdFormat <- function(orgName, dupName, orgKwd){
+  draftKwd <- sub(orgName, dupName, orgKwd)
+  draftnewlineIdx <-unlist(gregexpr("\\n", draftKwd))[1]
+  difference = if (draftnewlineIdx > 21) difference = draftnewlineIdx - 21 else 0
+
+  oldnewlineIdx <-unlist(gregexpr("\\n", orgKwd))[1]
+  oldStr <- substr(orgKwd, 8, oldnewlineIdx -1)
+  newStr <- substr(draftKwd, 8 + difference, draftnewlineIdx - 1)
+  replacementkwd <- sub(oldStr, newStr, orgKwd)
   
+  return(replacementkwd)
+}  
