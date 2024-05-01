@@ -41,7 +41,6 @@ mkeltList <- function (pkeys,prms,globals,input,output,
     else if (funcflag) pkey = paste0("func.",pkey)
 cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
  "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,"\n")
-
     elt = switch(elt,
       listButton     = mkSelectInput (pkey, pmt, choices, fpvs),
       longListButton = mkSelectInput (pkey, pmt, choices, fpvs),
@@ -101,8 +100,10 @@ mkCheckBox <- function (pkey, pmt, choices, fpvs)
   tmp <- if (is.null(fpvs)) FALSE else (as.character(fpvs) == "1" ||
                                         fpvs == "TRUE")
   checked <- if (tmp) "checked=\"checked\"" else ""
-  list(HTML(paste0('<form><input id="',pkey,'" type="checkbox" ',checked,
-       ' value="',fpvs,'">&nbsp;',pmt,'</form>')))
+  list(HTML(paste0('<div class="form-group shiny-input-checkboxgroup 
+  shiny-input-container">', '<div calss="checkbox">','<label>
+  <input id="',pkey,'" type="checkbox" ',checked, ' value="',fpvs,
+  '">&nbsp;',pmt,'</label>', '</div>', '</div>')))
 }
 
 

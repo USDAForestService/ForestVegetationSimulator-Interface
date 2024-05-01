@@ -8,7 +8,7 @@ to with the data set reference number.
 
 WARNING:
 When you used this keyword, you specify a number that refers to a
-data set that FVS will read.  Suppose does not insure that the file is
+data set that FVS will read.  System does not insure that the file is
 present nor that it contains correct FVS input.}
 
 f1title:{FVS input will be read from the data set you refer to below:}
@@ -257,29 +257,29 @@ f1:{scheduleBox}
 f2:{speciesSelection Species whose limits are to be changed}
 
 f3:{numberBox Minimum merchantable DBH}
-f3v{ni ie em bm ec kt wc pn ca}:{7}
-f3v{so ak nc}:{9}
-f3v{ut tt ci}:{8}
-f3v{ws}:{10}
+f3v{ni ie em bm ec kt wc pn ca}:{blank}
+f3v{so ak nc}:{blank}
+f3v{ut tt ci}:{blank}
+f3v{ws}:{blank}
 f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
 f4{ne ls cs}:{numberBox Minimum top diameter inside bark}
 //f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
 f4:{numberBox Minimum top diameter outside bark}
-f4v{ni ie em bm ec kt wc pn ca}:{4.5}
-f4v{so ut tt ak ws ci nc}:{6}
+f4v{ni ie em bm ec kt wc pn ca}:{blank}
+f4v{so ut tt ak ws ci nc}:{blank}
 f4v{cr sw sp sf lp bp}:{blank}
 //f4v{ne ls cs}:{blank}
 f4v{ne ls cs sn}:{blank}
 
 f5:{numberBox Stump height}
 //f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
-f5v:{1}
+f5v:{blank}
 
 f6:{numberBox Form class}
-f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{80}
-f6v{nc so bm ec wc pn ca}:{0}
+f6v{ni ie ut tt ak em ws ci cr bp sw sp sf lp ne ls cs sn kt}:{blank}
+f6v{nc so bm ec wc pn ca}:{blank}
 
 f7:{longListButton Volume calculation method}
 f7v{cs ls ne}:{\
@@ -292,6 +292,7 @@ f7v{cs ls ne}:{\
 7 = User defined equation via BFVOLEQU keyword
 8 = Original TWIGS volume equations
 9 = NATCRS equations with international 1/4-inch board foot volumes}
+
 f7v{sn cr bp sw sp sf lp}:{\
 1 = Kemp equations with Allen adjustments
 2 = User defined equation via BFVOLEQU keyword
@@ -302,6 +303,8 @@ f7v{sn cr bp sw sp sf lp}:{\
 7 = User defined equation via BFVOLEQU keyword
 8 = Other volume calculation method (varies by Region)
 9 = NATCRS equations with international 1/4-inch board foot volumes}
+
+
 f7v:{\
 1 = Kemp equations with Allen adjustments
 2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
@@ -315,7 +318,7 @@ f7v:{\
 
 answerForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
 parmsForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
-numbers:{1 2 3 4 5 6 7 8 9}
+numbers:{1 2 3 4 5 6 7 8 9 10}
 
 //end keyword.base.BFVolume
 
@@ -362,27 +365,27 @@ f2:{speciesSelection Species whose limits are to be changed}
 
 f3:{numberBox Minimum DBH}
 f3v{sn}:{blank}
-f3v{cr sw sp sf lp}:{5}
+f3v{cr sw sp sf lp}:{blank}
 f3v{ls cs ne}:{blank}
-f3v{ni ie em ws bm ec kt wc pn ca}:{7}
-f3v{ut tt ci}:{8}
-f3v{so ak nc bp}:{9}
+f3v{ni ie em ws bm ec kt wc pn ca}:{blank}
+f3v{ut tt ci}:{blank}
+f3v{so ak nc bp}:{blank}
 
 f4:{numberBox Minimum top diameter}
 //f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
-f4v{cr sw sp sf lp}:{4}
-f4v{ni ie em ws bm ec kt wc pn ca}:{4.5}
-f4v{so ut tt ak ci nc bp}:{6}
+f4v{cr sw sp sf lp}:{blank}
+f4v{ni ie em ws bm ec kt wc pn ca}:{blank}
+f4v{so ut tt ak ci nc bp}:{blank}
 //f4v{ne ls cs}:{blank}
 f4v{ne ls cs sn}:{blank}
 
 f5:{numberBox Stump height (feet)}
 //f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
-f5v:{1}
+f5v:{blank}
 
 f6:{numberBox Form class}
-f6v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{80}
-f6v{ni ie so bm ec wc pn nc ca}:{0}
+f6v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{blank}
+f6v{ni ie so bm ec wc pn nc ca}:{blank}
 
 f7:{longListButton Method of volume calculation}
 f7v{ni ie so ut tt ak em ws bm ec ci nc}:{\
@@ -393,7 +396,8 @@ f7v{ni ie so ut tt ak em ws bm ec ci nc}:{\
 5 = not currently used
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)}
+8 = Other volume calculation method (varies by Region)
+9 = not currently used}
 f7v{ls cs ne}:{\
 1 = User defined equation via CFVOLEQU keyword
 2 = not used in this variant
@@ -402,7 +406,9 @@ f7v{ls cs ne}:{\
 5 = Gevorkiantz volume equations
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Original TWIGS volume equations}
+8 = Original TWIGS volume equations
+9 = not used in this variant}
+
 f7v:{\
 1 = User defined equation via CFVOLEQU keyword
 2 = Region 6 eastside taper equations previously in FVS
@@ -411,11 +417,12 @@ f7v:{\
 5 = not currently used
 >6 = National Volume Estimator library equations
 7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)}
+8 = Other volume calculation method (varies by Region)
+9 = not used in this variant}
 
 answerForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
 parmsForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
-numbers:{1 2 3 4 5 6 7 8 9}
+numbers:{1 2 3 4 5 6 7 8 9 10}
 
 //end keyword.base.Volume
  
@@ -956,7 +963,7 @@ description:
 data.
 
 NOTE:
-Most Design cards are built for you by Suppose based on stand and plot
+Most Design cards are built for you based on stand and plot
 data.  To override any field of the generated Design card, only enter
 values in the fields to be overridden.}
 
@@ -1365,10 +1372,10 @@ description:
 
 CAUTION:
 The default inventory year is read from your data.  This default is
-used by Suppose to insure that the simulation starting year is not set
-to a year prior to this default inventory year.  This version of
-Suppose does not insure that the value you enter using this keyword is
-correct, nor does Suppose recognize that this value may cause an
+used to insure that the simulation starting year is not set
+to a year prior to this default inventory year.  This does not insure 
+that the value you enter using this keyword is
+correct, nor does the system recognize that this value may cause an
 incorrect result.}
 
 f1:{numberBox Starting date for the stand projection (eg. 1991).}
@@ -2082,9 +2089,9 @@ description:
 {Specify the number of cycles to run the projection.
 
 CAUTION:
-The number of cycles needed for a run is computed by Suppose.  This
-version of Suppose does not insure that the value you enter using the
-NumCycle keyword is correct, nor does Suppose recognize that this
+The number of cycles needed for a run is computed by FVS.  This
+version does not insure that the value you enter using the
+NumCycle keyword is correct, nor does the system recognize that this
 value may cause an incorrect result.}
 
 f1:{numberBox Number of cycles to be projected.}
@@ -2143,7 +2150,7 @@ f4v:{80}
 f5:{listButton File format switch}
 f5v:{Formatted
      Unformatted}
-f6:{longTextEdit File name (Suppose does not insure this file exists):}
+f6:{longTextEdit File name (System does not insure this file exists):}
 
 answerForm:
 {Open      !1,10!!2,10!!3,10!!4,10!!5,10!
@@ -3794,6 +3801,10 @@ SetPthin  !1,10!     Parms(!2!, !3,,numbers!)}
 description:
 {Changes the habitat type, plant association, ecological unit, 
 and/or site index over the projection cycle.
+
+NOTE:
+Due to the internal processing sequence in FVS, conditional implementations of SETSITE 
+will not affect FVS computation until the cycle after the condition is found true
 }
 
 f1:{scheduleBox}
@@ -3909,11 +3920,10 @@ You must type the new 4 character long code exactly as you want it,
 including blanks.  Note that " WP " (blank, WP, followed by one blank)
 is a different than "WP  " or "  WP".
 
-You can only change one species code with each use of this keyword
-using Suppose.  FVS supports an additional form of this keyword that
+You can only change one species code with each use of this keyword.  
+FVS supports an additional form of this keyword that
 allows you to change all the codes at once.  If you need this
-additional capability, code your SpCodes keyword outside of Suppose
-and add it to the run using the Edit Simulation window.}
+additional capability, code your SpCodes keyword within the Editor window.}
 
 f1:{speciesSelection Species to be identified with a new code}
 f1v:{deleteAll}
@@ -4282,7 +4292,7 @@ StdIdent
 parmsForm=answerForm
 
 description:{\
-It is best to use the Suppose "Change Group Membership" window to
+It is best to use the "Change Group Membership" window to
 specify the stand and management identifications.}
 
 //end keyword.base.StdIdent
@@ -4299,7 +4309,7 @@ MgmtId
 parmsForm=answerForm
 
 description:{\
-It is best to use the Suppose "Change Group Membership" window to
+It is best to use the "Change Group Membership" window to
 specify the stand and management identifications.}
 
 //end keyword.base.MgmtId
@@ -5087,8 +5097,8 @@ description:
 
 CAUTION:
 The number and length of cycles needed for a run is computed by
-Suppose.  This version of Suppose does not insure that the value you
-enter using the TimeInt keyword is correct, nor does Suppose recognize
+FVS.  This does not insure that the value you
+enter using the TimeInt keyword is correct, nor does FVS recognize
 that this value may cause an incorrect result.}
 
 parmsForm:{

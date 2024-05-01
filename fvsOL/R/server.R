@@ -170,6 +170,10 @@ cat ("FVSOnline/OnLocal interface server start\n")
   serverDate=as.character(packageVersion("fvsOL"))
   serverDate=unlist(strsplit(serverDate,".",fixed=TRUE))
   for (i in 2:3) if (nchar(serverDate[i])==1) serverDate[i]=paste0("0",serverDate[i])
+  if(!is.na(serverDate[4])){
+    if (nchar(serverDate[4])==1) serverDate[4]=paste0("0",serverDate[4])
+    serverDate[4]= paste0(".", serverDate[4])
+  }
   serverDate=paste0(serverDate,collapse="")
 
 cat ("ServerDate=",serverDate,"\n")
@@ -205,7 +209,7 @@ cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
 cat ("Project is locked.\n")
       output$appLocked<-renderUI(HTML(paste0('<h4 style="color:#FF0000">',
         'Warning: This project may already be opened.</h4>',
-        '<h5>Insure the project is not opened in another window.</h5>',
+        '<h5>Ensure the project is not opened in another window.</h5>',
         '<button id="clearLock" type="button" class="btn btn-default ',
         'action-button">Clear this message and proceed</button>',
         '&nbsp;&nbsp;&nbsp;&nbsp;<button id="exitNow" type="button" ',
@@ -255,7 +259,7 @@ cat ("Project is locked.\n")
         paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
         paste0('<font color="darkred"><b>Development</b></font> ',serverDate,"<br>") 
     } else {
-      paste0(paste0("Release date: ",serverDate,"<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
+      paste0(paste0("Release date: ",serverDate, "<br>"),if (isLocal()) " Local" else " Online"," configuration<br>")
     }
     hostedByLogo=system.file("extdata","www/hostedByLogo.png",
       package="fvsOL")
@@ -277,6 +281,7 @@ cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
     email=trim(unlist(strsplit(email,split="=",fixed=TRUE))[2])
     tstring = paste0("Project title: <b>",tit,"</b>",
            if (length(email)) paste0("<br>Email: <b>",email,"</b>") else "",
+           if (isLocal())(paste0("<br>Current Location: <b>", getwd(), "</b>")),
            "<br>Last accessed: <b>",
            format(file.info(getwd())[1,"mtime"],"%a %b %d %H:%M:%S %Y"),"</b>")
 cat ("tstring=",tstring,"\n")    
@@ -319,7 +324,37 @@ cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
     output$contChange <- renderUI("Run")    
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
     globals$exploring <- FALSE
-    
+
+    # Check for improper loaded database
+    initial_check <- checkMinColumnDefs(dbGlb$dbIcon)
+    if(!is.null(initial_check)) {
+      cat("Detected invalid database installed")
+      url <- a("Chapter 3 of the Database Users Guide", 
+               href="https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf",
+               target="_blank", rel="noopener noreferrer")
+      showModal(shiny::modalDialog(
+        title = "Invalid database detected",
+        tagList(HTML(initial_check),p(
+        "Pre-load checks have detected an installed database that does not conform to input database requirements.
+        Please see input database requirements in", url),         
+        p("The default training dataset will now be installed.  If a custom database is desired, 
+        please load it through the Upload inventory database tab.")),
+        easyClose = F,
+        footer = tagList(modalButton("Acknowledge"))))
+
+      # Disconnect from bad database
+      dbDisconnect(dbGlb$dbIcon)
+
+      # copy in default training data
+      frm=system.file("extdata", "FVS_Data.db.default", package="fvsOL")
+      file.copy(frm,"FVS_Data.db",overwrite=TRUE)
+      frm=system.file("extdata", "SpatialData.RData.default",package=sub("package:","",find('fvsOL')[1]))
+      file.copy(frm,"SpatialData.RData",overwrite=TRUE)
+
+      # Reconnect to FVS_Data.db
+      dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
+    }
+
     setProgress(value = NULL)          
   }, min=1, max=6)
   observe({
@@ -375,6 +410,11 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
     globals$reloadAppIsSet == 0
   })
   
+  if (isLocal()) {
+    volumes <-c(shinyFiles::getVolumes()())
+    shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
+  }
+
   ## clearLock
   observe({
     if (!is.null(input$clearLock) && input$clearLock==0)
@@ -2456,7 +2496,7 @@ cat ("in reloadStandSelection\n")
     if (input$topPan == "Simulate" || input$rightPan == "Stands")
     {
 cat ("inGrps inAnyAll inStdFindBut\n")
-      # insure reactivity to inStdFindBut
+      # Ensure reactivity to inStdFindBut
       input$inStdFindBut
       if (is.null(input$inGrps))          
       {
@@ -2683,7 +2723,8 @@ cat("setting uiRunPlot to NULL\n")
       if (! identical(attributes(class(saveFvsRun)),attributes(class(globals$fvsRun))))
         attributes(class(saveFvsRun)) = attributes(class(globals$fvsRun))
       globals$fvsRun = saveFvsRun
-
+      if (length(globals$GenGrp)) globals$GenGrp <- list()
+      if (length(globals$GrpNum)) globals$GrpNum <- numeric(0)
       if (length(globals$fvsRun$stands)) for (i in 1:length(globals$fvsRun$stands))
       {
         if (length(globals$fvsRun$stands[[i]]$grps) > 0) 
@@ -3143,14 +3184,23 @@ cat ("Cut length(input$simCont) = ",length(input$simCont),"\n")
 cat("paste, pidx=",pidx,"\n")
       if (is.null(pidx)) return()
       topaste = globals$pastelist[[pidx]]
-      if (length(grep("^SpGroup",topaste$kwds)))
-      {
-cat("paste, SpGroup hit\n")
+
+      if (length(grep("^SpGroup",topaste$kwds))){
+        cat("paste, SpGroup hit\n")
         cntr <- 0
-        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
+        if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 
+        else {
           globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
-        globals$GenGrp[length(globals$GrpNum)] <- topaste$reopn[[1]]
+        }
+        pastedName <- strsplit(topaste$kwds, split = '[[:space:]]+')[[1]][2]
+        grpName <- gsub(" ", "",mkNameUnique(pastedName, globals$GenGrp, spgroup = TRUE), fixed =TRUE)
+        topaste$kwds <- DupSpGrpKwdFormat(pastedName, grpName, topaste$kwds)
+        if(!is.null(topaste$reopn)){
+          topaste$reopn[["f1"]] = toString(grpName)
+        }
+        globals$GenGrp[length(globals$GrpNum)] <- grpName
       }
+
 cat("paste, class(topaste)=",class(topaste),"\n")
       if (class(topaste) != "fvsCmp") return()
       topaste = mkfvsCmp(kwds=topaste$kwds,kwdName=topaste$kwdName,
@@ -3872,15 +3922,15 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       if(!length(input$simCont))
       {
         cat("No Active Stands\n")
-          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
-                     "'Run Contents' must contain at least one stand or group to perform this operation "))
-        # showNotification("Must have at least one stand in Run Contents to perform this operation",
-        #                  type = 'warning')
+        showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                  "'Run Contents' must contain at least one stand or group 
+                  to perform this operation "))
         return()
       }
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp) &&
           identical(globals$currentCndPkey,character(0))  && 
           identical(globals$currentCmdPkey,character(0))) return()
+
       if (length(globals$currentEditCmp$reopn) && 
           globals$currentEditCmp$reopn[1] == "pasteOnSave")
       {
@@ -3899,9 +3949,9 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         closeCmp()                      
         return()
       }     
+
       if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
-        if (is.null(attr(globals$currentCndPkey,"keywords")))
-        { 
+        if (is.null(attr(globals$currentCndPkey,"keywords"))){ 
           kwds = mkCondKeyWrd(globals,prms,input)
           newcnd = mkfvsCmp(uuid=uuidgen(),atag="c",exten="base",
                             kwdName=globals$currentCndPkey,title=input$condTitle,
@@ -3955,34 +4005,98 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         }  
       }
       cat ("Building a component: kwPname=",kwPname,"\n")
-      ans = if (length(kwPname)==1 && kwPname=="freeEdit") list(ex=attr(globals$currentCmdPkey,"extension"),
+      ans = if (length(kwPname)==1 && toupper(kwPname) == toupper("freeEdit")) list(ex=attr(globals$currentCmdPkey,"extension"),
                                                                 reopn=NULL,kwds=input$freeEdit) else buildKeywords(oReopn,pkeys, kwPname,globals)
       gensps <- grep("SpGroup", ans$kwds)
       if(length(gensps)) 
       { 
         cntr <- 0
+        # This globals$GrpNum section might should be relocated ???
         if(!length(globals$GrpNum)) globals$GrpNum[1] <- 1 else
           globals$GrpNum[(length(globals$GrpNum)+1)] <- length(globals$GrpNum)+1
         grlist <- list()
-        for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" ")
-        {
-          cntr<-cntr+1
-          grlist[cntr]<-ans$reopn[spg]
+        # Initial SpGroups in Freeform will have NULL reopn, which will cause GSOD if not checked
+        if (!is.null(ans$reopn)){
+          for (spg in 1:length(ans$reopn)) if(try(ans$reopn[spg])!=" "){
+            cntr<-cntr+1
+            grlist[cntr]<-ans$reopn[spg]
+          }
         }
+        else {
+          kwdSplit <- strsplit(ans$kwds, split = '[[:space:]]+')
+          for (p in 2:length(kwdSplit[[1]])){
+            cntr<-cntr+1
+            grlist[cntr] <- kwdSplit[[1]][p]
+          }
+        }
+
         # prevent duplicate SpGroup names due to editing & saving non-name changes
         grlist[1] <- gsub(" ","", grlist[1])
+        # Check for matching existing name
         tmpk <- match(grlist[1], globals$GenGrp)
+
+        # If requested name does not exist in globals, AND request not associated
+        # with editing of existing component, add name to globals
         if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)) 
           globals$GenGrp[length(globals$GrpNum)]<-grlist
-        if (is.na(tmpk) && length(globals$currentEditCmp$kwds))
-        {
+
+        # If requested name does not exist in globals, BUT request IS associated with
+        # editing of existing component, remove existing name and replace with new name
+        # EDIT THIS SECTION NEEDS WORK, CURRENTLY REMOVE LAST GROUP NAME, NOT EDITED NAME
+        # WHICH SHOULD BE IN GLOBALS$CURRENTEDITCMP --EDIT: SECTION SHOULD BE WORKING NOW, 
+        # NEEDS MORE TESTING (DW 2/6/24)
+        if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+          EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
+          removeGrpIdx <- match(EditGrpName, globals$GenGrp)
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-          globals$GenGrp <- globals$GenGrp[-length(globals$GenGrp)]
+          globals$GenGrp <- globals$GenGrp[-removeGrpIdx]
           globals$GenGrp[length(globals$GrpNum)]<-grlist
         }
-        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds))
+
+        # If requested name exists in globals, AND is an edit of existing component
+        # ie, is either a rename of a group to an existing name, or be a non-name edit, 
+        # do not allow grpNum to increment
+        # If attempt to rename existing group to the name of another existing group, 
+        # ie. incoming names does not match value in globals$currentEditCmp$kwds,
+        # Create duplicate name, and remove existing name from globals$GenGrp
+        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
-      } 
+          EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
+          # Temporarly store duplicated name
+          dupTemp <- grlist[1]
+          if(!(grlist[1] == EditGrpName)) {
+            grlist[1] <- gsub(" ", '', mkNameUnique(toString(grlist[1]), globals$GenGrp, spgroup=TRUE))
+            # Change ans$kwds to match incremented name
+            ans$kwds <- DupSpGrpKwdFormat(dupTemp, grlist[1], ans$kwds)
+            #ans$kwds <-sub(dupTemp, grlist[1], ans$kwds)
+
+            if(!is.null(ans$reopn)) {
+              ans$reopn[["f1"]] = toString(grlist[1])
+            }
+            removeGrpIdx <- match(EditGrpName, globals$GenGrp)
+            globals$GenGrp <- globals$GenGrp[-removeGrpIdx]
+            globals$GenGrp[length(globals$GrpNum)]<-grlist
+          }
+        }
+
+        # If requested name exists in globals, and is a new group request, 
+        # not an edit of an existing component, increment name and add to globals
+        if (!is.na(tmpk) && !length(globals$currentEditCmp$kwds)) {
+          # Temporarly store duplicated name
+          dupTemp <- grlist[1]
+          # Increment name in grlist[1]
+          grlist[1] <- gsub(" ", '', mkNameUnique(toString(grlist[1]), globals$GenGrp, spgroup=TRUE))
+          # Change ans$kwds to match incremented name
+          ans$kwds <- DupSpGrpKwdFormat(dupTemp, grlist[1], ans$kwds)
+          #ans$kwds <-sub(dupTemp, grlist[1], ans$kwds, fixed = TRUE)
+
+          if(!is.null(ans$reopn)){
+            ans$reopn[["f1"]] = toString(grlist[1])
+          }
+          globals$GenGrp[length(globals$GrpNum)]<-grlist
+        }
+      } # End checks for general species groups
+
       if (identical(globals$currentEditCmp,globals$NULLfvsCmp))
       {
         newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=ans$kwds,exten=ans$ex,
@@ -4770,58 +4884,53 @@ cat ("kcpNew called, input$kcpNew=",input$kcpNew,"\n")
   })
   
   ## kcpSaveInRun
-  observeEvent(input$kcpSaveInRun, {  
-        cat ("kcpSaveInRun\n")
-        if(!length(input$simCont)){
-          cat("No Active Stands\n")
-          showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
-                    "'Run Contents' must contain at least one stand or group to perform this operation "))
-          return()
-        }
-        if (nchar(input$kcpTitle) == 0)
-        {
-          newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
-          updateTextInput(session=session, inputId="kcpTitle", value=newTit)
-        } else newTit = paste0("Editor: ",trim(input$kcpTitle))
-        newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
-                          variant=globals$activeVariants[1],kwdName="FreeEdit",
-                          title=newTit,reopn=character(0))
-        # find the attachment point. 
-        sel = input$simCont[[1]]
-        grp = findIdx(globals$fvsRun$grps,sel)
-        std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
-        cmp = NULL
-        if (is.null(grp) && is.null(std)) 
-        {
-          for (grp in 1:length(globals$fvsRun$grps))
-          {
-            cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
-            if (!is.null(cmp)) break
-          }
-          if (is.null(cmp)) grp = NULL
-          if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands))
-          {
-            cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
-            if (!is.null(cmp)) break
-          }
-        }
-        # attach the new component
-        if (is.null(grp)) 
-        {
-          globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
-            append(globals$fvsRun$stands[[std]]$cmps, newcmp) else
+  observeEvent(input$kcpSaveInRun, {
+    cat ("kcpSaveInRun\n")
+    if(!length(input$simCont)) {
+      cat("No Active Stands\n")
+      showModal(shiny::modalDialog(title = "Cannot Perform Operation", 
+                "'Run Contents' must contain at least one stand or group to perform this operation "))
+      return()
+    }
+    if (nchar(input$kcpTitle) == 0) {
+      newTit = paste0("Editor: Component ",length(globals$customCmps)+1) 
+      updateTextInput(session=session, inputId="kcpTitle", value=newTit)
+    } else newTit = paste0("Editor: ",trim(input$kcpTitle))
+    newcmp = mkfvsCmp(uuid=uuidgen(),atag="k",kwds=input$kcpEdit,exten="base",
+                      variant=globals$activeVariants[1],kwdName="freeEdit",
+                      title=newTit,reopn=character(0))
+    # find the attachment point. 
+    sel = input$simCont[[1]]
+    grp = findIdx(globals$fvsRun$grps,sel)
+    std = if (is.null(grp)) findIdx(globals$fvsRun$stands,sel) else NULL
+    cmp = NULL
+    if (is.null(grp) && is.null(std)) {
+      for (grp in 1:length(globals$fvsRun$grps)) {
+        cmp = findIdx(globals$fvsRun$grps[[grp]]$cmps,sel)
+        if (!is.null(cmp)) break
+      }
+      if (is.null(cmp)) grp = NULL
+      if (is.null(grp)) for (std in 1:length(globals$fvsRun$stands)) {
+        cmp = findIdx(globals$fvsRun$stands[[std]]$cmps,sel)
+        if (!is.null(cmp)) break
+      }
+    }
+    # attach the new component
+    if (is.null(grp)) {
+      globals$fvsRun$stands[[std]]$cmps <- if (is.null(cmp))  
+      append(globals$fvsRun$stands[[std]]$cmps, newcmp) else 
               append(globals$fvsRun$stands[[std]]$cmps, newcmp, after=cmp)
-        } else { 
-          globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
-            append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
-              append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
-        }
-        mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
-        updateSelectInput(session=session, inputId="simCont", 
-                          choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
-        globals$changeind <- 1
-        output$contChange <- renderText(HTML("<b>*Run*</b>"))
-        globals$schedBoxPkey <- character(0)
+    } else { 
+      globals$fvsRun$grps[[grp]]$cmps <- if (is.null(cmp))  
+      append(globals$fvsRun$grps[[grp]]$cmps, newcmp) else
+      append(globals$fvsRun$grps[[grp]]$cmps, newcmp, after=cmp)
+    }
+    mkSimCnts(globals$fvsRun,sels=input$simCont[[1]],justGrps=input$simContType=="Just groups")
+    updateSelectInput(session=session, inputId="simCont", 
+                      choices=globals$fvsRun$simcnts, selected=globals$fvsRun$selsim)
+    globals$changeind <- 1
+    output$contChange <- renderText(HTML("<b>*Run*</b>"))
+    globals$schedBoxPkey <- character(0)
   })
 
   ## kcpSaveCmps
@@ -6183,7 +6292,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
       updateTabsetPanel(session=session, inputId="toolsPan",
         selected="Import input data")
       updateTabsetPanel(session=session, inputId="inputDBPan", 
-        selected="Upload inventory data")
+        selected="Upload inventory database")
     }
   })
   
@@ -6192,17 +6301,21 @@ cat ("tabDescSel2, tab=",tab,"\n")
     if(input$toolsPan == "Import input data")
     {
       updateTabsetPanel(session=session, inputId="inputDBPan", 
-        selected="Upload inventory data")
+        selected="Upload inventory database")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
     }
   })
   observe({
-    if(input$inputDBPan == "Upload inventory data") 
+    if(input$inputDBPan == "Upload inventory database") 
     {
-cat ("Upload inventory data\n")
+      cat ("Upload inventory data\n")
       output$step1ActionMsg <- NULL
       output$step2ActionMsg <- NULL
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installNewDB').prop('disabled',true)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#addNewDB').prop('disabled',true)"))
     }
   })
   
@@ -6269,32 +6382,27 @@ cat ("Upload inventory data\n")
   ## Upload new database
   observe({
     if (is.null(input$uploadNewDB)) return()
+    validdb = FALSE
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
-cat ("fext=",fext,"\n")
+    cat ("fext=",fext,"\n")
     session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#input$installNewDB').prop('disabled',true)"))
+                          list(code= "$('#installNewDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#input$addNewDB').prop('disabled',true)"))
+                          list(code= "$('#addNewDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installTrainDB').prop('disabled',true)"))
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installEmptyDB').prop('disabled',true)"))
-    if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) 
-    {
+    if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) {
       output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installTrainDB').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installEmptyDB').prop('disabled',false)"))
       return()
-    } else {
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installNewDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#addNewDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installTrainDB').prop('disabled',true)"))
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installEmptyDB').prop('disabled',true)"))
     }
     fdir = dirname(input$uploadNewDB$datapath)
     progress <- shiny::Progress$new(session,min=1,max=20)
@@ -6309,10 +6417,18 @@ cat ("fext=",fext,"\n")
         output$step1ActionMsg = renderText(".zip contains more than one file.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       } else if (length(fname) == 0) {
         output$actionMsg = renderText(".zip was empty.")
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       } 
       fext = tools::file_ext(fname)
@@ -6321,6 +6437,10 @@ cat ("fext=",fext,"\n")
         output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
         lapply (dir(dirname(input$uploadNewDB$datapath),full.names=TRUE),unlink)
         progress$close()
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
     } else fname = basename(input$uploadNewDB$datapath)
@@ -6344,6 +6464,10 @@ cat ("cmd=",cmd,"\n")
         if (schema[1] =="Unknown Jet version.") output$step1ActionMsg = renderText("Unknown Jet version. Possible corrupt database.") else
         output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
@@ -6370,11 +6494,21 @@ cat ("cmd=",cmd,"\n")
       cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
       cat ("commit;\n",file="sqlite3.import",append=TRUE)
       progress$set(message = "Extract data", value = 3)  
-      if(!length(grep("FVS_StandInit",tbln,ignore.case=TRUE))){
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
+                        FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b",
+                        tbln, ignore.case = TRUE))) {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export") else "mdb-export"
@@ -6400,13 +6534,22 @@ cat ("cmd done.\n")
     {
       progress$set(message = "Get data sheets", value = 3)
       sheets = getSheetNames(fname)
-      sheetsU <- toupper(sheets)
-      if(!length(grep("FVS_STANDINIT",sheetsU)))
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
+                       FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b"
+                       ,sheets, ignore.case = TRUE)))
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
       normNames = c("FVS_GroupAddFilesAndKeywords","FVS_PlotInit",                
@@ -6423,7 +6566,7 @@ cat ("cmd done.\n")
       for (sheet in sheets)
       {
         i = i+1
-cat ("sheet = ",sheet," i=",i,"\n")
+        cat ("sheet = ",sheet," i=",i,"\n")
         progress$set(message = paste0("Processing sheet ",i," name=",sheet), value=i)
         sdat = read.xlsx(xlsxFile=fname,sheet=sheet)
         sdat[[3]] <- gsub("_x000D_", "", sdat[[3]])
@@ -6449,13 +6592,21 @@ cat ("sheet = ",sheet," i=",i,"\n")
       i = 0
       file.rename(from=fname,to="FVS_Data.db")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
-      tabs = toupper(myListTables(dbo))
-      if(!length(grep("FVS_STANDINIT",tabs)))
+      tabs = myListTables(dbo)
+      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|
+                       FVS_StandInit_Plot|FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b"
+                       ,tabs, ignore.case = TRUE)))
       {
         setwd(curDir) 
         progress$close()     
-        output$step1ActionMsg = renderText("FVS_StandInit table is missing from your input data.")
+        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                                           Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>")
         session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+        session$sendCustomMessage(type="jsCode", list(code= "$('#installTrainDB').prop('disabled',false)"))
+        session$sendCustomMessage(type="jsCode", list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       }
     }
@@ -6466,7 +6617,7 @@ cat ("sheet = ",sheet," i=",i,"\n")
     {
       fiaMsg=NULL
       progress$set(message = "FIA data detected, most checks skipped", value = 1) 
-      # insure that the DSNIn keywords address FVS_Data.db in the FVS_GroupAddFilesAndKeywords table
+      # Ensure that the DSNIn keywords address FVS_Data.db in the FVS_GroupAddFilesAndKeywords table
       grpAdd = try(dbGetQuery(dbo,'select * from "fvs_groupaddfilesandkeywords"'))
       if (class(grpAdd) != "try.error") 
       {
@@ -6482,11 +6633,12 @@ cat ("sheet = ",sheet," i=",i,"\n")
           }
         }
       }
+      validdb = TRUE
     } else {
       # get rid of "NRIS_" part of names if any
       for (tab in tabs)
       {
-cat("loaded table=",tab,"\n")      
+        cat("loaded table=",tab,"\n")      
         nn = sub("NRIS_","",tab)
         if (nchar(nn) && nn != tab) dbExecute(dbo,paste0("alter table ",tab," rename to ",nn))
       }
@@ -6502,7 +6654,7 @@ cat("loaded table=",tab,"\n")
         if (class(addgrps)!="try-error")
         {
           addgrps=unique(unlist(lapply(addgrps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
-cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
+          cat ("addgrps=",paste0(addgrps,collapse=" "),"\n")
           for (idx in fixTabs)
           {
             tab2fix=tabs[idx]
@@ -6635,24 +6787,32 @@ cat ("calling fixFVSKeywords\n")
       canuse=class(tt) == "NULL"
       if (class(tt)=="character") msg = paste0(msg,
         "<br>Checking keywords: ",tt)
-      progress$set(message = "Checking for minimum column definitions", value = 8)      
+      progress$set(message = "Checking for minimum column definitions", value = 8)     
       tt = try(checkMinColumnDefs(dbo,progress,9))
       canuse=canuse && class(tt) == "NULL"
       if (class(tt)=="character") msg = paste0(msg,"<br>Checking columns: ",tt)
-      if (!canuse) msg = paste0(msg,
-        "<h4>Data checks indicate there are unresolved problems in the input.</h4>")
-cat ("msg=",msg,"\n")
+      if (!canuse) {msg = paste0(msg,
+        "<h4>Data checks indicate there are unresolved problems in the input.<br>
+        Please review input database requirements in 
+            <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+            target='_blank' rel='noopener noreferrer'>
+            Chapter 3 of the Database Users Guide</a></h4>")
+        cat ("msg=",msg,"\n")
+      }
+      else validdb = TRUE
     } else msg = paste0(msg,if (!is.null(fiaMsg)) paste0("<br>",fiaMsg) else "",
         "<h4>Data checks are skipped when FIA data is detected.</h4>")
     output$step1ActionMsg = renderUI(HTML(msg))
     dbGlb$newFVSData = tempfile()
     dbDisconnect(dbo)
-    file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
-    session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installNewDB').prop('disabled',false)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#addNewDB').prop('disabled',false)"))
+    if (validdb) {
+      file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
+      session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#installNewDB').prop('disabled',false)"))
+      session$sendCustomMessage(type="jsCode",
+                                list(code= "$('#addNewDB').prop('disabled',false)"))
+    }
     session$sendCustomMessage(type="jsCode",
                               list(code= "$('#installTrainDB').prop('disabled',false)"))
     session$sendCustomMessage(type="jsCode",
@@ -7393,7 +7553,7 @@ cat ("editSelDBtabs, input$editSelDBtabs=",input$editSelDBtabs,
     if (length(input$editSelDBtabs)) 
     {         
       dbGlb$tblName <- input$editSelDBtabs
-      fixEmptyTable(dbGlb)                                
+      fixEmptyTable(dbGlb)       
       msg=checkMinColumnDefs(dbGlb$dbIcon)
 cat ("msg=",msg,"\n")
       dbGlb$tbl <- NULL                                           
@@ -8374,6 +8534,36 @@ cat ("launch url:",url,"\n")
     })
   })
   
+  ############################################################################################################
+  #
+  # Event Handler for input$Change_wd
+  #
+  ############################################################################################################
+  
+  if (isLocal()) {
+      observeEvent(input$Change_wd, {
+        # ObserverEvent triggers multiple times, so need to check length to ensure input was created in dialog
+        if(length(input$Change_wd) > 1)
+        {
+          dirPath<- parseDirPath(volumes, input$Change_wd)
+          cat(paste0("User selected: ", dirPath))
+
+                # Verify user has write permission to path
+          if(!(file.access(dirPath, 2) == 0)){
+            cat("User write permissions denied")
+            showModal(shiny::modalDialog(
+              title = "Write Permission Denied",
+              "Sorry, you do not have permissions to write to this folder, please select another location.",
+              easyClose = F))
+            return()
+          }
+          change_project_dir(dirPath)
+          updateProjectSelections()
+        }
+    }) # End Event Handler for input$Change_wd
+  }
+
+    
   ## Full run/Just groups
   observe({
     mkSimCnts(globals$fvsRun,justGrps=input$simContType=="Just groups") 
