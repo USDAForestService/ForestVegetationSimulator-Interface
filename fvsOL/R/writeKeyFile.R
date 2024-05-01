@@ -76,6 +76,7 @@ kcpVetting <- function (kcpconts)
     commkw <- grep("COMMENT", toupper(kcpconts[j]))
     commkw <- length(commkw)
     compkw <- toupper(strsplit(kcpconts[j]," ")[[1]][1])=="COMPUTE"
+    basekw <- !is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]), basekwds))
     if(!is.na(match("DESIGN", toupper(kcpconts[j]))))RepsDesign=TRUE
     # omit comments, lines that continue (supplemental records), parameter-only lines, compute expressions (contains "="), and THEN keywords
     if(is.na(!comment && commentflag==0 && !continuation && is.na(numvalue) && !length(expression) && !thenkw)) next
@@ -125,7 +126,7 @@ kcpVetting <- function (kcpconts)
       }
       # If it's an extension keyword and we're not already in an extension block
       else if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),extkwds)) 
-              && extflag==0 && is.na(endkw) && !compkw){
+              && extflag==0 && is.na(endkw) && !compkw && !basekw){
         # if it's a regen keyword, insert ESTAB in the line above and set the flag to 1, etc
         if(!is.na(match(toupper(strsplit(kcpconts[j]," ")[[1]][1]),regenkwds))){
           invoke <- as.character(invokekwds[1])
