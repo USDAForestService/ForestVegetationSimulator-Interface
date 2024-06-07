@@ -72,7 +72,7 @@ f3v{ws}:{blank}
 f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
-f4:{numberBox Minimum top diameter inside bark}
+f4:{numberBox Minimum top diameter}
 f4v{ni ie em bm ec kt wc pn ca oc op}:{blank}
 f4v{so ut tt ak ws ci nc}:{blank}
 f4v{cr sw sp sf lp bp}:{blank}

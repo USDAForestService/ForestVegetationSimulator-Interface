@@ -956,9 +956,8 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("This composite table combination in not allowed"))
           tables <- tables[1]
-          globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
+          
         }
         selection = tables
         if ("FVS_Cases" %in% tables) selection = tables[-which(tables == "FVS_Cases")]
@@ -966,17 +965,13 @@ cat("selectdbtables\n")
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Stand-level tables can only be combined with other stand-level tables"))
           tables <- tables[1]
-          globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         if (any(tables %in% globals$specLvl) && any(selection %notin% globals$specLvl)) {
           session$sendCustomMessage(type = "infomessage",
                message = paste0("Species-level tables can only be combined with other species-level tables"))
           tables <- tables[1]
-          globals$tableMessage=TRUE    
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # DBH-class tables cannot be combined with any other table
         if (length(selection) < 1 && any(selection %in% globals$dClsLvl)) {
@@ -984,8 +979,7 @@ cat("selectdbtables\n")
               message = paste0("DBH-class tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # HT-class tables cannot be combined with any other table
         if (length(selection) < 1 && any(selection %in% globals$htClsLvl)) {
@@ -993,8 +987,7 @@ cat("selectdbtables\n")
               message = paste0("HT-class tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # tree-level tables cannot be combined with any other table
         if (length(selection) < 1 && any(selection %in% globals$treeLvl)) {
@@ -1002,8 +995,7 @@ cat("selectdbtables\n")
               message = paste0("Tree-level tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         break
       }
@@ -1498,7 +1490,7 @@ cat ("cmd=",cmd,"\n")
           updateSelectInput(session, "plotType",selected="scat") else 
           if (length(intersect(c("StdStk","CmpStdStk","StdStk_East",
              "CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric"),names(dat)))) 
-            updateSelectInput(session, "plotType",selected="bar") else
+              updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
         setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
@@ -1514,7 +1506,7 @@ cat ("cmd=",cmd,"\n")
               "StdStk","StdStk_East","StdStk_Metric","CmpStdStk","CmpStdStk_East",
               "CmpStdStk_Metric"),names(dat)))) 
               cho[isel] else cho 
-          updateSelectInput(session, "year", choices=as.list(cho), selected=sel)
+          updateSelectInput(session, "year", choices=as.list(cho), selected=cho[1])
         }        
         globals$exploreChoices$year = cho
         if (is.null(mdat$Species)) 

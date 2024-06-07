@@ -264,9 +264,7 @@ f3v{ws}:{blank}
 f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
-f4{ne ls cs}:{numberBox Minimum top diameter inside bark}
-//f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
-f4:{numberBox Minimum top diameter outside bark}
+f4:{numberBox Minimum top diameter}
 f4v{ni ie em bm ec kt wc pn ca}:{blank}
 f4v{so ut tt ak ws ci nc}:{blank}
 f4v{cr sw sp sf lp bp}:{blank}
@@ -372,7 +370,6 @@ f3v{ut tt ci}:{blank}
 f3v{so ak nc bp}:{blank}
 
 f4:{numberBox Minimum top diameter}
-//f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
 f4v{cr sw sp sf lp}:{blank}
 f4v{ni ie em ws bm ec kt wc pn ca}:{blank}
 f4v{so ut tt ak ci nc bp}:{blank}
