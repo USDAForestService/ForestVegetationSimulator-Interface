@@ -14,7 +14,7 @@ softwoods and 12.0" for hardwoods. The default pulpwood minimum DBH is 4.0" for
 hardwoods and softwoods.
 
 The default minimum top diameter for sawlogs is 7.0" for softwoods and 9.0" 
-for hardwoods. These values are fixed. Changing them will cause an error.}
+for hardwoods.}
 
 description{ni ie kt em}:
 {Change the merchantability limits for board-foot volume and cubic foot volume 
@@ -72,15 +72,13 @@ f3v{ws}:{blank}
 f3v{cr sw sp sf lp bp}:{blank}
 f3v{ne ls cs sn}:{blank}
 
-f4:{numberBox Minimum top diameter inside bark}
-f4{sn}:{noInput Minimum top diameter can not be changed in Southern US}
+f4:{numberBox Minimum top diameter}
 f4v{ni ie em bm ec kt wc pn ca oc op}:{blank}
 f4v{so ut tt ak ws ci nc}:{blank}
 f4v{cr sw sp sf lp bp}:{blank}
-f4v{ls ne cs}:{blank}
+f4v{ls ne cs sn}:{blank}
 
 f5:{numberBox Stump height}
-f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
 f5v:{blank}
 
 f6:{numberBox Form class}
@@ -133,13 +131,11 @@ f8v{ut tt ci}:{blank}
 f8v{so ak nc}:{blank}
 
 f9:{numberBox Minimum top diameter}
-f9{sn}:{noInput Minimum top diameter can not be changed in Southern US}
 f9v{ni ie em ws bm ec kt wc pn ca oc op}:{blank}
 f9v{so ut tt ak ci nc}:{blank}
-f9v{ls ne cs cr sw sp sf lp bp}:{blank}
+f9v{ls ne cs cr sw sp sf lp bp sn}:{blank}
 
 f10:{numberBox Stump height (feet)}
-f10{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
 f10v:{blank}
 
 f11:{numberBox Form class}
