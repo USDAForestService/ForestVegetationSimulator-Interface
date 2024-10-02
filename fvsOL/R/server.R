@@ -3885,6 +3885,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         if(is.null(instr))instr=" "
         if(instr=="blank")instr=" "
         if(length(grep("noInput",fps)))instr=" "
+        if(typeof(instr)=='logical') instr= as.integer(instr)
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
@@ -3943,7 +3944,6 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         closeCmp()                      
         return()
       }     
-
       if (identical(globals$currentCndPkey,character(0))) newcnd = NULL else 
         if (is.null(attr(globals$currentCndPkey,"keywords"))){ 
           kwds = mkCondKeyWrd(globals,prms,input)
@@ -6556,6 +6556,53 @@ cat ("cmd done.\n")
       treeNT = if (class(treeNT) == "try-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
       plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
       plotNT = if (class(plotNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
+      # Screen Input tables for duplicate column names
+      dupTables = list()
+      dupColumns = list()
+      duplicateFound = FALSE
+
+      for (sheet in sheets)
+      {
+        sheetdat = read.xlsx(xlsxFile=fname,sheet=sheet)
+        if(anyDuplicated(toupper(names(sheetdat)))){
+          duplicateFound = TRUE
+          dupl_list = duplicated(toupper(names(sheetdat)))
+          inx = 1
+          for (d in dupl_list){
+            if (d) {
+              dupTables <-append(dupTables, sheet)
+              dupColumns <-append(dupColumns, toupper(names(sheetdat))[[inx]])
+            }
+            inx = inx + 1
+          }
+        }
+      }
+      if (duplicateFound){
+        setwd(curDir) 
+          progress$close()     
+          outputMessage = "<h4>"
+          inx = 1
+          browser()
+          for (d in dupTables){
+            outputMessage = append(outputMessage, paste0("Input table '",dupTables[[inx]],"' contains duplicate column '",
+                                    dupColumns[[inx]],"' <br>"))
+            inx = inx +1
+          }
+          outputMessage <- paste(outputMessage, collapse= ' ')
+          output$step1ActionMsg = renderText(paste0(outputMessage, 
+                                           "Please review input database requirements in 
+                                           <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
+                                           target='_blank' rel='noopener noreferrer'>
+                                           Chapter 3 of the Database Users Guide</a></h4>"))
+          session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+          session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
+          session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
+          return()
+      }
+
+      # Once input tables are screened, process into copied database.
       i = 3
       for (sheet in sheets)
       {
@@ -8403,7 +8450,8 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
   updateProjectSelections <- function ()
   {
     selChoices = getProjectList() 
-    nsel = charmatch(basename(getwd()),selChoices)
+    checkmatch = basename(getwd())
+    nsel = if(checkmatch %in% selChoices) charmatch(checkmatch,selChoices) else NULL
     if(length(globals$lastNewPrj)) nsel = charmatch(globals$lastNewPrj,selChoices)
     sel = if (is.null(nsel)) NULL else selChoices[[nsel]]
     updateSelectInput(session=session, inputId="PrjSelect",
