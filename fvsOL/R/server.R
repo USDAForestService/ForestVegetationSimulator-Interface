@@ -3885,6 +3885,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         if(is.null(instr))instr=" "
         if(instr=="blank")instr=" "
         if(length(grep("noInput",fps)))instr=" "
+        if(typeof(instr)=='logical') instr= as.integer(instr)
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
