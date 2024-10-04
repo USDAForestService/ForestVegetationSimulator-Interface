@@ -23,15 +23,21 @@ FVSOnlineUI <- fixedPage(
              "background-color: #eef8ff; color: black; ",
              "position: absolute; left: 30px;",            
              "opacity: .8; height: 35px; width: 50%;}")),
+             tags$style("body {font-size: 14px;}"),
   fixedRow(column(width=4,offset=0,
-      HTML(paste0('<h4 style="margin-top: 1px; margin-bottom: 0px;"><img src="FVSlogo.png"</img>',
+      HTML(paste0('<h4 style="margin-top: 1px; margin-bottom: 0px;"><img src="FVSlogo.png" 
+                   alt="Logo for the Forest Vegetation Simulator"</img>',
                   '&nbsp;Forest Vegetation Simulator</h4><br>',
-                  '<img style="margin-top: -18px; margin-bottom: 2px;" src="USDAFS.png" </img>'))),
+                  '<img style="margin-top: -18px; margin-bottom: 2px;" src="USDAFS.png" 
+                  alt="Logo of the United States Department of Agriculture with the logo 
+                  for the US Forest Service with the text: US Forest Service with the text 
+                  Caring for the land and serving people</img>'))),
     column(width=4,offset=.5,uiOutput("projectTitle"),uiOutput("contCnts")),
     column(width=4,uiOutput("serverDate"))
   ), #End of Header
   fixedRow(column(width=12,offset=0,
-    tags$style(type="text/css","#topPan {background-color: rgb(227,227,255);}"),
+    tags$style("a {color: black;}"),
+    tags$style(type="text/css","#topPan {color: black; background-color: rgb(240,240,255);  font-weight: bold; font-size: 13px;}"),
     uiOutput("appLocked"),
     tabsetPanel(id="topPan",
       tabPanel("Simulate",
@@ -71,7 +77,7 @@ FVSOnlineUI <- fixedPage(
           actionButton("searchNext", "Find")
         ),
         column(width=8,offset=.2,
-          tags$style(type="text/css","#rightPan {background-color: rgb(227,255,227);}"),
+          tags$style(type="text/css","#rightPan {color: black; font-weight: bold; font-size: 13px; background-color: rgb(227,255,227);}"),
           tabsetPanel(id = "rightPan",
             tabPanel("Stands",fixedRow(
               column(width=6,uiOutput("sayDataSource")),
@@ -113,7 +119,7 @@ FVSOnlineUI <- fixedPage(
                    '. You will receive output for the additional year(s): ',htmlOutput("cyAt", inline=TRUE)))
             ),
             tabPanel("Components",          
-              tags$style(type="text/css","#compTabSet {background-color: rgb(255,227,227);}"),     
+              tags$style(type="text/css","#compTabSet {color: black; font-weight: bold; font-size: 13px; background-color: rgb(255,227,227);}"),     
               tabsetPanel(id = "compTabSet",
                 tabPanel("Management",
                   selectInput ("addMgmtCats","Categories",NULL,
@@ -234,7 +240,7 @@ FVSOnlineUI <- fixedPage(
       ) ) ), #End column END of Runs item in top panel 
       tabPanel("View Outputs",
         fixedRow(column(width=4,offset=0,
-          tags$style(type="text/css","#leftPan {background-color: rgb(255,227,227);}"),
+          tags$style(type="text/css","#leftPan {color: black; font-weight: bold; font-size: 13px; background-color: rgb(255,227,227);}"),
           tabsetPanel(id="leftPan", 
             tabPanel("Load", 
               myRadioGroup("spCodes","Species codes",
@@ -316,7 +322,7 @@ FVSOnlineUI <- fixedPage(
                     'used in <b>Tables</b> and <b>Graphs</b>')))
         ) ) ), #END of outputleft pan
         column(width=8,offset=.2,
-        tags$style(type="text/css","#outputRightPan {background-color: rgb(227,255,227);}"),
+        tags$style(type="text/css","#outputRightPan {color: black; font-weight: bold; font-size: 13px; background-color: rgb(227,255,227);}"),
         conditionalPanel("input.leftPan != 'Load'", 
           tabsetPanel(id="outputRightPan",tabPanel("Tables",
             fixedRow(
@@ -553,7 +559,7 @@ FVSOnlineUI <- fixedPage(
       
         # START Manage Projects Tab
         tabPanel("Manage Projects",
-        tags$style(type="text/css","#toolsPan {background-color: rgb(255,227,227);}"),
+        tags$style(type="text/css","#toolsPan {color: black; font-weight: bold; font-size: 13px; background-color: rgb(255,227,227);}"),
         tabsetPanel(id="toolsPan", 
           # START Manage project sub tab
           tabPanel("Manage project",
@@ -629,7 +635,7 @@ FVSOnlineUI <- fixedPage(
           
         tabPanel("Import input data", 
         fixedRow(column(width=12,offset=0,
-          tags$style(type="text/css","#inputDBPan {background-color: rgb(255,227,227);}"),
+          tags$style(type="text/css","#inputDBPan {color: black; font-weight: bold; font-size: 13px; background-color: rgb(255,227,227);}"),
           tabsetPanel(id="inputDBPan", 
             tabPanel("Upload inventory database", 
               h6(),
