@@ -42,6 +42,8 @@ fvsOL <- function (prjDir=NULL,runUUID=NULL,fvsBin=NULL,shiny.trace=FALSE,
     system.file("extdata","www/message-handler.js",package="fvsOL"))
   if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
+  addResourcePath("FVS_styles.css",
+    system.file("extdata","www/FVS_styles.css", package="fvsOL"))
   
   # set shiny.trace=TRUE for reactive tracing 
   options(shiny.maxRequestSize=10000*1024^2,shiny.trace=shiny.trace,
@@ -207,7 +209,7 @@ cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
     if (file.exists("projectIsLocked.txt"))  
     {
 cat ("Project is locked.\n")
-      output$appLocked<-renderUI(HTML(paste0('<h4 style="color:#FF0000">',
+      output$appLocked<-renderUI(HTML(paste0('<h4 style="color:#E00000;font-weight:bold">',
         'Warning: This project may already be opened.</h4>',
         '<h5>Ensure the project is not opened in another window.</h5>',
         '<button id="clearLock" type="button" class="btn btn-default ',
@@ -1057,7 +1059,7 @@ cat("Custom Query\n")
       }
       updateTextInput(session=session, inputId="sqlTitle", value="")
       updateTextInput(session=session, inputId="sqlQuery", value="")
-      updateTextInput(session=session, inputId="sqlOutput", label="", value="")
+      updateTextInput(session=session, inputId="sqlOutput", value="")
       output$table <- renderTable(NULL)
     }
   })
@@ -2985,7 +2987,7 @@ cat ("Edit, cmp$kwdName=",cmp$kwdName,"toed=",toed,"\n")
                             globals$currentEditCmp$kwds)
       }
       eltList <- append(eltList,list(
-           tags$style(type="text/css", "#cmdCancel {color:red;}"),
+           tags$style(type="text/css", "#cmdCancel {color:#E00000; font-weight: bold;}"),
            actionButton("cmdCancel","Cancel"),
            tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
            actionButton("cmdSaveInRun","Save in run")))
@@ -3532,7 +3534,7 @@ cat ("funName=",funName,"\n")
             "(title,prms,globals,input,output)")))
           if (is.null(ans)) return(NULL)
           ans[[1]] <- append(ans[[1]],list(
-             tags$style(type="text/css", "#cmdCancel {color:red;}"),
+             tags$style(type="text/css", "#cmdCancel {color:#E00000;font-weight: bold;}"),
              actionButton("cmdCancel","Cancel"),
              tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
              actionButton("cmdSaveInRun","Save in run")))
@@ -3556,7 +3558,7 @@ cat ("funName=",funName,"\n")
           return()
         }
         eltList <- append(eltList,list(
-           tags$style(type="text/css", "#cmdCancel {color:red;}"),
+           tags$style(type="text/css", "#cmdCancel {color:#E00000;font-weight: bold;}"),
            actionButton("cmdCancel","Cancel"),
            tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
            actionButton("cmdSaveInRun","Save in run"),
@@ -3795,7 +3797,7 @@ cat ("cmdChgToFree processing component\n")
        cmdUI <- mkFreeformEltList(globals,input,prms,paste0("Freeform: ",input$cmdTitle),
                                   kwds$kwds)
        cmdUI <- append(cmdUI,list(
-                tags$style(type="text/css", "#cmdCancel {color:red;}"),
+                tags$style(type="text/css", "#cmdCancel {color:#E00000;font-weight: bold;}"),
                 actionButton("cmdCancel","Cancel"),
                 tags$style(type="text/css", "#cmdSaveInRun {color:green;}"),
                 actionButton("cmdSaveInRun","Save in run")))
@@ -6582,7 +6584,6 @@ cat ("cmd done.\n")
           progress$close()     
           outputMessage = "<h4>"
           inx = 1
-          browser()
           for (d in dupTables){
             outputMessage = append(outputMessage, paste0("Input table '",dupTables[[inx]],"' contains duplicate column '",
                                     dupColumns[[inx]],"' <br>"))
@@ -8575,7 +8576,105 @@ cat ("launch url:",url,"\n")
       }          
     })
   })
-  
+
+      observe({    
+      if (input$topPan == "Simulate" && input$rightPan == "Stands") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: Simulate -> Stands")
+      }
+
+      else if (input$topPan == "Simulate" && input$rightPan == "Time") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: Simulate -> Time")
+      }
+
+      else if (input$topPan == "Simulate" && input$rightPan == "Components") 
+      {
+        if (input$compTabSet == "Management") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Management")
+        }
+        else if (input$compTabSet == "Modifiers") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Modifiers")
+        }
+        else if (input$compTabSet == "Event Monitor") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Event Monitor")
+        }
+        else if (input$compTabSet == "Economic") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Economic")
+        }
+        else if (input$compTabSet == "Keywords") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Keywords")
+        }
+        else if (input$compTabSet == "Editor") {
+          session$sendCustomMessage("changeTitle", "FVS: Simulate -> Components -> Editor")
+        }
+      }
+
+      else if (input$topPan == "Simulate" && input$rightPan == "Select Outputs") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: Simulate -> Select Outputs")
+      }      
+      
+      else if (input$topPan == "View Outputs" && input$leftPan == "Load") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: View Outputs -> Load")
+      }
+
+      else if (input$topPan == "View Outputs" && input$leftPan == "Explore") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: View Outputs -> Explore")
+      }
+
+      else if (input$topPan == "View Outputs" && input$leftPan == "Custom Query") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: View Outputs -> Custom Query")
+      }
+
+      else if (input$topPan == "Visualize") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: Visualize")
+      }
+
+      else if (input$topPan == "View On Maps") 
+      {
+        session$sendCustomMessage("changeTitle", "FVS: View On Maps")
+      }
+
+      else if (input$topPan == "Manage Projects") 
+      {
+        if (input$toolsPan == "Manage project") {
+          session$sendCustomMessage("changeTitle", "FVS: Manage Project")
+        }
+        else if (input$toolsPan == "Import input data") 
+        {
+          if (input$inputDBPan == "Upload inventory database") {
+            session$sendCustomMessage("changeTitle", "FVS: Upload Inventory Database")
+          }
+          else if (input$inputDBPan == "View and edit existing tables") {
+            session$sendCustomMessage("changeTitle", "FVS: View / Edit Existing Tables")
+          }
+          else if (input$inputDBPan == "Upload Map data") {
+            session$sendCustomMessage("changeTitle", "FVS: Upload Spatial Data")
+          }
+          else if (input$inputDBPan == "Append .csv data to existing tables") {
+            session$sendCustomMessage("changeTitle", "FVS: Append data to database")
+          }
+          else if (input$inputDBPan == "Upload Climate-FVS data") {
+            session$sendCustomMessage("changeTitle", "FVS: Upload Climate Data")
+          }
+        }
+        else if (input$toolsPan == "Import runs and other items") {
+          session$sendCustomMessage("changeTitle", "FVS: Import Project Elements")
+        }
+        else if (input$toolsPan == "Downloads") {
+          session$sendCustomMessage("changeTitle", "FVS: Download Project Elements")
+        }
+      }
+      else if (input$topPan == "Help") {
+        session$sendCustomMessage("changeTitle", "FVS: Help")
+      }
+    })
+
   ############################################################################################################
   #
   # Event Handler for input$Change_wd
