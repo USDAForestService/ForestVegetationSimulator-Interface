@@ -281,37 +281,17 @@ f6v{nc so bm ec wc pn ca}:{blank}
 
 f7:{longListButton Volume calculation method}
 f7v{cs ls ne}:{\
-1 = Kemp equations with Allen adjustments
-2 = User defined equation via BFVOLEQU keyword
-3 = not currently used with this variant
-4 = not currently used with this variant
 5 = Gevorkiantz Volume Equations
 >6 = National Volume Estimator library equations
-7 = User defined equation via BFVOLEQU keyword
-8 = Original TWIGS volume equations
 9 = NATCRS equations with international 1/4-inch board foot volumes}
 
 f7v{sn cr bp sw sp sf lp}:{\
-1 = Kemp equations with Allen adjustments
-2 = User defined equation via BFVOLEQU keyword
-3 = not currently used with this variant
-4 = not currently used with this variant
-5 = not currently used with this variant
 >6 = National Volume Estimator library equations
-7 = User defined equation via BFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)
 9 = NATCRS equations with international 1/4-inch board foot volumes}
 
 
 f7v:{\
-1 = Kemp equations with Allen adjustments
-2 = Kemp equations w/Allen adj & Brickell sm tree & var top adjs.
-3 = Region 6 eastside taper equations previously in FVS
-4 = Region 6 westside taper equations previously in FVS
-5 = Western Sierra Nevada log rules previously in FVS
 >6 = National Volume Estimator library equations
-7 = User defined equation via BFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)
 9 = NATCRS equations with international 1/4-inch board foot volumes}
 
 answerForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
@@ -386,36 +366,14 @@ f6v{ni ie so bm ec wc pn nc ca}:{blank}
 
 f7:{longListButton Method of volume calculation}
 f7v{ni ie so ut tt ak em ws bm ec ci nc}:{\
-1 = Regression model equations. Wykoff, Allen, et.al.
-2 = Region 6 eastside taper equations previously in FVS
-3 = Region 6 westside taper equations previously in FVS
-4 = not currently used
-5 = not currently used
->6 = National Volume Estimator library equations
-7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)
-9 = not currently used}
+>6 = National Volume Estimator library equations}
+
 f7v{ls cs ne}:{\
-1 = User defined equation via CFVOLEQU keyword
-2 = not used in this variant
-3 = not used in this variant
-4 = not used in this variant
 5 = Gevorkiantz volume equations
->6 = National Volume Estimator library equations
-7 = User defined equation via CFVOLEQU keyword
-8 = Original TWIGS volume equations
-9 = not used in this variant}
+>6 = National Volume Estimator library equations}
 
 f7v:{\
-1 = User defined equation via CFVOLEQU keyword
-2 = Region 6 eastside taper equations previously in FVS
-3 = Region 6 westside taper equations previously in FVS
-4 = not currently used
-5 = not currently used
->6 = National Volume Estimator library equations
-7 = User defined equation via CFVOLEQU keyword
-8 = Other volume calculation method (varies by Region)
-9 = not used in this variant}
+>6 = National Volume Estimator library equations}
 
 answerForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
 parmsForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}

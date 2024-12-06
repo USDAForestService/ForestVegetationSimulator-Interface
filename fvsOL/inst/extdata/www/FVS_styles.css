@@ -14,18 +14,9 @@ body {
 
 .btn {
     padding: 2px 2px;
-    margin: 4px;
+   /* margin: 4px; */
     color: darkred;
     background-color: #eef8ff;
-}
-
-button {
-    margin: 4px;
-}
-
-h4 {
-    margin-top: 1px;
-    margin-bottom: 0px;
 }
 
 .form-control {
@@ -90,13 +81,12 @@ h4 {
     padding-bottom: 1em;
 }
 
-/*#MngPrjBkDiv {
-    padding-bottom: 0.5em;
-}*/
 
 h4 {
     padding-top: 1em;
     padding-bottom: 8px;
+    margin-top: 1px;
+    margin-bottom: 0px;
 }
 
 legend {
@@ -163,6 +153,16 @@ legend {
 
  .blackLabelBtn, #kcpDownload, #table, .handsontable .htDimmed {
     color: #595959;
+ }
+
+ /* Top margin for stacked buttons */
+ .action-button, .shiny-download-link
+ /*
+ #impFVS_Data, #impSpatialData, #dlFVSDatadb, #dlFVSOutdb, 
+ #dlFVSOutxlsx, #dlFVSRunkey, #clearTable, #commitChanges, #paste 
+ */
+ {
+    margin: 4px;
  }
 
  .shiftBtnDwn, 
