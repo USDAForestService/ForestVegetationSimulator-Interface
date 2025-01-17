@@ -1,0 +1,183 @@
+nav>li>a {
+    padding: 3px;
+}
+
+a {
+    padding: 3px;
+    color: black;
+    font-weight: bold;
+}
+
+body {
+    font-size: 14px;
+}
+
+.btn {
+    padding: 2px 2px;
+   /* margin: 4px; */
+    color: darkred;
+    background-color: #eef8ff;
+}
+
+.form-control {
+    padding: 2px 4px;
+    height:auto;
+}
+
+.form-group {
+    margin-bottom: 4px;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: rgb(255, 255, 255, .7); 
+    box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+}
+
+.shiny-notification {
+    height: 80px;
+    width: 500px;
+    position: fixed;
+    top: calc(50% - 40px);;
+    left: calc(50% -200px);;
+}
+
+.progress-bar {
+    color: transparent!important;
+}
+
+.shiny-progress,
+.progress-text {
+    background-color: eef8ff;
+    color: black;
+    position: absolute;
+    left: 30px;
+    opacity: 0.8;
+    height: 35px;
+    width: 50%;
+}
+
+.FVS_logo {
+    margin-top: 1px;
+    margin-bottom: 0px;
+    font-size: 18px;
+}
+
+.USDA_logo {
+    margin-top: -18px;
+    margin-bottom: 2px;
+} 
+                
+.tb_padding, #dataSource, #kcpUpload, #Contents,
+#RepControls,
+#MapViewDiv {
+    padding-top: 1.5em;
+    padding-bottom: 1em;
+}
+
+.minor-tb-padding, #buildElements, #VizCntrlDiv,
+#VDINoteDiv,#MgntProjDiv, #ViewEditDBDiv{
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+
+h4 {
+    padding-top: 1em;
+    padding-bottom: 8px;
+    margin-top: 1px;
+    margin-bottom: 0px;
+}
+
+legend {
+    all: revert;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.minor-top-padding, #tabDesc, #tabDesc2 {
+    padding-top: 1em;
+}
+
+.bot_padding, #addStdsGrps, #InvStdSearchDiv,
+#TimeCompsDiv, #kcpButtonSet, #defMgmtID, #delPrjDiv,
+#SelectImportItemDiv
+{
+    padding-bottom: 1em;
+}
+
+.margin_bottom, #saveandrun, 
+#sqlTitle, #sqlQuery {
+    margin-bottom: 1em;
+}
+
+.margin_top, #OPredo {
+    margin-top: 1.75em;
+}
+
+.margin_top2, #copyplot {
+    margin-top: 0.5em;
+}
+
+/* Tab Panels */
+
+ #topPan {
+     background-color: rgb(240,240,255);
+     font-weight: bold;
+     font-size: 13px;
+ }
+
+ #rightPan, #outputRightPan {
+     background-color: rgb(227,255,227);
+     font-weight: bold;
+     font-size: 13px;
+ }
+
+#compTabSet, #leftPan, #toolsPan, #inputDBPan {
+     background-color: rgb(255,227,227);
+     font-weight: bold;
+     font-size: 13px;
+ }
+
+ /* Custom buttons*/
+
+ .SaveGreenBtn, #saveRun, #kcpSaveInRun, #kcpSaveCmps,
+   #installNewDB, #addNewDB, #sqlRunQuery {
+    color: green;
+ }
+
+ .RedCanelDelBtn, #kcpDelete, #deleteRun, #cutCmp, #sqlDelete {
+    color: #E00000;
+    font-weight: bold;
+ }
+
+ .blackLabelBtn, #kcpDownload, #table, .handsontable .htDimmed {
+    color: #595959;
+ }
+
+ /* Top margin for stacked buttons */
+ .action-button, .shiny-download-link
+ /*
+ #impFVS_Data, #impSpatialData, #dlFVSDatadb, #dlFVSOutdb, 
+ #dlFVSOutxlsx, #dlFVSRunkey, #clearTable, #commitChanges, #paste 
+ */
+ {
+    margin: 4px;
+ }
+
+ .shiftBtnDwn, 
+ #doImpRuns,
+ #doImpCustomCmps,
+ #doImpGraphSettings,
+ #doImpCustomQueries
+ {
+    margin-top: 20px;
+ }
+
+
+
+
+
+ .reset-style, .reset-style * {
+    all: revert;
+}
