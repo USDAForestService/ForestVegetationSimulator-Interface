@@ -601,7 +601,11 @@ from FVS_Down_Wood_Cov inner join FVS_Down_Wood_Vol
 Create_CmpCalibStats = "
 drop table if exists temp.CmpCalibStatsLG; 
 create table temp.CmpCalibStatsLG as 
-  select MgmtID,asSpecies,'LG' as TreeSize,
+  select 
+    MgmtID, 
+    asSpecies,
+    SpeciesFVSnum,
+    'LG' as TreeSize,
     COUNT(TreeSize) as NumStands,
     MIN(ScaleFactor) as MinSF,
     MAX(ScaleFactor) as MaxSF,
@@ -618,7 +622,11 @@ create table temp.CmpCalibStatsLG as
   
 drop table if exists temp.CmpCalibStatsSM;
 create table temp.CmpCalibStatsSM as
-  select MgmtID,asSpecies,'SM' as TreeSize,
+  select 
+    MgmtID,
+    asSpecies,
+    SpeciesFVSnum,
+    'SM' as TreeSize,
     COUNT(TreeSize) as NumStands,
     MIN(ScaleFactor) as MinSF,
     MAX(ScaleFactor) as MaxSF,
@@ -634,15 +642,35 @@ create table temp.CmpCalibStatsSM as
   group by MgmtID,Species;         
 
 insert into temp.CmpCalibStatsLG 
-  select MgmtID,Species,TreeSize,NumStands,MinSF,MaxSF,MeanSF,StDevSF,
-    TotNumTrees,MeanReadCorMult
+  select 
+    MgmtID,
+    Species,
+    SpeciesFVSnum,
+    TreeSize,
+    NumStands,
+    MinSF,
+    MaxSF,
+    MeanSF,
+    StDevSF,
+    TotNumTrees,
+    MeanReadCorMult
   from temp.CmpCalibStatsSM
   group by MgmtID,Species;
   
 drop table if exists CmpCalibStats;
 create table CmpCalibStats as 
-  select distinct MgmtID,Species,TreeSize,NumStands,MinSF,MaxSF,
-    MeanSF,StDevSF,TotNumTrees,MeanReadCorMult
+  select 
+    distinct MgmtID,
+    Species,
+    SpeciesFVSnum,
+    TreeSize,
+    NumStands,
+    MinSF,
+    MaxSF,
+    MeanSF,
+    StDevSF,
+    TotNumTrees,
+    MeanReadCorMult
   from temp.CmpCalibStatsLG
   order by MgmtID,Species;
 drop table if exists temp.CmpCalibStatsLG;
