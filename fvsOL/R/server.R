@@ -944,7 +944,7 @@ cat("selectdbtables\n")
       # Throw up warning, then have first table selection in level that threw error remain selected
       while(length(tables)>1)
       {
-        if(length(tables)==2 && "FVS_Cases" %in% tables) break
+       # if(length(tables)==2 && "FVS_Cases" %in% tables) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_East")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary_Metric")) break
@@ -952,56 +952,50 @@ cat("selectdbtables\n")
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_East")) break
         if(length(tables)==2 && (tables[1] == "CmpCompute" && tables[2] == "CmpSummary2_Metric")) break
         '%notin%' = Negate('%in%')
-        if (any(tables %in% globals$simLvl)) {
+        if (any(tables %in% globals$simLvl) || (any(tables %in% globals$simLvl) && "FVS_Cases" %in% tables)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("This composite table combination in not allowed"))
           tables <- tables[1]
-          globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
+          
         }
-        if (any(tables %in% globals$stdLvl) && any(tables %notin% globals$stdLvl)) {
+        selection = tables
+        if ("FVS_Cases" %in% tables) selection = tables[-which(tables == "FVS_Cases")]
+        if (any(tables %in% globals$stdLvl) && any(selection %notin% globals$stdLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Stand-level tables can only be combined with other stand-level tables"))
           tables <- tables[1]
-          globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
-        if (any(tables %in% globals$specLvl) && any(tables %notin% globals$specLvl)) {
+        if (any(tables %in% globals$specLvl) && any(selection %notin% globals$specLvl)) {
           session$sendCustomMessage(type = "infomessage",
                message = paste0("Species-level tables can only be combined with other species-level tables"))
           tables <- tables[1]
-          globals$tableMessage=TRUE    
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # DBH-class tables cannot be combined with any other table
-        if (any(tables %in% globals$dClsLvl)) {
+        if (length(selection) < 1 && any(selection %in% globals$dClsLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("DBH-class tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # HT-class tables cannot be combined with any other table
-        if (any(tables %in% globals$htClsLvl)) {
+        if (length(selection) < 1 && any(selection %in% globals$htClsLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("HT-class tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # tree-level tables cannot be combined with any other table
-        if (any(tables %in% globals$treeLvl)) {
+        if (length(selection) < 1 && any(selection %in% globals$treeLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Tree-level tables cannot be combined with any other tables"))
           tables <- tables[1]
           globals$tableMessage=TRUE
-          updateSelectInput(session, "selectdbtables", choices=as.list(globals$tbsFinal),
-                          selected=tables)
+          updateSelectInput(session, "selectdbtables", selected = tables)
         }
         break
       }
@@ -1496,7 +1490,7 @@ cat ("cmd=",cmd,"\n")
           updateSelectInput(session, "plotType",selected="scat") else 
           if (length(intersect(c("StdStk","CmpStdStk","StdStk_East",
              "CmpStdStk_East","StdStk_Metric","CmpStdStk_Metric"),names(dat)))) 
-            updateSelectInput(session, "plotType",selected="bar") else
+              updateSelectInput(session, "plotType",selected="bar") else
               updateSelectInput(session, "plotType",selected="line")
         iprg = iprg+1
         setProgress(message = "Loading selection widgets", detail  = "", value = iprg)
@@ -1512,7 +1506,7 @@ cat ("cmd=",cmd,"\n")
               "StdStk","StdStk_East","StdStk_Metric","CmpStdStk","CmpStdStk_East",
               "CmpStdStk_Metric"),names(dat)))) 
               cho[isel] else cho 
-          updateSelectInput(session, "year", choices=as.list(cho), selected=sel)
+          updateSelectInput(session, "year", choices=as.list(cho), selected=cho[1])
         }        
         globals$exploreChoices$year = cho
         if (is.null(mdat$Species)) 
@@ -3891,6 +3885,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         if(is.null(instr))instr=" "
         if(instr=="blank")instr=" "
         if(length(grep("noInput",fps)))instr=" "
+        if(typeof(instr)=='logical') instr= as.integer(instr)
         reopn = c(reopn,as.character(if (is.null(instr)) " " else instr))
         names(reopn)[fn] = pkey
       }       
