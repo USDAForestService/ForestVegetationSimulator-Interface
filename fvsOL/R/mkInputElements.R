@@ -317,6 +317,33 @@ myInlineNumericInput <- function (inputId, label,
 }
 
 
+myRadioGroup_bkup <- function (inputId, label, mklist, selected=NULL,labelstyle=NULL)
+{
+  inputs = NULL
+  if (is.null(names(mklist))) names(mklist) = mklist
+  if (is.null(selected)) selected = mklist[1]
+  for (item in 1:length(mklist))
+  {
+    inputs = c(inputs, paste0('<input type="radio" id="',mklist[item],'" name="',inputId,'" value="',
+           gsub('"','',mklist[item]),'" ',
+           if (mklist[item] == selected) "checked" else "",
+           ' />','<label for="',mklist[item],'">',names(mklist)[item],'</label>',"&nbsp;&nbsp;"))
+  }
+  labelstyle = if (is.null(labelstyle)) "" else paste0('style="',labelstyle,'"')
+
+  # HTML(paste0('<form>',
+  #               '<fieldset>',
+  #                 '<legend ',labelstyle,'>',label,'</legend>',
+  #                 '<div id="',inputId,'" class="shiny-input-radiogroup">',
+  #                 paste0(inputs,collapse=""),"</div>",
+  #               '</filedset>',
+  #               '</form>'))
+
+  HTML(paste0('<div id="',inputId,'" class="shiny-input-radiogroup">',
+    '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'), 
+    paste0(inputs,collapse=""),"</div>")
+}
+
 myRadioGroup <- function (inputId, label, mklist, selected=NULL,labelstyle=NULL)
 {
   inputs = NULL
@@ -324,15 +351,23 @@ myRadioGroup <- function (inputId, label, mklist, selected=NULL,labelstyle=NULL)
   if (is.null(selected)) selected = mklist[1]
   for (item in 1:length(mklist))
   {
-    inputs = c(inputs, paste0('<input type="radio" name="',inputId,'" value="',
+    inputs = c(inputs, paste0('<input type="radio" id="',mklist[item],'" name="',inputId,'" value="',
            gsub('"','',mklist[item]),'" ',
            if (mklist[item] == selected) "checked" else "",
-           '>',names(mklist)[item],"&nbsp;&nbsp;"))
+           ' />','<label for="',mklist[item],'">',names(mklist)[item],'</label>',"&nbsp;&nbsp;"))
   }
   labelstyle = if (is.null(labelstyle)) "" else paste0('style="',labelstyle,'"')
-  HTML(paste0('<div id="',inputId,'" class="shiny-input-radiogroup">',
-    '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'), 
-    paste0(inputs,collapse=""),"</div>")
+
+  HTML(paste0('<fieldset>',
+                '<legend ',labelstyle,'>',label,'</legend>',
+                '<div id="', inputId, '" class = "shiny-input-radiogroup">',
+              #  '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'),
+                paste0(inputs, collapse = ""), "</div>",
+              '</fieldset>'))
+
+  # HTML(paste0('<div id="',inputId,'" class="shiny-input-radiogroup">',
+  #   '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'), 
+  #   paste0(inputs,collapse=""),"</div>")
 }
 
 
