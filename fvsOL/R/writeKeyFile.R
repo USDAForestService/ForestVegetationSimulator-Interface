@@ -607,6 +607,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
             kwdlist <- strsplit(cmp$kwds,"\n")[[1]]  
             cmpkwds <- length(kwdlist)
             for(i in 1:cmpkwds){
+              if(kwdlist[i] == "" || kwdlist[i] == "\n") next
               space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])-1]==" "
               if(space){
                 keyrec <- strsplit(kwdlist[i],"")[[1]]
