@@ -4294,8 +4294,8 @@ StdIdent
 parmsForm=answerForm
 
 description:{\
-It is best to use the "Change Group Membership" window to
-specify the stand and management identifications.}
+Specifies a stand identification code and optional descriptive title 
+to label output tables.}
 
 //end keyword.base.StdIdent
 
