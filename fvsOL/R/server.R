@@ -606,7 +606,14 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_CmpSummary)
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Summary)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
+            if(!chkSCuFt)
+            {
+              exqury(dbGlb$dbOcon,Create_CmpSummary)
+            }
+            else exqury(dbGlb$dbOcon,Create_CmpSummary_V2)
+            
             tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")                             
           }
@@ -622,7 +629,12 @@ cat ("tbs2=",tbs,"\n")
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Summary2)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
+            if(!chkSCuFt){
+              exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            }
+            else exqury(dbGlb$dbOcon,Create_CmpSummary2_V2)
             tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
           }
@@ -693,14 +705,27 @@ cat ("tbs6=",tbs,"\n")
           }
           for (tlp in tlprocs)          
           {
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Treelist)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
             if (tlp == "tlwest")
             {
-              C_StdStkDBHSp  = Create_StdStkDBHSp
-              C_HrvStdStk    = Create_HrvStdStk
-              C_StdStk1Hrv   = Create_StdStk1Hrv
-              C_StdStk1NoHrv = Create_StdStk1NoHrv
-              C_StdStkFinal  = Create_StdStkFinal
-              C_CmpStdStk    = Create_CmpStdStk
+              if (!chkSCuFt) {
+                C_StdStkDBHSp  = Create_StdStkDBHSp
+                C_HrvStdStk    = Create_HrvStdStk
+                C_StdStk1Hrv   = Create_StdStk1Hrv
+                C_StdStk1NoHrv = Create_StdStk1NoHrv
+                C_StdStkFinal  = Create_StdStkFinal
+                C_CmpStdStk    = Create_CmpStdStk
+
+              }
+              else {
+                C_StdStkDBHSp  = Create_StdStkDBHSp_V2
+                C_HrvStdStk    = Create_HrvStdStk_V2
+                C_StdStk1Hrv   = Create_StdStk1Hrv_V2
+                C_StdStk1NoHrv = Create_StdStk1NoHrv_V2
+                C_StdStkFinal  = Create_StdStkFinal_V2
+                C_CmpStdStk    = Create_CmpStdStk_V2
+              }
               detail = "Building StdStk from tree lists"
               stdstk = "StdStk"
               clname = "FVS_CutList"
@@ -774,12 +799,20 @@ cat ("tbs7=",tbs,"\n")
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
-        if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
+        if (!is.null(dbd[["FVS_Summary"]])) {
+          if("SCuFt" %in% dbd[["FVS_Summary"]]) dbd$FVS_Summary = c(dbd$FVS_Summary,
+            c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdSCuFt","TPrdBdFt"))
+            else dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
+        }
         if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
             c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMCuFt","TPrdSCuFt","TPrdSBdFt"))
-        if (!is.null(dbd[["CmpSummary"]])) dbd$CmpSummary = c(dbd$CmpSummary,
+        if (!is.null(dbd[["CmpSummary"]])) {
+          if("CmpSCuFt" %in% dbd[["CmpSummary"]]) dbd$CmpSummary = c(dbd$CmpSummary,
+            c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdSCuFt","CmpTPrdBdFt"))
+            else dbd$CmpSummary = c(dbd$CmpSummary,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
+        }
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (length(dbd)) fvsOutData$dbLoadData <- dbd

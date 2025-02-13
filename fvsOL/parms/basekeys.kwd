@@ -150,78 +150,10 @@ BFFDLN    !1,10!!2,10!!3,10!}
 
 //end keyword.base.BFFDLN
 
-
-//start keyword.base.BFVolEqu
-
-description:
-{Adjusts the board foot volume equations by inserting new
-coefficients in this equation:
-
-V =  Coeff0 +
-     Coeff1 * DBH +
-     Coeff2 * DBH*Height +
-     Coeff3 * DBH*DBH*Height +
-     Coeff4 * (DBH**Coeff5)*(Height**Coeff6)}
-
-answerForm:{\
-BFVolEqu  !1,10!!2,10!!3,10!
-!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
-!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
-
-parmsForm:{\
-BFVolEqu  !1,10!!2,10!!3,10!
-!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
-!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
-
-f1:{speciesSelection Species to which equation is applied}
-
-f2:{longListButton Transition code}
-f2v:{Transition size is based on DBH
-     Transition size is based on DBH*DBH*Height}
-
-f3:{sliderBox Transition size}
-f3v{pn wc}:{0}
-f3v:{20.5}
-
-f4title:{-------------------- Small-Tree Coefficients --------------------}
-f4:{numberBox Coeff0}
-f4v:{0}
-f5:{numberBox Coeff1 * DBH}
-f5v:{0}
-f6:{numberBox Coeff2 * DBH*Height}
-f6v:{0}
-f7:{numberBox Coeff3 * DBH*DBH*Height}
-f7v:{0}
-f8:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
-f8v:{0}
-f9:{numberBox DBH ** Coeff5}
-f9v:{0}
-f10:{numberBox Height ** Coeff6}
-f10v:{0}
-
-f11title:{------------------- Large-Tree Coefficients --------------------}
-f11:{numberBox Coeff0}
-f11v:{0}
-f12:{numberBox Coeff1 * DBH}
-f12v:{0}
-f13:{numberBox Coeff2 * DBH*Heigth}
-f13v:{0}
-f14:{numberBox Coeff3 * DBH*DBH*Height}
-f14v:{0}
-f15:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
-f15v:{0}
-f16:{numberBox DBH ** Coeff5}
-f16v:{0}
-f17:{numberBox Height ** Coeff6}
-f17v:{0}
-
-//end keyword.base.BFVolEqu
-
-
 //start keyword.base.BFVolume
 
 description{ls ne cs sn}:
-{This keyword pertains to merchantability limits for sawlogs.
+{This keyword pertains to merchantability limits for board-foot volume.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -285,18 +217,14 @@ f7v{cs ls ne}:{\
 >6 = National Volume Estimator library equations
 9 = NATCRS equations with international 1/4-inch board foot volumes}
 
-f7v{sn cr bp sw sp sf lp}:{\
->6 = National Volume Estimator library equations
-9 = NATCRS equations with international 1/4-inch board foot volumes}
-
-
 f7v:{\
->6 = National Volume Estimator library equations
+6 = National Volume Estimator library equations
 9 = NATCRS equations with international 1/4-inch board foot volumes}
 
 answerForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
 parmsForm:{BFVolume  !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
-numbers:{1 2 3 4 5 6 7 8 9 10}
+numbers{cs ls ne}:{5 6 9}
+numbers:{6 9}
 
 //end keyword.base.BFVolume
 
@@ -305,7 +233,8 @@ numbers:{1 2 3 4 5 6 7 8 9 10}
 
 
 description{ls ne cs sn}:
-{This keyword pertains to pulpwood merchantability limits.
+{This keyword pertains to cubic foot merchantability limits, 
+independent of board foot merchantability limits.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -342,32 +271,18 @@ f1:{scheduleBox}
 f2:{speciesSelection Species whose limits are to be changed}
 
 f3:{numberBox Minimum DBH}
-f3v{sn}:{blank}
-f3v{cr sw sp sf lp}:{blank}
-f3v{ls cs ne}:{blank}
-f3v{ni ie em ws bm ec kt wc pn ca}:{blank}
-f3v{ut tt ci}:{blank}
-f3v{so ak nc bp}:{blank}
+f3v:{blank}
 
 f4:{numberBox Minimum top diameter}
-f4v{cr sw sp sf lp}:{blank}
-f4v{ni ie em ws bm ec kt wc pn ca}:{blank}
-f4v{so ut tt ak ci nc bp}:{blank}
-//f4v{ne ls cs}:{blank}
-f4v{ne ls cs sn}:{blank}
+f4v:{blank}
 
 f5:{numberBox Stump height (feet)}
-//f5{sn}:{noInput Stump height is 1 ft and can not be changed in Southern US}
 f5v:{blank}
 
 f6:{numberBox Form class}
-f6v{sn ut tt ak em ws ci cr sw sp bp sf lp ne ls cs kt}:{blank}
-f6v{ni ie so bm ec wc pn nc ca}:{blank}
+f6v:{blank}
 
 f7:{longListButton Method of volume calculation}
-f7v{ni ie so ut tt ak em ws bm ec ci nc}:{\
->6 = National Volume Estimator library equations}
-
 f7v{ls cs ne}:{\
 5 = Gevorkiantz volume equations
 >6 = National Volume Estimator library equations}
@@ -375,15 +290,28 @@ f7v{ls cs ne}:{\
 f7v:{\
 >6 = National Volume Estimator library equations}
 
-answerForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
-parmsForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!}
-numbers:{1 2 3 4 5 6 7 8 9 10}
+f8{cs ls ne sn}:{numberBox Cubic sawlog minimum DBH}
+f8:{noInput}
+f8v:{blank}
+
+f9{cs ls ne sn}:{numberBox Cubic sawlog minimum top diameter}
+f9:{noInput}
+f9v:{blank}
+
+f10{cs ls ne sn}:{numberBox Cubic sawlog stump height}
+f10:{noInput}
+f10v:{blank}
+
+answerForm:{Volume    !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!!8,10!!9,10!!10,10!}
+parmsForm:{Volume     !1,10!!2,10!!3,10!!4,10!!5,10!!6,10!!7,10,numbers!!8,10!!9,10!!10,10!}
+numbers{ls cs ne}:{5 6}
+numbers:{6}
 
 //end keyword.base.Volume
  
 //start keyword.base.CCAdj
 f1title:
-{Once this adjustement is in effect, it remains in effect until replaced by a subsequent 
+{Once this adjustment is in effect, it remains in effect until replaced by a subsequent 
 adjustment.}
 f1:{scheduleBox}
 f1v:{0}
@@ -414,72 +342,6 @@ NOTE: If used to change the distribution following a management or
 disturbance event, the schedule year should be the same year as the event.
 }			  
 //end keyword.base.CCAdj
-
-//start keyword.base.CFVolEqu
-
-description:
-{Adjusts the cubic foot volume equations by inserting new
-coefficients in this equation:
-
-V =  Coeff0 +
-     Coeff1 * DBH +
-     Coeff2 * DBH*Height +
-     Coeff3 * DBH*DBH*Height +
-     Coeff4 * (DBH**Coeff5)*(Height**Coeff6)}
-
-answerForm:{\
-CFVolEqu  !1,10!!2,10!!3,10!
-!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
-!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
-
-parmsForm:{\
-CFVolEqu  !1,10!!2,10!!3,10!
-!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!
-!11,10!!12,10!!13,10!!14,10!!15,10!!16,10!!17,10!}
-
-f1:{speciesSelection Species to which equation is applied}
-
-f2:{longListButton Transition code}
-f2v:{Transition size is based on DBH
-     Transition size is based on DBH*DBH*Height}
-
-f3:{sliderBox Transition size}
-f3v:{0}
-
-f4title:{-------------------- Small-Tree Coefficients --------------------}
-f4:{numberBox Coeff0}
-f4v:{0}
-f5:{numberBox Coeff1 * DBH}
-f5v:{0}
-f6:{numberBox Coeff2 * DBH*Height}
-f6v:{0}
-f7:{numberBox Coeff3 * DBH*DBH*Height}
-f7v:{0}
-f8:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
-f8v:{0}
-f9:{numberBox DBH ** Coeff5}
-f9v:{0}
-f10:{numberBox Height ** Coeff6}
-f10v:{0}
-
-f11title:{------------------- Large-Tree Coefficients --------------------}
-f11:{numberBox Coeff0}
-f11v:{0}
-f12:{numberBox Coeff1 * DBH}
-f12v:{0}
-f13:{numberBox Coeff2 * DBH*Heigth}
-f13v:{0}
-f14:{numberBox Coeff3 * DBH*DBH*Height}
-f14v:{0}
-f15:{numberBox Coeff4 * f(DBH,Coeff5,Height,Coeff6)}
-f15v:{0}
-f16:{numberBox DBH ** Coeff5}
-f16v:{0}
-f17:{numberBox Height ** Coeff6}
-f17v:{0}
-
-//end keyword.base.CFVolEqu
-
 
 //start keyword.base.Compute
 
@@ -1036,6 +898,24 @@ defaultCondition:removal
 
 //end keyword.base.Fertiliz
 
+//start keyword.base.FIANSVB
+
+description:
+{Used to specify FIA National Scale Volume and Biomass output
+
+Creates additional table in output database (FVS_FIAVBC_Summary) which
+provides cubic volumes based on FIA NSVB methods as well as measures for
+total aboveground, cubic merchantable, cubic sawlog, and foliar biomass and carbon.
+
+This keyword cannot be scheduled and will be applied to the entire simulation}
+
+f1:{noInput Activates FIA NSVB computation methods}
+
+parmsForm:{
+FIANSVB    !1,10!}
+
+//end keyword.base.FIANSVB
+
 //start keyword.base.FixCW
 
 description:
@@ -1504,17 +1384,8 @@ MCFDLN    !1,10!!2,10!!3,10!}
 
 //start keyword.base.MinHarv
 
-description{ak bm ci cr sw sp bp sf lp ec em nc ni so tt ut wc ws kt pn ca}:
-{Specify minimum acceptable harvest standards for board-foot
-volume, cubic-foot volume, or basal area per acre by cycle.
-
-Once this keyword is in effect, it remains in effect until it is replaced
-by a subsequent multiplier.}
-
-description{cs ls ne sn}:
-{Specify minimum acceptable harvest standards for sawlog merchantable
-cubic-foot volume, sawlog board-foot volume, or basal area per acre
-by cycle.
+description:{Specify minimum acceptable harvest standards for merchantable cubic-foot volume,
+board-foot volume, basal area per acre, total cubic foot volume, or cubic sawlog volume by cycle.
 
 Once this keyword is in effect, it remains in effect until it is replaced
 by a subsequent multiplier.}
@@ -1523,29 +1394,22 @@ f1title:
 {Once this restriction is in effect, it remains in effect until\
  replaced by a subsequent restriction.}
 f1:{scheduleBox}
-f2{cs ls ne sn}:
-{numberBox Minimum acceptable harvest volume in sawlog cubic-feet per acre.}
-f2:{numberBox Minimum acceptable harvest volume in merchantable cubic-\
-feet per acre.}
+f2:{numberBox Minimum acceptable harvest volume in merchantable cubic-feet per acre.}
 f2v:{0}
 f3:{numberBox Minimum acceptable harvest volume in board feet per acre.}
-f3{cs ls ne sn}:
-{numberBox Minimum acceptable harvest volume in sawlog board-foot volume\
- per acre.}
 f3v:{0}
 f4:{numberBox Minimum acceptable harvest volume in square feet of basal\
  area per acre.}
 f4v:{0}
-f5{cs ls ne sn}:
-{numberBox Minimum acceptable harvest volume in merchantable cubic-\
-feet per acre.}
 f5:{numberBox Minimum acceptable harvest volume in total cubic-\
 feet per acre.}
 f5v:{0}
+f6:{numberBox Minimum acceptable harvest volume in sawlog cubic-feet}
+f6v:{0}
 
 parmsForm:{\
-* Arguments: Merch Cubic, Bdft, Ba, Total Cubic
-MinHarv   !1,10!     Parms(!2!, !3!, !4!, !5!)
+* Arguments: Merch Cubic, Bdft, Ba, Total Cubic, Sawlog Cubic
+MinHarv   !1,10!     Parms(!2!, !3!, !4!, !5!, !6!)
 }
 parmsForm=answerForm
 
@@ -4312,9 +4176,18 @@ f6v{ak}:{blank}
 f7:{numberBox Potential vegetation reference code}
 f7v:{blank}
 
-answerForm:{StdInfo   !1,10!!2,10,numbers!!3,10!!4,10!!5,10!!6,10!!7,10!}
+f8:{textEdit Specify an Ecoregion}
+f8v:{}
+
+f9:{longListButton Managed (e.g. plantation) or unmanaged}
+f9v:{\
+0 = Unmanaged
+1 = Managed}
+
+answerForm:{StdInfo   !1,10!!2,10,numbers!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!!9,10,numbersf9!}
 parmsForm=answerForm
 numbers:{1 2 3 4 5}
+numbersf9:{0 1}
 
 //end keyword.base.StdInfo
 

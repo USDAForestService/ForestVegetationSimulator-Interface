@@ -477,22 +477,6 @@ f2:{longTextEdit Enter the name for your user-defined variable (see note below f
 f2v:{VAR1}
 
 f3:{listButton Attribute to be returned}
-f3v{sn ls ne cs}:{\
-Trees per acre 
-Basal area per acre
-Stand density index
-Canopy cover percent
-Quadratic mean DBH
-Average diameter growth
-Average height
-Merch cubic volume 
-Sawtimber cubic volume
-Sawtimber board foot volume
-Dwarf mistletoe rating
-Relative Density-SILVAH
-Stand density index- Zeide
-Curtis relative density}
-
 f3v:{\
 Trees per acre 
 Basal area per acre
@@ -503,11 +487,12 @@ Average diameter growth
 Average height
 Total cubic volume 
 Merch cubic volume
-Merch board foot volume
+Board foot volume
 Dwarf mistletoe rating
 Relative Density-SILVAH
 Stand density index- Zeide
-Curtis relative density}
+Curtis relative density
+Cubic sawlog volume}
 
 f4:{speciesSelection Species covered in the calculations}
 
@@ -546,7 +531,7 @@ Compute   !1,10!
 !2!=SPMCDBH(!3,,list!,!4!,!5!,!6!,!7!,!8!,!9!,!10!,!11!)
 End}
 
-list:{1 2 11 7 5 10 6 3 9 4 8 12 13 14}
+list:{1 2 11 7 5 10 6 3 9 4 8 12 13 14 15}
 
 answerForm=parmsForm
 

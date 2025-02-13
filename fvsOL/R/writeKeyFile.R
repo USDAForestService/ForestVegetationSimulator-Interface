@@ -2,10 +2,10 @@ kcpVetting <- function (kcpconts)
 {
   if(!length(kcpconts)) return()
   basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
-                   "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
+                   "BFFDLN","BFVOLUME","CALBSTAT","CCADJ","CHEAPO",
                    "CLOSE","COMMENT","COMPRESS","CRNMULT","CRUZFILE","CUTEFF",
                    "CUTLIST","CWEQN","CYCLEAT","DATASCRN","DEBUG","DEFECT","DELOTAB",
-                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIXCW",
+                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIANSVB","FIXCW",
                    "FIXDG","FIXHTG","FIXMORT","FVSSTAND","GROWTH","HTGMULT","HTGSTOP",
                    "INPFILE","INVYEAR","LOCATE","MANAGED","MCDEFECT","MCFDLN","MGMTID",
                    "MINHARV","MODTYPE","MORTMSB","MORTMULT","NOAUTOES","NOCALIB",
@@ -607,6 +607,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
             kwdlist <- strsplit(cmp$kwds,"\n")[[1]]  
             cmpkwds <- length(kwdlist)
             for(i in 1:cmpkwds){
+              if(kwdlist[i] == "" || kwdlist[i] == "\n") next
               space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])-1]==" "
               if(space){
                 keyrec <- strsplit(kwdlist[i],"")[[1]]

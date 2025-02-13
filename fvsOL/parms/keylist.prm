@@ -97,6 +97,9 @@ Echo      {base control}:
 Fertiliz  {base silv}:
 {Simulate the application of fertilizer.}
 
+FIANSVB   {base control}:
+{Activates FIA National Scale Volume Biomass methodology}
+
 FixCW     {base modifier}:
 {Overrides crown width estimates for specified diameter classes and species.}
 

@@ -615,6 +615,7 @@ getPstring = function (pkeys,pkey,atag = NULL)
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
+# browser()
   state=0
   out = NULL
   if(variant!="ne" && length(grep("ThinRDSL",ansFrm))>0) out="ThinRDSL"
