@@ -26,7 +26,7 @@ FVSOnlineUI <- fixedPage(
       'Shiny.addCustomMessageHandler("jsCode",function(message) {eval(message.code);});'))),
   tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
              "background-color: #eef8ff; color: black; ",
-             "position: absolute; left: 30px;",            
+             "position: absolute; left: 30px;",
              "opacity: .8; height: 35px; width: 50%;}")),
   fixedRow(column(width=4,offset=0,
       HTML(paste0('<div class="FVS_logo"><img src="FVSlogo.png" 
@@ -47,12 +47,12 @@ FVSOnlineUI <- fixedPage(
           tags$div(id="SelectRun", class="tb_padding",
           selectInput("runSel","Selected run", NULL, NULL, multiple=FALSE,
                       selectize=FALSE),
-          actionButton("newRun", `aria-label`="New","New"),
-          actionButton("reload",`aria-label`="Reload","Reload"),
-          actionButton("saveRun", "Save",`aria-label`="Save"),
-          actionButton("dupRun",`aria-label`="Duplicate","Duplicate"),
-          modalTriggerButton("deleteRun", "#deleteRunDlg","Delete"),
-          modalDialog(id="deleteRunDlg", footer=list(
+          actionButton("newRun", `aria-label` = "New Run", "New"),
+          actionButton("reload", `aria-label` = "Reload Run", "Reload"),
+          actionButton("saveRun", `aria-label` = "Save Run", "Save"),
+          actionButton("dupRun", `aria-label` = "Duplicate Run", "Duplicate"),
+          modalTriggerButton("deleteRun", "#deleteRunDlg", "Delete"),
+          modalDialog(id = "deleteRunDlg", footer = list(
             modalTriggerButton("deleteRunDlgBtn", "#deleteRunDlg", "Yes"),
               tags$button(type = "button", class = "btn btn-primary",
                'data-dismiss' = "modal", "Cancel")))),
