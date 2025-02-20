@@ -903,23 +903,23 @@ defaultCondition:removal
 
 //end keyword.base.Fertiliz
 
-//start keyword.base.FIANSVB
+//start keyword.base.FIAVBC
 
 description:
-{Used to specify FIA National Scale Volume and Biomass output
+{Used to specify FIA standard volume computation output, including measures of biomass and carbon.
 
 Creates additional table in output database (FVS_FIAVBC_Summary) which
-provides cubic volumes based on FIA NSVB methods as well as measures for
+provides cubic volumes based on FIA standard methods as well as measures for
 total aboveground, cubic merchantable, cubic sawlog, and foliar biomass and carbon.
 
 This keyword cannot be scheduled and will be applied to the entire simulation}
 
-f1:{noInput Activates FIA NSVB computation methods}
+f1:{noInput Activates FIA standard computation methods}
 
 parmsForm:{
-FIANSVB    !1,10!}
+FIAVBC    !1,10!}
 
-//end keyword.base.FIANSVB
+//end keyword.base.FIAVBC
 
 //start keyword.base.FixCW
 
@@ -4184,10 +4184,10 @@ f7v:{blank}
 f8:{textEdit Specify an Ecoregion}
 f8v:{}
 
-f9:{longListButton Managed (e.g. plantation) or unmanaged}
+f9:{longListButton Stand Origin (e.g. plantation) or natural (for use with FIAVBC)}
 f9v:{\
-0 = Unmanaged
-1 = Managed}
+0 = Natural
+1 = Plantation}
 
 answerForm:{StdInfo   !1,10!!2,10,numbers!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!!9,10,numbersf9!}
 parmsForm=answerForm

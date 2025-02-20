@@ -5,7 +5,7 @@ kcpVetting <- function (kcpconts)
                    "BFFDLN","BFVOLUME","CALBSTAT","CCADJ","CHEAPO",
                    "CLOSE","COMMENT","COMPRESS","CRNMULT","CRUZFILE","CUTEFF",
                    "CUTLIST","CWEQN","CYCLEAT","DATASCRN","DEBUG","DEFECT","DELOTAB",
-                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIANSVB","FIXCW",
+                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIAVBC","FIXCW",
                    "FIXDG","FIXHTG","FIXMORT","FVSSTAND","GROWTH","HTGMULT","HTGSTOP",
                    "INPFILE","INVYEAR","LOCATE","MANAGED","MCDEFECT","MCFDLN","MGMTID",
                    "MINHARV","MODTYPE","MORTMSB","MORTMULT","NOAUTOES","NOCALIB",
