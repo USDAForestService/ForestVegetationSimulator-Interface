@@ -3,7 +3,7 @@ unlink("Acadian.log")
 
 # Note: The form of the function call is very carefully coded. Make sure
 # "runOps" exists if you want them to be used.
-fvsRunAcadian <- function(runOps,logfile="Acadian.log")
+fvsRunAcadian <- function(runOps, logfile="Acadian.log")
 {
 
   if (!is.null(logfile) && !interactive())
@@ -52,14 +52,14 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   cat ("fvsRunAcadian, options set\n")
 
   #load some handy conversion factors
-  CMtoIN  = fvsUnitConversion("CMtoIN")
-  INtoCM  = fvsUnitConversion("INtoCM")
-  FTtoM   = fvsUnitConversion("FTtoM")
-  MtoFT   = fvsUnitConversion("MtoFT")
-  M3toFT3 = fvsUnitConversion("M3toFT3")
-  ACRtoHA = fvsUnitConversion("ACRtoHA")
-  HAtoACR = fvsUnitConversion("HAtoACR")
-  spcodes = fvsGetSpeciesCodes()
+  .GlobalEnv$CMtoIN  = fvsUnitConversion("CMtoIN")
+  .GlobalEnv$INtoCM  = fvsUnitConversion("INtoCM")
+  .GlobalEnv$FTtoM   = fvsUnitConversion("FTtoM")
+  .GlobalEnv$MtoFT   = fvsUnitConversion("MtoFT")
+  .GlobalEnv$ M3toFT3 = fvsUnitConversion("M3toFT3")
+  .GlobalEnv$ACRtoHA = fvsUnitConversion("ACRtoHA")
+  .GlobalEnv$HAtoACR = fvsUnitConversion("HAtoACR")
+  .GlobalEnv$spcodes = fvsGetSpeciesCodes()
 
   #initialize THINMOD
   THINMOD = NULL
@@ -89,55 +89,55 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
   tree
   }
 
-  # start FVS but return prior to dubbing and calibration to detect which treees
+  # start FVS but return prior to dubbing and calibration to detect which trees
   # have dubbed heights and crown ratios.
-
-  fvsRun(7,0)
-
-  treesBeforeDub = fvsGetTreeAttrs(c("ht","cratio"))
-
-  # run fvs upto stop point 1 and change the dubbed values if there are any
-  fvsRun(1,-1)
-
-  # fetch CSI from the Event Monitor
-  CSI = fvsGetEventMonitorVariables("csi")
-  if (is.na(CSI)) {CSI = fvsGetEventMonitorVariables("site")*FTtoM
-  CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)}
-
-  dubHtRows = treesBeforeDub$ht == 0
-  dubCrRows = treesBeforeDub$cratio == 0
-
-  # run the Acadian dubbing logic if any of the Ht or Cratio values are missing.
-
-  if (any(dubHtRows) || any(dubCrRows))
-  {
-    # at this point tpa is computed.
-    treesAfterDub = fvsGetTreeAttrs(c("id","plot","species","tpa","dbh"))
-    names(treesAfterDub) = toupper(names(treesAfterDub))
-    treesAfterDub$TREE= 1:nrow(treesAfterDub)
-    names(treesAfterDub)[match("SPECIES",names(treesAfterDub))] = "SP"
-    names(treesAfterDub)[match("TPA",names(treesAfterDub))] = "EXPF"
-    treesAfterDub$SP = spcodes[treesAfterDub$SP,1]
-    treesAfterDub$ba = treesAfterDub$DBH  * treesAfterDub$DBH * 0.005454 * treesAfterDub$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
-    treesAfterDub$DBH  = treesAfterDub$DBH  * INtoCM
-    treesAfterDub$EXPF = treesAfterDub$EXPF * HAtoACR
-    treesAfterDub = dplyr::arrange(treesAfterDub, PLOT, desc(DBH))
-    temp = unlist(by(treesAfterDub$ba,INDICES=treesAfterDub$PLOT,FUN=cumsum))
-    treesAfterDub$BAL = temp-treesAfterDub$ba
-    treesAfterDub = dplyr::arrange(treesAfterDub, TREE)
-    treesAfterDub$CSI = CSI
-    treesAfterDub$HT  = 0
-    treesAfterDub$CR  = 0
-    treesAfterDub = calc_acd_ht(tree=treesAfterDub)
-    treesAfterDub = as.data.frame(treesAfterDub)
-    treesAfterDub = treesAfterDub[treesAfterDub$TREE,c("CR","HT")]
-    # replace the FVS dubbing with the values from calc_acd_ht for both HT and CR
-    if (any(dubHtRows)) treesBeforeDub$ht[dubHtRows] = treesAfterDub[dubHtRows,"HT"]*MtoFT
-    if (any(dubCrRows)) treesBeforeDub$cratio[dubCrRows] = round(treesAfterDub[dubCrRows,"CR"]*100,2)
-    fvsSetTreeAttrs(treesBeforeDub[,c("ht","cratio")])
-  }
-
-  cat ("Starting repeat loop\n")
+  
+#  2024.05.29 commented out code for height and crown ratio imputation until errors are resolved
+  
+  # fvsRun(7,0)
+  # 
+  # treesBeforeDub = fvsGetTreeAttrs(c("ht","cratio"))
+  # 
+  # # run fvs upto stop point 1 and change the dubbed values if there are any
+  # fvsRun(1,-1)
+  # 
+  # # fetch CSI from the Event Monitor
+  # CSI = fvsGetEventMonitorVariables("csi")
+  # if (is.na(CSI)) {CSI = fvsGetEventMonitorVariables("site")*FTtoM
+  # CSI   = approxfun(c(0,8,14,20),c(0,8,12,14),rule=2)(CSI)}
+  # 
+  # dubHtRows = treesBeforeDub$ht == 0
+  # dubCrRows = treesBeforeDub$cratio == 0
+  # 
+  # # run the Acadian dubbing logic if any of the Ht or Cratio values are missing.
+  # 
+  # if (any(dubHtRows) || any(dubCrRows))
+  # {
+  #   # at this point tpa is computed.
+  #   treesAfterDub = fvsGetTreeAttrs(c("id","plot","species","tpa","dbh"))
+  #   names(treesAfterDub) = toupper(names(treesAfterDub))
+  #   treesAfterDub$TREE= 1:nrow(treesAfterDub)
+  #   names(treesAfterDub)[match("SPECIES",names(treesAfterDub))] = "SP"
+  #   names(treesAfterDub)[match("TPA",names(treesAfterDub))] = "EXPF"
+  #   treesAfterDub$SP = spcodes[treesAfterDub$SP,1]
+  #   treesAfterDub$ba = treesAfterDub$DBH  * treesAfterDub$DBH * 0.005454 * treesAfterDub$EXPF * fvsUnitConversion("FT2pACRtoM2pHA")
+  #   treesAfterDub$DBH  = treesAfterDub$DBH  * INtoCM
+  #   treesAfterDub$EXPF = treesAfterDub$EXPF * HAtoACR
+  #   treesAfterDub = dplyr::arrange(treesAfterDub, PLOT, desc(DBH))
+  #   temp = unlist(by(treesAfterDub$ba,INDICES=treesAfterDub$PLOT,FUN=cumsum))
+  #   treesAfterDub$BAL = temp-treesAfterDub$ba
+  #   treesAfterDub = dplyr::arrange(treesAfterDub, TREE)
+  #   treesAfterDub$CSI = CSI
+  #   treesAfterDub$HT  = 0
+  #   treesAfterDub$CR  = 0
+  #   treesAfterDub = calc_acd_ht(tree=treesAfterDub)
+  #   treesAfterDub = as.data.frame(treesAfterDub)
+  #   treesAfterDub = treesAfterDub[treesAfterDub$TREE,c("CR","HT")]
+  #   # replace the FVS dubbing with the values from calc_acd_ht for both HT and CR
+  #   if (any(dubHtRows)) treesBeforeDub$ht[dubHtRows] = treesAfterDub[dubHtRows,"HT"]*MtoFT
+  #   if (any(dubCrRows)) treesBeforeDub$cratio[dubCrRows] = round(treesAfterDub[dubCrRows,"CR"]*100,2)
+  #   fvsSetTreeAttrs(treesBeforeDub[,c("ht","cratio")])
+  # }
 
   repeat
   {
@@ -152,6 +152,7 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     # end of current stand?
     cat ("first stopPoint code=",stopPoint,"\n")
     if (stopPoint == 100) break
+    
 
     cat ("fvsRunAcadian: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=",
       mortModel,"\n    volLogic=",volLogic," SBW=",SBW,"\n")
@@ -190,36 +191,35 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     #fetch the fvs trees and form the AcadianGY "tree" dataframe
     orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio","special", "mgmtcd",
                                 "dg", "htg", "mort")) 
-    names(orgtree) = toupper(names(orgtree))
-    orgtree$TREE= 1:nrow(orgtree)
-    names(orgtree)[match("SPECIES",names(orgtree))] = "SP"
-    names(orgtree)[match("TPA",names(orgtree))] = "EXPF"
-    orgtree$SP = spcodes[orgtree$SP,1]
-    #change CR to a proportion and take abs; note that in FVS a negative CR
-    #signals that CR change has been computed by the fire or insect/disease model
-    orgtree$CR   = abs(orgtree$CRATIO) * .01
-    orgtree$DBH  = orgtree$DBH  * INtoCM
-    orgtree$HT   = orgtree$HT   * FTtoM
-    orgtree$EXPF = orgtree$EXPF * HAtoACR
- 
-    #load the form and risk class data using FVS variable ISPECL loaded using "special"
+  
     
-    orgtree$Form = rep(" ",nrow(orgtree))
-    orgtree$Risk = rep(" ",nrow(orgtree))
-    tmpset = orgtree$SPECIAL > 0 & orgtree$SPECIAL < 85
-    orgtree$Form[tmpset] = paste0("F",as.integer(orgtree$SPECIAL[tmpset] %/% 10))
-    orgtree$Risk[tmpset] = paste0("R",as.integer(orgtree$SPECIAL[tmpset] %%  10))
+    # add FVS alpha species codes and identify records with species outside scope of the model 
+    orgtree= validate_acd_tree_spp(orgtree, spcodes=spcodes)  # tree.list, spcodes, acd.species
+    
+    # create ACD species calibration dataframe
+    calib.fvs =make_fvs_calib(spcodes=spcodes, 
+                         tree.size.cap=tree.size.cap)
+    
+    # create ACD tree list and remove invalid tree records
+      orgtree= make_acd_tree(orgtree, num.plots=as.numeric(room['nplots']), calib.fvs)   # tree.list, num.plots, calib.spp, in.to.cm, ft.to.m, ha.to.ac
+        
+      tree= validate_acd_tree_status(orgtree)  # tree.list, acd.species
+    
 
     stand = list(CSI=CSI,ELEV=ELEV)
-    ops   = list(verbose=TRUE,INGROWTH=INGROWTH,MinDBH=MinDBH,
-                 CutPoint=0.5,   # >0 uses threshold probability (>0-1).
+    ops   = list(verbose=TRUE,
+                 INGROWTH=INGROWTH,
+                 MinDBH=MinDBH, # ingrowth minimum DBH
+                 CutPoint=0.5,   # ingrowth cut point >0 uses threshold probability (>0-1).
                  mortType="continuous", #mortType="discrete",
-                 SBW=SBW,THINMOD=THINMOD,verbose=TRUE,
-                 rtnVars = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB","Form","Risk"))
+                 SBW=SBW,
+                 THINMOD=THINMOD,
+                 verbose=TRUE,
+                 cap.dbh=TRUE, # use DBH max size - default TRUE in FVS
+                 cap.ht=TRUE, # # use total height max size - default TRUE in FVS
+                 rtnVars = c("PLOT","SP","DBH","EXPF","TREE","HT","HCB","Form","Risk",
+                             'dDBH.mult', 'dHt.mult', 'mort.mult', 'max.dbh', 'max.height'))
 
-    tree=make_acd_tree(tree.list=orgtree, 
-                       num.plots=as.numeric(room['nplots']))  
-    #tree$YEAR = stdInfo["year"]
     
     if (nrow(tree) == 0) next
     
@@ -254,23 +254,19 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
                         num.plots=as.numeric(room['nplots']),  
                         mort.model=mortModel)
 
-    #fetch the height, ba and mortality multipliers, veriable "mults" where the rows are
+    #fetch the height, ba and mortality multipliers, variable "mults" where the rows are
     # fvs species index values and the columns are the attributes.
     # baimult    basal area increment multiplier for each species
     # htgmult    height growth multiplier for each species
     # mortmult   mortality rate multiplier for each species
     # mortdia1   lower diameter limit to apply the multiplier for each species
     # mortdia2   upper diameter limit to apply the multiplier for each species
-
-    mults = fvsGetSpeciesAttrs(c("baimult","htgmult","mortmult","mortdia1","mortdia2"))
-    for (mult in names(mults)) cat("mult=",mult,mults[,mult],"\n")
-
-    tofvs$SP  = match(tofvs$SP,fvsGetSpeciesCodes()[,1])
-    tofvs$dg  = tofvs$dg*mults[tofvs$SP,"baimult"]
-    tofvs$htg = tofvs$htg*mults[tofvs$SP,"htgmult"]
-    mm = ifelse(tofvs$DBH >= mults[tofvs$SP,"mortdia1"] &
-                tofvs$DBH <= mults[tofvs$SP,"mortdia2"], mults[tofvs$SP,"mortmult"],1)
-    tofvs$mort= tofvs$mort*mm
+    # maxdbh     morphological maximum diameter for each species from TreeSZCp keyword
+    # maxht      morphological maximum height for each species from TreeSZCp keyword
+    # minmort    minimum proportion of the tree record that will be killed for each species from TreeSZCp keyword
+    # maxdbhcd   morphological maximum diameter use code for each species from TreeSZCp keyword
+ 
+# pass results back to FVS
     tofvs$SP=NULL
     tofvs$DBH=NULL
 
@@ -304,20 +300,20 @@ fvsRunAcadian <- function(runOps,logfile="Acadian.log")
     if (volLogic == "Acadian")
     {
       cat ("fvsRunAcadian: Applying Acadian volume logic\n")
-
+      
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
-      vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))
-      vols$mcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
-        mapply(KozakTreeVol,Bark="ob",Planted=0,
-               DBH=vols$dbh  * INtoCM,
-               HT =vols$ht   * FTtoM,
-               SPP=spcodes[vols$species,1],
-               stump=mcstds$mcstmp[vols$species] * FTtoM,
-               topD =mcstds$mctopd[vols$species] * INtoCM), 0)
-
-      if (any(vols$defect != 0)) vols$mcuft = vols$mcuft *
-                                 (1-(((vols$defect %% 10000) %/% 100) * .01))
-      vols$mcuft  = vols$mcuft * M3toFT3
+      vols = fvsGetTreeAttrs(c("species","ht","dbh","tcuft","defect"))
+      vols$tcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
+                           mapply(KozakTreeVol,Bark="ob",Planted=0,
+                                  DBH=vols$dbh  * INtoCM,
+                                  HT =vols$ht   * FTtoM,
+                                  SPP=spcodes[vols$species,1],
+                                  stump=mcstds$mcstmp[vols$species] * FTtoM,
+                                  topD =mcstds$mctopd[vols$species] * INtoCM), 0)
+      
+      if (any(vols$defect != 0)) vols$tcuft = vols$tcuft *
+        (1-(((vols$defect %% 10000) %/% 100) * .01))
+      vols$tcuft  = vols$tcuft * M3toFT3
       vols$species=NULL
       vols$ht     =NULL
       vols$dbh    =NULL
