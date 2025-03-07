@@ -20,15 +20,15 @@ BAMax     {base modifier}:
 {Modifies maximum density for the stand and the mortality distribution pattern.}
 
 BFDefect  {base vol}:
-{Specifies species specific board-foot volume defect corrections for board foot 
+{Specifies species specific board foot volume defect corrections for board foot 
 volume estimates.}
 
 BFFDLN     {base vol}:
 {Enters species specific parameters for log-linear form and defect correction for 
-board-foot volume estimates.}
+board foot volume estimates.}
 
 BFVolEqu  {base vol modifier}:
-{Adjusts the board-foot volume equations.}
+{Adjusts the board foot volume equations.}
 
 BFVolume  {base vol modifier}:
 {Changes the merchantability limits for board foot volume equations.}
@@ -44,7 +44,7 @@ Close     {base io}:
 {Closes a file.}
 
 CFVolEqu  {base vol modifier}:
-{Adjusts the cubic-foot volume equations.}
+{Adjusts the cubic foot volume equations.}
 
 CHEAPO    {base io}:
 {Generates an output file for the CHEAPO economic analysis program.}
@@ -135,7 +135,7 @@ Managed   {base modifier inventory}:
 {Signals hat the stand is managed or unmanaged.  Applies to a few variants.}
 
 MCDefect  {base vol}:
-{Species-specific cubic-foot volume defect corrections for volume estimates.}
+{Species-specific cubic foot volume defect corrections for volume estimates.}
 
 MCFDLN    {base vol}:
 {Species-specific parameters for log-linear form and defect correction equations
@@ -145,8 +145,8 @@ MgmtId    {base stdtre silv}:
 {4-character alphanumeric code identifying the projected silvicultural treatment.}
 
 MinHarv   {base thin vol}:
-{Specify minimum acceptable harvest standards for board-foot volume, 
-merchantable cubic-foot volume, or basal area per acre by cycle.}
+{Specify minimum acceptable harvest standards for board foot volume, 
+merchantable cubic foot volume, or basal area per acre by cycle.}
 
 ModType   {base inventory}:
 {Used to set forest type in all variants and to set model type in the Central Rockies 
@@ -358,7 +358,7 @@ VolEqNum   {base vol modifier}:
 {Changes the Volume Equation number used to calculate volume}
 
 Volume    {base vol modifier}:
-{Redefine merchantability limits for the merchantable cubic-foot volume 
+{Redefine merchantability limits for the merchantable cubic foot volume 
 equation.}
 
 YardLoss   {base silv thin}:
@@ -1176,6 +1176,18 @@ TreeSQL {dbs}:
 {Specify an SQL statement that from which tree-level 
 FVS variables are initialized.}
 
+VBCATRDB {dbs}:
+{Requests the FVS_FIAVBC_AtrtList table be created and populated.}
+
+VBCCUTDB {dbs}:
+{Requests the FVS_FIAVBC_CutList table be created and populated.}
+
+VBCSUMDB {dbs}:
+{Requests the FVS_FIAVBC_Summary table be created and populated.}
+
+VBCTRLDB {dbs}:
+{Requests the FVS_FIAVBC_TreeList table be created and populated.}
+
 ! ---------------------------------------
 ! Economic analysis extension
 ! ---------------------------------------
@@ -1200,7 +1212,7 @@ HrvRvn  {econ}:
 by diameter-class.}
 
 LbsCfv  {econ}:
-{Specifies value for converting one harvested cubic-foot of volume to pounds.}
+{Specifies value for converting one harvested cubic foot of volume to pounds.}
 
 MechCst  {econ}:
 {Specifies per acre mechanical site prep cost.}

@@ -829,16 +829,17 @@ cat ("tbs7=",tbs,"\n")
             "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
             "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
             "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
-            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric")
+            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric","FVS_FIAVBC_Summary")
         globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species",
-              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric")
+              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric","FVS_InvReference")
         globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum",
                                 "FVS_DM_Sz_Sum_Metric")
         globals$htClsLvl <- list("FVS_CanProfile")
         globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
                                 "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East",
                                 "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric",
-                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric")
+                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric","FVS_FIAVBC_TreeList",
+                                "FVS_FIAVBC_CutList","FVS_FIAVBC_ATRTList")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
@@ -2646,6 +2647,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       updateNumericInput(session=session,inputId="svsNFire",value=4)
       updateCheckboxGroupInput(session=session, "autoOut", choices=list(
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                        "FIA Volume, Biomass, and Carbon (VBC) (FVS_FIAVBC_Summary, FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_ArrtList)" = "autoFIAVBC",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
                         "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
@@ -8565,6 +8567,7 @@ cat ("new project dir=",getwd()," prjid=",prjid,"\n")
   observe(if (length(input$PrjOpen) && input$PrjOpen > 0) 
   {
     isolate({
+      browser()
       newPrj=paste0("../",input$PrjSelect)
       plk = file.exists(paste0(newPrj,"/projectIsLocked.txt"))
 cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),

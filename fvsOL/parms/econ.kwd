@@ -460,7 +460,7 @@ parmsForm=answerForm
 //start keyword.econ.LbsCfv
 
 description:
-{Specifies value for converting one harvested cubic-foot of volume to
+{Specifies value for converting one harvested cubic foot of volume to
 pounds.  This keyword does not affect calculations; it simply adds
 weight for harvested volume to the Harvest Volume and Gross Value Table.
 Only species explicitly specified will have conversion values, unless a
@@ -469,7 +469,7 @@ it does not overwrite entered species.  A maximum of one keyword entry
 per species is allowed; if more than one keyword is entered for a
 species, only the last keyword is used.}
 
-f1:{numberBox Conversion factor for one harvested cubic-foot of volume to pounds:}
+f1:{numberBox Conversion factor for one harvested cubic foot of volume to pounds:}
 f1v:blank
 
 f2:{speciesSelection Species for which the conversion factor applies:}

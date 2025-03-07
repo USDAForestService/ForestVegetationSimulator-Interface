@@ -153,7 +153,7 @@ BFFDLN    !1,10!!2,10!!3,10!}
 //start keyword.base.BFVolume
 
 description{ls ne cs sn}:
-{This keyword pertains to merchantability limits for board-foot volume.
+{This keyword pertains to merchantability limits for board foot volume.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -162,7 +162,7 @@ See the variant overview for default specifications.
 }
 
 description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
-{Change the merchantability limits for board-foot volume equations.
+{Change the merchantability limits for board foot volume equations.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -171,7 +171,7 @@ See the variant overview for default specifications.
 }
 
 description{bm ec so wc pn ca op oc nc}:
-{Change the merchantability limits for board-foot volume equations.
+{Change the merchantability limits for board foot volume equations.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -243,7 +243,7 @@ See the variant overview for default specifications.
 }
 
 description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
-{Change the merchantability limits for cubic-foot volume.
+{Change the merchantability limits for cubic foot volume.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -252,7 +252,7 @@ See the variant overview for default specifications.
 }
 
 description{bm ec so wc pn ca op oc nc}:
-{Change the merchantability limits for cubic-foot volume.
+{Change the merchantability limits for cubic foot volume.
 
 Once the limits are in effect, they remain in effect until
 replaced by subsequent limits.
@@ -342,7 +342,7 @@ If this keyword is meant to correct for systematic bias, applying the overlap
 correction at inventory (leaving field 1 blank) will initialize the stand canopy 
 cover with the specified overlap correction (field 2). If this keyword is used to 
 change the distribution following a management or disturbance event, the 
-schedule year should be the same year as the event. Use the free form option
+scheduled year should be the same year as the event. Use the free form option
 if you have developed your own overlap correction and do not want to use the 
 preset categories in the pull down menu. The reference range for the overlap
 correction is 0.1 – 5.0.}			  
@@ -1326,7 +1326,7 @@ Managed   !1,10!!2,10!}
 //start keyword.base.MCDefect
 
 description:
-{Specifies species-specific cubic-foot volume defect corrections for
+{Specifies species-specific cubic foot volume defect corrections for
 cubic foot volume estimates.  In the eastern US this affects only the
 pulpwood cubic foot volume.  Defect proportions are specified by
 species for the following five DBH classes: 5, 10, 15, 20, 25+ inches.  A
@@ -1370,7 +1370,7 @@ parmsForm=answerForm
 
 description:
 {Enter species-specific parameters for log-linear form and defect
-correction equations for merchantable cubic-foot volume estimates.
+correction equations for merchantable cubic foot volume estimates.
 In the eastern US this affects only pulpwood cubic foot volume.}
 
 f1title:{Species number for which the equation is to be changed.  The
@@ -1389,8 +1389,11 @@ MCFDLN    !1,10!!2,10!!3,10!}
 
 //start keyword.base.MinHarv
 
-description:{Specify minimum acceptable harvest standards for merchantable cubic-foot volume,
-board-foot volume, basal area per acre, total cubic foot volume, or cubic sawlog volume by cycle.
+description:{Specify minimum acceptable harvest standards for merchantable cubic foot volume,
+board foot volume, basal area per acre, total cubic foot volume, or cubic sawlog volume by cycle.
+
+For western variants, a non-zero value entered for sawlog cubic foot volume will only have effect 
+when the FIAVBC keyword is included in simulation.
 
 Once this keyword is in effect, it remains in effect until it is replaced
 by a subsequent multiplier.}
@@ -1399,17 +1402,17 @@ f1title:
 {Once this restriction is in effect, it remains in effect until\
  replaced by a subsequent restriction.}
 f1:{scheduleBox}
-f2:{numberBox Minimum acceptable harvest volume in merchantable cubic-feet per acre.}
-f2v:{0}
-f3:{numberBox Minimum acceptable harvest volume in board feet per acre.}
-f3v:{0}
-f4:{numberBox Minimum acceptable harvest volume in square feet of basal\
+f2:{numberBox Minimum acceptable harvest volume in square feet of basal\
  area per acre.}
-f4v:{0}
-f5:{numberBox Minimum acceptable harvest volume in total cubic-\
+f2v:{0}
+f3:{numberBox Minimum acceptable harvest volume in total cubic-\
 feet per acre.}
+f3v:{0}
+f4:{numberBox Minimum acceptable harvest volume in merchantable cubic-feet per acre.}
+f4v:{0}
+f5:{numberBox Minimum acceptable harvest volume in sawlog cubic-feet}
 f5v:{0}
-f6:{numberBox Minimum acceptable harvest volume in sawlog cubic-feet}
+f6:{numberBox Minimum acceptable harvest volume in board feet per acre.}
 f6v:{0}
 
 parmsForm:{\

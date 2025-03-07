@@ -1,43 +1,43 @@
 //start merch_vol
 
 description{ls ne cs}:
-{Change the merchantability specification for Board-foot merchantability, 
+{Change the merchantability specification for board foot merchantability, 
 cubic sawlog volume, and merchantable cubic (sawlog + pulpwood) volume 
 
 See the variant overview for default specifications.}
 
 description{sn}:
-{Change the merchantability specification for Board-foot merchantability, 
+{Change the merchantability specification for board foot merchantability, 
 cubic sawlog volume, and merchantable (sawlog + pulpwood) volume 
 
 See the variant overview for default specifications.}
 
 description{ni ie kt em}:
-{Change the merchantability limits for board-foot volume and cubic foot volume 
+{Change the merchantability limits for board foot volume and cubic foot volume 
 
 See the variant overview for default specifications.}
 
 description{ci tt ut}:
-{Change the merchantability limits for Board-foott volume and cubic foot volume
+{Change the merchantability limits for board foot volume and cubic foot volume
 
 See the variant overview for default specifications.}
 
 description{cr sw sp bp sf lp}:
-{Change the merchantability limits for Board-foot volume and cubic foot volume
+{Change the merchantability limits for board foot volume and cubic foot volume
 
 See variant overview for default specifications.
 }
 
 description{ws nc ca}:
-{Change the merchantability limits for Board-foot volume and cubic foot volume.}
+{Change the merchantability limits for board foot volume and cubic foot volume.}
 
 description{ak}:
-{Change the merchantability limits for Board-foot volume and cubic foot volume
+{Change the merchantability limits for board foot volume and cubic foot volume
 
 See the variant overview for default specifications.}
 
 description{bm ec so wc pn oc op}:
-{Change the merchantability limits for Board-foot volume and cubic foot volume
+{Change the merchantability limits for board foot volume and cubic foot volume
 
 See the variant overview for default specifications.}
 
