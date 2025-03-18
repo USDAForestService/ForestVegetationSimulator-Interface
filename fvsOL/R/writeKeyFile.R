@@ -607,11 +607,11 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
             kwdlist <- strsplit(cmp$kwds,"\n")[[1]]  
             cmpkwds <- length(kwdlist)
             for(i in 1:cmpkwds){
-              if(kwdlist[i] == "" || kwdlist[i] == "\n") next
-              space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])-1]==" "
+              space <- strsplit(kwdlist[i],"")[[1]][length(strsplit(kwdlist[i],"")[[1]])]==" "
+              space <- if(length(space)==0) FALSE else space
               if(space){
                 keyrec <- strsplit(kwdlist[i],"")[[1]]
-                keyrec <- keyrec[-(length(keyrec)-1)]
+                keyrec <- keyrec[-(length(keyrec))]
                 keyrec <- paste0(keyrec, collapse="")
                 kwdlist[i] <- keyrec
               }

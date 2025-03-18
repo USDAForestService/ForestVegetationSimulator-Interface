@@ -456,7 +456,7 @@ If this keyword is meant to correct for systematic bias, applying the overlap
 correction at inventory (leaving field 1 blank) will initialize the stand canopy 
 cover with the specified overlap correction (field 2). If this keyword is used to 
 change the distribution following a management or disturbance event, the 
-schedule year should be the same year as the event. Use the free form option
+scheduled year should be the same year as the event. Use the free form option
 if you have developed your own overlap correction and do not want to use the 
 preset categories in the pull down menu. The reference range for the overlap
 correction is 0.1 – 5.0.}			  
