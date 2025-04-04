@@ -225,7 +225,7 @@ FVSOnlineUI <- fixedPage(
              hr(),
              checkboxGroupInput("autoOut","Database and Text Output Options",choices=list(
                         "Tree lists (FVS_Treelist, FVS_CutList, FVS_ATRTList, (StdStk-stand and stock))" = "autoTreelists",
-                        "FIA Volume, Biomass, and Carbon (VBC) (FVS_FIAVBC_Summary, FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_ArrtList)" = "autoFIAVBC",
+                        "FIA Volume, Biomass, and Carbon (VBC) (FVS_FIAVBC_Summary, FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_AtrtList)" = "autoFIAVBC",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)" = "autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)" = "autoFire",
                         "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)" = "autoDead",

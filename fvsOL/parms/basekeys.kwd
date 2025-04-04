@@ -1390,9 +1390,9 @@ MCFDLN    !1,10!!2,10!!3,10!}
 //start keyword.base.MinHarv
 
 description:{Specify minimum acceptable harvest standards for merchantable cubic foot volume,
-board foot volume, basal area per acre, total cubic foot volume, or cubic sawlog volume by cycle.
+board foot volume, basal area per acre, total cubic foot volume, or sawlog cubic volume by cycle.
 
-For western variants, a non-zero value entered for sawlog cubic foot volume will only have effect 
+For western variants, a non-zero value entered for sawlog cubic foot volume will only have an effect 
 when the FIAVBC keyword is included in simulation.
 
 Once this keyword is in effect, it remains in effect until it is replaced
@@ -4184,10 +4184,10 @@ f6v{ak}:{blank}
 f7:{numberBox Potential vegetation reference code}
 f7v:{blank}
 
-f8:{textEdit Specify an Ecoregion}
+f8:{textEdit Ecoregion (used for FIAVBC)}
 f8v:{}
 
-f9:{longListButton Stand Origin (e.g. plantation) or natural (for use with FIAVBC)}
+f9:{longListButton Stand Origin (e.g. natural or plantation; used for FIAVBC)}
 f9v:{\
 0 = Natural
 1 = Plantation}

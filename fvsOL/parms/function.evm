@@ -129,23 +129,6 @@ answerForm:
 //start evmon.function.SpMcDBH
 
 f1:{listButton Attribute to be returned}
-f1v{sn ls ne cs}:{\
-Trees per acre
-Basal area per acre
-Merch cubic volume
-Sawtimber board foot volume
-Quadratic mean DBH
-Average height
-Canopy cover percent
-Dwarf mistletoe rating
-Sawtimber cubic volume
-Average diameter growth
-Stand density index
-Relative Density-SILVAH
-Stand density index- Zeide
-Curtis relative density
-Cubic sawlog volume}
-
 f1v:{\
 Trees per acre
 Basal area per acre
@@ -161,7 +144,7 @@ Stand density index
 Relative Density-SILVAH
 Stand denisty index- Zeide
 Curtis relative density
-Cubic sawlog volume}
+Sawlog cubic volume}
 
 f2:{speciesSelection Species covered in the calculations}
 
