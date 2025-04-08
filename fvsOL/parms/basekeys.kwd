@@ -445,16 +445,21 @@ parmsForm=answerForm
 dist1:{0.1301 0.3328 0.6035 0.9296 1.0000 1.1502 1.5199 2.1129 3.7703} 
 			  
 description:
-{Adjusts the percent canopy cover (PCC) overlap correction coefficient  
-for different non-random spatial distributions. The FVS-default overlap 
-correction assumes randomly distributed trees (coefficient=1.0). 
+{Adjusts the percent canopy cover (PCC) overlap correction coefficient
+for different non-random spatial distributions. The FVS-default overlap
+correction assumes randomly distributed trees (coefficient=1.0). This 
+keyword remains in effect until a subsequent use of the keyword changes 
+the overlap correction coefficient.
 
-This keyword can also be used with the "Thin to a Residual Percent Canopy Cover" 
-management action (ThinCC keyword) for changing the %CC target calculation.
-
-NOTE: If used to change the distribution following a management or
-disturbance event, the schedule year should be the same year as the event.
-}			  
+Note: 
+If this keyword is meant to correct for systematic bias, applying the overlap 
+correction at inventory (leaving field 1 blank) will initialize the stand canopy 
+cover with the specified overlap correction (field 2). If this keyword is used to 
+change the distribution following a management or disturbance event, the 
+scheduled year should be the same year as the event. Use the free form option
+if you have developed your own overlap correction and do not want to use the 
+preset categories in the pull down menu. The reference range for the overlap
+correction is 0.1 – 5.0.}			  
 //end keyword.base.CCAdj
 
 //start keyword.base.CFVolEqu
@@ -4289,8 +4294,8 @@ StdIdent
 parmsForm=answerForm
 
 description:{\
-It is best to use the "Change Group Membership" window to
-specify the stand and management identifications.}
+Specifies a stand identification code and optional descriptive title 
+to label output tables.}
 
 //end keyword.base.StdIdent
 
