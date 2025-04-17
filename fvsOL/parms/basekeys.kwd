@@ -906,13 +906,16 @@ defaultCondition:removal
 //start keyword.base.FIAVBC
 
 description:
-{Used to specify FIA standard volume computation output, including measures of biomass and carbon.
+{Used to activate FIA cubic foot volume, biomass, and carbon computation methods. 
+This keyword allows users to produce stand (FVS_FIAVBC_Summary) and tree 
+(FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_ATRTList) level ouput tables 
+that contain cubic foot volume, biomass, and carbon attributes. 
+Additionally, users may request pre-defined stand level measures of biomass and caron in the 
+Event Monitor when this keyword is invoked.
 
-Creates additional table in output database (FVS_FIAVBC_Summary) which
-provides cubic volumes based on FIA standard methods as well as measures for
-total aboveground, cubic merchantable, cubic sawlog, and foliar biomass and carbon.
-
-This keyword cannot be scheduled and will be applied to the entire simulation}
+NOTE: This keyword cannot be scheduled and will be applied to the entire simulation. 
+Users cannot modify cubic foot volume calculations with the DEFECT, MCDEFECT, MCFDLN, 
+VOLEQNUM, and VOLUME keywords when this keyword is in effect}
 
 f1:{noInput Activates FIA standard computation methods}
 
