@@ -138,7 +138,7 @@ End
 
 autoEcon="
 Econ
-NoTable            1
+NoTable            0
 End
 Database
 EconRpts           2
