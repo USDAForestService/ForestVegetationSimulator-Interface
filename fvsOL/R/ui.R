@@ -3,7 +3,18 @@ FVSOnlineUI <- fixedPage(
   tags$script(HTML('Shiny.addCustomMessageHandler("changeTitle", function(x) {document.title=x});')),
   tags$head(tags$style(HTML(
     ".shiny-notification {height: 80px;width: 500px;position:fixed;top: calc(50% - 40px);;left: calc(50% - 250px);;}")
-    )),
+    ),tags$script(HTML('
+document.addEventListener("copy", (event) => {
+  const anchorNode = document.getSelection().anchorNode;
+  if (anchorNode instanceof HTMLElement &&
+    anchorNode.classList.contains("selectize-input")) {
+    const items = Array.from(anchorNode.getElementsByClassName("item active"));
+    const string = items.map(i => i.innerText).join(", ");
+    event.clipboardData.setData("text/plain", string);
+    event.preventDefault();
+  }
+})
+'))),
   tags$style(type="text/css", ".progress-bar {color: transparent!important}"),
   singleton(tags$head(tags$script(src = "message-handler.js"),
   tags$link(rel = "stylesheet", type= "text/css", href="FVS_styles.css")
@@ -35,9 +46,15 @@ FVSOnlineUI <- fixedPage(
                   '<img class="USDA_logo" src="USDAFS.png" 
                   alt="USDA and the US Forest Service 
                   Caring for the land and serving people"</img>'))),
-    column(width=4,offset=.5,uiOutput("projectTitle"),uiOutput("contCnts")),
-    column(width=4,uiOutput("serverDate"))
-  ), #End of Header
+    column(width = 4, offset = .5,
+      uiOutput("projectTitle"),
+      uiOutput("contCnts")),
+    column(width = 4, tags$div(id = "Metadata",
+      uiOutput("serverDate"),
+      uiOutput("sayDataSource"),
+      actionButton("uploadData", "Upload inventory database")
+      )
+  )), #End of Header
   fixedRow(column(width=12,offset=0,
     tags$html(lang = "en"),
     uiOutput("appLocked"),
@@ -79,11 +96,9 @@ FVSOnlineUI <- fixedPage(
         ),
         column(width = 8, offset = .2,
           tabsetPanel(id = "rightPan",
-            tabPanel("Stands", fixedRow(
-              tags$div(id="dataSource",
-              column(width=6,uiOutput("sayDataSource")),
-              column(width=6,div("Quick link to: ",
-                actionButton("uploadData","Upload inventory database")))),
+
+            tabPanel("Stands", 
+              fixedRow(column(width = 6,
               selectInput("inTabs","Inventory Data Tables", NULL, NULL,
                         multiple=FALSE, selectize=FALSE),
               selectInput("inVars","Variants", NULL, NULL,
@@ -107,8 +122,33 @@ FVSOnlineUI <- fixedPage(
               tags$div(id="InvStdSearchDiv",
                 myInlineTextInput("inStdFind", "Find stand(s):", value = "", size="25%"),
                 actionButton("inStdFindBut", "Find in Available Stands")
-              )
-            )),
+              )),
+              column(width = 6,
+                h4("Groups Management"),
+                radioButtons("GroupCreateDelete",
+                             NULL,
+                             c("Create new group",
+                               "Add stands to existing group(s)",
+                               "Remove stands from existing group(s)")),
+                textInput("NewGroupName", "New Group Name"),
+                selectInput("ExtGroups", "Existing Groups", NULL, NULL,
+                            multiple = TRUE, selectize = FALSE, size = 6),
+                selectInput(inputId = "GroupStands",
+                            label = "Stands in Selected Group(s)",
+                            choices = list(),
+                            selected = NULL,
+                            multiple = TRUE,
+                            selectize = FALSE),
+                textAreaInput(inputId = "UserStandGroup",
+                              label = "Insert list of stands",
+                              value = ""),
+                uiOutput("uploadStdLst_ui"),
+
+                actionButton(inputId = "CommitGroupMod",
+                             label = "Apply Group Update")
+              ))
+            ), # Ends "Stands" tab panel
+
             tabPanel("Time",
               tags$div(id = "TimeCompsDiv",
                 textInput("startyr",  "Common starting year", ""),
@@ -398,7 +438,8 @@ FVSOnlineUI <- fixedPage(
             fixedRow(
               column(width = 7,
                 myRadioGroup("plotType", "Type",
-                  c("line", "scat", "box", "bar", "DMD", "StkCht"))),
+                  # c("line", "scat", "box", "bar", "DMD", "StkCht"))),
+                  c("line", "scat", "box", "bar"))),
               column(width = 3,
                 myRadioGroup("colBW", "Style", c("Color", "B&W")))),
             fixedRow(
@@ -743,6 +784,55 @@ FVSOnlineUI <- fixedPage(
                 fixedRow(column(width=12,offset=0,uiOutput("inputTabDesc")))
               )
             ), 
+
+            #   tabPanel("Create / modify groups",
+            #     div(id="ViewEditGroupsDiv",
+            #     fixedRow(
+            #       column(width = 12, offset = 0,
+            #         radioButtons(inputId = "GroupCreateDelete",
+            #                      label = NULL,
+            #                      choices = c("Create New Group",
+            #                                  "Add stands to existing group",
+            #                                 "Remove Stands from existing group")),
+            #     textInput("NewGroupName", "New Group Name")
+            #       )
+            #     ),
+            #     hr(),
+            #     fixedRow(column(width=3,offset=0,
+            #       selectInput("selectFromTable",
+            #         label="From Table, select stands",
+            #         choices  = list("FVS_StandInit",
+            #                         "FVS_PlotInit",
+            #                         "UserSupplementalTable",
+            #                         "FVS_Summary2",
+            #                         "..."),
+            #         selected = NULL, multiple = FALSE, selectize=FALSE, width='250px')),
+            #         column(width = 2, offset = 0, 
+            #       selectInput("selectAttrib", "Where attribute", 
+            #         choices  = list("Att1","Att2","Att3","..."), 
+            #         selected = NULL, multiple = FALSE, selectize=FALSE, width='250px')),
+            #         column(width = 2, offset = 0, 
+            #       selectInput("selectClause", "clause", 
+            #         choices  = list("Starts with","Is equal to", "Is greater than","..."), 
+            #         selected = NULL, multiple = FALSE, selectize=FALSE, width='250px')),
+            #         column(width = 2, offset = 0,
+            #       selectInput("selectValue", "Value", 
+            #         choices  = list(50, 122, 13.2, "Longleaf", '...'), 
+            #         selected = NULL, multiple = FALSE, selectize=FALSE, width='250px')),
+            #       column(width=3,offset=0,
+            #         selectInput("mtchStnds", label = "Matching Stands", NULL, NULL,
+            #         multiple=TRUE, selectize=FALSE))
+            #   ),
+            #   fixedRow(column(width = 9, offset = 0,
+            #     actionButton("AddClause","Add Clause")),
+            #     column(width = 3, offset = 0)),
+            #     fixedRow(column(width = 9, offset = 0,
+            #     textAreaInput("GroupSQLQuery", "Result SQL Statement", 
+            #     value="SELECT StandID FROM FVS_StandInit WHERE table.x.attribute CLAUSE Value", 
+            #     width = '100%'),
+            #     actionButton("commitGroupUpdate","Create Group")),
+            #     column(width = 3, offset = 0)),
+            # )), 
 
             tabPanel("Upload Map data", 
               h4('Upload a stand layer to use in the "View On Maps" feature.'),       
