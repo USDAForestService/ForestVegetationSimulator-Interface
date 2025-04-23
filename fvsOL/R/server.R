@@ -2641,6 +2641,7 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       return()
     }
     browser()
+    standsToModify <- unique(standsToModify)
     validStandList = TRUE
     standsNotFound <- list()
     query <- sprintf("SELECT %s FROM %s
