@@ -9,7 +9,8 @@ data/fvsOnlineHelpRender.RData: inst/extdata/mkhelp.R inst/extdata/fvsOnlineHelp
 fvsOLmadeTag: makefile DESCRIPTION R/* inst/extdata/* inst/extdata/www/* data/*
 	cd .. && Rscript --default-packages=devtools -e "devtools::document(pkg='fvsOL')"
 	cd .. && Rscript --default-packages=devtools -e "devtools::build(pkg='fvsOL')"
-	cd .. && Rscript --default-packages=devtools -e "devtools::install(pkg='fvsOL',type='source')"
+	# We don't install system wide because we want to use it with renv in FCAT
+	# cd .. && Rscript --default-packages=devtools -e "devtools::install(pkg='fvsOL',type='source')"
 	touch fvsOLmadeTag
                  
 clean:

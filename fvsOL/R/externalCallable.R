@@ -999,6 +999,9 @@ extnSimulateRun <- function(prjDir=getwd(),runUUID,fvsBin="FVSBin",ncpu=detectCo
   # adjust location of the input database in the keyword file.  
   indb=grep ("FVS_Data.db$",kwds)
   if (length(indb)) kwds[indb]=paste0("../",kwds[indb])
+  # DAS 05May2025
+  kcps_index = grep("^.*kcp$", kwds)
+  if (length(kcps_index)) kwds[kcps_index] = paste0("../", kwds[kcps_index])
   if (length(.libPaths()) > 1)
   {
     libpaths=""
