@@ -126,7 +126,7 @@ document.addEventListener("copy", (event) => {
               column(width = 6,
                 h4("Groups Management"),
                 radioButtons("GroupCreateDelete",
-                             NULL,
+                             "Select Action",
                              c("Create new group",
                                "Add stands to existing group(s)",
                                "Remove stands from existing group(s)")),
@@ -143,7 +143,6 @@ document.addEventListener("copy", (event) => {
                               label = "Insert list of stands",
                               value = ""),
                 uiOutput("uploadStdLst_ui"),
-
                 actionButton(inputId = "CommitGroupMod",
                              label = "Apply Group Update")
               ))
@@ -536,23 +535,24 @@ document.addEventListener("copy", (event) => {
                  column(width = 6,
                    myRadioGroup("facetWrap", "Automatic facet wrap",
                       c("On" = "On", "Off" = "Off")))),
-               fixedRow(
-                 column(width = 12,
-                   myInlineTextInput("SDIvals", 
-                    "SDI values for Density Mgmt Diagram (DMG):",
-                     "35%,60%,600", size = 25))),
-               fixedRow(
-                 column(width = 6,
-                   myRadioGroup("YUnits", "DMG Y-Units:",
-                      c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "Tpa")),
-                 column(width = 6,
-                   myRadioGroup("XUnits", "DMG X-Units",
-                      c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "QMD"))),
-               fixedRow(
-                 column(width = 12,
-                   myInlineTextInput("StkChtvals", 
-                    "Full stocking percentages for Stocking Chart (StkCht):",
-                     "30%,55%,100%,110%", size = 25))))
+              #  fixedRow(
+              #    column(width = 12,
+              #      myInlineTextInput("SDIvals", 
+              #       "SDI values for Density Mgmt Diagram (DMG):",
+              #        "35%,60%,600", size = 25))),
+              #  fixedRow(
+              #    column(width = 6,
+              #      myRadioGroup("YUnits", "DMG Y-Units:",
+              #         c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "Tpa")),
+              #    column(width = 6,
+              #      myRadioGroup("XUnits", "DMG X-Units",
+              #         c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "QMD"))),
+              #  fixedRow(
+              #    column(width = 12,
+              #      myInlineTextInput("StkChtvals", 
+              #       "Full stocking percentages for Stocking Chart (StkCht):",
+              #        "30%,55%,100%,110%", size = 25)))
+                     )
             )),
             fixedRow(column(width = 6, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          
