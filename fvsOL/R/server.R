@@ -222,6 +222,7 @@ cat ("Project is locked.\n")
     } else cat (file="projectIsLocked.txt",date(),"\n") 
     setProgress(message = "Start up",value = 2)
     
+    # Apparent start of loading project specific data a.o. 5/20/25 DW
     nruns = mkFVSProjectDB()
     dbGlb$prjDB = connectFVSProjectDB()
 
@@ -5613,7 +5614,6 @@ cat ("Visualize SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n"
     if (input$topPan == "View On Maps")
     {
 cat ("View On Maps hit\n")
-      require(rgdal) 
       theRuns = try(dbGetQuery(dbGlb$dbOcon,
                 paste0("select distinct RunTitle, KeywordFile from FVS_Cases",
                        " order by RunDateTime desc")))
@@ -8748,20 +8748,57 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
                file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
           }
           rscript=gsub("\\\\","/",rscript)
-          defs=paste0("RscriptLocation='",rscript,"';")
-          if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
-          if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
+          args = c(paste0("-e RscriptLocation='",rscript,"'"))
+        #  defs=paste0("RscriptLocation='",rscript,"';")
+        #  if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
+          if (exists("mdbToolsDir")) args = c(args, paste0("-e mdbToolsDir='",mdbToolsDir,"'"))
+        #  if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
+          if (exists("sqlite3exe"))  args = c(args, paste0("-e sqlite3exe='",sqlite3exe,"'"))
 cat(".libPaths=",unlist(.libPaths()),"\n")
          if (exists("RscriptLocation")) {
            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
-           defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+        #   defs=paste0(defs,".libPaths('",Rlib2Use,"');")
+           args = c(args, paste0("-e .libPaths('",Rlib2Use,"')"))
          }
-          cmd =  paste0("$",rscript,"$ --vanilla -e $",defs,"require(fvsOL)", 
-            ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
-          cmd = gsub('$','\"',cmd,fixed=TRUE)
-          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
-          rtn=try(system (cmd,wait=FALSE))
-cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
+          # cmd =  paste0("$",rscript,"$ --vanilla -e $",defs,"require(fvsOL)", 
+          #   ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
+          # cmd = gsub('$','\"',cmd,fixed=TRUE)
+          # if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
+
+          # args = c("--vanilla", 
+          #          "-e RscriptLocation='C:/FVS_FIAVBC450/FVSSoftware/R/R-4.5.0/bin/x64/Rscript.exe'",
+          #          "-e mdbToolsDir='C:/FVS_FIAVBC450/FVSSoftware/mdbtools/'",
+          #          "-e sqlite3exe='C:/FVS_FIAVBC450/FVSSoftware/SQLite/sqlite3.exe'",
+          #          "-e .libPaths('C:/FVS_FIAVBC450/FVSSoftware/R/R-4.5.0/library')",
+          #          "-e require(fvsOL)",
+          #          "-e fvsOL(prjDir='../projectc',fvsBin='C:/FVS_FIAVBC450/FVSSoftware/FVSbin')",
+          #          "-e quit()")
+
+          args = c("--vanilla",
+                   args,
+                   "-e require(fvsOL)",
+                   paste0("-e fvsOL(prjDir='",newPrj, "',fvsBin='", fvsBin, "')"),
+                   "-e quit()")
+
+          # rtn=try(system (cmd,wait=FALSE))
+         rtn=try(system2(rscript, args = args, wait=FALSE))
+        #  rtn = callr::r_bg(function(Rloc, mdbDir, sqlDir, Prj, bin, lib) {
+        #     RscriptLocation=Rloc
+        #     mdbToolsDir=mdbDir
+        #     sqlite3exe=sqlDir
+        #     .libPaths(lib)
+        #     require(fvsOL)
+        #     fvsOL::fvsOL(prjDir=paste0('../',Prj),fvsBin=bin)
+        #   }, args = list(rscript, mdbToolsDir, sqlite3exe, newPrj, fvsBin, Rlib2Use), 
+        #   libpath = Rlib2Use,
+        #   cmdargs = c("--vanilla"))
+          # rtn = callr::r_bg(function(Prj, bin) {
+          #   fvsOL::fvsOL(prjDir=paste0('../',Prj),fvsBin=bin)
+          # }, args = list(newPrj, fvsBin), 
+          # libpath = Rlib2Use,
+          # cmdargs = c("--vanilla"))
+
+#cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
