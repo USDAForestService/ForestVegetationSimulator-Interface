@@ -2590,6 +2590,11 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
   observeEvent(input$CommitGroupMod, {
     updateTable = input$inTabs
     variant = input$inVars
+    if (is.null(variant)){
+      showModal(shiny::modalDialog(title = "No Variant Selected", 
+                "Please select a Variant from the Variants dropdown menu"))
+      return()
+    }
     sid = if (updateTable %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
     usrStds = as.list(strsplit(input$UserStandGroup, split = "\\+n|[^A-Za-z0-9_]"))
@@ -2606,11 +2611,11 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
                 "Please include a list of stands to modify "))
       return()
     }
-    browser()
+    standsToModify <- unique(standsToModify)
     validStandList = TRUE
     standsNotFound <- list()
     query <- sprintf("SELECT %s FROM %s
-                      WHERE %s IN (?) AND LOWER(VARIANT) = LOWER(?)",
+                      WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0",   
                       tolower(sid), tolower(updateTable), tolower(sid))
     for (stand in standsToModify) {
       res = dbGetQuery(dbGlb$dbIcon, query, params = c(stand, list(tolower(variant))))
@@ -2648,7 +2653,6 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
 
   ## Upload Stand List for Group Modification
   observeEvent(input$uploadStndLst, {
-   # browser()
     fext = tools::file_ext(basename(input$uploadStndLst$name))
     if( !(fext %in% c("txt","xlsx"))){
       showModal(shiny::modalDialog(title="Unsupported file type",
@@ -2664,7 +2668,6 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
 
     if(fext == "xlsx"){
       # Read excelfile
-      browser()
       sheets = tolower(getSheetNames(fname))
       if(tolower(input$inTabs) %in% sheets) {
         shtIdx = match(tolower(input$inTabs), sheets)
@@ -2688,7 +2691,6 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       }
 
       usrTable = try(read.xlsx(xlsxFile = fname, sheet = shtIdx))
-      browser()
       sidIdx = match(tolower(sid), tolower(colnames(usrTable)))
       if(ncol(usrTable) > 1 && is.null(usrTable[[sidIdx]])){
         showModal(shiny::modalDialog(title="Missing Column Name","Multiple columns found, table is missing column identifier '",
@@ -2704,7 +2706,6 @@ cat ("inStds upM=",upM," dnM=",dnM,"\n")
       }
     }
     if (fext == "txt"){
-      browser()
       usrData = try(read.table(fname, colClasses = "character"))
       if(tolower(usrData[[1]][1]) == tolower(sid)){
         updateTextAreaInput(session=session, inputId="UserStandGroup", value = usrData[[1]][-1])
@@ -5309,9 +5310,10 @@ cat ("Visualize input$SVSRunList2=",input$SVSRunList2,"\n")
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
   {
+    drawError = FALSE
 cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
      " fireLine=",fireLine," rangePoles=",rangePoles,"\n")
-    for (dd in rgl.dev.list()) try(rgl.close())
+    for (dd in rgl.dev.list()) try(close3d())
     open3d(useNULL=TRUE) 
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
     treeform = grep ("#TREEFORM",svs)
@@ -5331,7 +5333,7 @@ cat ("treeform=",treeform," is absent from treeforms, exiting.\n")
     if (length(rcirc)) 
     {
 #      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
-      rgl.viewpoint(theta = 1, phi = -40, fov = 0, zoom = .9, interactive = TRUE)
+      view3d(theta = 1, phi = -40, fov = 0, zoom = .9, interactive = TRUE)
       args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
       plotDef = circle3D(x0=args[1],y0=args[2],r=args[3],col=plotColor,alpha=0.7)
@@ -5345,7 +5347,8 @@ cat ("args=",args,"\n")
       }
       pltshp=1
     } else { # assume square, look for arguments of the rectangle.
-      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
+    #  rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
+      view3d(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
       rect = grep ("^#RECTANGLE",svs)
       if (length(rect)) 
       {
@@ -5514,7 +5517,26 @@ cat("Residual length of svs=",length(svs),"\n")
       ll = matrix(c(tree$Xloc,tree$Yloc,0),nrow=1)
       tree$Xloc = ll[1,1]     
       tree$Yloc = ll[1,2]
-      drawn = svsTree(tree,treeform)
+
+      drawtree <- function (t, tf) {
+      tryCatch(
+        {
+          return(svsTree(t, tf))
+        },
+        error = function(e) {
+          printtree <- paste0(unlist(tree))
+          cat(printtree,"\n")
+          message("Error occured in svsTree: Tree cannot be drawn")
+          print(e)
+          return(NULL)
+        }
+      )
+      }
+
+      drawn <- drawtree(tree, treeform)
+      if (is.null(drawn)) {
+        drawError = TRUE
+      }
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
 ####TESTING if (calls > 60) break
     }
@@ -5524,6 +5546,14 @@ cat("Residual length of svs=",length(svs),"\n")
     output[[id]] <- renderRglwidget(rglwidget(scene3d())) 
     # this code forces the scene to be loaded prior to calling the custom message
     # and that is critical to getting all this to work.
+
+      if (drawError) {
+      showModal(shiny::modalDialog(
+                title = "Draw Error", "One or more trees failed to draw properly.  Please check input database for tree errors.\n", 
+                                             "Please contact ", HTML("<a href='mailto:SM.FS.fvs-support@usda.gov?subject=Visualize%20Error'>FVS Help Desk</a>"),
+                                             " if you need additional support.",
+                easyClose = F))
+    }
     callBack <- function() 
     {
       session$sendCustomMessage(type="makeTopSideImages", 
@@ -5865,7 +5895,8 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                 text=element_text(size=8),axis.text=element_text(face="bold"),
                 panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
                 plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1)))
-            p = p + labs(title = paste0("StandID=",sid))
+            p = p + labs(title = paste0("StandID=",sid)) + theme(plot.title = element_text(size=7),
+                plot.margin = unit(c(.05,.5,.05,.05), "inches"))
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
@@ -6955,7 +6986,7 @@ cat ("checking tabs[idx]=",tabs[idx],"\n")
            "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-        qry = paste0("select ",idf," from '",tab2fix,"'")
+        qry = paste0("select ",idf," from '",tab2fix,"' NOT INDEXED")
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
         if (class(sidTb)=="try-error") next
@@ -8907,7 +8938,6 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
   }
 
   processGroupRequest <- function() {
-    browser()
     updateTable <- input$inTabs
     variant <- input$inVars
     sid <- modGroupGlb$sid
@@ -8926,7 +8956,7 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
           }
 
           dropStands = list()
-          query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND LOWER(VARIANT) = LOWER(?)", updateTable, sid)      
+          query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0", updateTable, sid)      
           for(s in screenedStandsList){
             res = dbGetQuery(dbGlb$dbIcon, query, params = c(list(newUsrGroupName), s, list(variant)))
             if(res > 0) {
@@ -8943,7 +8973,7 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
           }
           
           query <- sprintf("UPDATE %s SET [GROUPS] = [GROUPS] || ' ' || ? 
-          WHERE %s IN (%s) AND LOWER(VARIANT) = LOWER(?);",
+          WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",
           updateTable, sid, paste(rep("?",length(screenedStandsList)),collapse=","))
           res = dbExecute(dbGlb$dbIcon, query, params = c(list(newUsrGroupName),screenedStandsList,list(variant)))
           cat("Rows Affected: ", res)
@@ -8989,7 +9019,7 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
           for(g in selGrp){
             dropStands = list()
             stdsCpy <- screenedStandsList
-            query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND LOWER(VARIANT) = LOWER(?)", updateTable, sid)  
+            query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0", updateTable, sid)  
             for(s in stdsCpy) {
               res <- dbGetQuery(dbGlb$dbIcon, query, params = c(list(g), s, list(variant)))
               if(res > 0) {
@@ -9005,7 +9035,7 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
             }
 
             if(length(stdsCpy) > 0){
-              query <-sprintf("UPDATE %s SET [GROUPS] = [GROUPS]  || ' ' || ? WHERE %s IN (%s) AND LOWER(VARIANT) = LOWER(?);",
+              query <-sprintf("UPDATE %s SET [GROUPS] = [GROUPS]  || ' ' || ? WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",
               updateTable, sid, paste(rep("?",length(stdsCpy)),collapse=","))
               res = dbExecute(dbGlb$dbIcon, query, params = c(as.list(g), stdsCpy, as.list(variant)))
               cat("Rows Affected: ", res)
@@ -9052,7 +9082,7 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
                 WHEN LENGTH([GROUPS]) - LENGTH(?) > INSTR([GROUPS], ?) THEN REPLACE ([GROUPS], ' ' || ? || ' ', ' ')
                 ELSE REPLACE ([GROUPS], ' ' || ?, '') 
                 END 
-            WHERE %s IN (%s) AND LOWER(VARIANT) = LOWER(?);",updateTable,sid,paste(rep("?",length(screenedStandsList)),collapse=","))
+            WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",updateTable,sid,paste(rep("?",length(screenedStandsList)),collapse=","))
             res = dbExecute(dbGlb$dbIcon, query, 
               params = c(as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),screenedStandsList, as.list(variant)))
             cat("Rows Affected: ", res)

@@ -614,7 +614,6 @@ getPstring = function (pkeys,pkey,atag = NULL)
 
 mkKeyWrd = function (ansFrm,input,pkeys,variant)
 {
-  browser()
 cat("mkKeyWrd, ansFrm=\n",ansFrm,"\ninput=",input,"\n")
   state=0
   out = NULL

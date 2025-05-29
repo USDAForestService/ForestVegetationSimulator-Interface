@@ -152,7 +152,6 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
 
 mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,globals)
 {
-  browser()
   variant <- globals$activeVariants[1]
   forkeys <- prms[[paste0("HabPa_",variant)]]
   choices = if (!is.null(choices)) scan(text=choices,what="character",quiet=TRUE) else NULL
