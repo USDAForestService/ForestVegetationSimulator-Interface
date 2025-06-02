@@ -8784,12 +8784,12 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
           if (exists("mdbToolsDir")) args = c(args, paste0("-e mdbToolsDir='",mdbToolsDir,"'"))
         #  if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
           if (exists("sqlite3exe"))  args = c(args, paste0("-e sqlite3exe='",sqlite3exe,"'"))
-cat(".libPaths=",unlist(.libPaths()),"\n")
-         if (exists("RscriptLocation")) {
+          cat(".libPaths=",unlist(.libPaths()),"\n")
+          if (exists("RscriptLocation")) {
            Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
         #   defs=paste0(defs,".libPaths('",Rlib2Use,"');")
            args = c(args, paste0("-e .libPaths('",Rlib2Use,"')"))
-         }
+          }
           # cmd =  paste0("$",rscript,"$ --vanilla -e $",defs,"require(fvsOL)", 
           #   ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
           # cmd = gsub('$','\"',cmd,fixed=TRUE)
@@ -8811,7 +8811,7 @@ cat(".libPaths=",unlist(.libPaths()),"\n")
                    "-e quit()")
 
           # rtn=try(system (cmd,wait=FALSE))
-         rtn=try(system2(rscript, args = args, wait=FALSE))
+          rtn=try(system2(rscript, args = args, wait=FALSE))
         #  rtn = callr::r_bg(function(Rloc, mdbDir, sqlDir, Prj, bin, lib) {
         #     RscriptLocation=Rloc
         #     mdbToolsDir=mdbDir
