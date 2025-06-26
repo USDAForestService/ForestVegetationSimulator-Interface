@@ -206,6 +206,9 @@ cat ("FVSOnline/OnLocal interface server start, serverDate=",serverDate,"\n")
     dbGlb$navsOn <- FALSE            
     dbGlb$rowSelOn <- FALSE
     dbGlb$disprows <- 20
+    modGroupGlb <- new.env()
+    modGroupGlb$sid <- NULL
+    modGroupGlb$stands <- NULL
     if (file.exists("projectIsLocked.txt"))  
     {
 cat ("Project is locked.\n")
@@ -270,7 +273,7 @@ cat ("hostedByLogo=",hostedByLogo," serverDateOut=",serverDateOut,"\n")
     {
       addResourcePath("hostedByLogo.png",hostedByLogo) 
       serverDateOut = paste0(serverDateOut,"Hosted by<br>",'<img src="hostedByLogo.png"</img><br>') 
-    }
+    }       
     output$serverDate=renderUI(HTML(serverDateOut))
     tit=NULL
     pfexists = file.exists("projectId.txt")
@@ -1801,21 +1804,22 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           if (sel=="Year" && length(cont) > 1) sel = cont[2]
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
-        } else if (input$plotType=="DMD") {
-          updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
-          updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
-          updateRadioButtons(session=session,inputId="YTrans",selected="log10")
-          updateRadioButtons(session=session,inputId="XTrans",selected="log10")
-          globals$settingChoices[["xaxis"]] = as.list(cont)
-          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="QMD")
-          globals$settingChoices[["yaxis"]] = as.list(cont)
-          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="Tpa")
-        } else if (input$plotType=="StkCht") {
-          globals$settingChoices[["xaxis"]] = as.list(cont)
-          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
-          globals$settingChoices[["yaxis"]] = as.list(cont)
-          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="BA")
         }
+        # } else if (input$plotType=="DMD") {
+        #   updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
+        #   updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
+        #   updateRadioButtons(session=session,inputId="YTrans",selected="log10")
+        #   updateRadioButtons(session=session,inputId="XTrans",selected="log10")
+        #   globals$settingChoices[["xaxis"]] = as.list(cont)
+        #   updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="QMD")
+        #   globals$settingChoices[["yaxis"]] = as.list(cont)
+        #   updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="Tpa")
+        # } else if (input$plotType=="StkCht") {
+        #   globals$settingChoices[["xaxis"]] = as.list(cont)
+        #   updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
+        #   globals$settingChoices[["yaxis"]] = as.list(cont)
+        #   updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="BA")
+        # }
         updateSliderInput(session, "transparency",  
           value = if(input$plotType == "scat") .3 else 0.)
         if (input$plotType!="DMD")
@@ -1838,15 +1842,15 @@ cat ("end of browsevars/plotType\n")
   })   
 
   ## yaxis, xaxis regarding the Y- and XUnits for DMD
-  observe({
-    if (globals$gFreeze) return()
-    if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
-      updateRadioButtons(session=session,inputId="YUnits",  
-       selected=input$yaxis)
-    if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","QMD")) 
-      updateRadioButtons(session=session,inputId="XUnits",                
-       selected=input$xaxis)
-  })
+  # observe({
+  #   if (globals$gFreeze) return()
+  #   if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
+  #     updateRadioButtons(session=session,inputId="YUnits",  
+  #      selected=input$yaxis)
+  #   if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","QMD")) 
+  #     updateRadioButtons(session=session,inputId="XUnits",                
+  #      selected=input$xaxis)
+  # })
   ## Set a tool to "None" if the same level is selected by another tool (doesn't 
   ## apply to axes selection
   observe({
@@ -1983,7 +1987,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
           c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
     if ( ! input$plotType %in% c("scat","box")) for (v in chk) 
     { 
-      if (input$plotType %in% c("line","DMD","StkCht") && v=="Year") next
+    #  if (input$plotType %in% c("line","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))          
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
@@ -2135,82 +2139,82 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
     DMDguideLines = NULL
-    if (input$plotType == "DMD")
-    {
-      sdis=input$SDIvals
-      for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
-        NULL else unlist(strsplit(sdis,split=xx))
-      if (!is.null(sdis))
-      {
-        maxSDI = max(na.omit(as.numeric(sdis)))
-        if (maxSDI == -Inf) {maxSDI=700; sdis = c(sdis,as.character(maxSDI))}
-        sdisn = NULL
-        for (xx in sdis)
-        {
-          li = nchar(xx)
-          nv = if (li>1 && substr(xx,li,li)=="%") 
-            as.numeric(substr(xx,1,li-1))*.01*maxSDI else as.numeric(xx)
-          sdisn = c(sdisn,nv)
-        }          
-cat("sdisn=",sdisn,"\nXUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
-        seqTpa = seq(5,3000,length.out=50)
-        seqQMD = seq(1,80,length.out=50)
-        for (SDI in sdisn)
-        {
-          xseq = if (input$XUnits=="Tpa") seqTpa else seqQMD
-          yseq = if (input$YUnits=="Tpa") 
-                   if (input$XUnits=="Tpa") seqTpa else 
-                     # Tpa = f(QMD,SDI)  
-                     SDI / (seqQMD/10)^1.605 else
-                   if (input$XUnits=="QMD") seqQMD else 
-                     # QMD = f(Tpa,SDI)
-                     exp(log(SDI/seqTpa) / 1.605)*10
-          lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq > Inf,]
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          DMDguideLines[[as.character(SDI)]] = lineData
-cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
-        }
-      }
-    }
-    StkChtguideLines = NULL
-    if (input$plotType == "StkCht")
-    {
-      sdis=input$StkChtvals
-      for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
-        NULL else unlist(strsplit(sdis,split=xx))
-      if (length(sdis))
-      {
-        sdis = unlist(lapply(sdis,function(x) if(substr(x,nchar(x),nchar(x)) == "%")
-          x else paste0(x,"%")))
-        for (i in 1:length(sdis)) 
-        yptsba  = c(70.2,80.9,89.5,96.5,102.5,107.5,111.9,115.7,119.0,121.8,
-                    124.4,126.6,128.9)
-        xptstpa = c(1430,928,657,492,383,308,253,212,180,155,135,119,105)
-        seqTpa = seq(10,max(2000,nd$X),length.out=100)
-        seqBA = 161.47029555*exp(-.02275259*(seqTpa^.5)) #found using nls()       
-        ymaxlim = range(seqBA)
-        xmaxlim = range(seqTpa)
-        StkChtguideLines = list()
-        for (PCT in sdis)
-        {
-          pct = as.numeric(gsub("%","",PCT))*.01
-          lineData = data.frame(xseq=seqTpa*pct,yseq=seqBA*pct)
-          StkChtguideLines[[as.character(PCT)]] = lineData
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-        }
-        pcts = as.numeric(gsub("%","",sdis))*.01
-        pm = min(pcts)
-        px = max(pcts)
-        StkChtrng = data.frame(X=c(xptstpa[1]*pm,xptstpa[1]*px,xptstpa*px,rev(xptstpa)*pm),
-                               Y=c(yptsba[1]*pm,yptsba[1]*px,yptsba*px,rev(yptsba)*pm))
-      }
-    }
+#     if (input$plotType == "DMD")
+#     {
+#       sdis=input$SDIvals
+#       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
+#         NULL else unlist(strsplit(sdis,split=xx))
+#       if (!is.null(sdis))
+#       {
+#         maxSDI = max(na.omit(as.numeric(sdis)))
+#         if (maxSDI == -Inf) {maxSDI=700; sdis = c(sdis,as.character(maxSDI))}
+#         sdisn = NULL
+#         for (xx in sdis)
+#         {
+#           li = nchar(xx)
+#           nv = if (li>1 && substr(xx,li,li)=="%") 
+#             as.numeric(substr(xx,1,li-1))*.01*maxSDI else as.numeric(xx)
+#           sdisn = c(sdisn,nv)
+#         }          
+# cat("sdisn=",sdisn,"\nXUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
+#         seqTpa = seq(5,3000,length.out=50)
+#         seqQMD = seq(1,80,length.out=50)
+#         for (SDI in sdisn)
+#         {
+#           xseq = if (input$XUnits=="Tpa") seqTpa else seqQMD
+#           yseq = if (input$YUnits=="Tpa") 
+#                    if (input$XUnits=="Tpa") seqTpa else 
+#                      # Tpa = f(QMD,SDI)  
+#                      SDI / (seqQMD/10)^1.605 else
+#                    if (input$XUnits=="QMD") seqQMD else 
+#                      # QMD = f(Tpa,SDI)
+#                      exp(log(SDI/seqTpa) / 1.605)*10
+#           lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq > Inf,]
+#           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+#           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+#           DMDguideLines[[as.character(SDI)]] = lineData
+# cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
+#         }
+#       }
+#     }
+#     StkChtguideLines = NULL
+#     if (input$plotType == "StkCht")
+#     {
+#       sdis=input$StkChtvals
+#       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
+#         NULL else unlist(strsplit(sdis,split=xx))
+#       if (length(sdis))
+#       {
+#         sdis = unlist(lapply(sdis,function(x) if(substr(x,nchar(x),nchar(x)) == "%")
+#           x else paste0(x,"%")))
+#         for (i in 1:length(sdis)) 
+#         yptsba  = c(70.2,80.9,89.5,96.5,102.5,107.5,111.9,115.7,119.0,121.8,
+#                     124.4,126.6,128.9)
+#         xptstpa = c(1430,928,657,492,383,308,253,212,180,155,135,119,105)
+#         seqTpa = seq(10,max(2000,nd$X),length.out=100)
+#         seqBA = 161.47029555*exp(-.02275259*(seqTpa^.5)) #found using nls()       
+#         ymaxlim = range(seqBA)
+#         xmaxlim = range(seqTpa)
+#         StkChtguideLines = list()
+#         for (PCT in sdis)
+#         {
+#           pct = as.numeric(gsub("%","",PCT))*.01
+#           lineData = data.frame(xseq=seqTpa*pct,yseq=seqBA*pct)
+#           StkChtguideLines[[as.character(PCT)]] = lineData
+#           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+#           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+#         }
+#         pcts = as.numeric(gsub("%","",sdis))*.01
+#         pm = min(pcts)
+#         px = max(pcts)
+#         StkChtrng = data.frame(X=c(xptstpa[1]*pm,xptstpa[1]*px,xptstpa*px,rev(xptstpa)*pm),
+#                                Y=c(yptsba[1]*pm,yptsba[1]*px,yptsba*px,rev(yptsba)*pm))
+#       }
+#     }
     ### end DMD...except for adding annotations, see below.
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+#    if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     brks = function (x,log=FALSE) 
     {
@@ -2255,65 +2259,65 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     } else p = p + scale_y_discrete(guide = guide_axis(check.overlap = TRUE))
     # add the guidelines and annotation here (now that we know the range limits of x and y
-    if (!is.null(DMDguideLines)) 
-    {
-      pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
-      for (linetype in 1:length(pltorder)) 
-      {                                                
-        SDI = names(DMDguideLines)[pltorder[linetype]]
-        p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
-          linetype=linetype,data=DMDguideLines[[SDI]])
-      }
-      sq = seq(.95,0,-.05)
-      sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
-      sq = sq[1:min(length(sq),length(pltorder))]
-      xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
-      guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
-      guidedf$SDI=unlist(lapply(names(DMDguideLines)[pltorder], function(x) c(x,x)))
-      linetype = 0
-      for (idrow in seq(1,nrow(guidedf)-1,2)) 
-      {
-        linetype = linetype+1
-        p = p + annotate(geom="text",hjust="left",
-          label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
-        annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],linetype=linetype,
-                           x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],alpha=.4) 
-      }
-    }
-    if (!is.null(StkChtguideLines)) 
-    {
-      linetype = 1
-      for (PCT in rev(names(StkChtguideLines))) 
-      {
-        linetype = linetype+1
-        p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
-          linetype=if (PCT == "100%") 1 else linetype,data=StkChtguideLines[[PCT]])
-      }
-      sq = seq(.95,0,-.05)
-      sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
-      sq = sq[1:min(length(sq),length(names(StkChtguideLines)))]
-      xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
-      guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
-      guidedf$PCT=unlist(lapply(rev(names(StkChtguideLines)), function (x) c(x,x)))
-      linetype = 1
-      for (idrow in seq(1,nrow(guidedf)-1,2))
-      {
-        linetype = linetype+1
-        p = p + annotate(geom="text",hjust="left",
-          label=paste0(guidedf$PCT[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
-        annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],alpha=.4,
-                           x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],
-                           linetype=if (guidedf$PCT[idrow] == "100%") 1 else linetype) 
-      }
-      p = p + geom_polygon(aes(x=X,y=Y), data = StkChtrng, color="Gray", alpha=.3, 
-                          show.legend = FALSE)
-    }    
+    # if (!is.null(DMDguideLines)) 
+    # {
+    #   pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
+    #   for (linetype in 1:length(pltorder)) 
+    #   {                                                
+    #     SDI = names(DMDguideLines)[pltorder[linetype]]
+    #     p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
+    #       linetype=linetype,data=DMDguideLines[[SDI]])
+    #   }
+    #   sq = seq(.95,0,-.05)
+    #   sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
+    #   sq = sq[1:min(length(sq),length(pltorder))]
+    #   xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
+    #   guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
+    #   guidedf$SDI=unlist(lapply(names(DMDguideLines)[pltorder], function(x) c(x,x)))
+    #   linetype = 0
+    #   for (idrow in seq(1,nrow(guidedf)-1,2)) 
+    #   {
+    #     linetype = linetype+1
+    #     p = p + annotate(geom="text",hjust="left",
+    #       label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
+    #     annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],linetype=linetype,
+    #                        x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],alpha=.4) 
+    #   }
+    # }
+    # if (!is.null(StkChtguideLines)) 
+    # {
+    #   linetype = 1
+    #   for (PCT in rev(names(StkChtguideLines))) 
+    #   {
+    #     linetype = linetype+1
+    #     p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
+    #       linetype=if (PCT == "100%") 1 else linetype,data=StkChtguideLines[[PCT]])
+    #   }
+    #   sq = seq(.95,0,-.05)
+    #   sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
+    #   sq = sq[1:min(length(sq),length(names(StkChtguideLines)))]
+    #   xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
+    #   guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
+    #   guidedf$PCT=unlist(lapply(rev(names(StkChtguideLines)), function (x) c(x,x)))
+    #   linetype = 1
+    #   for (idrow in seq(1,nrow(guidedf)-1,2))
+    #   {
+    #     linetype = linetype+1
+    #     p = p + annotate(geom="text",hjust="left",
+    #       label=paste0(guidedf$PCT[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
+    #     annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],alpha=.4,
+    #                        x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],
+    #                        linetype=if (guidedf$PCT[idrow] == "100%") 1 else linetype) 
+    #   }
+    #   p = p + geom_polygon(aes(x=X,y=Y), data = StkChtrng, color="Gray", alpha=.3, 
+    #                       show.legend = FALSE)
+    # }    
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
  
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     pltp = input$plotType 
-    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+#    if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     p = p + switch(pltp,
       line    = if (input$colBW == "B&W") 
@@ -2403,7 +2407,7 @@ cat ("copyToClipboard copyplot\n")
     {
 cat ("Stands\n")
       f1=system.file("extdata", "FVS_Data.db.default",package="fvsOL")
-      output$sayDataSource <-renderUI((h4(paste0(
+      output$sayDataSource <-renderUI((tags$b(paste0(
         if (areFilesIdentical(f1=f1,f2="FVS_Data.db")) "Training" else "User",
           " data installed"))))
       initNewInputDB(session,output,dbGlb)
@@ -2446,6 +2450,7 @@ cat ("in reloadStandSelection\n")
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
       updateSelectInput(session=session, inputId="inGrps",choices=list())
+      updateSelectInput(session=session, inputId="ExtGroups",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
     } else {
       if(tolower(input$inVars)=="cr"){# check for 5 GENGYM submodel variant codes in the input data
@@ -2462,6 +2467,7 @@ cat ("in reloadStandSelection\n")
           }
         }
       }
+
       dd = apply(grps,1,function (x)
         { 
           gr=unlist(strsplit(x[2]," "))
@@ -2479,10 +2485,11 @@ cat ("in reloadStandSelection\n")
       dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
       selGrp = dbGetQuery(dbGlb$dbIcon,
         'select distinct Grp from temp.Grps order by Grp')[,1]
-      updateSelectInput(session=session, inputId="inGrps", 
-              choices=as.list(selGrp))
-      updateSelectInput(session=session, inputId="inStds", 
-              choices=list())
+
+      updateSelectInput(session=session, inputId="inGrps",    choices=as.list(selGrp))
+      updateSelectInput(session=session, inputId="ExtGroups", choices = as.list(selGrp))
+      updateSelectInput(session=session, inputId="inStds",    choices=list())
+      updateSelectInput(session=session, inputId="GroupStands", choices=list())
       output$stdSelMsg <- renderUI(NULL)
     }
   })
@@ -2494,6 +2501,12 @@ cat ("in reloadStandSelection\n")
 cat ("inGrps inAnyAll inStdFindBut\n")
       # Ensure reactivity to inStdFindBut
       input$inStdFindBut
+      output$uploadStdLst_ui <- renderUI({
+        fileInput(inputId = "uploadStndLst",
+        label = paste0("Upload Stand / Plot list (txt, xlsx)"),
+        accept = c(".txt", ".xlsx"),
+        width = "90%")
+      })
       if (is.null(input$inGrps))          
       {
         output$stdSelMsg <- renderUI(NULL)
@@ -2533,6 +2546,23 @@ cat ("input$inStdFind=",input$inStdFind,"\n")
       }
     }
   })
+
+  observe({
+    if (is.null(input$ExtGroups)){
+      updateSelectInput(session=session, inputId = "GroupStands", choices = list())
+    }
+    else{
+      dbExecute(dbGlb$dbIcon,"drop table if exists temp.SEGrps")
+      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SEGrps"),data.frame(SelGrps = input$ExtGroups))
+      sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))"StandPlot_ID" else "Stand_ID"
+      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from temp.Grps ',
+                      'where Grp in (select SelGrps from temp.SEGrps)')))
+      if (class(stds) == "try-error") return()   
+      stds = stds[,1]
+      updateSelectInput(session=session, inputId="GroupStands", choices=as.list(stds))
+    }
+  })
+
   ## inStds has changed
   observe({
 cat ("inStds, length(input$inStds)=",length(input$inStds),"\n")
@@ -2553,8 +2583,138 @@ cat ("inStds, nprts=",nprts,"\n")
       dn[2]," of ",length(globals$selStds)," >>") else NULL
     stds = c(upM,globals$selStds[nprts[1]:nprts[2]],dnM)
 cat ("inStds upM=",upM," dnM=",dnM,"\n")    
-    updateSelectInput(session=session, inputId="inStds", 
-         choices=as.list(stds))   
+    updateSelectInput(session=session, inputId="inStds", choices=as.list(stds))   
+  })
+
+  ## CommitGroupMod:
+  observeEvent(input$CommitGroupMod, {
+    updateTable = input$inTabs
+    variant = input$inVars
+    if (is.null(variant)){
+      showModal(shiny::modalDialog(title = "No Variant Selected", 
+                "Please select a Variant from the Variants dropdown menu"))
+      return()
+    }
+    sid = if (updateTable %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
+               "StandPlot_ID" else "Stand_ID"
+    usrStds = as.list(strsplit(input$UserStandGroup, split = "\\+n|[^A-Za-z0-9_]"))
+    selStds = as.list(input$GroupStands)
+    standsToModify <- selStds
+    i = length(standsToModify)
+    for (x in usrStds[[1]]){
+      i = i + 1
+      standsToModify[i] <- x
+    }
+
+    if(length(standsToModify) == 0){
+      showModal(shiny::modalDialog(title = "No Stands Identified", 
+                "Please include a list of stands to modify "))
+      return()
+    }
+    standsToModify <- unique(standsToModify)
+    validStandList = TRUE
+    standsNotFound <- list()
+    query <- sprintf("SELECT %s FROM %s
+                      WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0",   
+                      tolower(sid), tolower(updateTable), tolower(sid))
+    for (stand in standsToModify) {
+      res = dbGetQuery(dbGlb$dbIcon, query, params = c(stand, list(tolower(variant))))
+      if(length(res[[1]]) == 0) {
+        standsNotFound <- c(standsNotFound,stand)
+      }
+    }
+
+    # Filter out stands not found in current variant
+    standsToModify <- standsToModify[! standsToModify %in% standsNotFound]
+    modGroupGlb$stands <- standsToModify
+    modGroupGlb$sid <- sid
+    if (length(standsToModify) == 0 && length(standsNotFound) > 0) {
+        validStandList = FALSE
+        showModal(shiny::modalDialog(title = "No Matching Stands Found", 
+        "No stands (plots) matching input list were found in database for currently selected variant.  Please verify input list for accuracy."))
+        return()
+    }
+    else if (length(standsNotFound) > 0) {
+        validStandList = FALSE
+        showModal(shiny::modalDialog(title = "Partial Matching List Found", 
+        "Some stands (plots) matching input list were found in database for currently selected variant and will be processed for requested action.  
+        Please verify input list for accuracy. ", footer = actionButton("StdLstConfirm", "Confirm")))
+    }
+
+    if (validStandList) {
+      processGroupRequest()
+    }
+  })
+
+    observeEvent(input$StdLstConfirm, {
+      removeModal()
+      processGroupRequest()
+    })
+
+  ## Upload Stand List for Group Modification
+  observeEvent(input$uploadStndLst, {
+    fext = tools::file_ext(basename(input$uploadStndLst$name))
+    if( !(fext %in% c("txt","xlsx"))){
+      showModal(shiny::modalDialog(title="Unsupported file type",
+      "Please select a .txt or .xlsx file"))
+      return()
+    }
+    masterDir = getwd()
+    fname = basename(input$uploadStndLst$datapath)
+    fdir = dirname(input$uploadStndLst$datapath)
+    setwd(fdir)
+    sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot")) "StandPlot_ID" 
+          else "Stand_ID"
+
+    if(fext == "xlsx"){
+      # Read excelfile
+      sheets = tolower(getSheetNames(fname))
+      if(tolower(input$inTabs) %in% sheets) {
+        shtIdx = match(tolower(input$inTabs), sheets)
+      }
+      else if (length(sheets) == 1){
+        shtIdx = 1
+      }
+      else {
+        # Error out gracefully
+        showModal(shiny::modalDialog(title="Invalid File",
+        paste0("When using a multipage excel file, please ensure the data you wish to load 
+        is located in a tab with the same name as the current 'Inventory Data Table' (e.g. FVS_StandInit, FVS_PlotInit) type selected.")))
+        output$uploadStdLst_ui <- renderUI({
+          fileInput(inputId = "uploadStndLst",
+          label = paste0("Upload Stand / Plot list (txt, xlsx)"),
+          accept = c(".txt", ".xlsx"),
+          width = "90%")
+        })
+        setwd(masterDir)
+        return()
+      }
+
+      usrTable = try(read.xlsx(xlsxFile = fname, sheet = shtIdx))
+      sidIdx = match(tolower(sid), tolower(colnames(usrTable)))
+      if(ncol(usrTable) > 1 && is.null(usrTable[[sidIdx]])){
+        showModal(shiny::modalDialog(title="Missing Column Name","Multiple columns found, table is missing column identifier '",
+                                     sid, "'.  Please update input file."))
+        setwd(masterDir)
+        return()
+      }
+      if(ncol(usrTable) == 1) {
+        updateTextAreaInput(session=session, inputId="UserStandGroup", value = usrTable[[1]])  
+      }
+      else {
+        updateTextAreaInput(session=session, inputId="UserStandGroup", value = usrTable[[sidIdx]])
+      }
+    }
+    if (fext == "txt"){
+      usrData = try(read.table(fname, colClasses = "character"))
+      if(tolower(usrData[[1]][1]) == tolower(sid)){
+        updateTextAreaInput(session=session, inputId="UserStandGroup", value = usrData[[1]][-1])
+      }
+      else {
+        updateTextAreaInput(session=session, inputId="UserStandGroup", value = usrData[[1]])
+      }
+    }
+    setwd(masterDir)
   })
   
   ## Save saveRun  
@@ -5150,9 +5310,10 @@ cat ("Visualize input$SVSRunList2=",input$SVSRunList2,"\n")
   renderSVSImage <- function (id,imgfile,subplots=TRUE,downTrees=TRUE,
                     fireLine=TRUE,rangePoles=TRUE,plotColor="gray")
   {
+    drawError = FALSE
 cat ("renderSVSImage, subplots=",subplots," downTrees=",downTrees,
      " fireLine=",fireLine," rangePoles=",rangePoles,"\n")
-    for (dd in rgl.dev.list()) try(rgl.close())
+    for (dd in rgl.dev.list()) try(close3d())
     open3d(useNULL=TRUE) 
     svs = scan(file=paste0(imgfile),what="character",sep="\n",quiet=TRUE)
     treeform = grep ("#TREEFORM",svs)
@@ -5172,7 +5333,7 @@ cat ("treeform=",treeform," is absent from treeforms, exiting.\n")
     if (length(rcirc)) 
     {
 #      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .8, interactive = TRUE)
-      rgl.viewpoint(theta = 1, phi = -40, fov = 0, zoom = .9, interactive = TRUE)
+      view3d(theta = 1, phi = -40, fov = 0, zoom = .9, interactive = TRUE)
       args = as.numeric(scan(text=svs[rcirc[1]],what="character",quiet=TRUE)[2:4])
 cat ("args=",args,"\n")
       plotDef = circle3D(x0=args[1],y0=args[2],r=args[3],col=plotColor,alpha=0.7)
@@ -5186,7 +5347,8 @@ cat ("args=",args,"\n")
       }
       pltshp=1
     } else { # assume square, look for arguments of the rectangle.
-      rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
+    #  rgl.viewpoint(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
+      view3d(theta = 1, phi = -45, fov = 30, zoom = .9, interactive = TRUE)
       rect = grep ("^#RECTANGLE",svs)
       if (length(rect)) 
       {
@@ -5355,9 +5517,30 @@ cat("Residual length of svs=",length(svs),"\n")
       ll = matrix(c(tree$Xloc,tree$Yloc,0),nrow=1)
       tree$Xloc = ll[1,1]     
       tree$Yloc = ll[1,2]
-      drawn = svsTree(tree,treeform)
+
+      drawtree <- function (t, tf) {
+      tryCatch(
+        {
+          return(svsTree(t, tf))
+        },
+        error = function(e) {
+          printtree <- paste0(unlist(tree))
+
+          showModal(shiny::modalDialog(
+                title = "Draw Error", "One or more trees failed to draw properly.  Please check input database for tree errors.\n", 
+                                             "Please contact ", HTML("<a href='mailto:SM.FS.fvs-support@usda.gov?subject=Visualize%20Error'>FVS Help Desk</a>"),
+                                             " if you need additional support.",
+                easyClose = F))
+          cat(printtree,"\n")
+          message("Error occured in svsTree: Tree cannot be drawn")
+          print(e)
+          return(NULL)
+        }
+      )
+      }
+
+      drawn <- drawtree(tree, treeform)
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
-####TESTING if (calls > 60) break
     }
     progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
@@ -5365,6 +5548,7 @@ cat("Residual length of svs=",length(svs),"\n")
     output[[id]] <- renderRglwidget(rglwidget(scene3d())) 
     # this code forces the scene to be loaded prior to calling the custom message
     # and that is critical to getting all this to work.
+
     callBack <- function() 
     {
       session$sendCustomMessage(type="makeTopSideImages", 
@@ -5706,6 +5890,8 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
                 text=element_text(size=8),axis.text=element_text(face="bold"),
                 panel.background=element_rect(fill=grDevices::rgb(1, 1, 1, .2, maxColorValue = 1)),
                 plot.background =element_rect(fill=grDevices::rgb(1, 1, 1, .5, maxColorValue = 1)))
+            p = p + labs(title = paste0("StandID=",sid)) + theme(plot.title = element_text(size=7),
+                plot.margin = unit(c(.05,.5,.05,.05), "inches"))
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
@@ -6795,7 +6981,7 @@ cat ("checking tabs[idx]=",tabs[idx],"\n")
            "fvs_treeinit_plot","fvs_treeinit_cond","fvs_plotinit_plot")) next
         tab2fix=tabs[idx]
         idf = if (length(grep("plot",tab2fix,ignore.case=TRUE))) "standplot_id" else "stand_id"
-        qry = paste0("select ",idf," from '",tab2fix,"'")
+        qry = paste0("select ",idf," from '",tab2fix,"' NOT INDEXED")
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
         if (class(sidTb)=="try-error") next
@@ -8744,6 +8930,180 @@ cat ("saveRun, input$inVars=",input$inVars,"\n")
       globals$lastRunVar = globals$activeVariants[1]   
 cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n") 
     }) 
+  }
+
+  processGroupRequest <- function() {
+    updateTable <- input$inTabs
+    variant <- input$inVars
+    sid <- modGroupGlb$sid
+    screenedStandsList <- modGroupGlb$stands
+
+    if(input$GroupCreateDelete == "Create new group"){    
+      tryCatch(
+        expr = {
+          newUsrGroupName = gsub(" ","_",trimws(input$NewGroupName))
+          
+          if(newUsrGroupName == ""){
+            showModal(shiny::modalDialog(title = "Missing Group Name", 
+              "'New Group Name' missing.  Please include a new group name 
+              to perform this operation "))
+            return()
+          }
+
+          dropStands = list()
+          query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0", updateTable, sid)      
+          for(s in screenedStandsList){
+            res = dbGetQuery(dbGlb$dbIcon, query, params = c(list(newUsrGroupName), s, list(variant)))
+            if(res > 0) {
+              dropStands <- c(dropStands,s)
+            }
+          }
+
+          # Filter out stands with pre-existing group name match
+          screenedStandsList <- screenedStandsList[! screenedStandsList %in% dropStands]
+          if (length(screenedStandsList) == 0 && length(dropStands) > 0) {
+            showModal(shiny::modalDialog(title = "Duplicate Group Name Found", 
+              "Group name '", newUsrGroupName, "' already found in all requested stand(s).  No updates will occur."))
+              return()
+          }
+          
+          query <- sprintf("UPDATE %s SET [GROUPS] = [GROUPS] || ' ' || ? 
+          WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",
+          updateTable, sid, paste(rep("?",length(screenedStandsList)),collapse=","))
+          res = dbExecute(dbGlb$dbIcon, query, params = c(list(newUsrGroupName),screenedStandsList,list(variant)))
+          cat("Rows Affected: ", res)
+          if (length(dropStands) > 0) {
+            showModal(shiny::modalDialog(title = "Duplicate Group Name Found", 
+              "Group name '", newUsrGroupName, "' already found in stand(s): ", paste0(dropStands, collapse = ", "), 
+              ". Updates made only to: ", paste0(screenedStandsList, collapse = ", ")))
+          }
+          else if(res == length(screenedStandsList)){
+            showModal(shiny::modalDialog(title = "Operation Successful", 
+            paste0("Group '", newUsrGroupName, "' has been successfully added to requested stands.")))
+          }
+          else if(res == 0){
+            showModal(shiny::modalDialog(title = "Operation Unsuccessful", 
+            paste0("Requested action returned 0 (zero) rows.",
+            "Please check that supplied stand / plot ids exist in ", updateTable, " table.")))
+          }
+          else {
+            showModal(shiny::modalDialog(title="Operation Successful",
+            paste0("Requested action updated ", res, " stands of ", length(screenedStandsList), 
+            " requested stands / plots.  Please double check input to ensure stands / plots ",
+            "exist in ", updateTable, " table.")))
+          }
+          reloadStandSelection(session, input)
+        },
+
+        error = function(e){ 
+          cat(paste(e))
+        }
+      )
+    }
+
+    else if (input$GroupCreateDelete == "Add stands to existing group(s)"){
+      tryCatch(
+        expr = {
+          selGrp = input$ExtGroups
+          if(length(selGrp) == 0){
+            showModal(shiny::modalDialog(title = "Missing Group(s)", 
+                  "Please select at least one existing group name 
+                  to perform this operation "))
+          }
+
+          for(g in selGrp){
+            dropStands = list()
+            stdsCpy <- screenedStandsList
+            query <- sprintf("SELECT INSTR([GROUPS], ?) FROM %s WHERE %s IN (?) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0", updateTable, sid)  
+            for(s in stdsCpy) {
+              res <- dbGetQuery(dbGlb$dbIcon, query, params = c(list(g), s, list(variant)))
+              if(res > 0) {
+                dropStands <- c(dropStands,s)
+              }
+            }
+
+            # Filter out stands with pre-existing group name match
+            stdsCpy <- stdsCpy[! stdsCpy %in% dropStands]
+            if (length(stdsCpy) == 0 && length(dropStands) > 0) {
+              showModal(shiny::modalDialog(title = "Duplicate Group Name Found", 
+                "Group name '", g, "' already found in all requested stand(s).  No updates will occur for this group."))
+            }
+
+            if(length(stdsCpy) > 0){
+              query <-sprintf("UPDATE %s SET [GROUPS] = [GROUPS]  || ' ' || ? WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",
+              updateTable, sid, paste(rep("?",length(stdsCpy)),collapse=","))
+              res = dbExecute(dbGlb$dbIcon, query, params = c(as.list(g), stdsCpy, as.list(variant)))
+              cat("Rows Affected: ", res)
+
+              if (length(dropStands) > 0) {
+                showModal(shiny::modalDialog(title = "Duplicate Group Name Found", 
+                  "Group name '", g, "' already found in stand(s): ", paste0(dropStands, collapse = ", "), 
+                  ". Updates will only be made to: ", paste0(stdsCpy, collapse = ", ")))
+              }
+
+              else if(res == length(stdsCpy)){
+                showModal(shiny::modalDialog(title = "Operation Successful", 
+                paste0("Group(s) '", paste0(g, collapse ="', '"), "' has been successfully added to requested stands.")))
+              }
+              else if(res == 0){
+                showModal(shiny::modalDialog(title = "Operation Unsuccessful", 
+                paste0("Requested action returned 0 (zero) rows.",
+                "Please check that supplied stand / plot ids exist in ", updateTable, " table.")))
+              }
+              else {
+                showModal(shiny::modalDialog(title="Operation Successful",
+                paste0("Requested action updated ", res, " stands of ", length(stdsCpy), 
+                " requested stands / plots.  Please double check input to ensure stands / plots ",
+                "exist in ", updateTable, " table.")))
+              }
+              reloadStandSelection(session, input)
+            }
+          }
+        },
+        error = function(e){ 
+          cat(paste(e))
+        }
+      )
+    }
+
+    else { # Remove Stands From Existing Group(s)
+      tryCatch(
+        expr = {
+          rmGrp = input$ExtGroups
+          for(rmGrpX in rmGrp){
+            query <-sprintf("UPDATE %s SET [GROUPS] = 
+              CASE
+                WHEN INSTR([GROUPS], ?) = 1 THEN REPLACE ([GROUPS], ? || ' ', '') 
+                WHEN LENGTH([GROUPS]) - LENGTH(?) > INSTR([GROUPS], ?) THEN REPLACE ([GROUPS], ' ' || ? || ' ', ' ')
+                ELSE REPLACE ([GROUPS], ' ' || ?, '') 
+                END 
+            WHERE %s IN (%s) AND INSTR(LOWER(VARIANT), LOWER(?)) > 0;",updateTable,sid,paste(rep("?",length(screenedStandsList)),collapse=","))
+            res = dbExecute(dbGlb$dbIcon, query, 
+              params = c(as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),as.list(rmGrpX),screenedStandsList, as.list(variant)))
+            cat("Rows Affected: ", res)
+            if(res == length(screenedStandsList)) {
+              showModal(shiny::modalDialog(title = "Operation Successful", 
+              paste0("Group '", rmGrpX, "' has been successfully removed from requested stands.")))
+            }
+            else if(res == 0) {
+              showModal(shiny::modalDialog(title = "Operation Unsuccessful", 
+              paste0("Requested action returned 0 (zero) rows for group, '",rmGrpX,"'. ",
+              "Please check that supplied stand / plot ids exist in ", updateTable, " table.")))
+            }
+            else {
+              showModal(shiny::modalDialog(title="Operation Successful",
+              paste0("Requested action for group '", rmGrpX,"' updated ", res, " stands of ", length(screenedStandsList), 
+              " requested stands / plots.  Please double check input to ensure stands / plots ",
+              "exist in ", updateTable, " table.")))
+            }
+          }
+          reloadStandSelection(session, input)
+        },
+        error = function(e){ 
+          cat(paste(e))
+        }
+      )
+    }
   }
 }
 
