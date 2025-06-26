@@ -5525,6 +5525,12 @@ cat("Residual length of svs=",length(svs),"\n")
         },
         error = function(e) {
           printtree <- paste0(unlist(tree))
+
+          showModal(shiny::modalDialog(
+                title = "Draw Error", "One or more trees failed to draw properly.  Please check input database for tree errors.\n", 
+                                             "Please contact ", HTML("<a href='mailto:SM.FS.fvs-support@usda.gov?subject=Visualize%20Error'>FVS Help Desk</a>"),
+                                             " if you need additional support.",
+                easyClose = F))
           cat(printtree,"\n")
           message("Error occured in svsTree: Tree cannot be drawn")
           print(e)
@@ -5534,11 +5540,7 @@ cat("Residual length of svs=",length(svs),"\n")
       }
 
       drawn <- drawtree(tree, treeform)
-      if (is.null(drawn)) {
-        drawError = TRUE
-      }
       if (!is.null(drawn)) drawnTrees[[length(drawnTrees)+1]] = drawn
-####TESTING if (calls > 60) break
     }
     progress$set(message = "Display trees",value = length(svs)+1) 
     displayTrees(drawnTrees)
@@ -5547,13 +5549,6 @@ cat("Residual length of svs=",length(svs),"\n")
     # this code forces the scene to be loaded prior to calling the custom message
     # and that is critical to getting all this to work.
 
-      if (drawError) {
-      showModal(shiny::modalDialog(
-                title = "Draw Error", "One or more trees failed to draw properly.  Please check input database for tree errors.\n", 
-                                             "Please contact ", HTML("<a href='mailto:SM.FS.fvs-support@usda.gov?subject=Visualize%20Error'>FVS Help Desk</a>"),
-                                             " if you need additional support.",
-                easyClose = F))
-    }
     callBack <- function() 
     {
       session$sendCustomMessage(type="makeTopSideImages", 
