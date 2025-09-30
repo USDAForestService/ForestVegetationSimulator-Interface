@@ -2,10 +2,10 @@ kcpVetting <- function (kcpconts)
 {
   if(!length(kcpconts)) return()
   basekwds <- list("ADDFILE","AGPLABEL","ALSOTRY","ATRTLIST","BAIMULT","BAMAX","BFDEFECT",
-                   "BFFDLN","BFVOLEQU","BFVOLUME","CALBSTAT","CCADJ","CFVOLEQU","CHEAPO",
+                   "BFFDLN","BFVOLUME","CALBSTAT","CCADJ","CHEAPO",
                    "CLOSE","COMMENT","COMPRESS","CRNMULT","CRUZFILE","CUTEFF",
                    "CUTLIST","CWEQN","CYCLEAT","DATASCRN","DEBUG","DEFECT","DELOTAB",
-                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIXCW",
+                   "DESIGN","DGSTDEV","ECHO","ECHOSUM","ENDFILE","FERTILIZ","FIAVBC","FIXCW",
                    "FIXDG","FIXHTG","FIXMORT","FVSSTAND","GROWTH","HTGMULT","HTGSTOP",
                    "INPFILE","INVYEAR","LOCATE","MANAGED","MCDEFECT","MCFDLN","MGMTID",
                    "MINHARV","MODTYPE","MORTMSB","MORTMULT","NOAUTOES","NOCALIB",
@@ -37,7 +37,7 @@ kcpVetting <- function (kcpconts)
                  "CUTLIDB","DWDCVDB","DWDVLDB","ECONRPTS","FUELREDB","FUELSOFT","MISRPTS",
                  "MORTREDB","POTFIRDB","RDBBMORT","RDDETAIL","RDSUM","SNAGOUDB","SNAGSUDB","STRCLSDB",
                  "SUMMARY","TREELIDB","STANDSQL","TREESQL","SQLIN","SQLOUT","DSNIN","DSNOUT",
-                 "INVSTATS","REGREPTS")
+                 "INVSTATS","REGREPTS","VBCSUMDB","VBCTRLDB","VBCCUTDB","VBCATRDB")
   climatekwds <- list("CLIMDATA","SETATTR","AUTOESTB","GROWMULT","MORTMULT","MXDENMLT","CLIMREPT")
   econkwds <- list("ANNUCST","ANNURVN","BURNCST","HRVFXCST","HRVVRCST","HRNRVN","LBSCFV",
                    "MECHCST","NOTABLE","PCTFXCST","PCTSPEC","PCTVRCST","PLANTCST","PRETEND",

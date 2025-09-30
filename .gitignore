@@ -1,4 +1,5 @@
 
+fvsOL/inst/extdata/.Rhistory
 .RData
 .Rhistory
 .Rproj.user/*
@@ -18,3 +19,4 @@ fvsOL/man/*
 rFVS/man/*
 *.gz
 .Rproj.user
+

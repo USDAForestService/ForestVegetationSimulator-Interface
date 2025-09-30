@@ -413,7 +413,7 @@ extnAddComponentKwds <- function(prjDir=getwd(),runUUID,cmps,groups=NULL,stands=
 #' @param autoOut a vector of character strings corresponding to the automatic
 #'   output selections to be set (not the svs ones), where these values "turn on"
 #'   the corresponding selections and existing selections are not changed (if NULL
-#'   no changes are made): "Treelists", "Carbon", "Fire", "Dead", "CanProfile", 
+#'   no changes are made): "Treelists", "autoFIAVBC", "Carbon", "Fire", "Dead", "CanProfile", 
 #'   "SnagDet",  "StrClass", "CalibStats", "Climate", "Econ", "DM_Sz_Sum", 
 #'   "RD_Sum",  "RD_Det", "RD_Beetle", "InvStats", "Regen", "KeepTextTables"
 #' @param svsOut a vector of two character strings where the first is the
@@ -449,7 +449,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
   if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded object")
   if (!is.null(autoOut))
   {
-    autoSets = c(autoTreelists = "Treelists", autoCarbon = "Carbon",               
+    autoSets = c(autoTreelists = "Treelists", autoFIAVBC = "FIAVBC Outputs", autoCarbon = "Carbon",               
       autoFire = "Fire",  autoDead = "Dead", autoCanProfile = "CanProfile", 
       autoSnagDet = "SnagDet",  autoStrClass = "StrClass", 
       autoCalibStats = "CalibStats", autoClimate = "Climate",  

@@ -1,6 +1,6 @@
 Package: fvsOL
 Title: Forest Vegetation Simulator
-Version: 2025.07.01
+Version: 2025.09.30
 Authors@R: c(person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
                   role = c("aut")),
              person("FVS", "Staff", email = "sm.fs.fvs-support@usda.gov",
@@ -12,7 +12,7 @@ Depends:
   ggplot2 (>= 3.3.3), parallel (>= 4.0.0), RSQLite (>= 2.2.4), plyr (>= 1.8.6), dplyr (>= 1.0.4), 
   colourpicker (>= 1.1.0), rgl (>= 0.105.0), leaflet (>= 2.0.4.1), zip (>= 2.1.1), openxlsx (>= 4.2.3), 
   shinyFiles (>= 0.9.3)
-Suggests: rgdal (>= 1.5-23), nlme (>= 3.1-140)
+Suggests: nlme (>= 3.1-140)
 License: MIT
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

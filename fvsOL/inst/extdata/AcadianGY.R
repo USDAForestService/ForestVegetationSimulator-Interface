@@ -1651,9 +1651,7 @@ ING.TreeList=function(Sum.temp,INGROWTH,MinDBH)
 
 ## For tree list from FVS add FVS alpha species codes and identify records with species outside scope of the model 
   validate_acd_tree_spp=function(tree.list, spcodes, acd.species=acd.species.ht.dia$Spp){
-    
     # retain records in the projections for accurate plot values and change species to OH
-    
     tree.list=tree.list %>% 
       dplyr::rename(fvs.num= species) %>%
       dplyr::left_join(spcodes %>% 
@@ -2085,7 +2083,6 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   #save the plot CCF's in Sum.temp for use with ingrowth
   Sum.temp = merge(Sum.temp,temp,by="PLOT")
   
-  
   #calculate heights of any with missing values.
   #generally, none will be missing when function is used with FVS, but some or
   #all would be missing when code us used to grow tree lists from other sources. 
@@ -2254,15 +2251,13 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
                     dHT.thin.mod*
                     dHt.mult)
   # version 12.3.2 removed rdMod.dHT_RDmod; added dHT.mult
-  
-  
   if(use.cap.ht==T){
     tree=tree %>% 
       dplyr::mutate(dHT=dplyr::case_when((dHT+HT)>max.height ~0,
                                   TRUE ~dHT))
     
   }
-  
+
   #  version 12.3.2 removed cap height growth (dHTmult)
   # dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
   # if (verbose) cat ("mean dHTmult=",mean(dHTmult),if (usedHTCap) " applied\n" else " not applied\n")
@@ -2315,13 +2310,17 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
                                         pBA.BF=tree$pBF.ba,
                                         pBA.IH=tree$pIHW.ba)[2,])    
   
-  # in future updates these values should probably not be included in the tree table
+  if (verbose) cat ("mean tree$stand.pmort=",mean(tree$stand.pmort),"\n")
+  if (verbose) cat ("mean tree$stand.pmort.cut=",mean(tree$stand.pmort.cut),"\n")
   
-  tree=calc_mortality(tree.list=tree, 
-                      plot.smry=Sum.temp,
-                      model.type='gompit',
-                      v=0.4)  # 
-  
+  tree$pmort = mapply(function(threshold, prmortgt0)
+  {
+    w = 1
+    # prmortgt0 == 1 is OK here because v can be Inf.
+    v = (prmortgt0*w)/(1-prmortgt0)  
+    qbeta(threshold, v, w, lower.tail = FALSE)
+  },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
+
   # stand.mort.BA=function(Region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih)
   tree$stand.mort.BA=mapply(stand.mort.BA,
                             Region=tree$Region,

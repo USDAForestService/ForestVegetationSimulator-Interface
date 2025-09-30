@@ -167,6 +167,8 @@ customRunElements = list(
 FVSOnlineServer <- function(input, output, session) 
 {  
 cat ("FVSOnline/OnLocal interface server start\n")
+  if (!dir.exists ("www")) dir.create("www")
+  addResourcePath("www",file.path(".","www"))
 
   # set serverDate to be the release date using packageVersion
   serverDate=as.character(packageVersion("fvsOL"))
@@ -222,6 +224,7 @@ cat ("Project is locked.\n")
     } else cat (file="projectIsLocked.txt",date(),"\n") 
     setProgress(message = "Start up",value = 2)
     
+    # Apparent start of loading project specific data a.o. 5/20/25 DW
     nruns = mkFVSProjectDB()
     dbGlb$prjDB = connectFVSProjectDB()
 
@@ -609,7 +612,14 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_CmpSummary)
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Summary)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
+            if(!chkSCuFt)
+            {
+              exqury(dbGlb$dbOcon,Create_CmpSummary)
+            }
+            else exqury(dbGlb$dbOcon,Create_CmpSummary_V2)
+            
             tbs = c(tbs,"CmpSummary")
 cat ("tbs1=",tbs,"\n")                             
           }
@@ -625,7 +635,12 @@ cat ("tbs2=",tbs,"\n")
           {
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
-            exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Summary2)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
+            if(!chkSCuFt){
+              exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            }
+            else exqury(dbGlb$dbOcon,Create_CmpSummary2_V2)
             tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
           }
@@ -696,14 +711,27 @@ cat ("tbs6=",tbs,"\n")
           }
           for (tlp in tlprocs)          
           {
+            tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Treelist)")
+            chkSCuFt <- any(tblPRAG$name=="SCuFt")
             if (tlp == "tlwest")
             {
-              C_StdStkDBHSp  = Create_StdStkDBHSp
-              C_HrvStdStk    = Create_HrvStdStk
-              C_StdStk1Hrv   = Create_StdStk1Hrv
-              C_StdStk1NoHrv = Create_StdStk1NoHrv
-              C_StdStkFinal  = Create_StdStkFinal
-              C_CmpStdStk    = Create_CmpStdStk
+              if (!chkSCuFt) {
+                C_StdStkDBHSp  = Create_StdStkDBHSp
+                C_HrvStdStk    = Create_HrvStdStk
+                C_StdStk1Hrv   = Create_StdStk1Hrv
+                C_StdStk1NoHrv = Create_StdStk1NoHrv
+                C_StdStkFinal  = Create_StdStkFinal
+                C_CmpStdStk    = Create_CmpStdStk
+
+              }
+              else {
+                C_StdStkDBHSp  = Create_StdStkDBHSp_V2
+                C_HrvStdStk    = Create_HrvStdStk_V2
+                C_StdStk1Hrv   = Create_StdStk1Hrv_V2
+                C_StdStk1NoHrv = Create_StdStk1NoHrv_V2
+                C_StdStkFinal  = Create_StdStkFinal_V2
+                C_CmpStdStk    = Create_CmpStdStk_V2
+              }
               detail = "Building StdStk from tree lists"
               stdstk = "StdStk"
               clname = "FVS_CutList"
@@ -777,12 +805,20 @@ cat ("tbs7=",tbs,"\n")
             detail  = "Committing changes", value = i); i = i+1
         dbd = lapply(tbs,function(tb,con) dbListFields(con,tb), dbGlb$dbOcon)
         names(dbd) = tbs
-        if (!is.null(dbd[["FVS_Summary"]])) dbd$FVS_Summary = c(dbd$FVS_Summary,
+        if (!is.null(dbd[["FVS_Summary"]])) {
+          if("SCuFt" %in% dbd[["FVS_Summary"]]) dbd$FVS_Summary = c(dbd$FVS_Summary,
+            c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdSCuFt","TPrdBdFt"))
+            else dbd$FVS_Summary = c(dbd$FVS_Summary,
             c("TPrdTpa","TPrdTCuFt","TPrdMCuFt","TPrdBdFt"))
+        }
         if (!is.null(dbd[["FVS_Summary_East"]])) dbd$FVS_Summary_East = 
             c(dbd$FVS_Summary_East,c("TPrdTpa","TPrdMCuFt","TPrdSCuFt","TPrdSBdFt"))
-        if (!is.null(dbd[["CmpSummary"]])) dbd$CmpSummary = c(dbd$CmpSummary,
+        if (!is.null(dbd[["CmpSummary"]])) {
+          if("CmpSCuFt" %in% dbd[["CmpSummary"]]) dbd$CmpSummary = c(dbd$CmpSummary,
+            c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdSCuFt","CmpTPrdBdFt"))
+            else dbd$CmpSummary = c(dbd$CmpSummary,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
+        }
         if (!is.null(dbd[["CmpSummary_East"]])) dbd$CmpSummary = c(dbd$CmpSummary_East,
             c("CmpTPrdTpa","CmpTPrdTCuFt","CmpTPrdMCuFt","CmpTPrdBdFt"))
         if (length(dbd)) fvsOutData$dbLoadData <- dbd
@@ -799,16 +835,17 @@ cat ("tbs7=",tbs,"\n")
             "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
             "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
             "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
-            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric")
+            "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric","FVS_FIAVBC_Summary")
         globals$specLvl <- list("FVS_CalibStats","FVS_EconHarvestValue","FVS_Stats_Species",
-              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric")
+              "FVS_DM_Spp_Sum","FVS_DM_Spp_Sum_Metric","FVS_InvReference")
         globals$dClsLvl <- list("StdStk","StdStk_East","StdStk_Metric","FVS_Mortality","FVS_DM_Sz_Sum",
                                 "FVS_DM_Sz_Sum_Metric")
         globals$htClsLvl <- list("FVS_CanProfile")
         globals$treeLvl <- list("FVS_ATRTList","FVS_CutList","FVS_SnagDet","FVS_TreeList",
                                 "FVS_TreeList_East","FVS_CutList_East","FVS_ATRTList_East",
                                 "FVS_TreeList_Metric","FVS_CutList_Metric","FVS_ATRTList_Metric",
-                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric")
+                                "FVS_DM_Treelist","FVS_DM_Treelist_Metric","FVS_FIAVBC_TreeList",
+                                "FVS_FIAVBC_CutList","FVS_FIAVBC_ATRTList")
         globals$tbsFinal <- list("FVS_Cases")
         tbsFinal <- globals$tbsFinal
         if (any(tbs %in% globals$simLvl)) {
@@ -972,14 +1009,14 @@ cat("selectdbtables\n")
           tables <- tables[1]
           updateSelectInput(session, "selectdbtables", selected = tables)
         }
-        if (any(tables %in% globals$specLvl) && any(selection %notin% globals$specLvl)) {
+        if (length(selection) > 1 && any(tables %in% globals$specLvl)) {
           session$sendCustomMessage(type = "infomessage",
-               message = paste0("Species-level tables can only be combined with other species-level tables"))
+               message = paste0("Species-level tables cannot be combined with any other tables"))
           tables <- tables[1]
           updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # DBH-class tables cannot be combined with any other table
-        if (length(selection) < 1 && any(selection %in% globals$dClsLvl)) {
+        if (length(selection) > 1 && any(selection %in% globals$dClsLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("DBH-class tables cannot be combined with any other tables"))
           tables <- tables[1]
@@ -987,7 +1024,7 @@ cat("selectdbtables\n")
           updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # HT-class tables cannot be combined with any other table
-        if (length(selection) < 1 && any(selection %in% globals$htClsLvl)) {
+        if (length(selection) > 1 && any(selection %in% globals$htClsLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("HT-class tables cannot be combined with any other tables"))
           tables <- tables[1]
@@ -995,7 +1032,7 @@ cat("selectdbtables\n")
           updateSelectInput(session, "selectdbtables", selected = tables)
         }
         # tree-level tables cannot be combined with any other table
-        if (length(selection) < 1 && any(selection %in% globals$treeLvl)) {
+        if (length(selection) > 1 && any(selection %in% globals$treeLvl)) {
           session$sendCustomMessage(type = "infomessage",
               message = paste0("Tree-level tables cannot be combined with any other tables"))
           tables <- tables[1]
@@ -1071,10 +1108,10 @@ cat("Custom Query\n")
   observe({ 
     if (input$sqlRunQuery > 0)                          
     {
-cat ("sqlRunQuery\n")                                                                        
+cat ("sqlRunQuery\n")                                                              
       isolate({
         msgtxt = character(0)
-        qrys = trim(gsub("\n"," ",removeComment(input$sqlQuery)," ",input$sqlQuery))
+        qrys = trim(gsub("\n"," ",removeComment(input$sqlQuery)))
         qrys = scan(text=qrys,sep=";",what="",quote="",quiet=TRUE)
         qrys = qrys[nchar(qrys)>0]
         output$table <- renderTable(NULL)        
@@ -1083,7 +1120,12 @@ cat ("sqlRunQuery\n")
         # attempt to attach the input database is attached as "input"
         attInput = if (!dbGlb$dbIcon@dbname %in% dbGetQuery(dbGlb$dbOcon,"PRAGMA database_list")$file) 
           try(dbExecute(dbGlb$dbOcon,paste0("attach database '",dbGlb$dbIcon@dbname,
-                    "' as input"))) else NULL             
+                    "' as input"))) else NULL    
+        if (length(qrys) == 0){
+          msgtxt = "No query entered"
+          updateTextInput(session=session, inputId="sqlOutput", label="", 
+                value=msgtxt)
+        }   
         for (qry in qrys)                  
         {                                  
           iq = iq+1
@@ -1273,7 +1315,8 @@ cat ("Explore, length(fvsOutData$dbSelVars)=",length(fvsOutData$dbSelVars),"\n")
           "FVS_Summary_East"=2, "FVS_Summary"=2, "FVS_TreeList"=8,"FVS_ATRTList"=8,
           "FVS_CutList"=8,"FVS_TreeList_East"=8,"FVS_ATRTList_East"=8,"FVS_CutList_East"=8,
           "FVS_TreeList_Metric"=8,"FVS_ATRTList_Metric"=8,"FVS_CutList_Metric"=8,
-          "FVS_DM_Treelist"=8,"FVS_DM_Treelist_Metric"=8) 
+          "FVS_DM_Treelist"=8,"FVS_DM_Treelist_Metric"=8,
+          "FVS_FIAVBC_TreeList"=8, "FVS_FIAVBC_ATRTList"=8, "FVS_FIAVBC_CutList"=8) 
         tbg = tbgroup[tbs]
         arena = is.na(tbg)
         if (any(arena))
@@ -1321,6 +1364,9 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
               dtab$SizeCls=as.factor(dtab$SizeCls)
               dtab$StkCls =as.factor(dtab$StkCls)
               dtab$RmvCode=as.factor(dtab$RmvCode) 
+            } else if (tb == "FVS_FIAVBC_Summary") 
+            { 
+              dtab$RmvCode=as.factor(dtab$RmvCode) 
             } else if (tb == "FVS_Cases") dtab$RunTitle=trim(dtab$RunTitle) 
             cls = intersect(c(cols,"StandID","MgmtID","RunTitle","srtOrd"),colnames(dtab))
             if (length(cls) > 0) dtab = dtab[,cls,drop=FALSE]       
@@ -1361,7 +1407,7 @@ cat ("Explore, len(dat)=",length(dat),"\n")
 cat ("tb=",tb," is.null(mdat)=",is.null(mdat),"\n") 
           if (is.null(mdat)) mdat = dat[[tb]] else
           {
-             mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","MgmtID"))
+             mrgVars = intersect(names(mdat),c("CaseID","Year","StandID","MgmtID","RmvCode"))
              mrgVars = intersect(mrgVars,names(dat[[tb]]))
              setProgress(message = "Merging selected tables", 
                          detail  = tb, value = iprg)
@@ -1490,7 +1536,8 @@ cat ("cmd=",cmd,"\n")
         globals$exploreChoices$mgmid = cho
         if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
                 "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
-                "FVS_TreeList_Metric","FVS_ATRTList_Metric","FVS_CutList_Metric"
+                "FVS_TreeList_Metric","FVS_ATRTList_Metric","FVS_CutList_Metric",
+                "FVS_FIAVBC_TreeList", "FVS_FIAVBC_ATRTList", "FVS_FIAVBC_CutList"
               ),names(dat))))
           updateSelectInput(session, "plotType",selected="scat") else 
           if (length(intersect(c("StdStk","CmpStdStk","StdStk_East",
@@ -1508,6 +1555,7 @@ cat ("cmd=",cmd,"\n")
           isel = max(1,length(cho) %/% 2)
           sel =  if (length(intersect(c("FVS_TreeList","FVS_ATRTList","FVS_CutList",
               "FVS_TreeList_East","FVS_ATRTList_East","FVS_CutList_East",
+              "FVS_FIAVBC_TreeList", "FVS_FIAVBC_ATRTList", "FVS_FIAVBC_CutList",
               "StdStk","StdStk_East","StdStk_Metric","CmpStdStk","CmpStdStk_East",
               "CmpStdStk_Metric"),names(dat)))) 
               cho[isel] else cho 
@@ -1742,11 +1790,11 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
       cats = names(cats)[cats]
       cats = intersect(cats,input$browsevars)
       cont = union("Year",setdiff(input$browsevars,cats))
-      if(length(cont) > 1 && cont[2]=="Select all") cont <- cont[-2]
+      if((length(cont) > 1) && cont[2]=="Select all") cont <- cont[-2]
       spiv  = if (length(input$pivVar) && 
-                input$pivVar %in% cats) input$pivVar else "None"
+                any(input$pivVar %in% cats)) input$pivVar else "None"
       sdisp = if (length(input$dispVar) && 
-                input$dispVar %in% input$browsevars) input$dispVar else "None"
+                any(input$dispVar %in% input$browsevars)) input$dispVar else "None"
       ccont = c("None",setdiff(input$browsevars,spiv))
       bb = intersect(ccont,cats) # put the factors at the end of the choices
       ccont = c(setdiff(ccont,bb),bb)
@@ -1760,14 +1808,14 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
         curY = input$yaxis
         if (input$plotType=="line") {
           selx = if (is.null(curX)) "Year" else curX
-          selx = if (selx %in% cont) selx else 
+          selx = if (any(selx %in% cont)) selx else 
                  if (length(cont) > 0) cont[1] else NULL
           globals$settingChoices[["xaxis"]] = as.list(cont)
           updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=selx)
           sel = if (is.null(curY)) "BA" else curY
-          sel = if (sel %in% cont) sel else 
+          sel = if (any(sel %in% cont)) sel else 
                 if (length(cont) > 0) cont[1] else NULL
-          if (sel == selx && length(cont) > 1) 
+          if (any(sel == selx) && (length(cont) > 1)) 
           {
             sel = grep("BA",cont)[1]
             sel = if (is.na(sel)) cont[2] else cont[sel]
@@ -1776,11 +1824,11 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType == "scat") {
           sel = if (is.null(curX)) "DBH" else curX
-          sel = if (sel %in% cont) sel else 
+          sel = if (any(sel %in% cont)) sel else 
                 if (length(cont) > 0) cont[1] else NULL
           updateSelectInput(session, "xaxis",choices=as.list(cont), selected=sel)
-          sel = if (is.null(curY)) "DG" else curY
-          sel = if (sel %in% cont) sel else 
+          sel = if (is.null(curY)) "Ht" else curY
+          sel = if (any(sel %in% cont)) sel else 
                 if (length(cont) > 0) cont[1] else NULL
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
@@ -1791,7 +1839,7 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           globals$settingChoices[["xaxis"]] = as.list(cats)
           updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
-          if (sel=="Year" && length(cont) > 1) sel = cont[2]
+          if (sel=="Year" && (length(cont) > 1)) sel = cont[2]
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         } else if (input$plotType == "box") {
@@ -1801,7 +1849,7 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           globals$settingChoices[["xaxis"]] = as.list(cats)
           updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected=sel)
           sel = if (!is.null(curX) && curX %in% cont) curX else cont[1]
-          if (sel=="Year" && length(cont) > 1) sel = cont[2]
+          if (sel=="Year" && (length(cont) > 1)) sel = cont[2]
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
         }
@@ -1858,7 +1906,7 @@ cat ("end of browsevars/plotType\n")
     isolate({
       if (all(!c(is.null(input$pltby),is.null(input$xaxis),is.null(input$pltby),
                  is.null(input$yaxis))) && 
-         (input$pltby == input$xaxis || input$pltby == input$yaxis))
+         (any(input$pltby == input$xaxis) || any(input$pltby == input$yaxis)))
       {
         updateSelectInput(session=session, inputId="pltby", selected="None")
         return()
@@ -1875,7 +1923,7 @@ cat ("vfacet change, globals$gFreeze=",globals$gFreeze,"\n")
     if (is.null(input$vfacet) || input$vfacet  == "None" || globals$gFreeze) return()
     isolate({
       if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
-          (input$vfacet == input$xaxis || input$vfacet == input$yaxis))
+          (any(input$vfacet == input$xaxis) || any(input$vfacet == input$yaxis)))
       {
         updateSelectInput(session=session, inputId="vfacet", selected="None")
         return()
@@ -1892,7 +1940,7 @@ cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
     if (is.null(input$hfacet) || input$hfacet  == "None" || globals$gFreeze) return()                 
     isolate({
       if (!is.null(input$xaxis) && !is.null(input$yaxis) &&
-          (input$hfacet == input$xaxis || input$hfacet == input$yaxis))
+          (any(input$hfacet == input$xaxis) || any(input$hfacet == input$yaxis)))
       {
         updateSelectInput(session=session, inputId="hfacet", selected="None")
         return()
@@ -1925,6 +1973,7 @@ cat ("renderPlot\n")
         length(input$yaxis) == 0)) return(nullPlot())
     output$plotMessage=renderText(NULL)
 
+    options(scipen = 999) # Essentially disable scientific notation for graphs
     vf = if (input$vfacet == "None") NULL else input$vfacet
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
@@ -2255,6 +2304,7 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
         brky=brks(rngy)
         if (! (pltp %in% c("bar","box"))) p = p + scale_y_continuous(breaks=brky,
           limits=rngy,guide = guide_axis(check.overlap = TRUE))
+          else {p = p + coord_cartesian(ylim = ylim)}
       }
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     } else p = p + scale_y_discrete(guide = guide_axis(check.overlap = TRUE))
@@ -2341,6 +2391,7 @@ cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFla
         geom_boxplot (aes(x=X,y=Y,linetype=Legend),color="black",size=.6,alpha=alpha) else     
         geom_boxplot (aes(x=X,y=Y,color=Legend),linetype=1,size=.6,alpha=alpha) 
       )
+
     if (!is.null(hrvFlag) && any(hrvFlag)) p = p +
       if (input$colBW == "B&W") 
         geom_point(aes(x=X,y=Y), shape=82,  #the letter R is code 82
@@ -2773,6 +2824,7 @@ cat ("in new run, globals$fvsRun$defMgmtID=",globals$fvsRun$defMgmtID,"\n")
       updateNumericInput(session=session,inputId="svsNFire",value=4)
       updateCheckboxGroupInput(session=session, "autoOut", choices=list(
                         "Tree lists (FVS_Treelist, FVS_CutList (StdStk-stand and stock))"="autoTreelists",
+                        "FIA Volume, Biomass, and Carbon (VBC) (FVS_FIAVBC_Summary, FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_AtrtList)" = "autoFIAVBC",
                         "Carbon and fuels (FVS_Carbon, FVS_Consumption, FVS_Hrv_Carbon, FVS_Fuels)"="autoCarbon",
                         "Fire and mortality (FVS_Potfire, FVS_BurnReport, FVS_Mortality)"="autoFire",
                         "Snags and down wood (FVS_SnagSum, FVS_Down_Wood_Cov, FVS_Down_Wood_Vol)"="autoDead",
@@ -5602,7 +5654,6 @@ cat ("Visualize SVSImgList2=",input$SVSImgList2," SVSdraw1=",input$SVSdraw2,"\n"
     if (input$topPan == "View On Maps")
     {
 cat ("View On Maps hit\n")
-      require(rgdal) 
       theRuns = try(dbGetQuery(dbGlb$dbOcon,
                 paste0("select distinct RunTitle, KeywordFile from FVS_Cases",
                        " order by RunDateTime desc")))
@@ -5636,10 +5687,19 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       tabs = setdiff(myListTables(dbGlb$dbOcon),
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
+
+      stdLvl <- list("FVS_Climate","FVS_Compute","FVS_EconSummary","FVS_BurnReport","FVS_Carbon",
+      "FVS_Down_Wood_Cov","FVS_Down_Wood_Vol","FVS_Consumption","FVS_Hrv_Carbon",
+      "FVS_PotFire","FVS_PotFire_Cond","FVS_PotFire_East","FVS_SnagSum","FVS_Fuels",
+      "FVS_DM_Stnd_Sum","FVS_Regen_Sprouts","FVS_Regen_SitePrep","FVS_Regen_HabType",
+      "FVS_Regen_Tally","FVS_Regen_Ingrow","FVS_RD_Sum","FVS_RD_Det","FVS_RD_Beetle",
+      "FVS_Stats_Stand","FVS_StrClass","FVS_Summary2","FVS_Summary2_East","FVS_Summary2_Metric",
+      "FVS_Summary","FVS_Summary_East","View_DWN","FVS_DM_Stnd_Sum_Metric","FVS_FIAVBC_Summary")
       for (tab in tabs)
       {
         tb <- dbGetQuery(dbGlb$dbOcon,paste0("PRAGMA table_info('",tab,"')"))
         if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
+        if (!(tab %in% stdLvl)) next
         cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
                                                  " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
         if (class(cnt) == "try-error") next
@@ -5673,8 +5733,8 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
   
   ## mapDsVar
   observe({
-    if (length(input$mapDsVar) && !is.na(match(input$mapDsVar,setdiff(
-      dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year")))))
+    if ((length(input$mapDsVar) > 0) && all(!is.na(match(input$mapDsVar,setdiff(
+      dbListFields(dbGlb$dbOcon,input$mapDsTable), c("CaseID","StandID","Year"))))))
     {
 cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
      " input$mapDsVar=",input$mapDsVar," input$mapDsType=",input$mapDsType,"\n")     
@@ -8727,38 +8787,16 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
       { 
         if (isLocal()) 
         {
-          rscript = if (exists("RscriptLocation")) RscriptLocation else
-          {
-            exefile=normalizePath(commandArgs(trailingOnly=FALSE)[1])
-            bin = if(.Platform$OS.type == "windows") 
-              regexpr("\\\\bin\\\\",exefile) else regexpr("/bin/",exefile)
-            bin = substr(exefile,1,bin+attr(bin,"match.length")-2)
-            if(.Platform$OS.type == "windows") 
-               file.path(bin,"Rscript.exe") else file.path(bin,"Rscript")
-          }
-          rscript=gsub("\\\\","/",rscript)
-          defs=paste0("RscriptLocation='",rscript,"';")
-          if (exists("mdbToolsDir")) defs=paste0(defs,"mdbToolsDir='",mdbToolsDir,"';")
-          if (exists("sqlite3exe"))  defs=paste0(defs,"sqlite3exe='",sqlite3exe,"';")
-cat(".libPaths=",unlist(.libPaths()),"\n")
-         if (exists("RscriptLocation")) {
-           Rlib2Use <- paste0(dirname(dirname(dirname(RscriptLocation))),"/library")
-           defs=paste0(defs,".libPaths('",Rlib2Use,"');")
-         }
-          cmd =  paste0("$",rscript,"$ --vanilla -e $",defs,"require(fvsOL)", 
-            ";fvsOL(prjDir='",newPrj,"',fvsBin='",fvsBin,"');quit()$")     
-          cmd = gsub('$','\"',cmd,fixed=TRUE)
-          if (.Platform$OS.type == "unix") cmd = paste0("nohup ",cmd," >> /dev/null")
-          rtn=try(system (cmd,wait=FALSE))
-cat ("cmd for launch project=",cmd,"\nrtn=",rtn,"\n")
+        file.remove('./ProjectIsLocked.txt')
+        setwd(newPrj)
+        globals$reloadAppIsSet=1
+        session$reload()    
+
         } else {                                           
           url = paste0(session$clientData$url_protocol,"//",
                        session$clientData$url_hostname,"/FVSwork/",input$PrjSelect)
-cat ("launch url:",url,"\n")
-          session$sendCustomMessage(type = "openURL",url)
+
         }
-        Sys.sleep(5)
-        updateProjectSelections()
       }          
     })
   })
@@ -8872,20 +8910,33 @@ cat ("launch url:",url,"\n")
         # ObserverEvent triggers multiple times, so need to check length to ensure input was created in dialog
         if(length(input$Change_wd) > 1)
         {
-          dirPath<- parseDirPath(volumes, input$Change_wd)
-          cat(paste0("User selected: ", dirPath))
+          result <- tryCatch({
+            dirPath<- parseDirPath(volumes, input$Change_wd)
+            cat(paste0("User selected: ", dirPath))
 
-                # Verify user has write permission to path
-          if(!(file.access(dirPath, 2) == 0)){
-            cat("User write permissions denied")
-            showModal(shiny::modalDialog(
-              title = "Write Permission Denied",
-              "Sorry, you do not have permissions to write to this folder, please select another location.",
-              easyClose = F))
-            return()
-          }
-          change_project_dir(dirPath)
-          updateProjectSelections()
+            # Verify user has write permission to path
+            if(!(file.access(dirPath, 2) == 0)){
+              cat("User write permissions denied")
+              showModal(shiny::modalDialog(
+                title = "Write Permission Denied",
+                "Sorry, you do not have permissions to write to this folder, please select another location.",
+                easyClose = F))
+              return()
+            }
+
+            file.remove('./ProjectIsLocked.txt')
+            setwd(dirPath)
+            globals$reloadAppIsSet=1
+            session$reload()
+            }, warning = function(e) {
+              message("Warning in Change Directory")
+              print(e)
+              return(NULL)
+            }, error = function(e) {
+            message("Error occured in Change Directory")
+            print(e)
+            return(NULL)
+          })
         }
     }) # End Event Handler for input$Change_wd
   }

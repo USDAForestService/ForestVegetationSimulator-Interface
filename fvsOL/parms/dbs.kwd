@@ -421,3 +421,31 @@ f1:
 {noInput Build the regeneration establishment tables.}
 
 //end keyword.dbs.RegRepts
+
+//start keyword.dbs.VBCSUMDB
+
+f1:
+{noInput Build the FVS_FIAVBC_Summary table.}
+
+//end keyword.dbs.VBCSUMDB
+
+//start keyword.dbs.VBCTRLDB
+
+f1:
+{noInput Build the FVS_FIAVBC_TreeList table.}
+
+//end keyword.dbs.VBCTRLDB
+
+//start keyword.dbs.VBCCUTDB
+
+f1:
+{noInput Build the FVS_FIAVBC_CutList table.}
+
+//end keyword.dbs.VBCCUTDB
+
+//start keyword.dbs.VBCATRDB
+
+f1:
+{noInput Build the FVS_FIAVBC_AtrtList table.}
+
+//end keyword.dbs.VBCATRDB

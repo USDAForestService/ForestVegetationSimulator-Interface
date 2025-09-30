@@ -499,7 +499,7 @@
 //start Forests_ut
   {blank}:{}
   401:{Ashley}
-  404:{Cache (mapped to Wasatch}
+  404:{Cache (mapped to Wasatch)}
   407:{Dixie}
   408:{Fishlake}
   409:{Humboldt (mapped to Fishlake)}
@@ -850,7 +850,7 @@
     836:{Savannah River, Admin (mapped to Sumter)}
     824:{Savannah River, Proclaimed (mapped to Sumter)}
     860:{Land Between the Lakes, Admin (mapped to Daniel Boone)}
-    835:{Land Between the Lakes, Proclaimed (mapped to Daniel Boone)
+    835:{Land Between the Lakes, Proclaimed (mapped to Daniel Boone)}
     905:{Mark Twain}
     908:{Shawnee}
     701:{Fort Bragg Military Reservation}
