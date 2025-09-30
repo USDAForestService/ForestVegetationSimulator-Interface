@@ -110,6 +110,7 @@ mkCheckBox <- function (pkey, pmt, choices, fpvs)
 mkSelectInput <- function (inputId, label, choices, fpvs, 
                            type="list", valpair=FALSE)
 {
+  llast <- FALSE
   choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
   sel = grep ("^>",choices)
   if (length(sel)) choices[sel] = trim(substring(choices[sel],2))
@@ -127,10 +128,17 @@ cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
   names(mklist) = choices
   
   if (length(sel) && edt==0) 
-    {
-      if (sel==length(choices)) sel <- sel-1
+    { 
+      if (sel==length(choices)){
+        sel <- sel - 1 
+        llast <- TRUE
+      } 
       if (!valpair) sel = match(as.character(sel),mklist) 
-      if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else sel <- sel-2)
+      if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else {
+        if (llast) sel <- sel - 1
+        else sel <- sel - 2
+      })
+      #if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else if(sel == length(choices)) sel <- sel-1 else sel <- sel-2)
   } 
   if(!length(sel) && edt==0) sel="0"
   if(!length(sel) && edt==1 && !valpair) sel=mklist[1]
@@ -464,25 +472,34 @@ mkVarList <- function (globals)
      "Age: Age at beginning of an FVS cycle"="Age", 
      "AgeCmp: Estimated average age for the dominant size class"="AgeCmp",
      "Aspect: Aspect in degrees"="Aspect", 
+     "BAbvBio: Before thin above ground biomass" = "BAbvBio",
+     "BAbvCrb: Before thin above ground carbon" = "BAbvCrb",
      "BaDBH: Before thin quadractic mean DBH"="BaDBH", 
      "BBA: Before thin basal area"="BBA", 
-     "BBdFt: Before thin board foot (western variants) sawtimber (eastern variants) volume"="BBdFt", 
+     "BBdFt: Before thin board foot volume"="BBdFt", 
      "BCanCov: Before thin percent canopy cover (StrClass keyword required)"="BCanCov", 
      "BCCF: Before thin CCF"="BCCF", 
      "BDBHwtBA: Before thin average DBH weighted by stand basal area"="BDBHwtBA", 
-     "BHTWTBA: Before thin average height weighted by stand basal area"="BHTWTBA",
+     "BHTWTBA: Before thin average height weighted by stand basal area (Lorey's Height)"="BHTWTBA",
+     "BFolBio: Before thin foliage biomass" = "BFolBio",
+     "BFolCrb: Before thin foliage carbon" = "BfolCrb",
      "BMaxHS: Before thin height of tallest tree in uppermost stratum (StrClass keyword required)"="BMaxHS", 
-     "BMCuFt: Before thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="BMCuFt", 
+     "BMCuFt: Before thin merchantable cubic foot volume"="BMCuFt", 
+     "BMerBio: Before thin merchantable biomass" = "BMerBio",
+     "BMerCrb: Before thin merchantable carbon" = "BMerCrb",
      "BMinHS: Before thin height of shortest tree in uppermost stratum (StrClass keyword required)"="BMinHS", 
      "BNumSS: Before thin number of valid strata (StrClass keyword required)"="BNumSS", 
      "BRDen: Before thin relative density (Curtis 1982)"="BRDen", 
      "BRDen2: Before thin relative density, SILVAH (Marquis and Ernst 1992)"="BRDen2", 
      "BSClass: Before thin stand structural classification (StrClass keyword required)"="BSClass", 
+     "BSawBio: Before thin sawlog biomass" = "BSawBio",
+     "BSawCrb: Before thin sawlog carbon" = "BSawCrb",
+     "BSCuFt: Before thin sawlog cubic foot volume"="BSCuFt",
      "BSDI: Before thin stand density index"="BSDI", 
      "BSDI2: Before thin stand density index (based on Zeide 1983)"="BSDI2", 
      "BSDIMax: Before thin maximum stand density index"="BSDIMax", 
      "BStrDbh: Before thin dbh of the stand uppermost stratum (StrClass keyword required)"="BStrDbh", 
-     "BTCuFt: Before thin total (western variants) or merchantable (pulpwood + sawtimber, eastern variants) cubic foot volume"="BTCuFt", 
+     "BTCuFt: Before thin total cubic foot volume"="BTCuFt", 
      "BTopHt: Before thin top height"="BTopHt", 
      "BTPA: Before thin trees/acre"="BTPA", 
      "CEndYear: Year at end of cycle"="CEndYear", 
@@ -512,28 +529,46 @@ mkVarList <- function (globals)
      "Yes: The constant 1"="Yes", 
      "AADBH: After thin average DBH"="AADBH", 
      "ABA: After thin basal area"="ABA", 
-     "ABdFt: After thin board foot (western variants) sawtimber (eastern variants) volume"="ABdFt", 
+     "ABdFt: After thin board foot volume"="ABdFt", 
+     "AAbvBio: After thin above ground biomass" = "AAbvBio",
+     "AAbvCrb: After thin above ground carbon" = "AAbvCrb",
      "ACanCov: After thin percent canopy cover (StrClass keyword required)"="ACanCov", 
      "ACCF: After thin CCF"="ACCF", 
      "ADBHwtBA: After thin average DBH weighted by stand basal area"="ADBHwtBA",
-     "AHTWTBA: After thin average height weighted by stand basal area"="AHTWTBA",
+     "AFolBio: After thin foliar biomass" = "AFolBio",
+     "AFolCrb: After thin foliar carbon" = "AFolCrb",
+     "AHTWTBA: After thin average height weighted by stand basal area (Lorey's Height)"="AHTWTBA",
      "AMaxHS: After thin height of tallest tree in uppermost stratum (StrClass keyword required)"="AMaxHS", 
-     "AMCuFt: After thin merchantable (western variants) sawtimber (eastern variants) cubic foot volume"="AMCuFt", 
+     "AMerBio: After thin merchantable biomass" = "AMerBio",
+     "AMerCrb: After thin merchantable carbon" = "AMerCrb",
+     "AMCuFt: After thin merchantable cubic foot volume"="AMCuFt", 
      "AMinHS: After thin height of shortest tree in uppermost stratum (StrClass keyword required)"="AMinHS", 
      "ANumSS: After thin number of valid strata (StrClass keyword required)"="ANumSS", 
      "ARDEN: After thin relative density (Curtis 1982)"="ARDEN", 
      "ARDen2: After thin relative density, SILVAH (Marquis and Ernst 1992)"="ARDen2", 
      "ASClass: After thin stand structural classification (StrClass keyword required)"="ASClass", 
+     "ASawBio: After thin sawlog biomass" = "ASawBio",
+     "ASawCrb: After thin sawlog carbon" = "ASawCrb",
+     "ASCuFt: After thin sawlog cubic foot volume" = "ASCuFt",
      "ASDI: After thin stand density index"="ASDI", 
      "ASDI2: After thin stand density index (based on Zeide 1983)"="ASDI2", 
      "ASDIMax: After thin maximum stand density index"="ASDIMax", 
      "AStrDbh: After thin dbh of the stand uppermost stratum (StrClass keyword required)"="AStrDbh", 
-     "ATCuFt: After thin total (western variants) or merchantable (pulpwood + sawtimber, eastern variants) cubic foot volume"="ATCuFt", 
+     "ATCuFt: After thin total cubic foot volume"="ATCuFt", 
      "ATopHt: After thin top height"="ATopHt", 
      "ATPA: After thin trees/acre"="ATPA", 
      "Cut: Cutting flag: 0 if no cutting, 1 otherwise"="Cut", 
+     "RAbvBio: Removed above ground biomass" = "RAbvBio",
+     "RAbvCrb: Removed above ground carbon" = "RAbvCrb",
      "RBdFt: Removed board feet volume"="RBdFt", 
-     "RMCuFt: Removed merch cubic feet volume"="RMCuFt", 
+     "RFolBio: Removed Foliar biomass" = "RFolBio",
+     "RFolCrb: Removed Foliar carbon" = "RFolCrb",
+     "RMCuFt: Removed merchantible cubic feet volume"="RMCuFt", 
+     "RMerBio: Removed merchantable biomass" = "RMerBio",
+     "RMerCrb: Removed merchantable carbon" = "RMerCrb",
+     "RSawBio: Removed sawlog biomass" = "RSawBio",
+     "RSawCrb: Removed sawlog carbon" = "RSawCrb",
+     "RSCuFt: Removed sawlog cubic foot volume" = "RSCuFt",
      "RTCuFt: Removed total cubic feet volume"="RTCuFt", 
      "RTPA: Removed trees/acre"="RTPA", 
      "ACC: Accreation form last cycle"="ACC", 
@@ -681,7 +716,7 @@ mkFreeformEltList <- function (globals,input,prms,title,kwds)
       tags$style(type="text/css", 
         "#freeEditCols{font-family:monospace;font-size:90%;width:95%;}"), 
       tags$p(id="freeEditCols", 
-             HTML(paste0("&nbsp;",paste0("....+....",1:8,collapse="")))),
+             HTML(paste0("&nbsp;",paste0("....+....",1:12,collapse="")))),
       tags$style(type="text/css", 
         "#freeEdit{font-family:monospace;font-size:90%;width:100%;cursor:auto;}"), 
       tags$script(paste0('$(document).ready(function(){ $("textarea").on("focus",',

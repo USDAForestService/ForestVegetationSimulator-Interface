@@ -30,6 +30,17 @@ Atrtlidb       2
 End
 "
 
+autoFIAVBC="
+*FIAVBC Outputs
+FIAVBC
+DATABASE
+VBCSUMDB
+VBCTRLDB
+VBCCUTDB
+VBCATRDB
+END
+"
+
 autoCarbon = if ("fire" %in% extns) "
 * FVS_Carbon, FVS_Hrv_Carbon, FVS_Fuels, FVS_Consumption
 FMIn

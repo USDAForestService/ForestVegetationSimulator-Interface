@@ -781,7 +781,8 @@ mkModMCats <- function(globals)
   catsel=list(
     "Volume Modifiers" = c(
       "Adjust merchantability limits" = "merch_vol",
-      "Add Volume Defect" = "keyword.base.Defect"),
+      "Add Volume Defect" = "keyword.base.Defect",
+      "Use FIA Cubic Volume Equations (FIAVBC)" = "fia_method"),
     "Mortality Modifiers" = c(
       "Adjust mortality rates" = "keyword.base.FixMort",
       "Adjust maximum SDI" = "keyword.base.SDIMax",

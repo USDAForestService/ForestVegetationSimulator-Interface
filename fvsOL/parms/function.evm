@@ -31,7 +31,9 @@ Removed trees per acre
 Removed total cubic volume
 Removed merch cubic volume
 Removed board foot volume
-Residual trees per acre}
+Residual trees per acre
+Sawlog cubic volume
+Removed sawlog cubic volume}
 
 f2:{listButton Percentile point:}
 f2v:{\
@@ -46,7 +48,7 @@ Total for attribute}
 answerForm:
 {DBHDist(!1,,list!,!2,,list!)}
 
-list:{1 2 3 4 5 6 7 8 9 10 11 12}
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14}
 
 //end   evmon.function.DBHDist
 
@@ -129,22 +131,6 @@ answerForm:
 //start evmon.function.SpMcDBH
 
 f1:{listButton Attribute to be returned}
-f1v{sn ls ne cs}:{\
-Trees per acre
-Basal area per acre
-Merch cubic volume
-Sawtimber board foot volume
-Quadratic mean DBH
-Average height
-Canopy cover percent
-Dwarf mistletoe rating
-Sawtimber cubic volume
-Average diameter growth
-Stand density index
-Relative Density-SILVAH
-Stand density index- Zeide
-Curtis relative density}
-
 f1v:{\
 Trees per acre
 Basal area per acre
@@ -159,7 +145,8 @@ Average diameter growth
 Stand density index
 Relative Density-SILVAH
 Stand denisty index- Zeide
-Curtis relative density}
+Curtis relative density
+Sawlog cubic volume}
 
 f2:{speciesSelection Species covered in the calculations}
 
@@ -196,7 +183,7 @@ f9v:{0}
 answerForm:
 {SpMcDBH(!1,,list!,!2!,!3!,!4!,!5!,!6!,!7!,!8!,!9!)}
 
-list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14}
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15}
 
 //end   evmon.function.SpMcDBH
 
@@ -224,26 +211,6 @@ f1:{numberBox Cycle Number or Row Number in Summary Statistics Table}
 f1v:{1}
 
 f2:{longListButton Attribute to be returned}
-f2v{sn ls ne cs}:{\
-year
-stand age
-trees per acre
-total merchantable cubic foot volume per acre (pulpwood + sawtimber)
-merchantable cubic foot sawtimber volume per acre
-merchantable board foot volume per acre
-removed trees per acre
-removed total merchantable cubic foot volume per acre (pulpwood + sawtimber)
-removed merchantable cubic foot sawtimber volume per acre
-removed merchantable board foot volume per acre
-basal area per acre after thinnings
-crown competetion factor after thinnings
-top height (average height of the 40 largest diameter trees)
-cycle length (years)
-accretion (merchantable ft3/acre/year)
-mortality (merchantable ft3/acre/year)
-stand sampling weight
-}
-
 f2v:{\
 year
 stand age
@@ -262,12 +229,17 @@ cycle length (years)
 accretion (total ft3/acre/year)
 mortality (total ft3/acre/year)
 stand sampling weight
+forest cover type code
+size class
+stocking class
+sawlog cubic volume
+removed sawlog cubic volume
 }
  
 answerForm:
 {SumStat(!1!,!2,,list!)}
 
-list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17}
+list:{1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22}
 
 //end   evmon.function.SumStat
 

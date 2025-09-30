@@ -302,8 +302,9 @@ fvsRunAcadian <- function(runOps, logfile="Acadian.log")
       cat ("fvsRunAcadian: Applying Acadian volume logic\n")
       
       mcstds = fvsGetSpeciesAttrs(vars=c("mcmind","mctopd","mcstmp"))
-      vols = fvsGetTreeAttrs(c("species","ht","dbh","tcuft","defect"))
-      vols$tcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
+      vols = fvsGetTreeAttrs(c("species","ht","dbh","mcuft","defect"))
+      vols$mcuft = ifelse (vols$dbh >= mcstds$mcmind[vols$species],
+
                            mapply(KozakTreeVol,Bark="ob",Planted=0,
                                   DBH=vols$dbh  * INtoCM,
                                   HT =vols$ht   * FTtoM,
@@ -311,9 +312,10 @@ fvsRunAcadian <- function(runOps, logfile="Acadian.log")
                                   stump=mcstds$mcstmp[vols$species] * FTtoM,
                                   topD =mcstds$mctopd[vols$species] * INtoCM), 0)
       
-      if (any(vols$defect != 0)) vols$tcuft = vols$tcuft *
+      if (any(vols$defect != 0)) vols$mcuft = vols$mcuft *
         (1-(((vols$defect %% 10000) %/% 100) * .01))
-      vols$tcuft  = vols$tcuft * M3toFT3
+      vols$mcuft  = vols$mcuft * M3toFT3
+
       vols$species=NULL
       vols$ht     =NULL
       vols$dbh    =NULL
