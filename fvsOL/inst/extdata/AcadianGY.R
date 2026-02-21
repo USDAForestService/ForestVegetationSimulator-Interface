@@ -31,7 +31,13 @@ AcadianVersionTag = "AcadianV12.3.5"
 ####
 
 # 12.3.5 
-  # plot basal area increment constraint applied at stand level
+  # Previous mortality equations; BA increment constraint at stand level
+
+# 12.3.4 -- experimental
+  # mortality changed to single step- Chen individual tree survival calculation
+
+# 12.3.3
+  # plot basal area increment calculation changed to stand 
 
 # 12.3.2
   # plot basal area increment calculation modified to better handle cases where both basal area and relative density have high values
@@ -56,6 +62,10 @@ AcadianVersionTag = "AcadianV12.3.5"
   # AcadianGYOneStand function 
     # Created code to catch tree records with DBH=0 and add 0.01
     # Limit model execution to species defined in height and diameter increment parameters; others assigned species 99 
+
+# 12.2.0
+  # updated mortality calculation to Chen et al (in review) and updated mortality modifier function names
+    # new functions: mort_plot_prob(); mort_plot_ba(); surv_tree(); calc_mortality
 
 # 12.1.5
   # ING.TreeList function
@@ -1651,7 +1661,9 @@ ING.TreeList=function(Sum.temp,INGROWTH,MinDBH)
 
 ## For tree list from FVS add FVS alpha species codes and identify records with species outside scope of the model 
   validate_acd_tree_spp=function(tree.list, spcodes, acd.species=acd.species.ht.dia$Spp){
+    
     # retain records in the projections for accurate plot values and change species to OH
+    
     tree.list=tree.list %>% 
       dplyr::rename(fvs.num= species) %>%
       dplyr::left_join(spcodes %>% 
@@ -2083,6 +2095,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
   #save the plot CCF's in Sum.temp for use with ingrowth
   Sum.temp = merge(Sum.temp,temp,by="PLOT")
   
+
+  
   #calculate heights of any with missing values.
   #generally, none will be missing when function is used with FVS, but some or
   #all would be missing when code us used to grow tree lists from other sources. 
@@ -2177,7 +2191,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
                                                         Form=Form, Risk=Risk),
                                             1)) %>% 
     dplyr::ungroup()
-
+  
  ## stand BA #
   # create stand summary dataframe for use in the calc_stand_ba() function
   stand.smry.ba.incr=Sum.temp %>% 
@@ -2190,6 +2204,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
               pHW.ba=mean(pHW.ba, na.rm=T), 
               BAPH=mean(BAPH, na.rm=T), 
               CSI=mean(CSI, na.rm=T))
+ 
+ 
  
   # call wrapper function for dBA_plot_fun() and set dDBH if stand dBA is less than sum of tree level BA increment
   tree=calc_stand_ba(tree.list=tree,
@@ -2212,8 +2228,8 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
     dplyr::mutate(dDBH= dDBH*
                     dDBH.thin.mod*
                     dDBH.SBW.mod*
-                    dDBH.form.risk.mod,
-                  dDBH.mult)
+                    dDBH.form.risk.mod*
+                    dDBH.mult)
   # version 12.3.2 removed rdMod.dDBH_RDmod; added dDBH.mult
   
   
@@ -2251,13 +2267,15 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
                     dHT.thin.mod*
                     dHt.mult)
   # version 12.3.2 removed rdMod.dHT_RDmod; added dHT.mult
+  
+  
   if(use.cap.ht==T){
     tree=tree %>% 
       dplyr::mutate(dHT=dplyr::case_when((dHT+HT)>max.height ~0,
                                   TRUE ~dHT))
     
   }
-
+  
   #  version 12.3.2 removed cap height growth (dHTmult)
   # dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
   # if (verbose) cat ("mean dHTmult=",mean(dHTmult),if (usedHTCap) " applied\n" else " not applied\n")
@@ -2320,7 +2338,7 @@ AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
     v = (prmortgt0*w)/(1-prmortgt0)  
     qbeta(threshold, v, w, lower.tail = FALSE)
   },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
-
+  
   # stand.mort.BA=function(Region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih)
   tree$stand.mort.BA=mapply(stand.mort.BA,
                             Region=tree$Region,
