@@ -12,16 +12,24 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
     sink(logfile,append=TRUE)
   }
   
+  cat ("\nLog file created\n")
+  
   #load the growth model R code
   rFn="HiGy.R"
-  if (file.exists(rFn)) source(rFn) else
-  {
+  if (file.exists(rFn)) {
+    source(rFn)
+    cat("fvsRunHi location rFn=", rFn, "\n")
+    }else  {
     rFn = system.file("extdata", rFn, package="fvsOL")
-    if (! file.exists(rFn)) stop("can not find and load model code")
+    cat("fvsRunHi location rFn=", rFn, "\n")
+    if (! file.exists(rFn)) {
+      cat("fvsRunHi: ERROR - cannot find and load model code; rFn=", rFn, "\n")
+      stop("can not find and load model code")
+    }
     source(rFn)
   }
-  cat ("\nSource file for this fvsRunHi=\n",rFn,"\n")
-  cat ("*** in fvsRunHi",date()," VersionTag=",VersionTag,"\n")
+    cat ("*** in fvsRunHi",date()," VersionTag=",VersionTag,"\n")
+
   
 
   # process the ops.
