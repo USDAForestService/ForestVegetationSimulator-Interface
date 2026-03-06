@@ -865,6 +865,7 @@ expressionContents{always after}:{}
 
 //end GenGroup
 
+// Fields 4 and 2 in MechThin answerForm below are set to length 20 for correct keyword spacing
 //start MechThin
 
 description:{
@@ -888,6 +889,6 @@ parmsForm:{\
 ThinDBH   !1,10!     Parms(!3!, !4!, 1.0, !5!, !2!, 0.)
 }
 
-answerForm:{ThinDBH   !1,10!!3,10!!4,10!1.0!5,10!!2,10!0.}   
+answerForm:{ThinDBH   !1,10!!3,10!!4,20!!5,10!!2,20!!}  
 //end MechThin
 

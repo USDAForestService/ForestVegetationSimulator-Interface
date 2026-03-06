@@ -13,7 +13,7 @@ loadStandTableData <- function (globals, dbIcon)
 
 loadVarData <- function(globals,input,dbIcon)
 isolate({
-cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",globals$activeVariants,"\n") 
+cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",globals$activeVariants,"\n")
   dbtabs = dbGetQuery(dbIcon,"select name from sqlite_master where type='table';")[,1]
   dbtabsU = toupper(dbtabs)
   intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
@@ -169,17 +169,17 @@ cat("findCmp, cmp=",cmp,"\n")
 }
 
 
-mkSimCnts <- function (fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
+mkSimCnts <- function(fvsRun,sels=NULL,foundStand=0L,justGrps=FALSE)
 {
   tmpcnts = list()
-  tmptags = list()                         
+  tmptags = list()
   if (!is.null(sels)) if (length(sels) == 0) sels = NULL
-  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL 
-  if (justGrps) 
+  if (!is.null(sels)) if (length(sels) && is.null(sels[[1]])) sels = NULL
+  if (justGrps)
   {
     start=1
     end=0
-    for (grp in fvsRun$grps) 
+    for (grp in fvsRun$grps)
     {
       end=end+1+length(grp$cmps)
       tmpcnts <- append(tmpcnts,paste(">",grp$grp))
@@ -720,8 +720,7 @@ mkMgmtCats <- function(globals)
     "Seedtree" = "SeedTreeWin",
     "Shelterwood" = "ShelterwoodWin"),
   "Regeneration Methods: Uneven-aged"=c(
-    "Thin to a Q-factor" = "uneven-aged_Q",
-    "Group Selection, Distance-independent" = "uneven-aged_grp_select"),
+    "Thin to a Q-factor" = "uneven-aged_Q"),
   "Thinning & Pruning Operations"=c(
     "Thin from below" = "ThinFromBelowWin",
     "Thin from above" = "ThinFromAboveWin",
@@ -1939,3 +1938,17 @@ DupSpGrpKwdFormat <- function(orgName, dupName, orgKwd){
   
   return(replacementkwd)
 }  
+
+initializeUserGroups <- function(glbs){
+  for(i in glbs$fvsRun$simcnts){
+    cmp <- findCmp(glbs$fvsRun, i)
+    if(!is.null(cmp) && 
+        (cmp$kwdName == "GenGroup")){
+        if(!length(glbs$GrpNum)) glbs$GrpNum[1] <- 1 else
+          glbs$GrpNum[(length(glbs$GrpNum)+1)] <- length(glbs$GrpNum)+1
+          glbs$GenGrp[length(glbs$GrpNum)]<-cmp$title
+      cat("Found Group\n")
+      cat(paste(i,"\n"))
+    }
+  }
+}
