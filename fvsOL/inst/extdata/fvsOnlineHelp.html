@@ -9,6 +9,9 @@
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmout">View Outputs</a> 
 		</p>
+			<ul>
+				<li><p style="margin-bottom: 0in"><a href="#DensityDiagrams">Density Management Diagrams</a></p>
+			</ul>
 		<li><p style="margin-bottom: 0in"><a href="#outputTables">Output Table Descriptions</a> 
 		</p>
 		<li><p style="margin-bottom: 0in"><a href="#tmsvs">Visualize</a> 
@@ -362,6 +365,62 @@ A <i>query</i> can actually be several queries each separated by a semicolon. Th
 be stored and recovered for later use. Lastly, comments can be included in 
 the query by surrounding it with /*  */ character sequences.
 </p>
+<p><a href="#contents">Back to contents</a> 
+</p>
+<h4><a id="DensityDiagrams"></a>Density Management Diagrams</h4>
+<p>
+	Stand Density Index (SDI), first developed by Reineke (1933), provides comparison of density across stands in terms 
+	of the relationship between the number of trees per acre and their average diameter, where the index value equals the 
+	comparable number of trees per acre with an average diameter of 10 inches (25cm).  The maximum stand density index (SDIMax) 
+	for an individual stand represents the maximum site capacity in terms of number of 10-inch trees per acre.
+</p>
+<p>
+	Density Management Diagrams provide a convenient tool to visual stand density, especially in comparison to a maximum stand density index 
+	and / or varying levels of relative density corresponding to different management scenarios or concerns.  
+	It is important to consider the following paragraphs when using the density management diagrams within FVS.
+</p>
+<p>
+	First and foremost, the density management diagrams in FVS are intended to be used only in conjunction with the FVS_Summary2 table.  
+	Due to maximum stand density indices that may vary from stand to stand and year to year, density management diagrams in FVS have been developed 
+	to display conditions for only a single stand on a single graph.  While multiple stands can be selected in the left panel for viewing 
+	(which will generate a single graph for each selected stand), the StandID must be set to either the vertical or horizontal facet.  
+	The ‘Plot-by code’ input cannot be used with these graphs and should be defined as ‘None’.  
+</p>
+<p>
+	Variables displayed on the axis of the density management diagrams have been fixed to display the relationship between Trees per acre (X-axis) 
+	and either quadratic mean diameter (QMD) or the generalized mean diameter (GMD) (Zeide 1983) (Y-axis) by year, where multiple years must be selected to show 
+	the trajectory of the stand over the selected period.  Users should select QMD when using a Reineke SDI for the stand and should select 
+	the generalized mean diameter (GMD) when using a Zeide SDI.  These variables are overlaid on a grid of density index lines, with generalized SDI lines 
+	symbolized with a light line weight, and labeled on the left side of the graphic, while heavier weighed lines symbolizing indices specific to a single stand, 
+	are displayed with labels on the right side of the graphic.  
+</p>
+<p>
+	The solid line with the heaviest line weight near the top of the graph represents the maximum stand density index for that stand.  
+	The value for this line is determined by the largest values of SDIMax found in the set of years selected for an individual stand 
+	while all other stand specific SDI lines will be computed from this line.  
+	The dashed line of heavier line weight represents the top of the user chosen management zone, 
+	while the dotted line of heavier line weight represents the lower boundary of the user chosen management zone.  
+	A grey area representing the extents of the user defined management zone is displayed between these lines.  
+</p>
+<p>
+	Users can easily switch between displaying a management zone or a zone of mortality on the density management diagram, 
+	as well as input custom definitions of relative density for the upper and lower boundaries of these zones.  
+	These relative densities will apply to all stands selected and cannot be set for individual stands.
+</p>
+<p>
+	Finally, Users should modify the dimensions of the graph to achieve desired aesthetic.  
+	A width of 4(in) by a height of 5 (in) for a single graph is recommended.    
+</p>
+<ul>
+	<li>
+		1- Reineke, L.H. 1933. 
+		<cite>Perfecting a stand-density index for evenage forests.</cite> Journal of Agricultural Research. 46: 627–638
+	</li>
+	<li>
+		2- Zeide, B. 1983.
+		<cite>The Mean Diameter for Stand Density Index</cite>  Can. J . Forestry Res. 1023-1024
+	</li>
+</ul>
 <p><a href="#contents">Back to contents</a> 
 </p>
 <h4><a id="outputTables"></a>Available output tables</h4>
