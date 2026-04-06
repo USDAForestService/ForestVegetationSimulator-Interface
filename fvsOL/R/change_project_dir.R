@@ -94,3 +94,41 @@ change_project_dir <- function(new_proj_dir) {
      }
   }
 }
+
+getVolumes2 <- function(exclude) {
+  if (missing(exclude)) exclude <- NULL
+
+  function() {
+    osSystem <- Sys.info()["sysname"]
+    if (osSystem == "Darwin") {
+      volumes <- dir_ls("/Volumes")
+      names(volumes) <- basename(volumes)
+    } else if (osSystem == "Linux") {
+      volumes <- c("Computer" = "/")
+      if (isTRUE(dir_exists("/media"))) {
+        media <- dir_ls("/media")
+        names(media) <- basename(media)
+        volumes <- c(volumes, media)
+      }
+    } else if (osSystem == "Windows") {
+        volumes_info <- system2("powershell", "$dvr=[System.IO.DriveInfo]::GetDrives();Write-Output $dvr.length $dvr.name $dvr.VolumeLabel;", stdout = TRUE)
+        num = as.integer(volumes_info[1])
+        if(num == 0) return(NULL)
+        mat <- matrix(volumes_info[-1], nrow = num, ncol = 2)
+        mat[, 1] <- gsub(":\\\\$", ":/", mat[, 1])
+        sel <- mat[, 2] == ""
+        mat[sel, 2] <- mat[sel, 1]
+        volumes <- mat[, 1]
+        volNames <- mat[, 2]
+        volNames <- paste0(volNames, " (", gsub(":/$", ":", volumes), ")")
+        names(volumes) <- volNames
+        volumes <- gsub(":$", ":/", volumes)
+    } else {
+      stop("unsupported OS")
+    }
+    if (!is.null(exclude)) {
+      volumes <- volumes[!names(volumes) %in% exclude]
+    }
+    volumes
+  }
+}

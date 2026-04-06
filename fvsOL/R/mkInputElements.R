@@ -179,10 +179,10 @@ mkSelForest <- function (pkey,prms,pmt,fpvs,choices,globals)
   fors[1]="blank"
   myInlineListButton (pkey, pmt, fors, selected =  if (is.null(fpvs)) choices else fpvs, NULL)
 }
-  
-    
-mkSelSpecies <- function (pkey,prms,pmt,fpvs,choices,globals)
-{ 
+
+
+mkSelSpecies <- function(pkey,prms,pmt,fpvs,choices,globals)
+{
   variant <- globals$activeVariants[1]
   spGrp <- as.numeric()
   spkeys <- prms[[paste0("species_",variant)]]
@@ -389,7 +389,7 @@ myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
     # all dropdowns where a blank is not allowed (no deleteAll pkey)
     # applies to most keywords, and when editing previously saved selections (deltll==2).
       # Remove duplicate SpGroup names in species dropdowns due to cut/paste
-      if(names(mklist[1])=="All species"){
+      if(!is.null(names(mklist[1])) && names(mklist[1])=="All species"){
         spgsidxs <- grep("SpGroup", names(mklist))
         spgs <- mklist[spgsidxs]
         if(length(spgsidxs) > 1 && length(spgs)!=length(unique(spgs))){
@@ -491,6 +491,7 @@ mkVarList <- function (globals)
      "BNumSS: Before thin number of valid strata (StrClass keyword required)"="BNumSS", 
      "BRDen: Before thin relative density (Curtis 1982)"="BRDen", 
      "BRDen2: Before thin relative density, SILVAH (Marquis and Ernst 1992)"="BRDen2", 
+     "BGMD: Before thin generalized mean diameter"="BGMD",
      "BSClass: Before thin stand structural classification (StrClass keyword required)"="BSClass", 
      "BSawBio: Before thin sawlog biomass" = "BSawBio",
      "BSawCrb: Before thin sawlog carbon" = "BSawCrb",
@@ -546,6 +547,7 @@ mkVarList <- function (globals)
      "ANumSS: After thin number of valid strata (StrClass keyword required)"="ANumSS", 
      "ARDEN: After thin relative density (Curtis 1982)"="ARDEN", 
      "ARDen2: After thin relative density, SILVAH (Marquis and Ernst 1992)"="ARDen2", 
+     "AGMD: After thin generalized mean diameter"="AGMD",
      "ASClass: After thin stand structural classification (StrClass keyword required)"="ASClass", 
      "ASawBio: After thin sawlog biomass" = "ASawBio",
      "ASawCrb: After thin sawlog carbon" = "ASawCrb",

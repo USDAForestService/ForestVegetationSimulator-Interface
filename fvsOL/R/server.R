@@ -419,7 +419,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   })
   
   if (isLocal()) {
-    volumes <-c(shinyFiles::getVolumes()())
+    volumes <-c(getVolumes2()())
     shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
   }
 
@@ -636,11 +636,15 @@ cat ("tbs2=",tbs,"\n")
             setProgress(message = "Please wait: performing output query", 
               detail  = "Building CmpSummary2", value = i); i = i+1
             tblPRAG <- dbGetQuery(dbGlb$dbOcon, "PRAGMA table_xinfo(FVS_Summary2)")
+            chkGMD <- any(tblPRAG$name=="GMD")
             chkSCuFt <- any(tblPRAG$name=="SCuFt")
-            if(!chkSCuFt){
-              exqury(dbGlb$dbOcon,Create_CmpSummary2)
+            if(chkGMD){
+              exqury(dbGlb$dbOcon,Create_CmpSummary2_V3)
             }
-            else exqury(dbGlb$dbOcon,Create_CmpSummary2_V2)
+            else if(chkSCuFt){
+              exqury(dbGlb$dbOcon,Create_CmpSummary2_V2)
+            }
+            else exqury(dbGlb$dbOcon,Create_CmpSummary2)
             tbs = c(tbs,"CmpSummary2")
 cat ("tbs3=",tbs,"\n")
           }
@@ -1678,7 +1682,7 @@ cat("filterRows and/or pivot\n")
 cat ("Graphs pan hit\n")
       # update color pallet
       for (i in 1:length(cbbPalette))
-        updateColourInput(session=session,inputId=paste0("color",i),value=cbbPalette[i])
+        colourpicker::updateColourInput(session=session,inputId=paste0("color",i),value=cbbPalette[i])
       loadObject(dbGlb$prjDB,"GraphSettings") 
       if (!exists("GraphSettings")) GraphSettings=list("None"=list())
       updateSelectInput(session=session, inputId="OPsettings", choices=names(GraphSettings),
@@ -1852,22 +1856,14 @@ cat ("browsevars/plotType, input$plotType=",input$plotType," globals$gFreeze=",g
           if (sel=="Year" && (length(cont) > 1)) sel = cont[2]
           globals$settingChoices[["yaxis"]] = as.list(cont)
           updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected=sel)
+        } else if (input$plotType=="DMD") { 
+          updateRadioButtons(session=session,inputId="YTrans",selected="log10")
+          updateRadioButtons(session=session,inputId="XTrans",selected="log10")
+          globals$settingChoices[["xaxis"]] = as.list(cont)
+          updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
+          globals$settingChoices[["yaxis"]] = as.list(cont)
+          updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="GMD")
         }
-        # } else if (input$plotType=="DMD") {
-        #   updateRadioButtons(session=session,inputId="XUnits",selected="QMD")
-        #   updateRadioButtons(session=session,inputId="YUnits",selected="Tpa")          
-        #   updateRadioButtons(session=session,inputId="YTrans",selected="log10")
-        #   updateRadioButtons(session=session,inputId="XTrans",selected="log10")
-        #   globals$settingChoices[["xaxis"]] = as.list(cont)
-        #   updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="QMD")
-        #   globals$settingChoices[["yaxis"]] = as.list(cont)
-        #   updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="Tpa")
-        # } else if (input$plotType=="StkCht") {
-        #   globals$settingChoices[["xaxis"]] = as.list(cont)
-        #   updateSelectInput(session, "xaxis",choices=globals$settingChoices[["xaxis"]], selected="Tpa")
-        #   globals$settingChoices[["yaxis"]] = as.list(cont)
-        #   updateSelectInput(session, "yaxis",choices=globals$settingChoices[["yaxis"]], selected="BA")
-        # }
         updateSliderInput(session, "transparency",  
           value = if(input$plotType == "scat") .3 else 0.)
         if (input$plotType!="DMD")
@@ -1889,18 +1885,6 @@ cat ("end of browsevars/plotType\n")
     }
   })   
 
-  ## yaxis, xaxis regarding the Y- and XUnits for DMD
-  # observe({
-  #   if (globals$gFreeze) return()
-  #   if (!is.null(input$yaxis) && input$yaxis %in% c("Tpa","QMD")) 
-  #     updateRadioButtons(session=session,inputId="YUnits",  
-  #      selected=input$yaxis)
-  #   if (!is.null(input$xaxis) && input$xaxis %in% c("Tpa","QMD")) 
-  #     updateRadioButtons(session=session,inputId="XUnits",                
-  #      selected=input$xaxis)
-  # })
-  ## Set a tool to "None" if the same level is selected by another tool (doesn't 
-  ## apply to axes selection
   observe({
     if (is.null(input$pltby) || input$pltby  == "None" || globals$gFreeze) return()
     isolate({
@@ -1950,6 +1934,10 @@ cat ("hfacet change, globals$gFreeze=",globals$gFreeze,"\n")
       if (input$hfacet == input$vfacet)
         updateSelectInput(session=session, inputId="vfacet", selected="None")
   }) })   
+
+  observeEvent(input$DMD_Info, {
+    updateTabsetPanel(session, "topPan", selected = "Help")
+  })
   
   ## renderPlot
   output$outplot <- renderImage(
@@ -1969,6 +1957,7 @@ cat ("renderPlot\n")
       output$plotMessage=renderText(msg)
       list(src = outfile)
     }
+    
     if (input$leftPan == "Load"  || (length(input$xaxis) == 0 && 
         length(input$yaxis) == 0)) return(nullPlot())
     output$plotMessage=renderText(NULL)
@@ -2036,7 +2025,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
           c("RunTitle","StandID","Year") else c("MgmtID","StandID","Year") 
     if ( ! input$plotType %in% c("scat","box")) for (v in chk) 
     { 
-    #  if (input$plotType %in% c("line","DMD","StkCht") && v=="Year") next
+      if (input$plotType %in% c("line","DMD","StkCht") && v=="Year") next
       if (v %in% names(dat) && nlevels(dat[[v]]) > 1 && 
           ! (v %in% c(input$xaxis, vf, hf, pb, input$yaxis)))          
         return(nullPlot(paste0("Variable '",v,"' has ",nlevels(dat[[v]])," levels and ",
@@ -2045,7 +2034,7 @@ cat ("vf test hit, nlevels(dat[,vf])=",nlevels(dat[,vf]),"\n")
     pltp = input$plotType
     if (input$xaxis == "Year" && !(pltp %in% c("bar","box"))) dat$Year = as.numeric(as.character(dat$Year))
     nlv  = 1 + (!is.null(pb)) + (!is.null(vf)) + (!is.null(hf))    
-    vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                        
+    vars = c(input$xaxis, vf, hf, pb, input$yaxis)                                   
     nd = NULL
     specOpts <- c("Species","SpeciesFVS","SpeciesPLANTS","SpeciesFIA")
     sumOnSpecies= (all(!specOpts %in% vars) && any(specOpts %in% names(dat)) && 
@@ -2083,6 +2072,10 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     hrvFlag = NULL
     if (input$plotType %in% c("line","DMD","StkCht"))
     {
+      if(input$plotType %in% c("DMD", "StkCht")) {
+        nd <-cbind(nd, SDIMax=dat$SDIMax, StandID=dat$StandID, Tpa=dat$Tpa)
+      }
+
       if (is.null(dat[["RmvCode"]]))
       {                
         rtpa = grep ("RTpa",names(dat))[1]
@@ -2188,82 +2181,107 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
     ymaxlim = NA
     xmaxlim = NA
     DMDguideLines = NULL
-#     if (input$plotType == "DMD")
-#     {
-#       sdis=input$SDIvals
-#       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
-#         NULL else unlist(strsplit(sdis,split=xx))
-#       if (!is.null(sdis))
-#       {
-#         maxSDI = max(na.omit(as.numeric(sdis)))
-#         if (maxSDI == -Inf) {maxSDI=700; sdis = c(sdis,as.character(maxSDI))}
-#         sdisn = NULL
-#         for (xx in sdis)
-#         {
-#           li = nchar(xx)
-#           nv = if (li>1 && substr(xx,li,li)=="%") 
-#             as.numeric(substr(xx,1,li-1))*.01*maxSDI else as.numeric(xx)
-#           sdisn = c(sdisn,nv)
-#         }          
-# cat("sdisn=",sdisn,"\nXUnits=",input$XUnits," YUnits=",input$YUnits,"\n")
-#         seqTpa = seq(5,3000,length.out=50)
-#         seqQMD = seq(1,80,length.out=50)
-#         for (SDI in sdisn)
-#         {
-#           xseq = if (input$XUnits=="Tpa") seqTpa else seqQMD
-#           yseq = if (input$YUnits=="Tpa") 
-#                    if (input$XUnits=="Tpa") seqTpa else 
-#                      # Tpa = f(QMD,SDI)  
-#                      SDI / (seqQMD/10)^1.605 else
-#                    if (input$XUnits=="QMD") seqQMD else 
-#                      # QMD = f(Tpa,SDI)
-#                      exp(log(SDI/seqTpa) / 1.605)*10
-#           lineData = data.frame(xseq=xseq,yseq=yseq)[! yseq > Inf,]
-#           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-#           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-#           DMDguideLines[[as.character(SDI)]] = lineData
-# cat("SDI=",SDI," ymaxlim=",ymaxlim," xmaxlim=",xmaxlim,"\n")
-#         }
-#       }
-#     }
-#     StkChtguideLines = NULL
-#     if (input$plotType == "StkCht")
-#     {
-#       sdis=input$StkChtvals
-#       for (xx in c(" ","\n","\t",",",";")) sdis = if (is.null(sdis)) 
-#         NULL else unlist(strsplit(sdis,split=xx))
-#       if (length(sdis))
-#       {
-#         sdis = unlist(lapply(sdis,function(x) if(substr(x,nchar(x),nchar(x)) == "%")
-#           x else paste0(x,"%")))
-#         for (i in 1:length(sdis)) 
-#         yptsba  = c(70.2,80.9,89.5,96.5,102.5,107.5,111.9,115.7,119.0,121.8,
-#                     124.4,126.6,128.9)
-#         xptstpa = c(1430,928,657,492,383,308,253,212,180,155,135,119,105)
-#         seqTpa = seq(10,max(2000,nd$X),length.out=100)
-#         seqBA = 161.47029555*exp(-.02275259*(seqTpa^.5)) #found using nls()       
-#         ymaxlim = range(seqBA)
-#         xmaxlim = range(seqTpa)
-#         StkChtguideLines = list()
-#         for (PCT in sdis)
-#         {
-#           pct = as.numeric(gsub("%","",PCT))*.01
-#           lineData = data.frame(xseq=seqTpa*pct,yseq=seqBA*pct)
-#           StkChtguideLines[[as.character(PCT)]] = lineData
-#           ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-#           xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-#         }
-#         pcts = as.numeric(gsub("%","",sdis))*.01
-#         pm = min(pcts)
-#         px = max(pcts)
-#         StkChtrng = data.frame(X=c(xptstpa[1]*pm,xptstpa[1]*px,xptstpa*px,rev(xptstpa)*pm),
-#                                Y=c(yptsba[1]*pm,yptsba[1]*px,yptsba*px,rev(yptsba)*pm))
-#       }
-#     }
+    DMDSDILines = NULL
+    DensityManagementZone = NULL
+    if (input$plotType == "DMD")
+    {
+      if(input$xaxis != "Tpa" || !(input$yaxis %in% c("QMD", "GMD"))) {
+        return(nullPlot("Please select TPA for X-axis and either QMD or GMD for Y-axis for DMD Graph"))
+      }
+
+      if(input$pltby != "None"){
+        return(nullPlot("DMD Graph designed to display a single stand per graph.  
+                        Please select 'None' in the 'Plot-by code' field."))
+      }
+      for (std in input$stdid)
+      {
+        stdLvl_df <- nd %>% filter(StandID == std)
+        maxSDI <- max(stdLvl_df$SDIMax)
+        maxTPA <- max(stdLvl_df$Tpa)
+        std_vfacet = if(!is.null(stdLvl_df$vfacet)){
+          stdLvl_df$vfacet[1]
+        }  else NULL
+        std_hfacet = if(!is.null(stdLvl_df$hfacet)) {
+          stdLvl_df$hfacet[1]
+        } else NULL
+
+        if(input$ZoneType == "Management"){
+          ZoneLB = round(maxSDI*(input$MinManZone*0.01))
+          ZoneUB = round(maxSDI*(input$MaxManZone*0.01))
+        }
+        else if (input$ZoneType == "Mortality"){
+          ZoneLB = round(maxSDI*(input$MinMortZone*0.01))
+          ZoneUB = round(maxSDI*(input$MaxMortZone*0.01))
+        }
+
+        if(ZoneUB <= ZoneLB) {
+          return(nullPlot("Upper bound must be greater than lower bound"))
+        }
+
+        sdis = c(ZoneLB, ZoneUB, maxSDI)
+        seqTpa = seq(80,maxTPA*1.1,length.out=50)
+        seqQMD = seq(1,50,length.out=50)
+        seqvfacet = if(!is.null(std_vfacet)) rep(std_vfacet, length(seqTpa)) else NULL
+        seqhfacet = if(!is.null(std_hfacet)) rep(std_hfacet, length(seqTpa)) else NULL
+  
+        sdiBreaks = seq(100, round_any(maxSDI, 100, f = ceiling), by = 100)
+        for (SDI in sdis)
+        {
+          l_type <- if(SDI == maxSDI) 1 else if (SDI == ZoneUB) 2 else 3
+          xseq = seqTpa
+          yseq = exp(log(SDI/seqTpa) / 1.605)*10
+          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,l_type=l_type,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          }
+          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,l_type=l_type,vfacet=seqvfacet)[! yseq > Inf,]
+          } else {
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,l_type=l_type,hfacet=seqhfacet)[! yseq > Inf,]
+          }
+
+          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+          DMDguideLines <- rbind(DMDguideLines, lineData)
+        }
+
+        ylim = c(1, ymaxlim*1.3)
+        xlim = c(80, xmaxlim*2)
+
+        # Build Density Management Zone Dataframe
+        lowerBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneLB, StandID == std), ymin = yseq)) %>% select(ymin)
+        upperBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneUB, StandID == std), ymax = yseq)) %>% select(ymax)
+        # X values don't matter here, but just need one set of X values.  Using maxSDI just to provide distinction in the code
+        Zone <- (DMDguideLines %>% filter(RelDen == maxSDI, StandID == std)) %>% select(-c(yseq,RelDen,l_type))
+        DensityManagementZone <- rbind(DensityManagementZone, cbind(Zone,lowerBound,upperBound))
+
+        for (SDI in sdiBreaks)
+        {
+          xseq = seqTpa
+          yseq = exp(log(SDI/seqTpa) / 1.605)*10
+          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          }
+          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,vfacet=seqvfacet)[! yseq > Inf,]
+          } else {
+            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
+              StandID=std,hfacet=seqhfacet)[! yseq > Inf,]
+          }
+          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+          DMDSDILines <- rbind(DMDSDILines, lineData)
+        }
+      }
+    }
     ### end DMD...except for adding annotations, see below.
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
-#    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+    if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     brks = function (x,log=FALSE) 
     {
@@ -2309,65 +2327,28 @@ cat("xlim=",xlim," rngx=",rngx," brkx=",brkx,"\n")
 cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     } else p = p + scale_y_discrete(guide = guide_axis(check.overlap = TRUE))
     # add the guidelines and annotation here (now that we know the range limits of x and y
-    # if (!is.null(DMDguideLines)) 
-    # {
-    #   pltorder = sort(as.numeric(names(DMDguideLines)),decreasing=TRUE,index.return=TRUE)$ix
-    #   for (linetype in 1:length(pltorder)) 
-    #   {                                                
-    #     SDI = names(DMDguideLines)[pltorder[linetype]]
-    #     p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
-    #       linetype=linetype,data=DMDguideLines[[SDI]])
-    #   }
-    #   sq = seq(.95,0,-.05)
-    #   sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
-    #   sq = sq[1:min(length(sq),length(pltorder))]
-    #   xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
-    #   guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
-    #   guidedf$SDI=unlist(lapply(names(DMDguideLines)[pltorder], function(x) c(x,x)))
-    #   linetype = 0
-    #   for (idrow in seq(1,nrow(guidedf)-1,2)) 
-    #   {
-    #     linetype = linetype+1
-    #     p = p + annotate(geom="text",hjust="left",
-    #       label=paste0(guidedf$SDI[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
-    #     annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],linetype=linetype,
-    #                        x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],alpha=.4) 
-    #   }
-    # }
-    # if (!is.null(StkChtguideLines)) 
-    # {
-    #   linetype = 1
-    #   for (PCT in rev(names(StkChtguideLines))) 
-    #   {
-    #     linetype = linetype+1
-    #     p = p + geom_line(aes(x=xseq,y=yseq),show.legend=FALSE,alpha=.4,
-    #       linetype=if (PCT == "100%") 1 else linetype,data=StkChtguideLines[[PCT]])
-    #   }
-    #   sq = seq(.95,0,-.05)
-    #   sq = if (input$YTrans=="log10") 10^(log10(rngy[2])*sq) else rngy[2]*sq
-    #   sq = sq[1:min(length(sq),length(names(StkChtguideLines)))]
-    #   xs = if (input$XTrans=="log10") 10^(log10(rngx[2])*c(.75,.9)) else rngx[2]*c(.75,.9)
-    #   guidedf = do.call(rbind,lapply(sq,function(y) data.frame(ys=y,xs=xs)))
-    #   guidedf$PCT=unlist(lapply(rev(names(StkChtguideLines)), function (x) c(x,x)))
-    #   linetype = 1
-    #   for (idrow in seq(1,nrow(guidedf)-1,2))
-    #   {
-    #     linetype = linetype+1
-    #     p = p + annotate(geom="text",hjust="left",
-    #       label=paste0(guidedf$PCT[idrow]),size=2,y=guidedf$ys[idrow],x=guidedf$xs[idrow+1]) +
-    #     annotate("segment",y=guidedf$ys[idrow],yend=guidedf$ys[idrow+1],alpha=.4,
-    #                        x=guidedf$xs[idrow],xend=guidedf$xs[idrow+1],
-    #                        linetype=if (guidedf$PCT[idrow] == "100%") 1 else linetype) 
-    #   }
-    #   p = p + geom_polygon(aes(x=X,y=Y), data = StkChtrng, color="Gray", alpha=.3, 
-    #                       show.legend = FALSE)
-    # }    
+    if (!is.null(DMDguideLines)) 
+    {
+      p = p + scale_linetype_manual(values = c("solid","dashed","dotted"))                                
+      p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen, linetype=as.character(l_type)), linewidth = 0.5, data=DMDguideLines)
+      label_info <- DMDguideLines |> group_by(RelDen, StandID) |> slice_tail(n = 1)
+      p = p +  geom_text(aes(x=xseq, y=yseq, label=paste0("SDI: ",RelDen)), data=label_info, 
+        hjust = "left", vjust = "cener", size = 2)
+
+      p = p + geom_ribbon(data = DensityManagementZone, mapping = aes(x = xseq, ymin = ymin, ymax = ymax, alpha = 0.85))
+      p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen),show.legend=FALSE,
+        data=DMDSDILines, linewidth = 0.1) 
+        label_info <- DMDSDILines |> group_by(RelDen, StandID) |> slice_head(n = 1)
+      p = p +  geom_text(aes(x=xseq, y=yseq, label=RelDen), data=label_info, 
+        hjust = "right", vjust = "bottom", size = 1.5)
+    }
+
     size  = approxfun(c(50,100,1000),c(1,.7,.5),rule=2)(nrow(nd))
  
     if (is.factor(nd$X)) nd$X = as.ordered(nd$X)
     if (is.factor(nd$Y)) nd$Y = as.ordered(nd$Y)
     pltp = input$plotType 
-#    if (pltp %in% c("DMD","StkCht")) pltp = "path"
+    if (pltp %in% c("DMD","StkCht")) pltp = "path"
 cat ("pltp=",pltp," input$colBW=",input$colBW," hrvFlag is null=",is.null(hrvFlag),"\n")
     p = p + switch(pltp,
       line    = if (input$colBW == "B&W") 
@@ -2561,8 +2542,7 @@ cat ("inGrps inAnyAll inStdFindBut\n")
       if (is.null(input$inGrps))          
       {
         output$stdSelMsg <- renderUI(NULL)
-        updateSelectInput(session=session, inputId="inStds", 
-           choices=list())
+        updateSelectInput(session=session, inputId="inStds", choices=list())
       } else {  
          dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
          dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),data.frame(SelGrps = input$inGrps))
@@ -2967,9 +2947,10 @@ cat("setting uiRunPlot to NULL\n")
       tmp = unlist(globals$activeFVS[globals$fvsRun$FVSpgm])
       globals$lastRunVar = if (length(tmp) && !is.null(tmp)) tmp[1] else 
         if (length(globals$fvsRun$FVSpgm) && nchar(globals$fvsRun$FVSpgm)>4) 
-          substring(globals$fvsRun$FVSpgm,4) else globals$lastRunVar       
+          substring(globals$fvsRun$FVSpgm,4) else globals$lastRunVar
       mkSimCnts(globals$fvsRun,sels=globals$fvsRun$selsim,
         justGrps=isolate(input$simContType)=="Just groups")
+      initializeUserGroups(globals)
       output$uiCustomRunOps = renderUI(NULL)    
 cat ("reloaded globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")      
 cat ("reloaded globals$fvsRun$runScript=",globals$fvsRun$runScript,"\n")
@@ -3066,16 +3047,6 @@ cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
     }
   })
   
-  # observe({
-  #   if (input$inAdd > 0)
-  #   {
-  #     cat("Launch inAdd!!!")
-  #     cat ("input$inAdd=",input$inAdd,"\n")
-  # 
-  #     addStandsToRun(session,input,output,selType="inAdd",globals,dbGlb)
-  #     updateVarSelection(globals,session,input)
-  #   }
-  # })
   
   ## inAddGrp: Add all stands in selected groups
   observeEvent(input$inAddGrp, {
@@ -3093,14 +3064,6 @@ cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
       cat("No groups selected")
     }
   })
-#   observe({
-#     if (input$inAddGrp > 0) 
-#     {
-# cat (" input$inAddGrp=",input$inAddGrp,"\n")
-#       addStandsToRun(session,input,output,selType="inAddGrp",globals,dbGlb)
-#       updateVarSelection(globals,session,input)
-#     }
-#   })  
   
   ## inStdFindBut: Find and select stands in the stand list that match the search string
   observe({
@@ -3138,7 +3101,7 @@ cat ("elt=",elt,"\n")
 
   ## Edit  
   observe({
-    if (input$editSel == 0) return()      
+    if (input$editSel == 0) return() 
     isolate ({
       output$titleBuild <-output$condBuild <- output$cmdBuild <- output$cmdBuildDesc <- output$fvsFuncRender <- renderUI (NULL)   
       globals$currentEditCmp <- globals$NULLfvsCmp
@@ -4244,7 +4207,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         tmpk <- match(grlist[1], globals$GenGrp)
 
         # If requested name does not exist in globals, AND request not associated
-        # with editing of existing component, add name to globals
+        # with editing of existing component add name to globals
         if (is.na(tmpk) && !length(globals$currentEditCmp$kwds)) 
           globals$GenGrp[length(globals$GrpNum)]<-grlist
 
@@ -4253,7 +4216,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         # EDIT THIS SECTION NEEDS WORK, CURRENTLY REMOVE LAST GROUP NAME, NOT EDITED NAME
         # WHICH SHOULD BE IN GLOBALS$CURRENTEDITCMP --EDIT: SECTION SHOULD BE WORKING NOW, 
         # NEEDS MORE TESTING (DW 2/6/24)
-        if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+        else if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
           EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
           removeGrpIdx <- match(EditGrpName, globals$GenGrp)
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
@@ -4267,7 +4230,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         # If attempt to rename existing group to the name of another existing group, 
         # ie. incoming names does not match value in globals$currentEditCmp$kwds,
         # Create duplicate name, and remove existing name from globals$GenGrp
-        if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
+        else if (!is.na(tmpk) && length(globals$currentEditCmp$kwds)){
           globals$GrpNum <- globals$GrpNum[-length(globals$GrpNum)]
           EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
           # Temporarly store duplicated name
@@ -4289,7 +4252,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
 
         # If requested name exists in globals, and is a new group request, 
         # not an edit of an existing component, increment name and add to globals
-        if (!is.na(tmpk) && !length(globals$currentEditCmp$kwds)) {
+        else if (!is.na(tmpk) && !length(globals$currentEditCmp$kwds)) {
           # Temporarly store duplicated name
           dupTemp <- grlist[1]
           # Increment name in grlist[1]
@@ -4761,9 +4724,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
       toMany = nlevels(toplot$Stand) > 9
       colors = autorecycle(cbbPalette,nlevels(toplot$Stand))
       yUnits = expression(Total~(ft^{3}/a))
-      if (substring(globals$fvsRun$FVSpgm,4) %in% c("cs","ls","ne","sn"))
-        yUnits = expression(Merchantable~(ft^{3}/a))
-      else if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
+      if (substring(globals$fvsRun$FVSpgm,4) %in% c("bc","on"))
         yUnits = expression(Total~(m^{3}/ha))
       plt = ggplot(data = toplot) + scale_colour_manual(values=colors) +
         geom_line (aes(x=X,y=Y,color=Stand)) +
@@ -6187,10 +6148,16 @@ cat ("delete all runs and outputs\n")
 cat ("prjBackupUpload=",prjBackupUpload,"\n")
     progress <- shiny::Progress$new(session,min=1,max=5)
     progress$set(message = "Begining project backup upload",value = 2)
-    ind <- grep("ProjectBackup_",prjBackupUpload)
     fext <- tools::file_ext(basename(input$upZipBackup$name))
-    if (!length(ind) && fext !="zip") 
+    if (fext !="zip") 
     {
+      output$delPrjActionMsg  = renderText("<b>Uploaded file is not a valid project backup zip file</b>")
+      unlink(input$upZipBackup$datapath)
+      progress$close()
+      return()
+    }
+    zip_conts <-utils::unzip(input$upZipBackup$datapath, list = TRUE)
+    if(!("projectId.txt" %in% zip_conts$Name) || !("FVS_Data.db" %in% zip_conts$Name)){
       output$delPrjActionMsg  = renderText("<b>Uploaded file is not a valid project backup zip file</b>")
       unlink(input$upZipBackup$datapath)
       progress$close()
@@ -6199,7 +6166,12 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
     fdir = dirname(input$upZipBackup$datapath)
     progress$set(message = "Copying project backup to current project directory",value = 4)
     file.copy(input$upZipBackup$datapath,prjBackupUpload)
-    backups = dir(pattern="ProjectBackup")
+    backups <- lapply(dir(pattern = ".zip"), function(f){
+      if("projectId.txt" %in% utils::unzip(f, list = TRUE)$Name && "FVS_Data.db" %in% utils::unzip(f, list = TRUE)$Name) return(f)
+    })
+    backups <- unlist(backups[!sapply(backups, is.null)])
+
+    #backups = dir(pattern="ProjectBackup")
     if (length(backups)) 
     {
       backups = sort(backups,decreasing=TRUE)
@@ -6215,7 +6187,13 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
   ## restorePrjBackup 
   observeEvent(input$restorePrjBackup,
   {
-    if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup)) return()
+    if (is.na(input$pickBackup) || is.null(input$pickBackup) || !file.exists(input$pickBackup))
+    { 
+        session$sendCustomMessage(type = "dialogContentUpdate",
+        message = list(id = "restorePrjBackupDlg",
+          message = paste0("WARNING: No project backup selected for restoration")))
+      return()
+    }
     cnts = zip_list(input$pickBackup)
     if (length(cnts)==0) return()
     if(length(grep("FVSbin",cnts$filename)) || 
@@ -8713,7 +8691,10 @@ cat ("globals$fvsRun$uiCustomRunOps is empty\n")
     }
     updateSelectInput(session=session, inputId="PrjDelSelect",choices=selChoices,
                       selected=0)
-    backups = dir (pattern="ProjectBackup")
+    backups <- lapply(dir(pattern = ".zip"), function(f){
+      if("projectId.txt" %in% utils::unzip(f, list = TRUE)$Name && "FVS_Data.db" %in% utils::unzip(f, list = TRUE)$Name) return(f)
+    })
+    backups <- unlist(backups[!sapply(backups, is.null)])
     if (length(backups)) 
     {
       backups = sort(backups,decreasing=TRUE)
