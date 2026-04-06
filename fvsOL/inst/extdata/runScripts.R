@@ -17,7 +17,8 @@
 
 customRunScripts=list(
   "AcadianGY (Weiskittel et al.) normally run with FVSne" = "fvsRunAcadian",
-  "AdirondackGY (Weiskittel et al.) normally run with FVSne" = "fvsRunAdirondack"
+  "AdirondackGY (Weiskittel et al.) normally run with FVSne" = "fvsRunAdirondack",
+  "HiGY (Weiskittel et al.) normally run with FVShi" = "fvsRunHi"
   )
 
 

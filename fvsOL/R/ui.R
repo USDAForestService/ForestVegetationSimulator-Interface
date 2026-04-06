@@ -32,7 +32,7 @@ document.addEventListener("copy", (event) => {
         el.replaceWith(el = el.clone(true));
         var id = "#" + x + "_progress";     
         $(id).css("visibility", "hidden");});'
-    ),       
+    ),
   tags$head(tags$script(HTML(
       'Shiny.addCustomMessageHandler("jsCode",function(message) {eval(message.code);});'))),
   tags$style(type="text/css", paste0(".shiny-progress .progress-text {", 
@@ -185,7 +185,6 @@ document.addEventListener("copy", (event) => {
                 tabPanel("Economic"),
 
                tabPanel("Keywords",
-                 h5("Note: Avoid direct use of keywords when possible."),
                  selectInput("addKeyExt", "Extensions", NULL,
                              multiple = FALSE, selectize = FALSE),
                  selectInput("addKeyWds", "Keywords", NULL,
@@ -438,8 +437,14 @@ document.addEventListener("copy", (event) => {
             fixedRow(
               column(width = 7,
                 myRadioGroup("plotType", "Type",
-                  # c("line", "scat", "box", "bar", "DMD", "StkCht"))),
-                  c("line", "scat", "box", "bar"))),
+                 #  c("line", "scat", "box", "bar"))),
+                 c("line", "scat", "box", "bar", "DMD")),
+                 tags$a(
+                  href="#contents",
+                  actionButton("DMD_Info", "DMD Information")
+                 )
+              ),
+                 # c("line", "scat", "box", "bar", "DMD", "StkCht"))),
               column(width = 3,
                 myRadioGroup("colBW", "Style", c("Color", "B&W")))),
             fixedRow(
@@ -535,35 +540,37 @@ document.addEventListener("copy", (event) => {
                  column(width = 6,
                    myRadioGroup("facetWrap", "Automatic facet wrap",
                       c("On" = "On", "Off" = "Off")))),
-              #  fixedRow(
-              #    column(width = 12,
-              #      myInlineTextInput("SDIvals", 
-              #       "SDI values for Density Mgmt Diagram (DMG):",
-              #        "35%,60%,600", size = 25))),
-              #  fixedRow(
-              #    column(width = 6,
-              #      myRadioGroup("YUnits", "DMG Y-Units:",
-              #         c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "Tpa")),
-              #    column(width = 6,
-              #      myRadioGroup("XUnits", "DMG X-Units",
-              #         c("Tpa" = "Tpa", "QMD" = "QMD"), selected = "QMD"))),
-              #  fixedRow(
-              #    column(width = 12,
-              #      myInlineTextInput("StkChtvals", 
-              #       "Full stocking percentages for Stocking Chart (StkCht):",
-              #        "30%,55%,100%,110%", size = 25)))
-                     )
+               fixedRow(
+                column(width = 3,
+                strong("Select Managment Zone (%Relative Density):"),
+                numericInput(inputId = "MinManZone", label = "Lower Boundary",
+                             value = 35, min = 0, max = 100, step = 1),
+                numericInput(inputId = "MaxManZone", label = "Upper Boundary",
+                              value = 65, min = 0, max = 100, step = 1)),
+                column(width = 5,
+                strong("Select Density Dependent Mortality Zone (%Relative Density):"),
+                numericInput(inputId = "MinMortZone", label = "Lower Boundary",
+                             value = 55, min = 0, max = 100, step = 1),
+                numericInput(inputId = "MaxMortZone", label = "Upper Boundary",
+                              value = 85, min = 0, max = 100, step = 1)),
+                column(width = 4,
+                  myRadioGroup("ZoneType", "Select DMD Graph Zone to Display:",
+                  c("Management" = "Management", "Mortality" = "Mortality"))
+                )
+               )
+              )
             )),
             fixedRow(column(width = 6, 
               tags$style(type="text/css","#plotMessage{color:darkred;}"),          
-              textOutput("plotMessage")),
+                textOutput("plotMessage")),
                 column(width=6,actionButton("copyplot","Copy plot to clipboard"))),
             fixedRow(column(width=12,plotOutput(outputId="outplot")))
           ) #END Graphs
+
         ) ), #END Conditional pan 
         conditionalPanel("input.leftPan == 'Load'",
           fixedRow(
-            column(width = 6,                 
+            column(width = 6,
               tags$div(id = "describe",
                  selectInput("tabDescSel2", "Describe tables",
                  choices = list(), multiple = FALSE, selectize = FALSE)))),
@@ -572,7 +579,7 @@ document.addEventListener("copy", (event) => {
 
       tabPanel("Visualize",
         fixedRow(tags$div(id="VizCntrlDiv",
-          column(width = 6,offset = 0,         
+          column(width = 6,offset = 0,
             fixedRow(
               column(width = 8,offset = 0,
                 checkboxGroupInput("SVSdraw1", label = "Image 1 Options: ", width = "100%", 
