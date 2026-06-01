@@ -1339,7 +1339,7 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
       if (length(input$inStds))
       {
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
+        dbWriteTable(dbGlb$dbIcon,"Stds",data.frame(SelStds = input$inStds),temporary=TRUE,overwrite=TRUE)
       } else return()
     } else {
       # use if inAddGrp
@@ -1356,7 +1356,7 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
       } 
       if (length(stds) == 0) return()  
       dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
+      dbWriteTable(dbGlb$dbIcon,"Stds",data.frame(SelStds = stds),temporary=TRUE,overwrite=TRUE)
     }
     qry = paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
                  ' where ',sidid,' in (select SelStds from temp.Stds)')

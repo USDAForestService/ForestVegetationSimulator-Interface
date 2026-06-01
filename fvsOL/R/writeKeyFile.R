@@ -433,7 +433,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
   if (length(stds)==0) return(paste0("No stands to process. Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
-  dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
+  dbWriteTable(dbIcon,"RunStds",data.frame(RunStds = stds),temporary=TRUE,overwrite=TRUE)
  
   # get the preferred ids depending on the table that was used to build the run
   intable=toupper(globals$fvsRun$refreshDB)

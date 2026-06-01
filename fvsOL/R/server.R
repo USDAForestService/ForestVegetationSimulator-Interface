@@ -2480,7 +2480,7 @@ cat ("in reloadStandSelection\n")
     if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
     {
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
+      dbWriteTable(dbGlb$dbIcon,"Grps",data.frame(Stand_ID="",Grp=""),temporary=TRUE,overwrite=TRUE)
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="ExtGroups",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
@@ -2514,7 +2514,7 @@ cat ("in reloadStandSelection\n")
                            "StandPlot_ID" else "Stand_ID","Grp")      
       dd = as.data.frame(dd)
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
+      dbWriteTable(dbGlb$dbIcon,"Grps",dd,temporary=TRUE,overwrite=TRUE)
       selGrp = dbGetQuery(dbGlb$dbIcon,
         'select distinct Grp from temp.Grps order by Grp')[,1]
 
@@ -2545,7 +2545,7 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         updateSelectInput(session=session, inputId="inStds", choices=list())
       } else {  
          dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
-         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),data.frame(SelGrps = input$inGrps))
+         dbWriteTable(dbGlb$dbIcon,"SGrps",data.frame(SelGrps = input$inGrps),temporary=TRUE,overwrite=TRUE)
          sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
          stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,' from temp.Grps ',
@@ -2584,7 +2584,7 @@ cat ("input$inStdFind=",input$inStdFind,"\n")
     }
     else{
       dbExecute(dbGlb$dbIcon,"drop table if exists temp.SEGrps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SEGrps"),data.frame(SelGrps = input$ExtGroups))
+      dbWriteTable(dbGlb$dbIcon,"SEGrps",data.frame(SelGrps = input$ExtGroups),temporary=TRUE,overwrite=TRUE)
       sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))"StandPlot_ID" else "Stand_ID"
       stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from temp.Grps ',
                       'where Grp in (select SelGrps from temp.SEGrps)')))
@@ -5644,7 +5644,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       # if there are reps (same stand more than once), just use the first rep, ignore the others
       cases = cases[!duplicated(cases$StandID),]
       dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
+      dbWriteTable(dbGlb$dbOcon,"mapsCases",cases[,1,drop=FALSE],temporary=TRUE,overwrite=TRUE)
       tabs = setdiff(myListTables(dbGlb$dbOcon),
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
@@ -5794,7 +5794,7 @@ cat ("left to get: length(uidsToGet)=",length(uidsToGet),
         })
         if (is.null(inInit)) inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
 cat ("mapDsRunList trying to use the table=",inInit,"\n")
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.uidsToGet"),data.frame(stds=uidsToGet),overwrite=TRUE)
+        dbWriteTable(dbGlb$dbIcon,"uidsToGet",data.frame(stds=uidsToGet),temporary=TRUE,overwrite=TRUE)
         sid = if (inInit %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
         qry = paste0("select distinct ",sid," as Stand_ID,Latitude,Longitude from ",inInit,

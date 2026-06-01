@@ -71,7 +71,7 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   dbExecute(dbcon,'drop table if exists temp.Stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
     ' where lower(variant) like "%',tolower(variant),'%"')
-  dbWriteTable(dbcon,DBI::SQL("temp.Stds"),data.frame(SelStds = standIDs))
+  dbWriteTable(dbcon,"Stds",data.frame(SelStds = standIDs),temporary=TRUE,overwrite=TRUE)
   qry = paste0(qry," and ",sidid," in (select SelStds from temp.Stds)")
   
   fvsInit = try(dbGetQuery(dbcon,qry))
@@ -847,7 +847,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
   if (nrow(getStds) == 0) return(nadd)
     
-  dbWriteTable(dbcon,name=DBI::SQL("temp.getStds"),value=getStds,overwrite=TRUE)
+  dbWriteTable(dbcon,name="getStds",value=getStds,temporary=TRUE,overwrite=TRUE)
   variant = substring(fvsRun$FVSpgm,4)
   dbExecute(dbcon,'drop table if exists temp.Stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
