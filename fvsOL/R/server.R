@@ -4823,10 +4823,9 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
          if (nrow(cases) == 0) return()
 cat ("download run as xlsx, ncases=",nrow(cases),"\n")
-         tmp = paste0("tmp",gsub("-","",runuuid),Sys.getpid(),"genoutput")
-         dbExecute(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
-         casesToGet = paste0(tmp,".casesToGet")
-         dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
+         casesToGet = "temp.casesToGet"
+         dbExecute(dbGlb$dbOcon,"drop table if exists temp.casesToGet")
+         dbWriteTable(dbGlb$dbOcon,"casesToGet",cases,temporary=TRUE,overwrite=TRUE)
          out = list()
          cmpYes = if ("CmpMetaData" %in% tabs) 
          { 
@@ -4845,7 +4844,6 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
           out[[tab]] = dat
 cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
-         dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## dlPrjBackup
