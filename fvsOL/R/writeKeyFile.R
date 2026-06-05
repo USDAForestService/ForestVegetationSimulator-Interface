@@ -444,7 +444,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
                   "FVS_STANDINIT_PLOT"=c("STAND_ID","STAND_CN"),
                   "FVS_PLOTINIT_PLOT" =c("STANDPLOT_ID","STANDPLOT_CN"))
   initfields = try(toupper(dbListFields(dbIcon,intable)))
-  if (class(initfields) == "try-error") 
+  if (inherits(initfields,"try-error")) 
     return(paste0("Run data query returned no data to run, Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   queryIDs = queryIDs[queryIDs %in% initfields] 
@@ -453,7 +453,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
               intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
   if (verbose) cat ("Database qry=",qry,"\n")
   fvsInit = try(dbGetQuery(dbIcon,qry))
-  if (class(fvsInit) == "try-error") return(paste0("Run data query failed. qry=",qry," Run =",
+  if (inherits(fvsInit,"try-error")) return(paste0("Run data query failed. qry=",qry," Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
   if (nrow(fvsInit) == 0) return("Wrong active database.")
   # compute replication weights

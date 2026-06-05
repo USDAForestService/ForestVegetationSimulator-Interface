@@ -61,7 +61,8 @@ function()
     {
       nch =nchar(name)
       atr = vector("numeric",ndeadobjs)
-      ans = .C("CfvsSVSObjData",name,nch,"get",ndeadobjs,atr,as.integer(0))
+      ans = .C("CfvsSVSObjData",name,nch,"get",ndeadobjs,atr,as.integer(0),
+               PACKAGE=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)$pgm)
       if (ans[[6]] == 0) 
       {
         snags = append(snags,list(ans[[5]]))
@@ -81,7 +82,8 @@ function()
       name=falyrs[i] 
       nch =nchar(name)
       atr = vector("numeric",maxsp)
-      ans = .C("CfvsFFEAttrs",name,nch,"get",maxsp,atr,as.integer(0))
+      ans = .C("CfvsFFEAttrs",name,nch,"get",maxsp,atr,as.integer(0),
+               PACKAGE=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)$pgm)
       if (ans[[6]] == 0) 
       {              
         fal = ans[[5]]
@@ -107,7 +109,8 @@ function()
     {
       nch =nchar(name)
       atr = vector("numeric",ncwdobjs)
-      ans = .C("CfvsSVSObjData",name,nch,"get",ncwdobjs,atr,as.integer(0))
+      ans = .C("CfvsSVSObjData",name,nch,"get",ncwdobjs,atr,as.integer(0),
+               PACKAGE=get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)$pgm)
       if (ans[[6]] == 0) 
       {
         cwd = append(cwd,list(ans[[5]]))

@@ -3,7 +3,7 @@ unlink("FvsHi.log")
 
 # Note: The form of the function call is very carefully coded. Make sure
 # "runOps" exists if you want them to be used.
-fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
+fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log", autoload.model=TRUE)
 {
 
   if (!is.null(logfile) && !interactive())
@@ -14,7 +14,8 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   
   cat ("\nLog file created\n")
   
-  #load the growth model R code
+  #load the growth model R code if autoload.model=TRUE
+  if(autoload.model){
   rFn="HiGy.R"
   if (file.exists(rFn)) {
     source(rFn)
@@ -27,9 +28,9 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
       stop("can not find and load model code")
     }
     source(rFn)
+    }
   }
     cat ("*** in fvsRunHi",date()," VersionTag=",VersionTag,"\n")
-
   
 
   # process the ops.
@@ -47,14 +48,7 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   
   cat ("fvsRunHi, options set\n")
 
-  #load some handy conversion factors
-  # .GlobalEnv$CMtoIN  = fvsUnitConversion("CMtoIN")
-  # .GlobalEnv$INtoCM  = fvsUnitConversion("INtoCM")
-  # .GlobalEnv$FTtoM   = fvsUnitConversion("FTtoM")
-  # .GlobalEnv$MtoFT   = fvsUnitConversion("MtoFT")
-  # .GlobalEnv$M3toFT3 = fvsUnitConversion("M3toFT3")
-  # .GlobalEnv$ACRtoHA = fvsUnitConversion("ACRtoHA")
-  # .GlobalEnv$HAtoACR = fvsUnitConversion("HAtoACR")
+### load FVS species codes
   .GlobalEnv$spcodes = fvsGetSpeciesCodes()
 
 
@@ -64,8 +58,8 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   # start FVS but return prior to dubbing and calibration to detect which trees
   # have dubbed heights and crown ratios.
   
-#  2024.05.29 commented out code for height and crown ratio imputation until errors are resolved
-  
+
+  # start FVS prior to dubbing to identify trees with missing heights and crown ratios
   fvsRun(7,0)
 
   orgtree.b4dub = fvsGetTreeAttrs(c('ht', 'cratio'))
@@ -90,7 +84,7 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   std.id  = fvsGetStandIDs()
   
   # fetch stand attributes from the Event Monitor
-  climate = fvsGetEventMonitorVariables(c('rain', 'temp'))
+  site = fvsGetEventMonitorVariables(c('byi', 'stdorgcd'))
   
   # Fetch FVS dimensions
   room=fvsGetDims()
@@ -98,11 +92,11 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   # create a stand dataframe- using the make_stand() function
   .GlobalEnv$stand=make_stand(stand.id=std.id[['standid']],
                               elev = stdInfo[['elev']], 
-                              rain=  climate[['rain']], 
-                              temp = climate[['temp']])
+                              byi =  site[['byi']], 
+                              planted = site[['stdorgcd']])
   
   ## fetch the fvs tree list and form the HiGY tree dataframe
-  orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio","special", "mgmtcd",
+  orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio", "mgmtcd",
                               "dg", "htg", "mort")) 
   
   # add FVS alpha species codes and identify records with species outside scope of the model 
@@ -112,19 +106,16 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   calib.fvs =make_fvs_calib(spcodes=spcodes, 
                             tree.size.cap=tree.size.cap)
   
-  #### temp --- add calib values for koa ####
-  # calib.fvs=rbind(calib.fvs, data.frame(sp='AK', ddbh.mult=1, dht.mult=1,
-  #                                       mort.mult=1, max.dbh=999, max.height=999))
-  
+ 
   # create model tree list and remove invalid tree records
   orgtree= make_tree(orgtree, 
                      num.plots=as.numeric(room['nplots']), 
                      calib.fvs)  
   
   # Add tree attributes 
-  tree = orgtree %>% # snags and dead trees are retained in the tree list
+  tree = orgtree %>% # snags are retained in the tree list
     # basal area (plot level)
-    dplyr::mutate(ba=(dbh^2*0.0054541539)*expf,
+    dplyr::mutate(ba = (dbh^2*0.00007854)*expf,
                   # missing value indicators
                   phtrow=dub.htrows,
                   phcbrow=dub.crrows) %>% 
@@ -137,20 +128,19 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
   plot.smry = tree %>% 
     calc_plot_summary()
   
-  # pred_ht: dbh, bal, ba, rain, temp,
-  # pred_hcb: dbh, ht, bal, ba,
+  # pred_ht: dbh,  ba, bal, qmd, byi, 
+  # pred_hcb: dbh, ht, bal, ba, byi, 
   tree = tree %>% 
     #predicted height (returns pht)
     calc_ht(plot.data = plot.smry) %>% 
     # use predicted height if missing height 
     dplyr::mutate(ht= dplyr::case_when(phtrow==TRUE & model.ex==FALSE ~pht,
-                           TRUE ~ ht)) %>% 
+                           TRUE ~ ht)*3.28084) %>% 
     #predicted height to crown base (returns phcb)
     calc_hcb(plot.data = plot.smry) %>% 
     #use predicted height to crown base if cr is missing 
-    dplyr::mutate(hcb= dplyr::case_when(phcbrow==TRUE & model.ex==FALSE & mgmtcd!=9 ~phcb, 
-                                        TRUE ~hcb),
-                  cratio = round((1-(hcb/ht))*100, 1)) %>% 
+    dplyr::mutate(cratio = dplyr::case_when(phcbrow==TRUE & model.ex==FALSE & mgmtcd!=9 ~round((1-(phcb/ht))*100, 1), 
+                                        TRUE ~cr)) %>% 
     dplyr::arrange(tree) %>% 
     dplyr::select(ht, 
                   cratio)
@@ -185,15 +175,13 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
     std.id  = fvsGetStandIDs()
     
     # fetch stand attributes from the Event Monitor
-    climate = fvsGetEventMonitorVariables(c('rain', 'temp'))
+    site = fvsGetEventMonitorVariables(c('byi', 'stdorgcd'))
     
     # create a stand dataframe- using the make_stand() function
-    .GlobalEnv$stand=make_stand(stand.id=std.id[['standid']],
-                      elev = stdInfo[['elev']], 
-                      rain=  climate[['rain']], 
-                      temp = climate[['temp']])
-    
-    
+    .GlobalEnv$stand = make_stand(stand.id=std.id[['standid']],
+                                elev = stdInfo[['elev']], 
+                                byi =  as.numeric(site[['byi']]), 
+                                planted = as.numeric(site[['stdorgcd']]))
 
   ## fetch the fvs tree list and form the HiGY tree dataframe
     orgtree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio","special", "mgmtcd",
@@ -207,11 +195,6 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
     calib.fvs =make_fvs_calib(spcodes=spcodes, 
                          tree.size.cap=tree.size.cap)
     
-    #### temp --- add calib values for koa ####
-    # calib.fvs=rbind(calib.fvs, data.frame(sp='AK', ddbh.mult=1, dht.mult=1,
-    #                                       mort.mult=1, max.dbh=999, max.height=999))
-  
-      
       # the make_fvs_calib() function fetches species calibration data from FVS using fvsGetSpeciesAttrs()
         #fetch the height, ba and mortality multipliers, variable "mults" where the rows are
         # fvs species index values and the columns are the attributes.
@@ -263,7 +246,7 @@ fvsRunHi <- function(runOps=NULL, logfile="FvsHi.log")
     if (is.null(tree)) next
       
    
-    cat ("fvsRunHi: is.null(tree$expf)=",is.null(tree$expf),"\n") 
+    # cat ("fvsRunHi: is.null(tree$expf)=",is.null(tree$expf),"\n") 
     
     # tree list to hand back to FVS
     tofvs=make_fvs_tree(tree.data=tree, 
