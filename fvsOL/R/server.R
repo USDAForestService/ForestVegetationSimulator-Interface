@@ -2073,7 +2073,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     if (input$plotType %in% c("line","DMD","StkCht"))
     {
       if(input$plotType %in% c("DMD", "StkCht")) {
-        nd <-cbind(nd, SDIMax=dat$SDIMax, StandID=dat$StandID, Tpa=dat$Tpa)
+        nd <-cbind(nd, SDIMax=dat$SDIMax, StandID=dat$StandID, Tpa=dat$Tpa, MgmtID=dat$MgmtID)
       }
 
       if (is.null(dat[["RmvCode"]]))
@@ -2193,88 +2193,95 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
         return(nullPlot("DMD Graph designed to display a single stand per graph.  
                         Please select 'None' in the 'Plot-by code' field."))
       }
-      for (std in input$stdid)
+      for (run in input$mgmid)
       {
-        stdLvl_df <- nd %>% filter(StandID == std)
-        maxSDI <- max(stdLvl_df$SDIMax)
-        maxTPA <- max(stdLvl_df$Tpa)
-        std_vfacet = if(!is.null(stdLvl_df$vfacet)){
-          stdLvl_df$vfacet[1]
-        }  else NULL
-        std_hfacet = if(!is.null(stdLvl_df$hfacet)) {
-          stdLvl_df$hfacet[1]
-        } else NULL
-
-        if(input$ZoneType == "Management"){
-          ZoneLB = round(maxSDI*(input$MinManZone*0.01))
-          ZoneUB = round(maxSDI*(input$MaxManZone*0.01))
-        }
-        else if (input$ZoneType == "Mortality"){
-          ZoneLB = round(maxSDI*(input$MinMortZone*0.01))
-          ZoneUB = round(maxSDI*(input$MaxMortZone*0.01))
-        }
-
-        if(ZoneUB <= ZoneLB) {
-          return(nullPlot("Upper bound must be greater than lower bound"))
-        }
-
-        sdis = c(ZoneLB, ZoneUB, maxSDI)
-        seqTpa = seq(80,maxTPA*1.1,length.out=50)
-        seqQMD = seq(1,50,length.out=50)
-        seqvfacet = if(!is.null(std_vfacet)) rep(std_vfacet, length(seqTpa)) else NULL
-        seqhfacet = if(!is.null(std_hfacet)) rep(std_hfacet, length(seqTpa)) else NULL
-  
-        sdiBreaks = seq(100, round_any(maxSDI, 100, f = ceiling), by = 100)
-        for (SDI in sdis)
+        mgmtLvl_df <- nd %>% filter(MgmtID == run)
+        standList <- unique(mgmtLvl_df$StandID)
+        for (std in standList)
         {
-          l_type <- if(SDI == maxSDI) 1 else if (SDI == ZoneUB) 2 else 3
-          xseq = seqTpa
-          yseq = exp(log(SDI/seqTpa) / 1.605)*10
-          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          stdLvl_df <- mgmtLvl_df %>% filter(StandID == std)
+          maxSDI <- max(stdLvl_df$SDIMax)
+          maxTPA <- max(stdLvl_df$Tpa)
+          std_vfacet = if(!is.null(stdLvl_df$vfacet)){
+            stdLvl_df$vfacet[1]
+          }  else NULL
+          std_hfacet = if(!is.null(stdLvl_df$hfacet)) {
+            stdLvl_df$hfacet[1]
+          } else NULL
+
+          if(input$ZoneType == "Management"){
+            ZoneLB = round(maxSDI*(input$MinManZone*0.01))
+            ZoneUB = round(maxSDI*(input$MaxManZone*0.01))
           }
-          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,vfacet=seqvfacet)[! yseq > Inf,]
-          } else {
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,hfacet=seqhfacet)[! yseq > Inf,]
+          else if (input$ZoneType == "Mortality"){
+            ZoneLB = round(maxSDI*(input$MinMortZone*0.01))
+            ZoneUB = round(maxSDI*(input$MaxMortZone*0.01))
           }
 
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          DMDguideLines <- rbind(DMDguideLines, lineData)
-        }
-
-        ylim = c(1, ymaxlim*1.3)
-        xlim = c(80, xmaxlim*2)
-
-        # Build Density Management Zone Dataframe
-        lowerBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneLB, StandID == std), ymin = yseq)) %>% select(ymin)
-        upperBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneUB, StandID == std), ymax = yseq)) %>% select(ymax)
-        # X values don't matter here, but just need one set of X values.  Using maxSDI just to provide distinction in the code
-        Zone <- (DMDguideLines %>% filter(RelDen == maxSDI, StandID == std)) %>% select(-c(yseq,RelDen,l_type))
-        DensityManagementZone <- rbind(DensityManagementZone, cbind(Zone,lowerBound,upperBound))
-
-        for (SDI in sdiBreaks)
-        {
-          xseq = seqTpa
-          yseq = exp(log(SDI/seqTpa) / 1.605)*10
-          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          if(ZoneUB <= ZoneLB) {
+            return(nullPlot("Upper bound must be greater than lower bound"))
           }
-          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,vfacet=seqvfacet)[! yseq > Inf,]
-          } else {
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,hfacet=seqhfacet)[! yseq > Inf,]
+
+          sdis = c(ZoneLB, ZoneUB, maxSDI)
+          seqTpa = seq(80,maxTPA*1.1,length.out=50)
+          seqQMD = seq(1,50,length.out=50)
+          seqvfacet = if(!is.null(std_vfacet)) rep(std_vfacet, length(seqTpa)) else NULL
+          seqhfacet = if(!is.null(std_hfacet)) rep(std_hfacet, length(seqTpa)) else NULL
+    
+          sdiBreaks = seq(100, round_any(maxSDI, 100, f = ceiling), by = 100)
+          for (SDI in sdis)
+          {
+            l_type <- if(SDI == maxSDI) 1 else if (SDI == ZoneUB) 2 else 3
+            xseq = seqTpa
+            yseq = exp(log(SDI/seqTpa) / 1.605)*10
+            if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,vfacet=seqvfacet)[! yseq > Inf,]
+            } else {
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+            xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+            DMDguideLines <- rbind(DMDguideLines, lineData)
           }
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          DMDSDILines <- rbind(DMDSDILines, lineData)
+
+          # Patch solution to get space for SDI labeling where C space is needed after SDI lines on the grid for labeling 
+          C = 0.08
+          #xmaxLimit = xmaxlim[2] * (1 + ((xmaxlim[2] * ( 10**C  - 1)) / xmaxlim[2]))
+          xmaxLimit = 10^C * xmaxlim[2]
+          ylim = c(1, ymaxlim*1.3)
+          xlim = c(80, xmaxLimit)
+          # Build Density Management Zone Dataframe
+          lowerBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneLB, StandID == std), ymin = yseq)) %>% select(ymin)
+          upperBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneUB, StandID == std), ymax = yseq)) %>% select(ymax)
+          # X values don't matter here, but just need one set of X values.  Using maxSDI just to provide distinction in the code
+          Zone <- (DMDguideLines %>% filter(RelDen == maxSDI, StandID == std)) %>% select(-c(yseq,RelDen,l_type))
+          DensityManagementZone <- rbind(DensityManagementZone, cbind(Zone,lowerBound,upperBound))
+
+          for (SDI in sdiBreaks)
+          {
+            xseq = seqTpa
+            yseq = exp(log(SDI/seqTpa) / 1.605)*10
+            if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,vfacet=seqvfacet)[! yseq > Inf,]
+            } else {
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+            xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+            DMDSDILines <- rbind(DMDSDILines, lineData)
+          }
         }
       }
     }
@@ -2331,14 +2338,14 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     {
       p = p + scale_linetype_manual(values = c("solid","dashed","dotted"))                                
       p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen, linetype=as.character(l_type)), linewidth = 0.5, data=DMDguideLines)
-      label_info <- DMDguideLines |> group_by(RelDen, StandID) |> slice_tail(n = 1)
+      label_info <- DMDguideLines |> group_by(RelDen, StandID,MgmtID) |> slice_tail(n = 1)
       p = p +  geom_text(aes(x=xseq, y=yseq, label=paste0("SDI: ",RelDen)), data=label_info, 
         hjust = "left", vjust = "cener", size = 2)
 
       p = p + geom_ribbon(data = DensityManagementZone, mapping = aes(x = xseq, ymin = ymin, ymax = ymax, alpha = 0.85))
       p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen),show.legend=FALSE,
         data=DMDSDILines, linewidth = 0.1) 
-        label_info <- DMDSDILines |> group_by(RelDen, StandID) |> slice_head(n = 1)
+        label_info <- DMDSDILines |> group_by(RelDen, StandID,MgmtID) |> slice_head(n = 1)
       p = p +  geom_text(aes(x=xseq, y=yseq, label=RelDen), data=label_info, 
         hjust = "right", vjust = "bottom", size = 1.5)
     }
