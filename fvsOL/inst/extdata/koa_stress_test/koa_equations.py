@@ -114,6 +114,18 @@ class LineageA:
                + p["b6"] * ln(np.maximum(byi, 1) / 100.0) + p["b7"] * (byi / 1000.0))
         return np.clip(np.exp(-np.exp(eta)), 0, 1)   # annual; no YIP offset in HiGy.R
 
+    @classmethod
+    def surv_annual_stable(cls, dbh, ht, cr, rht, byi, sdi=None, planted=None,
+                           yip=1.0, cr_lim=(0.20, 0.55), rht_lim=(0.30, 0.70),
+                           floor=0.90):
+        """Operational stabilizer: clamp CR and rHT to the cohort-calibration
+        domain (where the published cloglog fit is sane) and floor annual
+        survival. Outside CR>~0.55 / rHT>~0.70 the raw model collapses
+        (see diagnostics); FVS feeds it the full range, so clamp at evaluation."""
+        cr_c = np.clip(cr, *cr_lim); rht_c = np.clip(rht, *rht_lim)
+        s = cls.surv_annual(dbh, ht, cr_c, rht_c, byi)
+        return np.clip(np.maximum(s, floor), 0, 1)
+
 # ----------------------------------------------------------------------------
 # LINEAGE B  -- FVS_FINAL M1/S1 recommendation (koa_FVS_FINAL_parameters.csv)
 # ----------------------------------------------------------------------------
