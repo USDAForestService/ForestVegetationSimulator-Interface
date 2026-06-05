@@ -29,9 +29,11 @@ def sdi_of(tph, qmd): return tph * (np.maximum(qmd, 0.1) / 25.0) ** 1.6
 
 
 # ---------------------------------------------------------------------------
-def project_cohort(byi, planted, lineage, bounded=True,
+def project_cohort(byi, planted, lineage, bounded=True, surv_mode="cohort",
                    init_dbh=None, init_tph=None, init_age=1, max_age=100,
                    ddbh_mult=1.0, dht_mult=1.0, mort_mult=1.0, sdi_max=SDI_MAX):
+    # surv_mode: 'cohort'=raw eqn floored at 0.5/yr (koa_projection.py crutch),
+    #            'raw'=raw eqn no floor (FVS behavior), 'stable'=clamped+floored
     L = LINEAGES[lineage]
     dbh_max = 60.0 if planted else 90.0
     if init_dbh is None: init_dbh = 6.0 if planted else 8.0
@@ -62,8 +64,15 @@ def project_cohort(byi, planted, lineage, bounded=True,
                 DBH *= (TPH/max(tphn,1))**0.08; QMD = DBH; TPH = tphn
                 BAPH = TPH*np.pi/4*(QMD/100)**2
 
-        ps = float(L.surv_annual(DBH, HT, CR, rHT, byi, sdi=SDI, planted=planted))
-        ps = np.clip(1.0 - mort_mult*(1.0-ps), 0.50, 1.0)
+        if surv_mode == "stable":
+            ps = float(L.surv_annual_stable(DBH, HT, CR, rHT, byi))
+            ps = np.clip(1.0 - mort_mult*(1.0-ps), 0.0, 1.0)
+        elif surv_mode == "raw":
+            ps = float(L.surv_annual(DBH, HT, CR, rHT, byi, sdi=SDI, planted=planted))
+            ps = np.clip(1.0 - mort_mult*(1.0-ps), 0.0, 1.0)
+        else:  # 'cohort' (koa_projection.py): floor at 0.50/yr
+            ps = float(L.surv_annual(DBH, HT, CR, rHT, byi, sdi=SDI, planted=planted))
+            ps = np.clip(1.0 - mort_mult*(1.0-ps), 0.50, 1.0)
         TPH *= ps
         if TPH < 5:
             for s2 in range(step+1, n):

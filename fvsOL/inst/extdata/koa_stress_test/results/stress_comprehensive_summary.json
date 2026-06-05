@@ -1,0 +1,249 @@
+{
+  "robustness": {
+    "HT": {
+      "n": 81000,
+      "n_nan": 0,
+      "n_inf": 0,
+      "n_neg": 0,
+      "min": 1.37,
+      "max": 31.943
+    },
+    "HCB": {
+      "n": 81000,
+      "n_nan": 0,
+      "n_inf": 0,
+      "n_neg": 0,
+      "min": 0.083,
+      "max": 30.398
+    },
+    "dDBH": {
+      "n": 81000,
+      "n_nan": 0,
+      "n_inf": 0,
+      "n_neg": 0,
+      "min": 0.0,
+      "max": 4.0
+    },
+    "dHT": {
+      "n": 81000,
+      "n_nan": 0,
+      "n_inf": 0,
+      "n_neg": 0,
+      "min": 0.0,
+      "max": 2.0
+    },
+    "SURV": {
+      "n": 81000,
+      "n_nan": 0,
+      "n_inf": 0,
+      "n_neg": 0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "survival_instability": {
+    "domain": "CR0.30-0.85 x rHT0.30-0.80, DBH15 HT9 BYI264",
+    "pct_cells_below_0p90": 67.0,
+    "pct_cells_below_0p50": 58.0,
+    "surv_CR05": 0.822,
+    "surv_CR06": 0.033,
+    "surv_CR07": 0.0
+  },
+  "edge_cases": [
+    {
+      "case": "tiny tree DBH1 HT1.4",
+      "HT": 1.37,
+      "dDBH": 1.653,
+      "dHT": 1.248,
+      "SURV": 0.049
+    },
+    {
+      "case": "huge tree DBH110",
+      "HT": 18.61,
+      "dDBH": 0.257,
+      "dHT": 0.342,
+      "SURV": 0.915
+    },
+    {
+      "case": "zero BAL dominant",
+      "HT": 18.74,
+      "dDBH": 1.053,
+      "dHT": 0.583,
+      "SURV": 0.989
+    },
+    {
+      "case": "max density",
+      "HT": 6.65,
+      "dDBH": 0.013,
+      "dHT": 0.297,
+      "SURV": 0.999
+    },
+    {
+      "case": "BYI=0 base path",
+      "HT": 11.64,
+      "dDBH": 0.068,
+      "dHT": 0.081,
+      "SURV": 1.0
+    },
+    {
+      "case": "BYI=600 cap",
+      "HT": 12.01,
+      "dDBH": 1.236,
+      "dHT": 1.295,
+      "SURV": 1.0
+    }
+  ],
+  "longhorizon_nat_age40_QMD": {
+    "bounded_cohort": {
+      "100": 43.4,
+      "264": 56.9,
+      "450": 57.2
+    },
+    "raw_unbounded": {
+      "100": 43.0,
+      "264": 56.3,
+      "450": 52.8
+    },
+    "stable_unbounded": {
+      "100": 42.9,
+      "264": 54.9,
+      "450": 42.5
+    }
+  },
+  "extrapolation": [
+    {
+      "case": "Kahikinui dry small",
+      "dDBH": 0.829,
+      "dHT": 0.64,
+      "SURV_raw": 0.037,
+      "SURV_stable": 0.9
+    },
+    {
+      "case": "wet mature natural",
+      "dDBH": 0.444,
+      "dHT": 0.768,
+      "SURV_raw": 0.998,
+      "SURV_stable": 0.998
+    },
+    {
+      "case": "old-growth low-BYI",
+      "dDBH": 0.212,
+      "dHT": 0.441,
+      "SURV_raw": 0.939,
+      "SURV_stable": 0.939
+    },
+    {
+      "case": "dense plantation",
+      "dDBH": 0.27,
+      "dHT": 1.194,
+      "SURV_raw": 1.0,
+      "SURV_stable": 0.999
+    }
+  ],
+  "CF": {
+    "conditional": {
+      "dDBH": 1.026,
+      "dHT": 1.03
+    },
+    "marginal": {
+      "dDBH": 1.391,
+      "dHT": 1.334
+    },
+    "note": "HiGy.R/FINAL ship conditional; marginal would raise annual dDBH ~35.6%, dHT ~29.5%"
+  },
+  "cfi": {
+    "QMD": {
+      "raw": {
+        "n": 13,
+        "bias": -3.22,
+        "bias_pct": -13.3,
+        "rmse": 5.42
+      },
+      "stable": {
+        "n": 13,
+        "bias": -6.67,
+        "bias_pct": -27.5,
+        "rmse": 8.11
+      }
+    },
+    "BAPH": {
+      "raw": {
+        "n": 13,
+        "bias": -9.02,
+        "bias_pct": -99.9,
+        "rmse": 9.72
+      },
+      "stable": {
+        "n": 13,
+        "bias": -6.42,
+        "bias_pct": -71.0,
+        "rmse": 7.54
+      }
+    },
+    "TPH": {
+      "raw": {
+        "n": 13,
+        "bias": -186.0,
+        "bias_pct": -99.9,
+        "rmse": 199.37
+      },
+      "stable": {
+        "n": 13,
+        "bias": -17.38,
+        "bias_pct": -9.3,
+        "rmse": 169.8
+      }
+    }
+  },
+  "bakuzis": {
+    "within_110_pct": 100.0,
+    "max_SDI": 282.0
+  },
+  "dialin_sweep": [
+    {
+      "CR_ceiling": 0.5,
+      "floor": 0.85,
+      "TPH_bias_pct": -35.1
+    },
+    {
+      "CR_ceiling": 0.5,
+      "floor": 0.9,
+      "TPH_bias_pct": -9.2
+    },
+    {
+      "CR_ceiling": 0.5,
+      "floor": 0.95,
+      "TPH_bias_pct": 29.1
+    },
+    {
+      "CR_ceiling": 0.55,
+      "floor": 0.85,
+      "TPH_bias_pct": -35.2
+    },
+    {
+      "CR_ceiling": 0.55,
+      "floor": 0.9,
+      "TPH_bias_pct": -9.3
+    },
+    {
+      "CR_ceiling": 0.55,
+      "floor": 0.95,
+      "TPH_bias_pct": 29.1
+    },
+    {
+      "CR_ceiling": 0.6,
+      "floor": 0.85,
+      "TPH_bias_pct": -35.2
+    },
+    {
+      "CR_ceiling": 0.6,
+      "floor": 0.9,
+      "TPH_bias_pct": -9.3
+    },
+    {
+      "CR_ceiling": 0.6,
+      "floor": 0.95,
+      "TPH_bias_pct": 29.1
+    }
+  ]
+}
