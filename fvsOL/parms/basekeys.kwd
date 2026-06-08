@@ -907,64 +907,62 @@ defaultCondition:removal
 
 description:
 {Used to activate FIA cubic foot volume, biomass, and carbon computation methods. 
-This keyword allows users to produce stand (FVS_FIAVBC_Summary) and tree 
-(FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_ATRTList) level output tables 
+This keyword allows users to produce stand (FVS_FIAVBC_Summary) and tree level output tables
+(FVS_FIAVBC_TreeList, FVS_FIAVBC_CutList, FVS_FIAVBC_ATRTList)
 that contain cubic foot volume, biomass, and carbon attributes. 
 Additionally, users may request pre-defined stand level measures of biomass and carbon in the 
 Event Monitor when this keyword is invoked.
 
 Users may set the merchantability limits for FIA merchantable volume, biomass, and carbon
 attributes. The national FIA merchantability limits or regional NFS merchantability limits can be
-globally set for all species in the variant using field 1. Custom merchantability limits for select species
-in the variant can be specified using fields 3 – 9. Lastly, users can alter the merchantable volume,
-biomass, and carbon calculation method for all species using field 2.
+globally set for all species in the variant. Custom merchantability limits for select species
+in the variant can be specified but user should be aware these will override the merchantability specifications 
+initially defined by the default global specifications option (FIA or regional NFS).
 
 More information about this keyword can be found in the FVS keyword guide and users should refer to the variant overview for the default NFS regional merchantability limits.  
 
 NOTE: This keyword cannot be scheduled and will be applied to the entire simulation. 
 Users cannot modify cubic foot volume calculations with the DEFECT, MCDEFECT, MCFDLN, 
-VOLEQNUM, and VOLUME keywords when this keyword is in effect
-
-NOTE: Any value entered in fields 4 – 9 will override the merchantability limit initially 
-defined by the default global merchantability limits option (FIA or regional NFS) from field 1.}
+VOLEQNUM, and VOLUME keywords when this keyword is in effect}
 
 
 //f1:{noInput Activates FIA cubic foot volume, biomass, and carbon computation methods}
-f1:{longListButton Default global merchantability limits}
+f1:{longListButton Default global merchantability specifications}
 f1v:{\
 >0 = FIA merchantable specifications
 1 = Regional NFS merchantable specifications}
 
-f2:{longListButton Cruise Type}
-f2v:{\
->0 = FIA
-1 = FVS}
+f2:{noInput Cruise Type is no longer used}
+f2v:{}
 
-f3:{speciesSelection Species whose limits are to be changed}
+f3:{noInput ------------------ Custom Species Settings ------------------}
+f3v:{}
 
-f4:{numberBox Minimum DBH}
-f4v:{blank}
+f4:{speciesSelection Species whose limits are to be changed}
 
-f5:{numberBox Minimum top diameter}
+f5:{numberBox Minimum DBH}
 f5v:{blank}
 
-f6:{numberBox Stump height (feet)}
+f6:{numberBox Minimum top diameter}
 f6v:{blank}
 
-f7:{numberBox Cubic sawlog minimum DBH}
+f7:{numberBox Stump height (feet)}
 f7v:{blank}
 
-f8:{numberBox Cubic sawlog minimum top diameter}
+f8:{numberBox Cubic sawlog minimum DBH}
 f8v:{blank}
 
-f9:{numberBox Cubic sawlog stump height}
+f9:{numberBox Cubic sawlog minimum top diameter}
 f9v:{blank}
+
+f10:{numberBox Cubic sawlog stump height}
+f10v:{blank}
 
 //parmsForm:{
 //FIAVBC    !1,10!}
 
-answerForm:{FIAVBC    !1,10,numbersf1!!2,10,numbersf2!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!}
-parmsForm:{FIAVBC     !1,10,numbersf1!!2,10,numbersf2!!3,10!!4,10!!5,10!!6,10!!7,10!!8,10!!9,10!}
+answerForm:{FIAVBC    !1,10,numbersf1!!4,20!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!}
+parmsForm:{FIAVBC     !1,10,numbersf1!!4,20!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!}
 numbersf1:{0 1}
 numbersf2:{0 1}
 

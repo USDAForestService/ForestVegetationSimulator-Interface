@@ -12,9 +12,9 @@ fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
     rFn = system.file("extdata", rFn, package = "fvsOL")
     if (! file.exists(rFn)) stop("can not find and load model code")
     source(rFn)
-  } 
-  
-  if (!is.null(logfile) && !interactive()) 
+  }
+
+  if (!is.null(logfile) && !interactive())
   {
     sink()
     sink(logfile,append=TRUE)
@@ -22,20 +22,7 @@ fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
 
   cat ("*** in fvsRunAdirondack",date()," AdirondackGYVersionTag=",AdirondackGYVersionTag,"\n")
 
-  # process the ops.
-  INGROWTH = if (is.null(runOps$uiAdirondackIngrowth)) "N" else 
-             runOps$uiAdirondackIngrowth
-  MinDBH   = as.numeric(if (is.null(runOps$uiAdirondackMinDBH)) "3.0" else 
-             runOps$uiAdirondackMinDBH)
-  mortModel= if (is.null(runOps$uiAdirondackMort)) "Adirondack" else 
-             runOps$uiAdirondackMort 
-  volLogic = if (is.null(runOps$uiAdirondackVolume)) "Base Model" else 
-             runOps$uiAdirondackVolume
-  CutPoint = if (is.null(runOps$uiAdirondackCutPoint)) 0 else 
-             as.numeric(runOps$uiAdirondackCutPoint)
-
-  cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=")            
-    
+  
   #load some handy conversion factors
   CMtoIN  = fvsUnitConversion("CMtoIN")
   INtoCM  = fvsUnitConversion("INtoCM")
@@ -46,8 +33,23 @@ fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
   spcodes = fvsGetSpeciesCodes()
   stdIds  = fvsGetStandIDs()
 
-  incr    = list()
-  repeat     
+  # process the ops.
+  INGROWTH = if (is.null(runOps$uiAdirondackIngrowth)) "N" else 
+    runOps$uiAdirondackIngrowth
+  MinDBH   = as.numeric(if (is.null(runOps$uiAdirondackMinDBH)) "3.0" else 
+    runOps$uiAdirondackMinDBH) * CMtoIN
+  mortModel= if (is.null(runOps$uiAdirondackMort)) "Adirondack" else 
+    runOps$uiAdirondackMort 
+  volLogic = if (is.null(runOps$uiAdirondackVolume)) "Base Model" else 
+    runOps$uiAdirondackVolume
+  CutPoint = if (is.null(runOps$uiAdirondackCutPoint)) 0 else 
+    as.numeric(runOps$uiAdirondackCutPoint)
+  
+  cat ("fvsRunAdirondack: INGROWTH=",INGROWTH," MinDBH=",MinDBH," mortModel=")            
+  
+  
+  
+  repeat
   {
     #stopPointCode 5 (after growth and mortality, before it is added)
     #stopPointCode 6 (just before estab, place to add new trees)
@@ -62,32 +64,19 @@ fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
   
     # if there are no trees, this code does not work.
     # NB: room is used below, so if this rule changes, move this code
-    room=fvsGetDims()
-    if (room["ntrees"] == 0) next
+    room = fvsGetDims()
+    if (room['ntrees'] == 0) next
+    num.plots = as.numeric(room['nplots'])
 
     #fetch some stand level information
     stdInfo = fvsGetEventMonitorVariables(c("site","year","cendyear"))
     cyclen = stdInfo["cendyear"] - stdInfo["year"] + 1
     attributes(cyclen) = NULL
     CSI = stdInfo["site"] * FTtoM
-      
-    #fetch the fvs trees and form the AdirondackGY "tree" dataframe
-    incr$tree = fvsGetTreeAttrs(c("plot","species","tpa","dbh","ht","cratio",
-                                  "dg","htg","mort"))                             
-    names(incr$tree) = toupper(names(incr$tree))
-    incr$tree$id = 1:nrow(incr$tree)
-    incr$tree$TREE= incr$tree$id
-    names(incr$tree)[match("SPECIES",names(incr$tree))] = "SP"
-    names(incr$tree)[match("TPA",names(incr$tree))] = "EXPF"
-    incr$tree$SP = spcodes[incr$tree$SP,1]        
-    #change CR to a proportion and take abs; note that in FVS a negative CR 
-    #signals that CR change has been computed by the fire or insect/disease model
-    incr$tree$CR   = abs(incr$tree$CRATIO) * .01  
-    incr$tree$DBH  = incr$tree$DBH  * INtoCM
-    incr$tree$HT   = incr$tree$HT   * FTtoM
-    incr$tree$DG   = incr$tree$DG   * INtoCM
-    incr$tree$HTG  = incr$tree$HTG  * FTtoM
-    incr$tree$EXPF = incr$tree$EXPF * ACRtoHA
+
+    tree = make_adk_tree(
+      fvsGetTreeAttrs(c('plot', 'species', 'tpa', 'dbh', 'ht', 'cratio', 'dg', 'htg', 'mort')),
+      num.plots, spcodes)
 
     cat ("fvsRunAdirondack: calling AdirondackGY, year=",stdInfo["year"],"\n") 
                        
@@ -96,34 +85,22 @@ fvsRunAdirondack <- function(runOps,logfile="Adirondack.log")
                  MinDBH=MinDBH,CutPoint=CutPoint,   # >0 uses threshold probability (>0-1).
                  mortModel=mortModel)
     #compute the growth
-    save(incr,stand,ops,file="test.RData")
-    incr = AdirondackGYOneStand(incr$tree,stand,ops)
-    cat ("return from AdirondackGY, names(incr)=",names(incr)," nrows=",
-          unlist(lapply(incr,nrow)),"\n")                     
-                
-    tofvs = data.frame(id=incr$tree$id,
-            dg=incr$tree$dDBH*CMtoIN,
-            htg=incr$tree$dHT*MtoFT,
-            # set the crown ratio sign to negetive so that FVS 
-            # doesn't change them. if already negetive, don't change them.
-            cratio=ifelse(incr$tree$CRATIO < 0, incr$tree$CRATIO,
-                   -round((1-((incr$tree$HCB+incr$tree$dHCB) / 
-                              (incr$tree$HT +incr$tree$dHT)))*100,0)))
-    if (!is.null(incr$tree$dEXPF)) tofvs$mort=incr$tree$dEXPF*HAtoACR 
+    #save(tree,stand,ops,file="test.RData")
+    result = AdirondackGYOneStand(tree,stand,ops)
+    cat ("return from AdirondackGY, nrow(result)=",nrow(result),"\n")
 
+    incr.tree = result[!is.na(result$id), ]
+    incr.ingrow = result[is.na(result$id), ]
+
+    tofvs = make_fvs_tree(incr.tree, num.plots)
     fvsSetTreeAttrs(tofvs)
 
     atstop6 = FALSE
-    
+
     # adding regeneration?
-    if (!is.null(incr$ingrow) && nrow(incr$ingrow)>0)
+    if (nrow(incr.ingrow) > 0)
     {
-      toadd = data.frame(dbh    =incr$ingrow$DBH*CMtoIN,
-                         species=match(incr$ingrow$SP,spcodes[,"fvs"]),
-                         ht     =incr$ingrow$HT*MtoFT,
-                         cratio =incr$ingrow$CR,
-                         plot   =as.numeric(incr$ingrow$PLOT),
-                         tpa    =incr$ingrow$EXPF*ACRtoHA)
+      toadd = make_fvs_regen(incr.ingrow, num.plots, spcodes)
 
       if (nrow(toadd) < room["maxtrees"] - room["ntrees"]) 
       {
