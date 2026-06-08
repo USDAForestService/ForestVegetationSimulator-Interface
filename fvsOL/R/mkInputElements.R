@@ -513,6 +513,7 @@ mkVarList <- function (globals)
      "InvYear: Inventory year"="InvYear", 
      "Lat: The latitude of the stand"="Lat", 
      "Long: The longitude of the stand"="Long", 
+     "LocCode: Forest Location Code"="LocCode",
      "MAI: Mean annual increment"="MAI",                                                                                         
      "No: The constant 0"="No", 
      "NumTrees: Number tree records"="NumTrees", 

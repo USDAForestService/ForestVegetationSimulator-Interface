@@ -1,6 +1,6 @@
 # $Id: HiGy.R 3968 2026-02-10 10:36:05Z benrice $
 ################################################################################
-# v0.1.0
+# v0.2.0
 #
 # Hawaii Variant of the Forest Vegetation Simulator (FVS-HI)
 #
@@ -16,11 +16,17 @@
 library(dplyr) # needed arrange, mutate, left_join, tibble, select, group_by, summarise, ungroup, case_when, all_of
 library(purrr) # needed for pmap_*
 
-VersionTag = "HiGyV0.1.0"
+VersionTag = "HiGyV0.2.0"
 
 ##############################
 #### major update summary ####
 ####
+
+# version 0.2.0
+  # updated equations- integration of biomass yield index (BYI) and planted indicator
+  # planted indicator is derived from FVS_Standinit.StdOrgCd (Stand Origin Code; also used by the FIAVBC keyword)
+    # Natural stand = 0 - established through natural regeneration
+    # Plantation = 1 - established through planting
 
 # version 0.1.0
   # initial version 
@@ -32,33 +38,36 @@ VersionTag = "HiGyV0.1.0"
 
 ##### Total height prediction ####
 ht.pred.parm = dplyr::tribble(
-  ~type,    ~species,  ~b0,        ~b1,        ~b2,      ~b3,        ~b4,      ~b5,      ~b6,    ~b7,    ~b8,
-  'base',    'AK',   69.78919,  0.06144,      0.85111,    0,      -0.05703, -0.11266, 0.02221, 0,       0,
-  'climate', 'AK',  373.2487,   2.112872e-07, 4.1991,   -25.4689, -0.0189,  -0.0248,  0.0063, -0.0325,  0.5438)
+  ~type,   ~species,  ~a0,      ~a1,    ~b,      ~c,     ~g1,      ~g2,
+  'base',  'AK',      19.832,   0,      0.044,   0.863,   -0.198,   0.479,
+  'site',  'AK',      19.832,   0.106,  0.044,   0.863,   -0.198,   0.479)
+
 
 
 #' Predict total height 
 #' 
 #' @param dbh Numeric: Diameter at breast height (cm)
-#' @param bal Numeric: Plot basal area larger (ft^2 per ac)
-#' @param ba Numeric: Plot basal area (ft^2 per ac)
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
-#' @param  b0-b8 Numeric: Parameters
-
+#' @param bal Numeric: Plot basal area larger trees (m^2 per ha)
+#' @param ba Numeric: Plot basal area (m^2 per ha)
+#' @param byi Boolean: Biomass Yield Index (Mg per ha). If NULL or 0, uses basic model
+#' @param  a0-g2 Numeric: Parameters
 #' @return Numeric: Predicted height (m)
 #'
-#Total Height =f(DBH (in), BAL (ft2/ac), BAPA (ft2/ac)), rain (mm), temp (C)
-pred_ht= function(dbh, bal, ba, rain, temp, 
-                  b0, b1, b2, b3, b4, b5, b6, b7, b8){
+#
+pred_ht= function(dbh,  ba, bal, qmd, byi, 
+                  a0, a1, b, c, g1, g2){
   
-    ht = ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
-                # without rain and temp
-                4.5 + (b0) * (1 - exp(-b1 * dbh))^(b2 + b4 * log(bal + 1) + b5 * log((ba/100)+1) 
-                                            + b6*log(bal*ba+1)),
-                # with rain and temp variables
-                4.5 + (b0+b3*log(rain*temp)) * (1 - exp(-b1* dbh^b2))^(b8+b4 * log(bal + 1) + b5 * log((ba/100)+1) 
-                                            + b6*log(bal*ba+1)+ b7*log(rain*temp+1)))
+  rdbh = dbh/qmd
+  
+  ht.intercept = ifelse(byi %in% c(NA, 0), 
+                      a0,
+                      a0 + a1 * byi / 100)
+  
+  ht = pmax(ht.intercept * (1 - exp(-b * dbh))^c *
+              exp(g1 * log(ba + 1) + g2 * rdbh),
+            1.37) # enforce minimum of breast height
+  
+    
   ht
 }
 
@@ -67,43 +76,38 @@ pred_ht= function(dbh, bal, ba, rain, temp,
 #' 
 #' @param tree.data Dataframe: Tree list
 #' @param plot.data Dataframe: Plot summary data
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
+#' @param byi Biomass Yield Index (Mg per ha). If NULL or 0, use base model
 #' @param ht.spp.parms Dataframe: Dataframe of parameters (default ht.pred.parm)
 #' @return Dataframe: Tree data with ht column added
 #'
-calc_ht = function(tree.data, plot.data, rain=stand$rain, temp=stand$temp, 
+calc_ht = function(tree.data, plot.data, byi=stand$byi, 
                    ht.pred.parm.df = ht.pred.parm) {
   
   tree.data.names= colnames(tree.data)   
   
-  ht.parm.type = ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
+  ht.parm.type = ifelse(byi %in% c(NA, 0),
                         'base',
-                        'climate')
+                        'site')
   
   ht.parm = ht.pred.parm.df %>% 
     filter(type==ht.parm.type)
     
   tree = tree.data %>% 
     dplyr::left_join(plot.data %>% 
-                       dplyr::select(plot, ba.plot), 
+                       dplyr::select(plot, ba.plot, qmd), 
                      by = 'plot') %>%
     # Match parameter estimates on species, Koa is currently the default
     # when the model extends to other species, the code may need to be updated to another default species
-    dplyr::mutate(idx = match(sp, ht.pred.parm.df$species, nomatch = match('AK', ht.pred.parm.df$species)),
-                  b0 = ht.pred.parm.df$b0[idx], 
-                  b1 = ht.pred.parm.df$b1[idx], 
-                  b2 = ht.pred.parm.df$b2[idx], 
-                  b3 = ht.pred.parm.df$b3[idx], 
-                  b4 = ht.pred.parm.df$b4[idx], 
-                  b5 = ht.pred.parm.df$b5[idx], 
-                  b6 = ht.pred.parm.df$b6[idx], 
-                  b7 = ht.pred.parm.df$b7[idx], 
-                  b8 = ht.pred.parm.df$b8[idx],
-                  rain=rain, 
-                  temp=temp, # maintains vectorized call of pred_ht()
-                  pht = pred_ht(dbh, bal, ba=ba.plot, rain, temp, 
-                                         b0, b1, b2, b3, b4, b5, b6, b7, b8)) %>%
+    dplyr::mutate(idx = match(sp, ht.parm$species, nomatch = match('AK', ht.parm$species)),
+                  a0 = ht.parm$a0[idx], 
+                  a1 = ht.parm$a1[idx], 
+                  b  = ht.parm$b[idx], 
+                  c  = ht.parm$c[idx], 
+                  g1 = ht.parm$g1[idx], 
+                  g2 = ht.parm$g2[idx], 
+                  byi = coalesce(byi, 0), # maintains vectorized call of pred_ht()
+                  pht = pred_ht(dbh, ba=ba.plot, bal, qmd, byi, 
+                                a0, a1, b, c, g1, g2)) %>%
     dplyr::select(dplyr::all_of(tree.data.names), pht)
   
   
@@ -115,24 +119,38 @@ calc_ht = function(tree.data, plot.data, rain=stand$rain, temp=stand$temp,
   
 # Height to crown base species parameters
   hcb.pred.parm = dplyr::tribble(
-              ~species,   ~b0,        ~b1,       ~b2,         ~b3,       ~b4,
-              'AK',     -1.2329111, -0.2221513, 0.2485774,  0.0014994, 0.3421674)
-  
+    ~type,   ~species,  ~b0,     ~b1,      ~b2,     ~b3,     ~b4,     ~b5,
+    'base',  'AK',      0.1684,  1.0146,  -0.376, -0.0078, -0.3734,   0,
+    'site',  'AK',      0.1684,  1.0146,  -0.376, -0.0078, -0.3734,  -0.221)
+
 
 #' Predict height to crown base
 #' 
-#' @param dbh Numeric: Diameter at breast height (in)
-#' @param ht Numeric: Total tree height (ft)
-#' @param bal Numeric: Plot basal area larger (ft^2 per ac)
-#' @param ba Numeric: Plot basal area (ft^2 per ac)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Total tree height (m)
+#' @param bal Numeric: Plot basal area larger trees (m^2 per ac)
+#' @param ba Numeric: Plot basal area (m^2 per ac)
+#' @param byi Biomass Yield Index (Mg per ha). If NULL or 0, uses basic model
 #' @param b0-b4 Numeric: Species parameters
-#' @return Numeric: Predicted height to crown base (ft)
+#' @return Numeric: Predicted height to crown base (m)
 #'
-  pred_hcb = function(dbh, ht, bal, ba, b0, b1, b2, b3, b4) {
+  pred_hcb = function(dbh, ht, bal, ba, byi, 
+                      b0, b1, b2, b3, b4, b5) {
+    
+    eta = b0 + 
+      b1 * sqrt(ht/100) + 
+      b2 * log(pmax(ht/pmax(dbh, 0.1), 0.5)) + 
+      b3 * sqrt(bal*ba + 1) + 
+      b4 * log(ba + 1) + 
+      b5 * log(pmax(byi, 1) / 100)
     
     # Calculate height to crown base
-    hcb = ht/(1 + exp(b0 + b1 * sqrt(ht/100) + b2*log(ht/dbh) + 
-                        b3 * sqrt(bal*ba + 1) + b4 * log(ba + 1)))
+    hcb = ht / (1 + exp(-eta))
+    
+    # constrain between 0 and 95% of height
+    hcb = pmin(pmax(hcb, 
+                    0), 
+               0.95 * ht) 
     
     hcb
   }
@@ -143,25 +161,37 @@ calc_ht = function(tree.data, plot.data, rain=stand$rain, temp=stand$temp,
 #' @param tree.data Dataframe: Tree list
 #' @param plot.data Dataframe: Plot summary data
 #' @param hcb.spp.parms Dataframe: Species parameters (default hcb.pred.spp)
+#' @param byi Numeric: Biomass Yield Index (Mg per ha)
 #' @return Dataframe: Tree data with hcb column added
 #'
   calc_hcb = function(tree.data, plot.data, 
-                      hcb.pred.parm.df = hcb.pred.parm) {
+                      hcb.pred.parm.df = hcb.pred.parm,
+                      byi = stand$byi) {
     
     tree.data.names= colnames(tree.data)  
+    
+    hcb.parm.type = ifelse(byi %in% c(NA, 0),
+                          'base',
+                          'site')
+    
+    hcb.parm = hcb.pred.parm.df %>% 
+      filter(type==hcb.parm.type)
     
     tree=tree.data %>% 
       dplyr::left_join(plot.data %>% 
                          dplyr::select(plot, ba.plot), 
                        by = 'plot') %>%
        # Match parameter estimates on species, Koa is currently the default
-      dplyr::mutate(idx = match(sp, hcb.pred.parm.df$species, nomatch = match('AK', hcb.pred.parm.df$species)),
-                    b0 = hcb.pred.parm.df$b0[idx],
-                    b1 = hcb.pred.parm.df$b1[idx],
-                    b2 = hcb.pred.parm.df$b2[idx], 
-                    b3 = hcb.pred.parm.df$b3[idx],
-                    b4 = hcb.pred.parm.df$b4[idx], 
-                    phcb = pred_hcb(dbh, ht, bal, ba=ba.plot, b0, b1, b2, b3, b4)) %>%
+      dplyr::mutate(idx = match(sp, hcb.parm$species, nomatch = match('AK', hcb.parm$species)),
+                    b0 = hcb.parm$b0[idx],
+                    b1 = hcb.parm$b1[idx],
+                    b2 = hcb.parm$b2[idx], 
+                    b3 = hcb.parm$b3[idx],
+                    b4 = hcb.parm$b4[idx], 
+                    b5 = hcb.parm$b5[idx],
+                    byi = coalesce(byi, 0), 
+                    phcb = pred_hcb(dbh, ht, bal, ba=ba.plot, byi, 
+                                    b0, b1, b2, b3, b4, b5)) %>%
       dplyr::select(dplyr::all_of(tree.data.names), phcb)
     
     tree
@@ -170,32 +200,40 @@ calc_ht = function(tree.data, plot.data, rain=stand$rain, temp=stand$temp,
 
 #### Diameter increment ####
 
-# Height increment parameters
+# Diameter increment parameters
   ddbh.parm = dplyr::tribble(
-    ~type,    ~species,  ~b0,        ~b1,        ~b2,           ~b3,        ~b4,        ~b5,        ~b6,      ~b7,     ~b8,
-    'base',    'AK',   -1.3223315,  0.2260716,   -0.2412006, -0.0002227,   -0.8247849,  0.0210812, 0.2809946, 0,        0,
-    'climate', 'AK',  -86.87632,    0.46092,     -0.31036,   -0.00020,     -0.82359,    0.03270,   0.23718,   9.27207, -0.33883)
+    ~type,    ~species,  ~b0,        ~b1,         ~b2,         ~b3,         ~b4,        ~b5,         ~b6,        ~b7,        ~b8,      
+    'base',    'AK',   -2.4704737,  0.2072221,  -0.0159616,  -0.0016893,  -0.2972574,  -0.4470330,  -0.0158403,  0.0188938,        0,  
+    'site',    'AK',   -2.4704737,  0.2072221,  -0.0159616,  -0.0016893,  -0.2972574,  -0.4470330,  -0.0158403,  0.0188938,   0.4530166)
 
     
-#' Calculate monthly diameter increment 
+#' Calculate annual diameter increment 
 #' 
-#' @param dbh Numeric: Diameter at breast height (in)
-#' @param bal Numeric: Plot basal area larger (ft^2 per ac)
-#' @param ba Numeric: Plot basal area (ft^2 per ac)
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param bal Numeric: Plot basal area larger trees (m^2 per ha)
+#' @param ba Numeric: Plot basal area (m^2 per ha)
+#' @param cr Numeric: Live crown ratio (0-1)
+#' @param byi Numeric: Biomass Yield Index (Mg per ha). If NULL or 0, uses base model parameters
+#' @param planted Boolean: Origin indicator (1 = planted, 0 = natural)
 #' @param b0-b8 Numeric: Species parameters
-#' @return Numeric: Diameter increment (in)
-ddbh = function(dbh, bal, ba, rain, temp, 
+#' @return Numeric: Diameter increment (cm)
+ddbh = function(dbh, bal, ba, cr, byi, planted, 
                 b0, b1, b2, b3, b4, b5, b6, b7, b8) {
   
+  cf = 1.026   # Duan (1983) smearing correction factor
+  
   # diameter increment
-  ddbh = exp(b0+b1*log(dbh+1)+b2*dbh+b3*(bal^2/log(dbh+5))+b4*log(bal+1)+
-               b5*sqrt(ba*dbh)+b6*log(bal*ba+1)+
-               ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0), 
-                      0, b7*log(rain*temp))+
-               ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0), 
-                      0, b8*(rain*temp/1000)))
+  ddbh = exp(b0 + b1*log(dbh+1) + 
+               b2 * dbh + 
+               b3 * bal^2 / log(dbh + 5) + 
+               b4 * log(bal + 1) +
+               b5 * log(pmax(cr, 0.01)) + 
+               b6 * sqrt(pmax(ba * dbh, 0)) +
+               b7 * planted * pmin(dbh, 40) + 
+               b8 * log(pmax(byi, 1))) *cf 
+  
+  # constrain to between 0 and 4 cm
+  ddbh = pmin(pmax(ddbh, 0), 4)
   
   ddbh
 }
@@ -207,24 +245,24 @@ ddbh = function(dbh, bal, ba, rain, temp,
 #' @param plot.data Dataframe: Plot summary data  
 #' @param use.cap.dbh Logical: Apply maximum DBH constraint (default ops$use.cap.dbh)
 #' @param ddbh.parm.df Dataframe: Species parameter table for diameter increment
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
+#' @param byi Numeric: Biomass Yield Index (Mg per ha)
+#' @param planted Boolean: Origin indicator (1 = planted, 0 = natural)
 #' @return Dataframe: Tree data with diameter increment calculations
 calc_ddbh = function(tree.data, plot.data, 
                      use.cap.dbh = ops$use.cap.dbh, 
-                     ddbh.parm.df=ddbh.parm,
-                     rain=stand$rain, 
-                     temp=stand$temp ) {
+                     ddbh.parm.df = ddbh.parm,
+                     byi = stand$byi, 
+                     planted = stand$planted ) {
   
   # get tree list variable names
   tree.data.names= colnames(tree.data)   
   
   # filter ddbh parameter estimate to type base or climate
-  ddbh.parm.type = ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
+  ddbh.parm.type = ifelse(byi %in% c(NA, 0),
                         'base',
-                        'climate')
+                        'site')
   
-  ddbh.parm.df = ddbh.parm.df %>% 
+  ddbh.parm = ddbh.parm.df %>% 
     filter(type==ddbh.parm.type)
 
   # Calculate diameter increment 
@@ -234,24 +272,25 @@ calc_ddbh = function(tree.data, plot.data,
                      by = 'plot') %>%
     # Match parameter estimates on species, Koa is currently the default
     dplyr::mutate(idx = match(sp, ddbh.parm$species, nomatch = match('AK', ddbh.parm$species)),
-                  b0 = ddbh.parm.df$b0[idx],
-                  b1 = ddbh.parm.df$b1[idx],
-                  b2 = ddbh.parm.df$b2[idx], 
-                  b3 = ddbh.parm.df$b3[idx],
-                  b4 = ddbh.parm.df$b4[idx], 
-                  b5 = ddbh.parm.df$b5[idx],
-                  b6 = ddbh.parm.df$b6[idx], 
-                  b7 = ddbh.parm.df$b7[idx],
-                  b8 = ddbh.parm.df$b8[idx],
-                  # use purrr::reduce() to generate annual diameter increment
-                  dbh.prj = purrr::reduce(1:12, 
-                                          ~.x + ddbh(.x, bal, ba = ba.plot, 
-                                                     rain, temp, 
-                                                     b0, b1, b2, b3, b4, b5, b6, b7, b8), 
-                                          .init = dbh),
+                  b0 = ddbh.parm$b0[idx],
+                  b1 = ddbh.parm$b1[idx],
+                  b2 = ddbh.parm$b2[idx], 
+                  b3 = ddbh.parm$b3[idx],
+                  b4 = ddbh.parm$b4[idx], 
+                  b5 = ddbh.parm$b5[idx],
+                  b6 = ddbh.parm$b6[idx], 
+                  b7 = ddbh.parm$b7[idx],
+                  b8 = ddbh.parm$b8[idx],
+                  byi = dplyr::coalesce(byi, 0),
+                  planted = dplyr::coalesce(planted, 0),
+                  # 
+                  ddbh = dplyr::case_when(ht<1.3716 ~0,
+                                          TRUE ~ddbh(dbh, bal, ba=ba.plot, cr, 
+                                                     byi, planted, 
+                                                     b0, b1, b2, b3, b4, b5, b6, b7, b8)),
                   # apply dbh increment multiplier
-                  ddbh = (dbh.prj - dbh) * ddbh.mult)
-  
+                  ddbh = ddbh * ddbh.mult)
+ 
   # Apply diameter growth cap if requested
   if (use.cap.dbh == TRUE) {
     tree = tree %>%
@@ -267,36 +306,45 @@ calc_ddbh = function(tree.data, plot.data,
   tree
 }
 
-
+  
 #### Height increment ####
 
 # Height increment parameters
 dht.parm = dplyr::tribble(
-    ~type,    ~species,  ~b0,        ~b1,        ~b2,           ~b3,        ~b4,        ~b5,        ~b6,        ~b7,      ~b8,
-    'base',    'AK',   -1.2984999,  1.0873012,   -0.2133439, -0.0001268,    0,         0.0114348,   -0.0957501, 0,         0,
-    'climate', 'AK',   163.54729,    2.80342,     -0.21923,   -0.00022,     -0.31141,   0.08924,      0.10094,  13.21554, -17.61490)
+  ~type,   ~species,  ~b0,        ~b1,       ~b2,        ~b3,        ~b4,       ~b5,        ~b6,       ~b7,     ~b8,    
+  'base',  'AK',    -3.382162,  0.272454,  -0.105319,   -0.000829, -0.071718,  -1.483889,  0.033035,  0.017887,  0,   
+  'site',  'AK',    -3.382162,  0.272454,  -0.105319,   -0.000829, -0.071718,  -1.483889,  0.033035,  0.017887,  0.433224)
 
 
 #' Calculate height increment
 #' 
-#' @param dbh Numeric: Diameter at breast height (in)
-#' @param ht Numeric: Tree height (ft)
-#' @param bal Numeric: Plot basal area larger (ft^2 per ac)
-#' @param ba Numeric: Plot basal area (ft^2 per ac)
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Tree height (m)
+#' @param bal Numeric: Plot basal area larger (m^2 per ha)
+#' @param ba Numeric: Plot basal area (m^2 per ha)
+#' @param cr Numeric: Live crown ratio (0-1)
+#' @param byi Numeric: Biomass Yield Index (Mg per ha). If NULL or 0, uses base model parameters
+#' @param planted Boolean: Origin indicator (1 = planted, 0 = natural)
 #' @param b0-b8 Numeric: Species parameters
-#' @return Numeric: Height increment (ft)
-dht = function(dbh, ht, bal, ba, rain, temp,
+#' @return Numeric: Height increment (m)
+dht = function(dbh, ht, bal, ba, cr, byi, planted,
                b0, b1, b2, b3, b4, b5, b6, b7, b8) {
   
-  dht =  ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
-         # without rain and temp
-         exp(b0+b1*log(dbh+1)+b2*dbh+b3*(bal^2/log(dbh+5))+b4*log(bal+1)+
-               b5*sqrt(ba*dbh)+b6*log(bal*ba+1)),
-         # with rain and temp variables
-         exp(b0+b1*log(ht+1)+b2*ht+b3*(bal^2/log(dbh+5))+b4*log(bal+1)+
-               b5*sqrt(ba*dbh)+b6*log(bal*ba+1)+b7*sqrt(rain*temp/1000)+b8*log((rain*temp)^2/1000)))
+  
+  cf = 1.030   # Duan (1983) smearing correction factor
+  
+  
+  dht = exp(b0 + b1 * log(ht+1) + 
+              b2 * ht + 
+              b3 * bal^2 / log(ht + 5) + 
+              b4 * log(bal + 1) +
+              b5 * log(pmax(cr, 0.01)) + 
+              b6 * sqrt(pmax(ba * ht, 0)) +
+              b7 * sqrt(planted * pmin(ht, 20)) + 
+              b8 * log(pmax(byi, 1))) *cf
+  
+  # constrain to between 0 and 2 m
+  dht = pmin(pmax(dht, 0), 2)
   
   dht
 }
@@ -308,23 +356,23 @@ dht = function(dbh, ht, bal, ba, rain, temp,
 #' @param plot.data Dataframe: Plot summary data  
 #' @param use.cap.ht Logical: Apply maximum total tree height constraint (default ops$use.cap.ht)
 #' @param dht.parm.df Dataframe: Species parameter table for height increment (dht.parm)
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
+#' @param byi Numeric: Biomass Yield Index (Mg per ha)
+#' @param planted Boolean: Origin indicator (1 = planted, 0 = natural)
 #' @return Dataframe: Tree data with height increment calculations
 calc_dht = function(tree.data, 
                     plot.data,  
                     use.cap.ht = ops$use.cap.ht, 
                     dht.parm.df = dht.parm,
-                    rain=stand$rain, 
-                    temp=stand$temp) {
+                    byi=stand$byi, 
+                    planted=stand$planted ) {
   
   # get tree list variable names
   tree.data.names= colnames(tree.data)   
   
   # filter dht parameter estimate to type base or climate
-  dht.parm.type = ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
-                          'base',
-                          'climate')
+  dht.parm.type = ifelse(byi %in% c(NA, 0),
+                         'base',
+                         'site')
   
   dht.parm = dht.parm.df %>% 
     filter(type==dht.parm.type)
@@ -347,15 +395,13 @@ calc_dht = function(tree.data,
                   b6 = dht.parm$b6[idx], 
                   b7 = dht.parm$b7[idx],
                   b8 = dht.parm$b8[idx],
-                  rain=rain, 
-                  temp=temp,
-      # use purrr::reduce() to generate annual height increment
-      dht.prj = purrr::reduce(1:12, 
-                              ~.x + dht(dbh, ht, bal, ba=ba.plot, rain, temp,
-                                        b0, b1, b2, b3, b4, b5, b6, b7, b8),
-                              .init = ht),
+                  byi = dplyr::coalesce(byi, 0),
+                  planted = dplyr::coalesce(planted, 0),
+                  # 
+                  dht = dht(dbh, ht, bal, ba, cr, byi,
+                               planted, b0, b1, b2, b3, b4, b5, b6, b7, b8),
       #apply ht increment multiplier
-      dht = (dht.prj-ht) * dht.mult)
+      dht = dht * dht.mult)
  
   # Apply height cap 
   if (use.cap.ht == TRUE) {
@@ -378,32 +424,38 @@ calc_dht = function(tree.data,
 
 # Tree survival probability  parameters
 surv.parm = dplyr::tribble(
-  ~type,    ~species,  ~b0,        ~b1,        ~b2,           ~b3,        ~b4,         ~b5,        ~b6,        ~b7,     
-  'base',    'AK',    7.320309,  0.207024,   -0.685661,     0.710481,    -0.023592,  -0.945985,     0,         0,       
-  'climate', 'AK',   1419.0 ,     -0.6523,      0.03946,      0.5664,      -0.02556,   -0.1086,    -171.1,       2.019)
-
+  ~type,  ~species,  ~b0,     ~b1,    ~b2,     ~b3,     ~b4,     ~b5,     ~b6,    ~b7,
+  'base',  'AK',     18.133,  0.199,  -5.718,   7.640,  15.678,  -3.396,   0,       0,
+  'site',  'AK',     18.133,  0.199,  -5.718,   7.640,  15.678,  -3.396,  3.039,  -25.102)
 
 #' Calculate tree survival probability
 #' 
-#' @param dbh Numeric: Diameter at breast height (in)
+#' @param dbh Numeric: Diameter at breast height (cm)
 #' @param ht Numeric: Tree height (ft)
-#' @param bal Numeric: Plot basal area larger (ft^2 per ac)
-#' @param ba Numeric: Plot basal area (ft^2 per ac)
-#' @param rain Numeric: Average annual rainfall (mm)
-#' @param temp Numeric: Average annual temperature (C)
-#' @param yip Numeric: 
-#' @param b0-b8 Numeric: Species parameters
+#' @param cr Numeric: Live crown ratio (0-1)
+#' @param r.ht Numeric: Relative height ht / max plot ht
+#' @param byi Numeric: Biomass Yield Index (Mg per ha). 
+#' @param b0-b7 Numeric: Species parameters
 #' @return Numeric: Tree survival probability (proportion 0-1)
-surv_prob = function(dbh, ht, bal, ba, rain, temp, yip=1,
+surv_prob = function(dbh, ht, cr, r.ht, byi,
                      b0, b1, b2, b3, b4, b5, b6, b7) {
   
-  lp =  ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
-               # without rain and temp
-               b0+b1*(dbh)+b2*log(dbh^2)+b3*log(ht/dbh+1)+b4*((bal+1)/log(dbh+1))+b5*log(ba),
-               # with rain and temp variables
-               b0+b1*(dbh)+b2*log(dbh^2)+b3*log(ht/dbh+1)+b4*((bal+1)/log(dbh+1))+b5*sqrt(ba)+b6*log(temp*rain)+b7*sqrt(temp*rain))
   
-  surv =  (1 / (1 + exp(-lp)))^(1/yip)
+  # constrain input height and diameter
+  ht = pmax(ht,  0.1)
+  dbh = pmax(dbh, 0.1)
+ 
+  
+  surv = exp(-exp((b0 + b1*ht + 
+                      b2* log(ht) + 
+                      b3* r.ht + 
+                      b4* log(pmax(pmin(cr, 0.99), 0.01)) +
+                      b5* log(ht / dbh ) + 
+                      b6* log(pmax(byi, 1) / 100) + 
+                      b7* (byi / 1000))))
+  
+  # constrain to between 0 and 1 
+  surv =  pmin(pmax(surv, 0), 1)
   
   surv
 }
@@ -414,22 +466,22 @@ surv_prob = function(dbh, ht, bal, ba, rain, temp, yip=1,
 #' @param tree.data Dataframe: Tree list
 #' @param plot.data Dataframe: Plot summary data
 #' @param surv.parm.df Dataframe: Species parameter table for survival (default surv.parm) 
+#' @param byi Numeric: Biomass Yield Index (Mg per ha). 
 #' @return Dataframe: Tree data with mortality calculations
 calc_mortality = function(tree.data, plot.data,
-                          surv.parm.df =surv.parm,
-                          rain=stand$rain, 
-                          temp=stand$temp) {
+                          surv.parm.df = surv.parm,
+                          byi = stand$byi) {
   
   # get tree list variable names
   tree.data.names= colnames(tree.data)   
   
-  # filter survival parameter estimate to type base or climate
-  surv.parm.type = ifelse(rain %in% c(NA, 0)| temp %in% c(NA, 0),
-                          'base',
-                          'climate')
-  
-  
-  surv.parm = surv.parm.df %>% 
+  # filter survival parameter estimate to type base or BYI site
+  surv.parm.type =  ifelse(byi %in% c(NA, 0),
+                           'base',
+                           'site')
+
+
+  surv.parm = surv.parm.df %>%
     filter(type==surv.parm.type)
   
   
@@ -437,9 +489,9 @@ calc_mortality = function(tree.data, plot.data,
   # Join tree and plot summary data 
   tree = tree.data %>%
     dplyr::left_join(plot.data %>% 
-                       dplyr::select(plot, ba.plot), 
+                       dplyr::select(plot, ba.plot, htmax), 
                      by = 'plot') %>%
-    
+   
     # calculate tree survival probability
     dplyr::mutate(idx = match(sp,  
                               surv.parm$species,
@@ -452,11 +504,12 @@ calc_mortality = function(tree.data, plot.data,
                   b5 = surv.parm$b5[idx],
                   b6 = surv.parm$b6[idx], 
                   b7 = surv.parm$b7[idx],
-                  rain=rain,
-                  temp=temp,
-                  surv= surv_prob(dbh, ht, bal, ba=ba.plot, rain, temp, yip=1,
-                                       b0, b1, b2, b3, b4, b5, b6, b7),
-                  dexpf= expf*(1-surv),
+                  byi = dplyr::coalesce(byi, 0),
+                  r.ht = ht / htmax, 
+                  # r.ht = pmax(ht / htmax, 0.65), 
+                  surv = surv_prob(dbh, ht, cr, r.ht, byi,
+                                   b0, b1, b2, b3, b4, b5, b6, b7),
+                  dexpf = expf*(1-surv),
                   #apply mortality multiplier
                   dexpf = dexpf * mort.mult)
   
@@ -484,7 +537,7 @@ calc_mortality = function(tree.data, plot.data,
 #' 
 #' @param spcodes Dataframe: FVS species codes from fvsGetSpeciesCodes(). Required fields- fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector 
 #' @param tree.size.cap Dataframe: tree size limits, Required fields: species (FVS alpha species code), max.dbh and max.height 
-#' @return Dataframe: Species calibration factors
+#' @return Dataframe: Species calibration factors (ddbh multiplier, dht multiplier, mortality multiplier, max dbh, max total height)
 
     make_fvs_calib=function(spcodes, tree.size.cap){
       
@@ -548,9 +601,9 @@ calc_mortality = function(tree.data, plot.data,
                                       maxht.fvs),
                                     ~ifelse(.x %in% c(0, 999), NA, .x)),
                       max.dbh=dplyr::coalesce(maxdbh.fvs, 
-                                              max.dbh, 999), 
+                                              max.dbh, 999) * in.to.cm, # metric conversion 
                       max.height=dplyr::coalesce(maxht.fvs, 
-                                                 max.height, 999),
+                                                 max.height, 999) * ft.to.m,
                       ddbh.mult=dplyr::coalesce(ddbh.mult, 1), 
                       dht.mult=dplyr::coalesce(dht.mult, 1), 
                       mort.mult=dplyr::coalesce(mort.mult, 1)) %>% 
@@ -588,7 +641,7 @@ calc_mortality = function(tree.data, plot.data,
     #'
      validate_tree_spp=function(tree.data, spcodes, model.species= hi.species.ht.dia$species){
     
-    # retain records in the projections for accurate plot values and change species to OH
+    # retain records in the projections for accurate plot values and change species to OT
     
     tree.list=tree.data %>% 
       dplyr::rename(fvs.num= species) %>%
@@ -656,15 +709,11 @@ make_tree=function(tree.list, num.plots, calib.spp){
                   cr = abs(cr) * 0.01,
                   #change cr to a proportion and take abs; note that in FVS a negative cr
                   #signals that cr change has been computed by the fire or insect/disease model
-                  hcb = ht-cr*ht,
-                  expf = expf * dplyr::coalesce(num.plots, 1) ) %>%  # each plot as "stand"
-     # metric to customary option            
-        # dbh  = dbh  * in.to.cm, # metric conversion
-        # ht   = ht   * ft.to.m,
-        # hcb = ht-cr*ht,
-        # expf = expf * dplyr::coalesce(num.plots, 1) * ha.to.ac, # each plot as "stand"
+                  dbh  = dbh  * in.to.cm, # metric conversion
+                  ht   = ht   * ft.to.m,
+                  #hcb = ht-cr*ht,
+                  expf = expf * dplyr::coalesce(num.plots, 1) * ha.to.ac) %>%  # each plot as "stand"
     
-     
     dplyr::left_join(calib.spp,
                      by='sp')
   
@@ -683,7 +732,7 @@ make_tree=function(tree.list, num.plots, calib.spp){
 #'
 make_ops = function(verbose = FALSE,
                     rtn.vars = c('year', 'plot', 'tree', 'sp', 'dbh', 'ht', 
-                                 'hcb', 'expf', 'pht', 'phcb', 
+                                 'cr', 'expf', 
                                  'ddbh.mult', 'dht.mult', 'mort.mult', 'max.dbh', 'max.height'),
                     use.cap.dbh = TRUE,
                     use.cap.ht = TRUE) {
@@ -724,14 +773,14 @@ make_ops = function(verbose = FALSE,
 #' @return Dataframe: Stand dataframe
 #'
   make_stand= function(stand.id,
-                       elev =0, 
-                       rain=0,
-                       temp=0){
+                       elev = 0, 
+                       byi = 0, 
+                       planted = 0){
     
-    stand=data.frame(stand.id=stand.id,
-                     elev=elev,
-                     rain = rain, 
-                     temp =temp)
+    stand=data.frame(stand.id = stand.id,
+                     elev = elev,
+                     byi = pmin(coalesce(byi, 0), 600), # BYI capped at 600 
+                     planted = coalesce(planted, 0))
     
     stand
     
@@ -741,7 +790,7 @@ make_ops = function(verbose = FALSE,
 #### for FVS fvsSetTreeAttrs()
 #' Create FVS return tree list
 #' 
-#' @param tree.data Dataframe: tree list output from model, fields:  year; dbh; ht; hcb; expf; cr
+#' @param tree.data Dataframe: tree list output from model, fields:  year; dbh; ht; expf; cr
 #' @param num.plots Numeric: number of plots in a stand
 #' @param orgtree.list Dataframe: input tree list from FVS. orgtree.list fields tree; dbh; ht; expf; dg; htg; mort; cratio
 #' @return Dataframe: FVS tree dataframe
@@ -763,16 +812,16 @@ make_fvs_tree=function(tree.data, orgtree.list, num.plots){
   # dataframe with tree records not handled by model- snags and invalid DBH; species not in model
   tree.org=orgtree.list %>% 
     dplyr::select(tree, 
-                  dbh, # customary units
-                  ht, # customary units
-                  expf, # plot level tpa 
+                  dbh, # metric
+                  ht, # metric
+                  expf, # plot level tph 
                   dg, # customary units
                   htg, # customary units
                   mort, # stand level TPA
                   cr) %>% 
     dplyr::anti_join(tree.list, 
                      by='tree')
-  # customary to metric option
+  # metric to customary option
       # dg=(dbh-dbh.fvs)*cm.to.in, # diameter growth to inches
       # htg=(ht-ht.fvs)*m.to.ft,  # height growth to feet
       # mort=(expf.fvs-expf)*ac.to.ha,  # mortality TPH stand level to trees per acre
@@ -784,12 +833,15 @@ make_fvs_tree=function(tree.data, orgtree.list, num.plots){
                   expf.fvs=expf) %>% 
     dplyr::inner_join(tree.list, # inner join excludes records not handled by model
                       by='tree') %>% 
-    dplyr::mutate(dg=(dbh-dbh.fvs), # diameter growth 
-                  htg=(ht-ht.fvs),  # height growth 
+    dplyr::mutate(dg=(dbh-dbh.fvs)*cm.to.in, # diameter growth to inches
+                  htg=(ht-ht.fvs)*m.to.ft,  # height growth to feet
                   # set the crown ratio sign to negative so that FVS doesn't change them. 
-                  cratio = round((1-(hcb/ht))*-100, 1), # 
-                  mort=(expf.fvs-expf),  # mortality trees per acre
-                  mort=mort/dplyr::coalesce(num.plots, 1)) %>%  # calculate stand level mortality TPA
+                  cratio = round(cr*-100, 1), # 
+                  mort=(expf.fvs-expf)*ac.to.ha,   # mortality trees per hectare
+                  mort=mort/dplyr::coalesce(num.plots, 1), # calculate stand level mortality TPA
+                  mort = ifelse(expf.fvs*ac.to.ha - mort < 0.01, 
+                                expf.fvs*ac.to.ha/dplyr::coalesce(num.plots, 1), 
+                                mort)) %>%  # if TPA <0.01 then 0
     dplyr::bind_rows(tree.org) %>% # append tree records not handled by model
     dplyr::arrange(tree) %>% 
     dplyr::select(#dbh,
@@ -838,7 +890,6 @@ calc_bal = function(tree.data) {
 
 #### Calculated plot values ####
 
-
 #' Calculate plot summary statistics from tree list
 #' 
 #' @param tree.data Dataframe: Tree list
@@ -865,12 +916,15 @@ calc_plot_summary = function(tree.data) {
   # Plot level summary
   plot.summary = tree.data %>%
     dplyr::group_by(plot) %>%
-    dplyr::summarise(tpa.plot = sum(expf, na.rm = TRUE),
+    dplyr::summarise(tph.plot = sum(expf, na.rm = TRUE),
                      ba.plot = sum(ba, na.rm = TRUE),
                      # max tree number for ingrowth
-                     max.tree.id = max(tree, na.rm = TRUE), .groups = 'drop') %>%
+                     max.tree.id = max(tree, na.rm = TRUE), 
+                     # max plot height
+                     htmax=max(ht, na.rm = TRUE),
+                     .groups = 'drop') %>%
     # QMD
-    dplyr::mutate(qmd = sqrt(ba.plot / (0.0054541539 * tpa.plot)))
+    dplyr::mutate(qmd = sqrt(ba.plot / (0.00007854 * tph.plot)))
   
   plot.summary
 }
@@ -943,9 +997,9 @@ HiGYOneStand = function(tree, stand, ops)
 {
   ### -----
   ## before proceeding run 
-  ## * make.ops()
+  ## * make_ops()
   ## * make_stand() 
-  ## * make_acd_tree()
+  ## * make_tree()
   ## * check tree list variables
   ### ----
   
@@ -953,7 +1007,7 @@ HiGYOneStand = function(tree, stand, ops)
 ##### Add tree attributes ####
   tree = tree %>% 
         # basal area (plot level)
-    dplyr::mutate(ba=(dbh^2*0.0054541539)*expf) %>% 
+    dplyr::mutate(ba = (dbh^2*0.00007854)*expf) %>% 
       # Calculate BAL
     calc_bal()
 
@@ -962,7 +1016,11 @@ HiGYOneStand = function(tree, stand, ops)
     # Calculate plot summary
   plot.smry = tree %>% 
     calc_plot_summary()
-  
+
+  # SDI - height and diameter increment      
+    # sdi = expf *(qmd / 25)^1.6
+  #  SDI_max = 500 (estimated from upper boundary of FIA koa SDI distribution)
+    
 ##### Height and crown ratio ####  
   #calculate heights of any with missing values.
   #generally, none will be missing when function is used with FVS, but some or
@@ -973,13 +1031,15 @@ HiGYOneStand = function(tree, stand, ops)
           #predicted height
     calc_ht(plot.data = plot.smry) %>% 
     dplyr::mutate(#use predicted height if missing or > 150ft
-           ht= dplyr::case_when(ht %in% c(NA, 0)| ht>150 ~pht,
-                        TRUE ~ ht)) %>% 
+           ht= dplyr::case_when(ht %in% c(NA, 0)| ht>50 ~pht,
+                        TRUE ~ ht),
+           hcb = ht-cr*ht) %>% 
            #predicted height to crown base (returns phcb)
     calc_hcb(plot.data = plot.smry) %>% 
            #use predicted height to crown base if hcb is missing or invalid
     dplyr::mutate(hcb= dplyr::case_when(is.na(hcb) | hcb>ht  ~phcb, 
-                                TRUE ~hcb))
+                                TRUE ~hcb),
+                  cr = 1-(hcb/ht))
   
 # Compute plot-level heights
   
@@ -993,44 +1053,52 @@ HiGYOneStand = function(tree, stand, ops)
                      by='plot') 
  
 ##### Diameter increment ####
-  # calc_ddbh = function(tree.data, plot.data, 
-  #                      use.cap.dbh = ops$use.cap.dbh, 
-  #                      ddbh.parm.df=ddbh.parm,
-  #                      rain=stand$rain, temp=stand$temp, )
-  
+ 
   tree = tree %>%
     calc_ddbh(plot.data = plot.smry)
  
 ##### Height increment ####  
-  # calc_ht = function(tree.data, plot.data, rain=stand$rain, temp=stand$temp, 
-  #                    ht.pred.parm.df = ht.pred.parm)
-  
+ 
   tree = tree %>%
     calc_dht(plot.data = plot.smry)
 
-#### Crown recession ####
- 
+
+
 #### Ingrowth ####
   
   
 #### Mortality ####
-  # calc_mortality = function(tree.data, plot.data,
-  #                           surv.parm.df =surv.parm) 
-  
+
   tree = tree %>% 
     calc_mortality(plot.data=plot.smry)
   
-#### Output ####  
-  #Update tree values
+
+#### Update tree values- t+1 ####
   tree=tree %>% 
     dplyr::mutate(year= year+1,
                   dbh= dbh+ dplyr::coalesce(ddbh, 0),
                   ht= ht+ dplyr::coalesce(dht, 0),
-                 # hcb= hcb + dplyr::coalesce(dhcb, 0),
                   expf= dplyr::coalesce(expf, 0) - dplyr::coalesce(dexpf, 0),
-                  expf= ifelse(expf< 0.00001, 0.00001, expf),
-                  cr= 1-(hcb/ht)) 
+                  expf= ifelse(expf< 0.00001, 0.00001, expf)) 
+
+#### Crown recession ####
+ # calculate t+1 height to crown base  
+  tree=tree %>% 
+    calc_bal()
   
+  # Calculate plot summary
+  plot.smry = tree %>% 
+    calc_plot_summary()
+  
+  # crown ratio change limited to 2.5% annual (FIA data median annual change -2.5%)  
+  tree=tree %>% 
+    calc_hcb(plot.data = plot.smry) %>% 
+    dplyr::mutate(pcr= 1-(hcb/ht), 
+                  cr= dplyr::case_when((cr-pcr)/cr>0.025 ~cr*0.975, 
+                                       (cr-pcr)/cr<(-0.025) ~cr*1.025, 
+                                       TRUE ~pcr))
+  
+#### Output ####      
   # select return variables
   rtn.vars=intersect(ops$rtn.vars[[1]],
                      colnames(tree))
