@@ -9,3 +9,4 @@ Depends: R (>= 4.0.0)
 License: MIT
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Encoding: UTF-8

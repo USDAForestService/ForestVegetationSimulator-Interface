@@ -31,7 +31,7 @@ function(fvsProgram,bin="../../trunk/bin")
   if (file.exists(ldfile))
   {
     load = try(dyn.load(ldfile,local=TRUE,now=TRUE))
-    if (class(load) == "try-error") stop (paste (ldfile,"was not loaded."))
+    if (inherits(load,"try-error")) stop (paste (ldfile,"was not loaded."))
 
     # this is a list of the routines needed by the API. Normally, all will
     # be present or all absent, if some are absent, the DLL is unloaded.
