@@ -76,11 +76,11 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   
   fvsInit = try(dbGetQuery(dbcon,qry))
 
-  if (class(fvsInit) == "try-error") stop(paste0("query failed, qry=",qry))                                                          
+  if (inherits(fvsInit,"try-error")) stop(paste0("query failed, qry=",qry))                                                          
   if (nrow(fvsInit) == 0) stop(paste0("query returned no data, qry=",qry))   
  
   FVS_GroupAddFilesAndKeywords = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
-  if (class(FVS_GroupAddFilesAndKeywords) == "try-error") 
+  if (inherits(FVS_GroupAddFilesAndKeywords,"try-error")) 
             FVS_GroupAddFilesAndKeywords = NULL
   names(FVS_GroupAddFilesAndKeywords)=toupper(names(FVS_GroupAddFilesAndKeywords))
   
@@ -854,11 +854,11 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
     ' where lower(variant) like "%',tolower(variant),'%" and "',sidid,
     '" in (select getStds from temp.getStds);')
   fvsInit = try(dbGetQuery(dbcon,qry))
-  if (class(fvsInit)=="try-error") stop("stdinit query error")
+  if (inherits(fvsInit,"try-error")) stop("stdinit query error")
   if (nrow(fvsInit) == 0) return(nadd)
   names(fvsInit) = toupper(names(fvsInit))
   grpAddKey=try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
-  if (class(grpAddKey)=="try-error" || nrow(grpAddKey)==0) grpAddKey=NULL else
+  if (inherits(grpAddKey,"try-error") || nrow(grpAddKey)==0) grpAddKey=NULL else
     names(grpAddKey) = toupper(names(grpAddKey)) 
   for (row in 1:nrow(fvsInit))  # the selectInput list               
   {                                                      
