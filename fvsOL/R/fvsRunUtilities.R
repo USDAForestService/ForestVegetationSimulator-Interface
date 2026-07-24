@@ -1336,15 +1336,16 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
     fields = intersect(toupper(fields),toupper(allNeed))
     if (selType == "inAdd")
     {
-      dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
+      dbExecute(dbGlb$dbIcon, 'drop table if exists tmp_stds') 
       if (length(input$inStds))
       {
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = input$inStds))
+        dbWriteTable(dbGlb$dbIcon, "tmp_stds", data.frame(SelStds = input$inStds), 
+                     temporary=TRUE, overwrite=TRUE)
       } else return()
     } else {
       # use if inAddGrp
-      qry = paste0('select ',sidid,' from temp.Grps',
-                 ' where Grp in (select SelGrps from temp.SGrps)')
+      qry = paste0('select ',sidid,' from tmp_grps',
+                 ' where Grp in (select SelGrps from tmp_sgrps)')
       stds = try(dbGetQuery(dbGlb$dbIcon,qry))
       if (inherits(stds,"try-error")) return()                                                             
       if (nrow(stds) == 0) return()
@@ -1355,11 +1356,12 @@ cat ("globals$fvsRun$refreshDB=",globals$fvsRun$refreshDB,"\n")
         stds = names(stdCnts[stdCnts == length(input$inGrps)])                                                                                                                           
       } 
       if (length(stds) == 0) return()  
-      dbExecute(dbGlb$dbIcon,'drop table if exists temp.Stds') 
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Stds"),data.frame(SelStds = stds))
+      dbExecute(dbGlb$dbIcon,'drop table if exists tmp_stds') 
+      dbWriteTable(dbGlb$dbIcon, "tmp_stds", data.frame(SelStds = stds), 
+                   temporary = TRUE, overwrite = TRUE)
     }
     qry = paste0('select ',paste0(fields,collapse=","),' from ',stdInit,
-                 ' where ',sidid,' in (select SelStds from temp.Stds)')
+                 ' where ',sidid,' in (select SelStds from tmp_stds)')
 cat ("qry=",qry,"\n")
     fvsInit = try(dbGetQuery(dbGlb$dbIcon,qry))
     if (inherits(fvsInit,"try-error")) return()

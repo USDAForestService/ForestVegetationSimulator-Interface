@@ -49,7 +49,7 @@ create table CmpMetaData as
    sum(SamplingWt) as TotalSamplingWt,
    count(*)        as NumOfCases,
    Version, RV, KeywordFile from FVS_Cases   
-   where CaseID in (select CaseID from temp.Cases)
+   where CaseID in (select CaseID from tmp_cases)
  group by KeywordFile
  order by RunTitle, RunDateTime;"
 
@@ -70,7 +70,7 @@ create table temp.StdStkDBHSp as
     sum(TCuM*MortPH) as MrtTCuM, 
     sum(MCuM*MortPH) as MrtMCuM
   from FVS_TreeList_Metric 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
 create table temp.StdStkAllDBH as 
@@ -130,7 +130,7 @@ create table temp.HrvStdStk as
     sum(TCuM*TPH)    as HrvTCuM,
     sum(MCuM*TPH)    as HrvMCuM
   from FVS_CutList_Metric 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,Species,DBHClass;
 create table temp.HrvStdStkAllDBH as 
   select CaseID,Year,Species,'All' as DBHClass,
@@ -202,7 +202,7 @@ drop table if exists temp.CmpStdStkAllSp;
 drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
   select MgmtID,sum(SamplingWt) as CmpSmpWt from FVS_Cases where
-  CaseID in (select CaseID from temp.Cases)
+  CaseID in (select CaseID from tmp_cases)
   group by MgmtID;    
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
@@ -223,7 +223,7 @@ create table temp.CmpStdStkDBHSp as
     sum(HrvMCuM *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvMCuM,
     sum(RsdMCuM *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdMCuM 
   from (select * from StdStk_Metric where Species != 'All' and DBHClass != 'All' and
-        CaseID in (select CaseID from temp.Cases))
+        CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   join temp.CmpSmpWt using (MgmtID)
   group by MgmtID,Year,Species,DBHClass;
@@ -330,7 +330,7 @@ create table temp.CmpSummary2A as
     round(sum(RTCuM   *SamplingWT)/sum(SamplingWt),2) as CmpRTCuM,      
     round(sum(RMCuM   *SamplingWT)/sum(SamplingWt),2) as CmpRMCuM,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
-  from (select * from FVS_Summary2_Metric where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary2_Metric where CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)   
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
@@ -394,7 +394,7 @@ drop table if exists CmpCompute;
 create table CmpCompute as
   select MgmtID,Year,subExpression,
   round(sum(SamplingWt),2) as CmpSamplingWt
-  from (select * from FVS_Compute where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Compute where CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;" 
   

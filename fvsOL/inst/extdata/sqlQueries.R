@@ -1,59 +1,54 @@
 
-exqury = function (dbcon,x,subExpression=NULL,asSpecies=NULL) 
-{
+exqury <- function(dbcon, x, subExpression = NULL, asSpecies = NULL) {
   # return value: TRUE=worked, FALSE=error
-  if (!is.null(subExpression)) x = gsub("subExpression",subExpression,x)
-  if (!is.null(asSpecies))     x = gsub("asSpecies",paste0(asSpecies," as Species"),x)
-  for (qry in scan(text=gsub("\n"," ",x),sep=";",what="",quote="",quiet=TRUE))
-  {
-#cat ("exqury qry1=",qry,"\n")
-    res = if (nchar(qry) > 5) try(dbExecute(dbcon,qry)) else NULL
-    if (!is.null(res) && class(res) == "try-error") 
-    {
-#cat ("exqury qry2=",qry,"\n")
-      qry = gsub(paste0(asSpecies," as Species")," Species ",qry)
-      res = try(dbExecute(dbcon,qry))
+  if (!is.null(subExpression)) x <- gsub("subExpression", subExpression, x)
+  if (!is.null(asSpecies))     x <- gsub("asSpecies", paste0(asSpecies, " as Species"), x) # nolint: line_length_linter.
+  for (qry in scan(text = gsub("\n", " ", x), sep = ";", what = "", quote = "", quiet = TRUE)) { #nolint: line_length_linter.
+    res = if (nchar(qry) > 5) try(dbExecute(dbcon, qry)) else NULL
+    if (!is.null(res) && class(res) == "try-error") {
+      qry <- gsub(paste0(asSpecies, " as Species"), " Species ", qry)
+      res <- try(dbExecute(dbcon, qry))
       if (class(res) == "try-error") return(FALSE)
     }
   }
-  return(TRUE)
-}   
+  TRUE
+}
 
-mkdbhCase = function (stpdbh=4,lgdbh=40)
-{
-  stpdbh=if (is.na(stpdbh) || as.numeric(stpdbh)==0 || 
-             as.character(stpdbh)=="") 4 else ceiling(stpdbh)
-  if (is.na(lgdbh ) || as.numeric(lgdbh )==0 || as.character(lgdbh )=="") lgdbh =40
-  if (stpdbh<1)       stpdbh=1
-  if (lgdbh<stpdbh*4) lgdbh=stpdbh*4
-  lb = seq(stpdbh-(stpdbh/2),lgdbh+stpdbh,stpdbh)
-  lb[1] = 0
-  classes = seq(stpdbh,lgdbh,stpdbh)
-  nc = nchar(as.character(classes[length(classes)]))
-  chrclasses = sprintf(paste0("%",nc,".",nc,"d"),classes)
-  subExpression = paste0("case when (dbh <",lb[2],") then '", 
-                       chrclasses[1],"'")  
-  for (i in 2:(length(classes)))
-  {
-    subExpression = paste0(subExpression," when (dbh >= ",lb[i]," and dbh < ",
-     lb[i+1],") then '", chrclasses[i],"'")
+mkdbhCase <- function(stpdbh = 4, lgdbh = 40) {
+  stpdbh <- if (is.na(stpdbh) || as.numeric(stpdbh) == 0 ||
+                 as.character(stpdbh) == "") 4 else ceiling(stpdbh)
+  if (is.na(lgdbh) || as.numeric(lgdbh )==0 || 
+        as.character(lgdbh) == "") lgdbh <- 40
+  if (stpdbh < 1)       stpdbh <- 1
+  if (lgdbh < stpdbh * 4) lgdbh <- stpdbh * 4
+  lb <- seq(stpdbh - (stpdbh / 2), lgdbh + stpdbh, stpdbh)
+  lb[1] <- 0
+  classes <- seq(stpdbh, lgdbh, stpdbh)
+  nc <- nchar(as.character(classes[length(classes)]))
+  chrclasses <- sprintf(paste0("%", nc, ".", nc, "d"), classes)
+  subExpression <- paste0("case when (dbh <", lb[2], ") then '",
+                          chrclasses[1], "'")
+  for (i in 2:(length(classes))) {
+    subExpression <- paste0(subExpression, " when (dbh >= ", lb[i],
+                            " and dbh < ", lb[i + 1], ") then '",
+                            chrclasses[i], "'")
   }
-  subExpression = paste0(subExpression," else '",lb[length(lb)],"+' end ")
+  subExpression <- paste0(subExpression, " else '", lb[length(lb)], "+' end ")
   subExpression
 }
- 
-Create_CmpMetaData = "
+
+Create_CmpMetaData <- "
 drop table if exists CmpMetaData; 
 create table CmpMetaData as 
  select RunTitle,RunDateTime,Variant,
    sum(SamplingWt) as TotalSamplingWt,
    count(*)        as NumOfCases,
    Version, RV, KeywordFile from FVS_Cases   
-   where CaseID in (select CaseID from temp.Cases)
+   where CaseID in (select CaseID from tmp_cases)
  group by KeywordFile
  order by RunTitle, RunDateTime;"
 
-Create_StdStkDBHSp = "
+Create_StdStkDBHSp <- "
 drop table if exists temp.StdStkDBHSp; 
 drop table if exists temp.StdStkAllDBH; 
 drop table if exists temp.StdStkAllSp; 
@@ -72,7 +67,7 @@ create table temp.StdStkDBHSp as
     sum(MCuFt*MortPA) as MrtMCuFt,               
     sum(BdFt*MortPA)  as MrtBdFt 
   from FVS_TreeList 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
 create table temp.StdStkAllDBH as 
@@ -122,10 +117,10 @@ create table temp.StdStkAllAll as
   order by CaseID,Year,Species,DBHClass;
 insert into temp.StdStkDBHSp select * from temp.StdStkAllSp;
 insert into temp.StdStkDBHSp select * from temp.StdStkAllDBH;
-insert into temp.StdStkDBHSp select * from temp.StdStkAllAll;" 
+insert into temp.StdStkDBHSp select * from temp.StdStkAllAll;"
  
   
-Create_HrvStdStk = "
+Create_HrvStdStk <- "
 drop table if exists temp.HrvStdStk;
 drop table if exists temp.HrvStdStkAllDBH;
 drop table if exists temp.HrvStdStkAllSp;
@@ -139,7 +134,7 @@ create table temp.HrvStdStk as
     sum(MCuFt*Tpa)    as HrvMCuFt,
     sum(BdFt*Tpa)     as HrvBdFt
   from FVS_CutList 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,Species,DBHClass;
 create table temp.HrvStdStkAllDBH as 
   select CaseID,Year,Species,'All' as DBHClass,
@@ -170,9 +165,9 @@ create table temp.HrvStdStkAllAll as
   group by CaseID,Year;
 insert into temp.HrvStdStk select * from temp.HrvStdStkAllSp;
 insert into temp.HrvStdStk select * from temp.HrvStdStkAllDBH;
-insert into temp.HrvStdStk select * from temp.HrvStdStkAllAll;" 
+insert into temp.HrvStdStk select * from temp.HrvStdStkAllAll;"
   
-Create_StdStk1Hrv = "
+Create_StdStk1Hrv <- "
 drop table if exists temp.StdStk2;
 create table temp.StdStk2 as select * from temp.StdStkDBHSp 
  left join temp.HrvStdStk using (CaseID,Year,Species,DBHClass);
@@ -188,7 +183,7 @@ select Year,Species,DBHClass,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from temp.StdStk2;"
 
-Create_StdStk1NoHrv = "
+Create_StdStk1NoHrv <- "
 drop table if exists temp.StdStk1; 
 create table temp.StdStk1 as 
 select Year,Species,DBHClass,
@@ -197,17 +192,32 @@ select Year,Species,DBHClass,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtBdFt, CaseID
 from temp.StdStkDBHSp;"
 
-Create_StdStkFinal = "
+Create_StdStkFinal <- "
 drop table if exists StdStk;
 create table StdStk as select Year, Species, DBHClass, 
- LiveTpa,    MrtTPA,   HrvTPA,   LiveTpa   - HrvTPA   as RsdTPA,
- LiveBA,     MrtBA,    HrvBA,    LiveBA    - HrvBA    as RsdBA,
- LiveTCuFt,  MrtTCuFt, HrvTCuFt, LiveTCuFt - HrvTCuFt as RsdTCuFt,
- LiveMCuFt,  MrtMCuFt, HrvMCuFt, LiveMCuFt - HrvMCuFt as RsdMCuFt,
- LiveBdFt,   MrtBdFt,  HrvBdFt,  LiveBdFt  - HrvBdFt  as RsdBdFt, 
+ round(LiveTpa, 2) as LiveTpa,
+ round(MrtTPA, 2) as MrtTPA,
+ round(HrvTPA, 2) as HrvTPA,
+ round(LiveTpa - HrvTPA, 2) as RsdTPA,
+ round(LiveBA, 2) as LiveBA,
+ round(MrtBA, 2) as MrtBA,
+ round(HrvBA, 2) as HrvBA,
+ round(LiveBA - HrvBA, 2) as RsdBA,
+ round(LiveTCuFt, 2) as LiveTCuFt,
+ round(MrtTCuFt, 2) as MrtTCuFt,
+ round(HrvTCuFt, 2) as HrvTCuFt,
+ round(LiveTCuFt - HrvTCuFt, 2) as RsdTCuFt,
+ round(LiveMCuFt, 2) as LiveMCuFt,
+ round(MrtMCuFt, 2) as MrtMCuFt,
+ round(HrvMCuFt, 2) as HrvMCuFt,
+ round(LiveMCuFt - HrvMCuFt, 2) as RsdMCuFt,
+ round(LiveBdFt, 2) as LiveBdFt,
+ round(MrtBdFt, 2) as MrtBdFt,
+ round(HrvBdFt, 2) as HrvBdFt,
+ round(LiveBdFt - HrvBdFt, 2) as RsdBdFt, 
  CaseID from temp.StdStk1;"
 
-Create_CmpStdStk = "
+Create_CmpStdStk <- "
 drop table if exists CmpSmpWt;                               
 drop table if exists CmpStdStk;                               
 drop table if exists temp.CmpStdStkDBHSp;                  
@@ -216,7 +226,7 @@ drop table if exists temp.CmpStdStkAllSp;
 drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
   select MgmtID,sum(SamplingWt) as CmpSmpWt from FVS_Cases where
-  CaseID in (select CaseID from temp.Cases)
+  CaseID in (select CaseID from tmp_cases)
   group by MgmtID;
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
@@ -241,7 +251,7 @@ create table temp.CmpStdStkDBHSp as
     sum(HrvBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvBdFt,
     sum(RsdBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdBdFt  
   from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
-        CaseID in (select CaseID from temp.Cases))
+        CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   join temp.CmpSmpWt using (MgmtID)
   group by MgmtID,Year,Species,DBHClass;
@@ -344,7 +354,7 @@ insert into CmpStdStk select * from temp.CmpStdStkDBHAll;
 insert into CmpStdStk select * from temp.CmpStdStkAllSp; 
 insert into CmpStdStk select * from temp.CmpStdStkAllAll;"
 
-Create_CmpSummary = "
+Create_CmpSummary <- "
 drop table if exists CmpSummary;
 create table CmpSummary as 
   select MgmtID,Year,
@@ -368,11 +378,12 @@ create table CmpSummary as
     round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
-  from (select * from FVS_Summary where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
-Create_CmpSummary_East = "
+Create_CmpSummary_East <- "
 drop table if exists CmpSummary_East;
 create table CmpSummary_East as 
   select MgmtID,Year,
@@ -396,11 +407,12 @@ create table CmpSummary_East as
     round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
-  from (select * from FVS_Summary_East where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary_East where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
-Create_CmpSummary2 = "
+Create_CmpSummary2 <- "
 drop table if exists temp.CmpSummary2A;
 create table temp.CmpSummary2A as 
  select MgmtID,Year,RmvCode,
@@ -423,7 +435,8 @@ create table temp.CmpSummary2A as
     round(sum(RMCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRMCuFt,
     round(sum(RBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpRBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
-  from (select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary2 where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)   
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
@@ -487,7 +500,7 @@ create table CmpSummary2 as
 drop table if exists temp.CmpSummary2A;
 drop table if exists temp.CmpSummary2B;"
 
-Create_CmpSummary2_East = "
+Create_CmpSummary2_East <- "
 drop table if exists temp.CmpSummary2_EastA;
 create table temp.CmpSummary2_EastA as 
  select MgmtID,Year,RmvCode,
@@ -510,7 +523,8 @@ create table temp.CmpSummary2_EastA as
     round(sum(RSCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSCuFt,
     round(sum(RSBdFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
-  from (select * from FVS_Summary2_East where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary2_East where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID) 
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
@@ -575,17 +589,18 @@ create table CmpSummary2_East as
 drop table if exists temp.CmpSummary2_EastA;
 drop table if exists temp.CmpSummary2_EastB;"
 
-Create_CmpCompute = "
+Create_CmpCompute <- "
 drop table if exists CmpCompute;
 create table CmpCompute as
   select MgmtID,Year,subExpression,
   round(sum(SamplingWt),2) as CmpSamplingWt
-  from (select * from FVS_Compute where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Compute where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
-  group by MgmtID,Year;" 
-  
-Create_View_DWN_Required = c("FVS_Down_Wood_Cov","FVS_Down_Wood_Vol")
-Create_View_DWN = "
+  group by MgmtID,Year;"
+
+Create_View_DWN_Required <- c("FVS_Down_Wood_Cov", "FVS_Down_Wood_Vol")
+Create_View_DWN <- "
 drop view if exists View_DWN;
 create temp view View_DWN as
 select FVS_Down_Wood_Cov.CaseID,FVS_Down_Wood_Cov.StandID,
@@ -598,7 +613,7 @@ from FVS_Down_Wood_Cov inner join FVS_Down_Wood_Vol
   on FVS_Down_Wood_Cov.CaseID = FVS_Down_Wood_Vol.CaseID and
      FVS_Down_Wood_Cov.Year = FVS_Down_Wood_Vol.Year;"
 
-Create_CmpCalibStats = "
+Create_CmpCalibStats <- "
 drop table if exists temp.CmpCalibStatsLG; 
 create table temp.CmpCalibStatsLG as 
   select 
@@ -616,7 +631,7 @@ create table temp.CmpCalibStatsLG as
     SUM(NumTrees) as TotNumTrees,
     SUM(NumTrees*ReadCorMult)/sum(NumTrees) as MeanReadCorMult
   from (select * from FVS_CalibStats where TreeSize == 'LG' and
-        CaseID in (select CaseID from temp.Cases))
+        CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID) 
   group by MgmtID,Species;
   
@@ -637,7 +652,7 @@ create table temp.CmpCalibStatsSM as
     SUM(NumTrees) as TotNumTrees,
     SUM(NumTrees*ReadCorMult)/sum(NumTrees) as MeanReadCorMult
   from (select * from FVS_CalibStats where TreeSize == 'SM' and
-        CaseID in (select CaseID from temp.Cases))
+        CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)       
   group by MgmtID,Species;         
 
@@ -676,7 +691,7 @@ create table CmpCalibStats as
 drop table if exists temp.CmpCalibStatsLG;
 drop table if exists temp.CmpCalibStatsSM;"
 
-Create_StdStkDBHSp_V2 = "
+Create_StdStkDBHSp_V2 <- "
 drop table if exists temp.StdStkDBHSp; 
 drop table if exists temp.StdStkAllDBH; 
 drop table if exists temp.StdStkAllSp; 
@@ -697,7 +712,7 @@ create table temp.StdStkDBHSp as
     sum(SCuFt*MortPA) as MrtSCuFt,      
     sum(BdFt*MortPA)  as MrtBdFt 
   from FVS_TreeList 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,DBHClass,Species
   order by CaseID,Year,DBHClass,Species;
 create table temp.StdStkAllDBH as 
@@ -756,7 +771,7 @@ insert into temp.StdStkDBHSp select * from temp.StdStkAllDBH;
 insert into temp.StdStkDBHSp select * from temp.StdStkAllAll;"
 
 
-Create_HrvStdStk_V2 = "
+Create_HrvStdStk_V2 <- "
 drop table if exists temp.HrvStdStk;
 drop table if exists temp.HrvStdStkAllDBH;
 drop table if exists temp.HrvStdStkAllSp;
@@ -771,7 +786,7 @@ create table temp.HrvStdStk as
     sum(SCuFt*Tpa)    as HrvSCuFt,
     sum(BdFt*Tpa)     as HrvBdFt
   from FVS_CutList 
-  where CaseID in (select CaseID from temp.Cases)
+  where CaseID in (select CaseID from tmp_cases)
   group by CaseID,Year,Species,DBHClass;
 create table temp.HrvStdStkAllDBH as 
   select CaseID,Year,Species,'All' as DBHClass,
@@ -807,7 +822,7 @@ insert into temp.HrvStdStk select * from temp.HrvStdStkAllSp;
 insert into temp.HrvStdStk select * from temp.HrvStdStkAllDBH;
 insert into temp.HrvStdStk select * from temp.HrvStdStkAllAll;"
 
-Create_StdStk1Hrv_V2 = "
+Create_StdStk1Hrv_V2 <- "
 drop table if exists temp.StdStk2;
 create table temp.StdStk2 as select * from temp.StdStkDBHSp 
  left join temp.HrvStdStk using (CaseID,Year,Species,DBHClass);
@@ -824,27 +839,46 @@ select Year,Species,DBHClass,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtSCuFt, MrtBdFt, CaseID
 from temp.StdStk2;"
 
-Create_StdStk1NoHrv_V2 = "
+Create_StdStk1NoHrv_V2 <- "
 drop table if exists temp.StdStk1; 
 create table temp.StdStk1 as 
 select Year,Species,DBHClass,
  LiveTpa, LiveBA, LiveTCuFt, LiveMCuFt, LiveSCuFt, LiveBdFt,
- 0 as HrvTPA, 0 as HrvBA, 0 as HrvTCuFt, 0 as HrvMCuFt, 0 as HrvSCuFt, 0 as HrvBdFt,
+ 0 as HrvTPA, 0 as HrvBA, 0 as HrvTCuFt, 
+ 0 as HrvMCuFt, 0 as HrvSCuFt, 0 as HrvBdFt,
  MrtTPA, MrtBA, MrtTCuFt, MrtMCuFt, MrtSCuFt, MrtBdFt, CaseID
 from temp.StdStkDBHSp;"
 
-Create_StdStkFinal_V2 = "
+Create_StdStkFinal_V2 <- "
 drop table if exists StdStk;
 create table StdStk as select Year, Species, DBHClass, 
- LiveTpa,    MrtTPA,   HrvTPA,   LiveTpa   - HrvTPA   as RsdTPA,
- LiveBA,     MrtBA,    HrvBA,    LiveBA    - HrvBA    as RsdBA,
- LiveTCuFt,  MrtTCuFt, HrvTCuFt, LiveTCuFt - HrvTCuFt as RsdTCuFt,
- LiveMCuFt,  MrtMCuFt, HrvMCuFt, LiveMCuFt - HrvMCuFt as RsdMCuFt,
- LiveSCuFt,  MrtSCuFt, HrvSCuFt, LiveSCuFt - HrvSCuFt as RsdSCuFt,
- LiveBdFt,   MrtBdFt,  HrvBdFt,  LiveBdFt  - HrvBdFt  as RsdBdFt, 
+ round(LiveTpa, 2) as LiveTpa,
+ round(MrtTPA, 2) as MrtTPA,
+ round(HrvTPA, 2) as HrvTPA,
+ round(LiveTpa - HrvTPA, 2) as RsdTPA,
+ round(LiveBA, 2) as LiveBA,
+ round(MrtBA, 2) as MrtBA,
+ round(HrvBA, 2) as HrvBA,
+ round(LiveBA - HrvBA, 2) as RsdBA,
+ round(LiveTCuFt, 2) as LiveTCuFt,
+ round(MrtTCuFt, 2) as MrtTCuFt,
+ round(HrvTCuFt, 2) as HrvTCuFt,
+ round(LiveTCuFt - HrvTCuFt, 2) as RsdTCuFt,
+ round(LiveMCuFt, 2) as LiveMCuFt,
+ round(MrtMCuFt, 2) as MrtMCuFt,
+ round(HrvMCuFt, 2) as HrvMCuFt,
+ round(LiveMCuFt - HrvMCuFt, 2) as RsdMCuFt,
+ round(LiveSCuFt, 2) as LiveSCuFt,
+ round(MrtSCuFt, 2) as MrtSCuFt,
+ round(HrvSCuFt, 2) as HrvSCuFt,
+ round(LiveSCuFt - HrvSCuFt, 2) as RsdSCuFt,
+ round(LiveBdFt, 2) as LiveBdFt,
+ round(MrtBdFt, 2) as MrtBdFt,
+ round(HrvBdFt, 2) as HrvBdFt,
+ round(LiveBdFt - HrvBdFt, 2) as RsdBdFt,
  CaseID from temp.StdStk1;"
 
-Create_CmpStdStk_V2 = "
+Create_CmpStdStk_V2 <- "
 drop table if exists CmpSmpWt;                               
 drop table if exists CmpStdStk;                               
 drop table if exists temp.CmpStdStkDBHSp;                  
@@ -853,7 +887,7 @@ drop table if exists temp.CmpStdStkAllSp;
 drop table if exists temp.CmpStdStkAllAll;
 create table temp.CmpSmpWt as
   select MgmtID,sum(SamplingWt) as CmpSmpWt from FVS_Cases where
-  CaseID in (select CaseID from temp.Cases)
+  CaseID in (select CaseID from tmp_cases)
   group by MgmtID;
 create table temp.CmpStdStkDBHSp as 
   select MgmtID,Year,Species,DBHClass,
@@ -882,7 +916,7 @@ create table temp.CmpStdStkDBHSp as
     sum(HrvBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpHrvBdFt,
     sum(RsdBdFt  *SamplingWt)/CmpSmpWt.CmpSmpWt as CmpRsdBdFt  
   from (select * from StdStk where Species != 'All' and DBHClass != 'All' and
-        CaseID in (select CaseID from temp.Cases))
+        CaseID in (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   join temp.CmpSmpWt using (MgmtID)
   group by MgmtID,Year,Species,DBHClass;
@@ -1001,7 +1035,7 @@ insert into CmpStdStk select * from temp.CmpStdStkDBHAll;
 insert into CmpStdStk select * from temp.CmpStdStkAllSp; 
 insert into CmpStdStk select * from temp.CmpStdStkAllAll;"
 
-Create_CmpSummary_V2 = "
+Create_CmpSummary_V2 <- "
 drop table if exists CmpSummary;
 create table CmpSummary as 
   select MgmtID,Year,
@@ -1027,11 +1061,12 @@ create table CmpSummary as
     round(sum(ATTopHt*SamplingWT)/sum(SamplingWt),2) as CmpATTopHt,
     round(sum(ATQMD  *SamplingWT)/sum(SamplingWt),2) as CmpATQMD,
     round(sum(SamplingWt                        ),2) as CmpSamplingWt
-  from (select * from FVS_Summary where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)
   group by MgmtID,Year;"
 
-Create_CmpSummary2_V2 = "
+Create_CmpSummary2_V2 <- "
 drop table if exists temp.CmpSummary2A;
 create table temp.CmpSummary2A as 
  select MgmtID,Year,RmvCode,
@@ -1057,7 +1092,8 @@ create table temp.CmpSummary2A as
     round(sum(RSCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSCuFt,
     round(sum(RBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpRBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
-  from (select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary2 where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)   
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
@@ -1128,7 +1164,7 @@ create table CmpSummary2 as
 drop table if exists temp.CmpSummary2A;
 drop table if exists temp.CmpSummary2B;"
 
-Create_CmpSummary2_V3 = "
+Create_CmpSummary2_V3 <- "
 drop table if exists temp.CmpSummary2A;
 create table temp.CmpSummary2A as 
  select MgmtID,Year,RmvCode,
@@ -1159,7 +1195,8 @@ create table temp.CmpSummary2A as
     round(sum(RSCuFt   *SamplingWT)/sum(SamplingWt),2) as CmpRSCuFt,
     round(sum(RBdFt    *SamplingWT)/sum(SamplingWt),2) as CmpRBdFt,
     round(sum(SamplingWt                          ),2) as CmpSamplingWt
-  from (select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases))
+  from (select * from FVS_Summary2 where CaseID in 
+  (select CaseID from tmp_cases))
   join FVS_Cases using (CaseID)   
   group by MgmtID,Year,RmvCode order by MgmtID,Year,RmvCode;
  
