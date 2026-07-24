@@ -432,8 +432,9 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
     " globals$fvsRun$title=",globals$fvsRun$title," uuid=",globals$fvsRun$uuid,"\n")
   if (length(stds)==0) return(paste0("No stands to process. Run =",
            globals$fvsRun$title," uuid=",globals$fvsRun$uuid))
-  dbExecute(dbIcon,'drop table if exists temp.RunStds')                   
-  dbWriteTable(dbIcon,DBI::SQL("temp.RunStds"),data.frame(RunStds = stds))
+  dbExecute(dbIcon, 'drop table if exists tmp_run_stds')                   
+  dbWriteTable(dbIcon, "tmp_run_stds",data.frame(RunStds = stds),
+               temporary = TRUE, overwrite = TRUE)
  
   # get the preferred ids depending on the table that was used to build the run
   intable=toupper(globals$fvsRun$refreshDB)
@@ -450,7 +451,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
   queryIDs = queryIDs[queryIDs %in% initfields] 
   if (length(queryIDs) == 0) return("Needed stand id fields are missing")
   qry = paste0('select ',paste0(queryIDs,collapse=','),',Groups,Inv_Year,Sam_Wt from ',
-              intable,' where ',queryIDs[1],' in (select RunStds from temp.RunStds)')  
+              intable,' where ',queryIDs[1],' in (select RunStds from tmp_run_stds)')
   if (verbose) cat ("Database qry=",qry,"\n")
   fvsInit = try(dbGetQuery(dbIcon,qry))
   if (inherits(fvsInit,"try-error")) return(paste0("Run data query failed. qry=",qry," Run =",
@@ -580,7 +581,7 @@ writeKeyFile <- function (globals,dbIcon,keyFileName=NULL,verbose=TRUE)
         if (exten == "climate" && substr(cmp$kwds,1,8) == "ClimData" &&
             "FVS_ClimAttrs" %in% climTab)
             {
-              StdChk <- "select STAND_ID from FVS_ClimAttrs where STAND_ID in (select RunStds from temp.RunStds)"
+              StdChk <- "select STAND_ID from FVS_ClimAttrs where STAND_ID in (select RunStds from tmp_run_stds)"
               climAttrs <- try(dbGetQuery(dbIcon, StdChk))
               if (nrow(climAttrs) == 0) return("Stand not found in FVS_ClimAttrs table.")
               if (!length(grep(std$sid,climAttrs))) return("Stand not found in FVS_ClimAttrs table.")

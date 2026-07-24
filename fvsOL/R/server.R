@@ -261,7 +261,7 @@ cat ("Project is locked.\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     
-    serverDateOut = if (tolower(basename(dirname(system.file(package="fvsOL")))) == "r-dev")
+    serverDateOut = if (tolower(basename(dirname((package="fvsOL")))) == "r-dev")
     {
       if (isLocal()) 
         paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
@@ -539,24 +539,26 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
         }
 cat ("have exclusive lock\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
-        # create a temp.Cases table that is a list of CaseIDs 
+        # create a tmp_cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
-        # filter records selected from selected tables.
-        qry = paste0("create table temp.Cases as select _RowID_,CaseID,Variant ",
+        # filter records selected from selected tables.   
+        qry = paste0("create temp table tmp_cases as select _RowID_,CaseID,Variant ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",
                      paste0("('",paste(input$runs,collapse="','"),"')"))
 cat("qry=",qry,"\n")
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
+        dbExecute(dbGlb$dbOcon,"drop table if exists tmp_cases")
         rtn = dbExecute(dbGlb$dbOcon,qry) 
-cat("rtn from create temp.Cases=",rtn,"\n")
-        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+cat("rtn from create tmp_cases=",rtn,"\n")
+        ncases = try(dbGetQuery(dbGlb$dbOcon, "select count(*) from tmp_cases;"))
+        ncases = if (inherits(ncases, "try-error") || is.null(ncases) || nrow(ncases) == 0) 0 else ncases[1,1]
 cat ("ncases=",ncases,"\n")
         bagit=ncases==0
         isMetric=FALSE
         if (!bagit)
         {
-          variantsRun =  tolower(dbGetQuery(dbGlb$dbOcon,
-             "select distinct Variant from temp.Cases;")[,1])
+          variantsRun =  try(dbGetQuery(dbGlb$dbOcon,
+             "select distinct Variant from tmp_cases;"))
+          variantsRun = if (inherits(variantsRun, "try-error") || is.null(variantsRun)) character(0) else tolower(variantsRun[,1])
           metricVars = c("bc","on")
           isMetric = length(intersect(variantsRun,metricVars)) > 0
           # can not have metric and non-metric variants
@@ -586,7 +588,7 @@ cat ("drop tb=",tb,"\n")
           } else {
             qry = paste0("select count(*) from ",
                    "(select CaseID from ",tb," where ",tb,".CaseID in ",
-                   "(select CaseID from temp.Cases))")   
+                   "(select CaseID from tmp_cases))")
 cat("qry=",qry,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
               dbGetQuery(dbGlb$dbOcon,qry) else -1
@@ -970,7 +972,7 @@ cat ("tbs related to the run",tbs,"\n")
                  asSpecies=paste0("Species",input$spCodes))
           }
           exqury(dbGlb$dbOcon,C_StdStkFinal)
-          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from tmp_cases;")[1,1]
           if (ncases > 1) exqury(dbGlb$dbOcon,C_CmpStdStk)
         }          
       }                                  
@@ -1349,7 +1351,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
           } else {
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
-                   " where CaseID in (select CaseID from temp.Cases)")) else
+                   " where CaseID in (select CaseID from tmp_cases)")) else
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))
             # fix the stand and stock table.
             if (tb == "StdStk") 
@@ -1438,7 +1440,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         }
         if (!is.null(mdat$CaseID))
         {
-          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from temp.Cases"),by="CaseID")
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from tmp_cases"),by="CaseID")
           mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
           mdat$rowid=NULL
         }
@@ -2486,8 +2488,9 @@ cat ("in reloadStandSelection\n")
     grps <- subset(grps, grps[grep("inv_year",tolower(names(grps)))] !="")
     if (inherits(grps,"try-error") || is.null(grps) || nrow(grps) == 0)
     {
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_grps")
+      dbWriteTable(dbGlb$dbIcon, "tmp_grps", data.frame(Stand_ID = "", Grp=""),
+                   temporary = TRUE, overwrite = TRUE)
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="ExtGroups",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
@@ -2520,10 +2523,10 @@ cat ("in reloadStandSelection\n")
       colnames(dd) = c(if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                            "StandPlot_ID" else "Stand_ID","Grp")      
       dd = as.data.frame(dd)
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_grps")
+      dbWriteTable(dbGlb$dbIcon,"tmp_grps",dd, temporary = TRUE, overwrite = TRUE)
       selGrp = dbGetQuery(dbGlb$dbIcon,
-        'select distinct Grp from temp.Grps order by Grp')[,1]
+        'select distinct Grp from tmp_grps order by Grp')[,1]
 
       updateSelectInput(session=session, inputId="inGrps",    choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="ExtGroups", choices = as.list(selGrp))
@@ -2551,12 +2554,13 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         output$stdSelMsg <- renderUI(NULL)
         updateSelectInput(session=session, inputId="inStds", choices=list())
       } else {  
-         dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
-         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),data.frame(SelGrps = input$inGrps))
+         dbExecute(dbGlb$dbIcon, "drop table if exists tmp_sgrps")
+         dbWriteTable(dbGlb$dbIcon, "tmp_sgrps", data.frame(SelGrps = input$inGrps),
+                      temporary = TRUE, overwrite = TRUE)
          sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
-         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,' from temp.Grps ',
-                      'where Grp in (select SelGrps from temp.SGrps)')))
+         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,' from tmp_grps ',
+                      'where Grp in (select SelGrps from tmp_sgrps)')))
         if (inherits(stds,"try-error")) return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         globals$selStds = stds[,1]
@@ -2590,11 +2594,12 @@ cat ("input$inStdFind=",input$inStdFind,"\n")
       updateSelectInput(session=session, inputId = "GroupStands", choices = list())
     }
     else{
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.SEGrps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SEGrps"),data.frame(SelGrps = input$ExtGroups))
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_segrps")
+      dbWriteTable(dbGlb$dbIcon, "tmp_segrps", data.frame(SelGrps = input$ExtGroups),
+                   temporary = TRUE, overwrite = TRUE)
       sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))"StandPlot_ID" else "Stand_ID"
-      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from temp.Grps ',
-                      'where Grp in (select SelGrps from temp.SEGrps)')))
+      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from tmp_grps ',
+                      'where Grp in (select SelGrps from tmp_segrps)')))
       if (inherits(stds,"try-error")) return()   
       stds = stds[,1]
       updateSelectInput(session=session, inputId="GroupStands", choices=as.list(stds))
@@ -4830,10 +4835,8 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
          if (nrow(cases) == 0) return()
 cat ("download run as xlsx, ncases=",nrow(cases),"\n")
-         tmp = paste0("tmp",gsub("-","",runuuid),Sys.getpid(),"genoutput")
-         dbExecute(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
-         casesToGet = paste0(tmp,".casesToGet")
-         dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
+         dbExecute(dbGlb$dbOcon, "drop table if exists tmp_get_cases")
+         dbWriteTable(dbGlb$dbOcon, "tmp_get_cases", cases, temporary = TRUE, overwrite = TRUE)
          out = list()
          cmpYes = if ("CmpMetaData" %in% tabs) 
          { 
@@ -4845,14 +4848,13 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
            qry = if (!is.null(cmpYes) && cmpYes && substr(tab,1,3) == "Cmp")
              paste0("select * from ",tab," limit ",excelRowLimit,";") else
              paste0("select * from ",tab," where ",tab,".CaseID in",
-                    " (select CaseID from ",casesToGet,") limit ",excelRowLimit,";")
+                    " (select CaseID from tmp_get_cases) limit ",excelRowLimit,";")
           dat = try(dbGetQuery(dbGlb$dbOcon,qry))
           if (inherits(dat,"try-error")) next
           if (nrow(dat) == 0) next
           out[[tab]] = dat
 cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
-         dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## dlPrjBackup
@@ -5650,8 +5652,9 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       if (inherits(cases,"try-error")) return()
       # if there are reps (same stand more than once), just use the first rep, ignore the others
       cases = cases[!duplicated(cases$StandID),]
-      dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
+      dbExecute(dbGlb$dbOcon, "drop table if exists tmp_maps_cases")
+      dbWriteTable(dbGlb$dbOcon, "tmp_maps_cases", cases[,1,drop=FALSE],
+                   temporary=TRUE, overwrite=TRUE)
       tabs = setdiff(myListTables(dbGlb$dbOcon),
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
@@ -5669,7 +5672,7 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
         if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
         if (!(tab %in% stdLvl)) next
         cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                                                 " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
+                                                 " where CaseID in (select CaseID from tmp_maps_cases) limit 1")))
         if (inherits(cnt,"try-error")) next
         if (cnt[1,1]) tables=append(tables,tab)
       }
@@ -5709,7 +5712,7 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
       # prepare display data
       dispData = try(dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
                    isolate(input$mapDsTable),
-                   " where CaseID in (select CaseID from temp.mapsCases)")))
+                   " where CaseID in (select CaseID from tmp_maps_cases)")))
       if (inherits(dispData,"try-error") || nrow(dispData)==0) return()
       dispData = dispData[,-1] #remove CaseID
       # if species is a variable, pick the one to display and ditch the others
@@ -5801,13 +5804,14 @@ cat ("left to get: length(uidsToGet)=",length(uidsToGet),
         })
         if (is.null(inInit)) inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
 cat ("mapDsRunList trying to use the table=",inInit,"\n")
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.uidsToGet"),data.frame(stds=uidsToGet),overwrite=TRUE)
+        dbWriteTable(dbGlb$dbIcon, "tmp_uids_to_get", data.frame(stds = uidsToGet),
+                     temporary = TRUE, overwrite = TRUE)
         sid = if (inInit %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
         qry = paste0("select distinct ",sid," as Stand_ID,Latitude,Longitude from ",inInit,
-                     " where ",sid," in (select * from temp.uidsToGet)")    
+                     " where ",sid," in (select * from tmp_uids_to_get)")
         latLng = try(dbGetQuery(dbGlb$dbIcon,qry))
-        dbExecute(dbGlb$dbIcon,"drop table if exists temp.uidsToGet")
+        dbExecute(dbGlb$dbIcon,"drop table if exists tmp_uids_to_get")
         if (class(latLng)!="try-error" && nrow(latLng))
         {
           idxLng = grep("Longitude",names(latLng),ignore.case=TRUE)
@@ -7716,10 +7720,11 @@ cat ("no current FVS_ClimAttrs\n")
       return()      
     }
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbGlb$dbIcon,"temp.FVS_ClimAttrs",climd,overwrite=TRUE)
+    dbWriteTable(dbGlb$dbIcon, "tmp_fvs_clim_attrs", climd, 
+                 temporary = TRUE, overwrite = TRUE)
     rm (climd)  
     progress$set(message = "Query distinct stands and scenarios",value = 5)
-    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'temp.FVS_ClimAttrs'")
+    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'tmp_fvs_clim_attrs'")
     progress$set(message = "Cleaning previous climate data as needed",value = 6)    
     dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
@@ -7736,9 +7741,9 @@ cat ("no current FVS_ClimAttrs\n")
     {
 cat ("simple copy from new, all rows were deleted\n")
       dbExecute(dbGlb$dbIcon,"drop table FVS_ClimAttrs")
-      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'temp.FVS_ClimAttrs'")
+      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'tmp_fvs_clim_attrs'")
     } else {
-      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'temp.FVS_ClimAttrs' limit 1")
+      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'tmp_fvs_clim_attrs' limit 1")
       if (!identical(colnames(oldAttrs),colnames(newAttrs)))
       {
 cat ("need to match columns, cols are not identical\n")
@@ -7762,7 +7767,7 @@ cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         {
           dbBegin(dbGlb$dbIcon)
           for (mis in newmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table "temp.FVS_ClimAttrs" add "',mis,'" real'))
+            paste0('alter table "tmp_fvs_clim_attrs" add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
@@ -7776,11 +7781,11 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
       }
       attrs = colnames(dbGetQuery(dbGlb$dbIcon,"select * from 'FVS_ClimAttrs' limit 1"))
       sel = paste0(attrs,collapse=",")
-      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'temp.FVS_ClimAttrs'")
+      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'tmp_fvs_clim_attrs'")
 cat("insert qry=",qry,"\n")
       dbExecute(dbGlb$dbIcon,qry)
     }
-    dbExecute(dbGlb$dbIcon,'drop table "temp.FVS_ClimAttrs"')
+    dbExecute(dbGlb$dbIcon,'drop table "tmp_fvs_clim_attrs"')
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
