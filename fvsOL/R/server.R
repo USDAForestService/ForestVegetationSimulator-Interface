@@ -261,7 +261,7 @@ cat ("Project is locked.\n")
     setProgress(message = "Start up",
                 detail  = "Loading interface elements", value = 3)
     
-    serverDateOut = if (tolower(basename(dirname(system.file(package="fvsOL")))) == "r-dev")
+    serverDateOut = if (tolower(basename(dirname((package="fvsOL")))) == "r-dev")
     {
       if (isLocal()) 
         paste0('<font color="darkred"><b>Dev OnLocal</b></font> ',serverDate,"<br>") else
@@ -539,24 +539,26 @@ cat ("try to get exclusive lock, trycnt=",trycnt,"\n");
         }
 cat ("have exclusive lock\n")
         dbExecute(dbGlb$dbOcon,"drop table if exists dummy")
-        # create a temp.Cases table that is a list of CaseIDs 
+        # create a tmp_cases table that is a list of CaseIDs 
         # associated with the selected runs. These two items are used to 
-        # filter records selected from selected tables.
-        qry = paste0("create table temp.Cases as select _RowID_,CaseID,Variant ",
+        # filter records selected from selected tables.   
+        qry = paste0("create temp table tmp_cases as select _RowID_,CaseID,Variant ",
                      "from FVS_Cases where FVS_Cases.KeywordFile in ",
                      paste0("('",paste(input$runs,collapse="','"),"')"))
 cat("qry=",qry,"\n")
-        dbExecute(dbGlb$dbOcon,"drop table if exists temp.Cases")
+        dbExecute(dbGlb$dbOcon,"drop table if exists tmp_cases")
         rtn = dbExecute(dbGlb$dbOcon,qry) 
-cat("rtn from create temp.Cases=",rtn,"\n")
-        ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+cat("rtn from create tmp_cases=",rtn,"\n")
+        ncases = try(dbGetQuery(dbGlb$dbOcon, "select count(*) from tmp_cases;"))
+        ncases = if (inherits(ncases, "try-error") || is.null(ncases) || nrow(ncases) == 0) 0 else ncases[1,1]
 cat ("ncases=",ncases,"\n")
         bagit=ncases==0
         isMetric=FALSE
         if (!bagit)
         {
-          variantsRun =  tolower(dbGetQuery(dbGlb$dbOcon,
-             "select distinct Variant from temp.Cases;")[,1])
+          variantsRun =  try(dbGetQuery(dbGlb$dbOcon,
+             "select distinct Variant from tmp_cases;"))
+          variantsRun = if (inherits(variantsRun, "try-error") || is.null(variantsRun)) character(0) else tolower(variantsRun[,1])
           metricVars = c("bc","on")
           isMetric = length(intersect(variantsRun,metricVars)) > 0
           # can not have metric and non-metric variants
@@ -586,7 +588,7 @@ cat ("drop tb=",tb,"\n")
           } else {
             qry = paste0("select count(*) from ",
                    "(select CaseID from ",tb," where ",tb,".CaseID in ",
-                   "(select CaseID from temp.Cases))")   
+                   "(select CaseID from tmp_cases))")
 cat("qry=",qry,"\n")
             cnt = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))  
               dbGetQuery(dbGlb$dbOcon,qry) else -1
@@ -970,7 +972,7 @@ cat ("tbs related to the run",tbs,"\n")
                  asSpecies=paste0("Species",input$spCodes))
           }
           exqury(dbGlb$dbOcon,C_StdStkFinal)
-          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from temp.Cases;")[1,1]
+          ncases = dbGetQuery(dbGlb$dbOcon, "select count(*) from tmp_cases;")[1,1]
           if (ncases > 1) exqury(dbGlb$dbOcon,C_CmpStdStk)
         }          
       }                                  
@@ -1138,12 +1140,12 @@ cat ("sqlRunQuery, qry=",qry,"\n")
           msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
             paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
                   " rows and ",ncol(res)," cols\n") else  
-            if (class(res) == "try-error") paste0(msgtxt,"query ",iq,
+            if (inherits(res,"try-error")) paste0(msgtxt,"query ",iq,
               " returned\n",attr(res,"condition"),"\n") else
               paste0(msgtxt,"query ",iq," ran\n")         
           updateTextInput(session=session, inputId="sqlOutput", label="", 
                           value=msgtxt) 
-          if (class(res) == "try-error") break
+          if (inherits(res,"try-error")) break
           if (class(res) == "data.frame" && ncol(res) && nrow(res))
           {
             for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
@@ -1349,7 +1351,7 @@ cat ("tb=",tb," len(dat)=",length(dat),"\n")
           } else {
             dtab = if ("CaseID" %in% dbListFields(dbGlb$dbOcon,tb))
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb,
-                   " where CaseID in (select CaseID from temp.Cases)")) else
+                   " where CaseID in (select CaseID from tmp_cases)")) else
               dbGetQuery(dbGlb$dbOcon,paste0("select * from ",tb))
             # fix the stand and stock table.
             if (tb == "StdStk") 
@@ -1438,7 +1440,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
         }
         if (!is.null(mdat$CaseID))
         {
-          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from temp.Cases"),by="CaseID")
+          mdat=merge(mdat,dbGetQuery(dbGlb$dbOcon,"select _RowID_,CaseID from tmp_cases"),by="CaseID")
           mdat=mdat[order(mdat$rowid,1:nrow(mdat)),]
           mdat$rowid=NULL
         }
@@ -1479,7 +1481,7 @@ cat ("tb=",tb," mrgVars=",mrgVars,"\n")
                if("srtOrd" %in% vars) ",mdat$srtOrd)" else ")")
 cat ("cmd=",cmd,"\n")
           sby = try(eval(parse(text=cmd)))
-          if (class(sby) == "try-error") NULL else sby
+          if (inherits(sby,"try-error")) NULL else sby
         } else NULL
         vars = intersect(c("MgmtID","Stand_CN","StandID","Year",
                            "Species","DBHClass"),colnames(mdat))
@@ -2073,7 +2075,7 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
     if (input$plotType %in% c("line","DMD","StkCht"))
     {
       if(input$plotType %in% c("DMD", "StkCht")) {
-        nd <-cbind(nd, SDIMax=dat$SDIMax, StandID=dat$StandID, Tpa=dat$Tpa)
+        nd <-cbind(nd, SDIMax=dat$SDIMax, StandID=dat$StandID, Tpa=dat$Tpa, MgmtID=dat$MgmtID)
       }
 
       if (is.null(dat[["RmvCode"]]))
@@ -2193,88 +2195,95 @@ cat("ylim=",ylim," xlim=",xlim,"\n")
         return(nullPlot("DMD Graph designed to display a single stand per graph.  
                         Please select 'None' in the 'Plot-by code' field."))
       }
-      for (std in input$stdid)
+      for (run in input$mgmid)
       {
-        stdLvl_df <- nd %>% filter(StandID == std)
-        maxSDI <- max(stdLvl_df$SDIMax)
-        maxTPA <- max(stdLvl_df$Tpa)
-        std_vfacet = if(!is.null(stdLvl_df$vfacet)){
-          stdLvl_df$vfacet[1]
-        }  else NULL
-        std_hfacet = if(!is.null(stdLvl_df$hfacet)) {
-          stdLvl_df$hfacet[1]
-        } else NULL
-
-        if(input$ZoneType == "Management"){
-          ZoneLB = round(maxSDI*(input$MinManZone*0.01))
-          ZoneUB = round(maxSDI*(input$MaxManZone*0.01))
-        }
-        else if (input$ZoneType == "Mortality"){
-          ZoneLB = round(maxSDI*(input$MinMortZone*0.01))
-          ZoneUB = round(maxSDI*(input$MaxMortZone*0.01))
-        }
-
-        if(ZoneUB <= ZoneLB) {
-          return(nullPlot("Upper bound must be greater than lower bound"))
-        }
-
-        sdis = c(ZoneLB, ZoneUB, maxSDI)
-        seqTpa = seq(80,maxTPA*1.1,length.out=50)
-        seqQMD = seq(1,50,length.out=50)
-        seqvfacet = if(!is.null(std_vfacet)) rep(std_vfacet, length(seqTpa)) else NULL
-        seqhfacet = if(!is.null(std_hfacet)) rep(std_hfacet, length(seqTpa)) else NULL
-  
-        sdiBreaks = seq(100, round_any(maxSDI, 100, f = ceiling), by = 100)
-        for (SDI in sdis)
+        mgmtLvl_df <- nd %>% filter(MgmtID == run)
+        standList <- unique(mgmtLvl_df$StandID)
+        for (std in standList)
         {
-          l_type <- if(SDI == maxSDI) 1 else if (SDI == ZoneUB) 2 else 3
-          xseq = seqTpa
-          yseq = exp(log(SDI/seqTpa) / 1.605)*10
-          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          stdLvl_df <- mgmtLvl_df %>% filter(StandID == std)
+          maxSDI <- max(stdLvl_df$SDIMax)
+          maxTPA <- max(stdLvl_df$Tpa)
+          std_vfacet = if(!is.null(stdLvl_df$vfacet)){
+            stdLvl_df$vfacet[1]
+          }  else NULL
+          std_hfacet = if(!is.null(stdLvl_df$hfacet)) {
+            stdLvl_df$hfacet[1]
+          } else NULL
+
+          if(input$ZoneType == "Management"){
+            ZoneLB = round(maxSDI*(input$MinManZone*0.01))
+            ZoneUB = round(maxSDI*(input$MaxManZone*0.01))
           }
-          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,vfacet=seqvfacet)[! yseq > Inf,]
-          } else {
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,l_type=l_type,hfacet=seqhfacet)[! yseq > Inf,]
+          else if (input$ZoneType == "Mortality"){
+            ZoneLB = round(maxSDI*(input$MinMortZone*0.01))
+            ZoneUB = round(maxSDI*(input$MaxMortZone*0.01))
           }
 
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          DMDguideLines <- rbind(DMDguideLines, lineData)
-        }
-
-        ylim = c(1, ymaxlim*1.3)
-        xlim = c(80, xmaxlim*2)
-
-        # Build Density Management Zone Dataframe
-        lowerBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneLB, StandID == std), ymin = yseq)) %>% select(ymin)
-        upperBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneUB, StandID == std), ymax = yseq)) %>% select(ymax)
-        # X values don't matter here, but just need one set of X values.  Using maxSDI just to provide distinction in the code
-        Zone <- (DMDguideLines %>% filter(RelDen == maxSDI, StandID == std)) %>% select(-c(yseq,RelDen,l_type))
-        DensityManagementZone <- rbind(DensityManagementZone, cbind(Zone,lowerBound,upperBound))
-
-        for (SDI in sdiBreaks)
-        {
-          xseq = seqTpa
-          yseq = exp(log(SDI/seqTpa) / 1.605)*10
-          if(!is.null(seqvfacet) && !is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+          if(ZoneUB <= ZoneLB) {
+            return(nullPlot("Upper bound must be greater than lower bound"))
           }
-          else if (!is.null(seqvfacet) && is.null(seqhfacet)){
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,vfacet=seqvfacet)[! yseq > Inf,]
-          } else {
-            lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,
-              StandID=std,hfacet=seqhfacet)[! yseq > Inf,]
+
+          sdis = c(ZoneLB, ZoneUB, maxSDI)
+          seqTpa = seq(80,maxTPA*1.1,length.out=50)
+          seqQMD = seq(1,50,length.out=50)
+          seqvfacet = if(!is.null(std_vfacet)) rep(std_vfacet, length(seqTpa)) else NULL
+          seqhfacet = if(!is.null(std_hfacet)) rep(std_hfacet, length(seqTpa)) else NULL
+    
+          sdiBreaks = seq(100, round_any(maxSDI, 100, f = ceiling), by = 100)
+          for (SDI in sdis)
+          {
+            l_type <- if(SDI == maxSDI) 1 else if (SDI == ZoneUB) 2 else 3
+            xseq = seqTpa
+            yseq = exp(log(SDI/seqTpa) / 1.605)*10
+            if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,vfacet=seqvfacet)[! yseq > Inf,]
+            } else {
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,l_type=l_type,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+            xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+            DMDguideLines <- rbind(DMDguideLines, lineData)
           }
-          ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
-          xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
-          DMDSDILines <- rbind(DMDSDILines, lineData)
+
+          # Patch solution to get space for SDI labeling where C space is needed after SDI lines on the grid for labeling 
+          C = 0.08
+          #xmaxLimit = xmaxlim[2] * (1 + ((xmaxlim[2] * ( 10**C  - 1)) / xmaxlim[2]))
+          xmaxLimit = 10^C * xmaxlim[2]
+          ylim = c(1, ymaxlim*1.3)
+          xlim = c(80, xmaxLimit)
+          # Build Density Management Zone Dataframe
+          lowerBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneLB, StandID == std), ymin = yseq)) %>% select(ymin)
+          upperBound <- (dplyr::rename(DMDguideLines %>% filter(RelDen == ZoneUB, StandID == std), ymax = yseq)) %>% select(ymax)
+          # X values don't matter here, but just need one set of X values.  Using maxSDI just to provide distinction in the code
+          Zone <- (DMDguideLines %>% filter(RelDen == maxSDI, StandID == std)) %>% select(-c(yseq,RelDen,l_type))
+          DensityManagementZone <- rbind(DensityManagementZone, cbind(Zone,lowerBound,upperBound))
+
+          for (SDI in sdiBreaks)
+          {
+            xseq = seqTpa
+            yseq = exp(log(SDI/seqTpa) / 1.605)*10
+            if(!is.null(seqvfacet) && !is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,vfacet=seqvfacet,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            else if (!is.null(seqvfacet) && is.null(seqhfacet)){
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,vfacet=seqvfacet)[! yseq > Inf,]
+            } else {
+              lineData = data.frame(xseq=xseq,yseq=yseq,RelDen=SDI,MgmtID=run,
+                StandID=std,hfacet=seqhfacet)[! yseq > Inf,]
+            }
+            ymaxlim = range(c(ymaxlim,lineData$yseq),na.rm=TRUE)
+            xmaxlim = range(c(xmaxlim,lineData$xseq),na.rm=TRUE)
+            DMDSDILines <- rbind(DMDSDILines, lineData)
+          }
         }
       }
     }
@@ -2331,14 +2340,14 @@ cat("ylim=",ylim," rngy=",rngy," brky=",brky,"\n")
     {
       p = p + scale_linetype_manual(values = c("solid","dashed","dotted"))                                
       p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen, linetype=as.character(l_type)), linewidth = 0.5, data=DMDguideLines)
-      label_info <- DMDguideLines |> group_by(RelDen, StandID) |> slice_tail(n = 1)
+      label_info <- DMDguideLines |> group_by(RelDen, StandID,MgmtID) |> slice_tail(n = 1)
       p = p +  geom_text(aes(x=xseq, y=yseq, label=paste0("SDI: ",RelDen)), data=label_info, 
         hjust = "left", vjust = "cener", size = 2)
 
       p = p + geom_ribbon(data = DensityManagementZone, mapping = aes(x = xseq, ymin = ymin, ymax = ymax, alpha = 0.85))
       p = p + geom_line(aes(x=xseq,y=yseq,group=RelDen),show.legend=FALSE,
         data=DMDSDILines, linewidth = 0.1) 
-        label_info <- DMDSDILines |> group_by(RelDen, StandID) |> slice_head(n = 1)
+        label_info <- DMDSDILines |> group_by(RelDen, StandID,MgmtID) |> slice_head(n = 1)
       p = p +  geom_text(aes(x=xseq, y=yseq, label=RelDen), data=label_info, 
         hjust = "right", vjust = "bottom", size = 1.5)
     }
@@ -2477,10 +2486,11 @@ cat ("in reloadStandSelection\n")
               ' where lower(variant) like "%',tolower(input$inVars),'%"')))
     grps <- subset(grps, !is.na(grps[grep("inv_year",tolower(names(grps)))]))
     grps <- subset(grps, grps[grep("inv_year",tolower(names(grps)))] !="")
-    if (class(grps) == "try-error" || is.null(grps) || nrow(grps) == 0)
+    if (inherits(grps,"try-error") || is.null(grps) || nrow(grps) == 0)
     {
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),data.frame(Stand_ID="",Grp=""))
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_grps")
+      dbWriteTable(dbGlb$dbIcon, "tmp_grps", data.frame(Stand_ID = "", Grp=""),
+                   temporary = TRUE, overwrite = TRUE)
       updateSelectInput(session=session, inputId="inGrps",choices=list())
       updateSelectInput(session=session, inputId="ExtGroups",choices=list())
       updateSelectInput(session=session, inputId="inStds",list())
@@ -2513,10 +2523,10 @@ cat ("in reloadStandSelection\n")
       colnames(dd) = c(if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                            "StandPlot_ID" else "Stand_ID","Grp")      
       dd = as.data.frame(dd)
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.Grps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.Grps"),dd)
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_grps")
+      dbWriteTable(dbGlb$dbIcon,"tmp_grps",dd, temporary = TRUE, overwrite = TRUE)
       selGrp = dbGetQuery(dbGlb$dbIcon,
-        'select distinct Grp from temp.Grps order by Grp')[,1]
+        'select distinct Grp from tmp_grps order by Grp')[,1]
 
       updateSelectInput(session=session, inputId="inGrps",    choices=as.list(selGrp))
       updateSelectInput(session=session, inputId="ExtGroups", choices = as.list(selGrp))
@@ -2544,13 +2554,14 @@ cat ("inGrps inAnyAll inStdFindBut\n")
         output$stdSelMsg <- renderUI(NULL)
         updateSelectInput(session=session, inputId="inStds", choices=list())
       } else {  
-         dbExecute(dbGlb$dbIcon,"drop table if exists temp.SGrps")
-         dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SGrps"),data.frame(SelGrps = input$inGrps))
+         dbExecute(dbGlb$dbIcon, "drop table if exists tmp_sgrps")
+         dbWriteTable(dbGlb$dbIcon, "tmp_sgrps", data.frame(SelGrps = input$inGrps),
+                      temporary = TRUE, overwrite = TRUE)
          sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
-         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,' from temp.Grps ',
-                      'where Grp in (select SelGrps from temp.SGrps)')))
-        if (class(stds) == "try-error") return()                                                             
+         stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select ',sid,' from tmp_grps ',
+                      'where Grp in (select SelGrps from tmp_sgrps)')))
+        if (inherits(stds,"try-error")) return()                                                             
 cat ("inGrps, nrow(stds)=",nrow(stds),"\n")
         globals$selStds = stds[,1]
         globals$selStds = if (input$inAnyAll == "Any") unique(globals$selStds) else
@@ -2583,12 +2594,13 @@ cat ("input$inStdFind=",input$inStdFind,"\n")
       updateSelectInput(session=session, inputId = "GroupStands", choices = list())
     }
     else{
-      dbExecute(dbGlb$dbIcon,"drop table if exists temp.SEGrps")
-      dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.SEGrps"),data.frame(SelGrps = input$ExtGroups))
+      dbExecute(dbGlb$dbIcon, "drop table if exists tmp_segrps")
+      dbWriteTable(dbGlb$dbIcon, "tmp_segrps", data.frame(SelGrps = input$ExtGroups),
+                   temporary = TRUE, overwrite = TRUE)
       sid = if (input$inTabs %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))"StandPlot_ID" else "Stand_ID"
-      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from temp.Grps ',
-                      'where Grp in (select SelGrps from temp.SEGrps)')))
-      if (class(stds) == "try-error") return()   
+      stds = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct ',sid,' from tmp_grps ',
+                      'where Grp in (select SelGrps from tmp_segrps)')))
+      if (inherits(stds,"try-error")) return()   
       stds = stds[,1]
       updateSelectInput(session=session, inputId="GroupStands", choices=as.list(stds))
     }
@@ -3660,7 +3672,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
           if (is.null(input$addMgmtCats)) return(NULL)
           titIndx = try(match(input$addMgmtCmps,
                               globals$mgmtsel[[as.numeric(input$addMgmtCats)]]))
-          if (class(titIndx)=="try-error") return(NULL)
+          if (inherits(titIndx,"try-error")) return(NULL)
           title = names(globals$mgmtsel[[as.numeric(input$addMgmtCats)]])[titIndx]
           globals$currentCmdPkey = globals$mgmtsel[[as.numeric(input$addMgmtCats)]][titIndx]
         },
@@ -3668,7 +3680,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
         {
           titIndx = try(match(input$addModCmps,
                         globals$mmodsel[[as.numeric(input$addModCats)]]))
-          if (class(titIndx)=="try-error") return(NULL)
+          if (inherits(titIndx,"try-error")) return(NULL)
           title = names(globals$mmodsel[[as.numeric(input$addModCats)]])[titIndx]
           globals$currentCmdPkey = globals$mmodsel[[as.numeric(input$addModCats)]][titIndx]
         },
@@ -3676,7 +3688,7 @@ cat ("renderComponent, inCode=",inCode,"\n")
         {
           titIndx =  try(match(input$addKeyWds,
                          globals$kwdsel[[input$addKeyExt]]))
-          if (class(titIndx)=="try-error") return(NULL)
+          if (inherits(titIndx,"try-error")) return(NULL)
           title = names(globals$kwdsel[[input$addKeyExt]])[titIndx] 
           globals$currentCmdPkey = globals$kwdsel[[input$addKeyExt]][titIndx]
         },
@@ -3726,7 +3738,7 @@ cat ("funName=",funName,"\n")
         if (is.na(indx)) return()
         pkeys <- prms[[indx]]
         eltList <- try(mkeltList(pkeys,prms,globals,input,output,FALSE,FALSE,title))
-        if (class(eltList)=="try-error")
+        if (inherits(eltList,"try-error"))
         {
           output$cmdBuildDesc = renderUI (HTML(paste0(
             '<br>Error:<br>Programming for "',title,'" is incorrect.<br>')))
@@ -4610,7 +4622,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
                    globals$fvsRun$FVSpgm,"',bin='",globals$fvsBin,"'))")
       cat ("load FVSpgm cmd=",cmd,"\n")          
       rtn = try(eval(parse(text=cmd)))
-      if (class(rtn) == "try-error") return()          
+      if (inherits(rtn,"try-error")) return()          
       # if not using the default run script, load the one requested.    
       if (globals$fvsRun$runScript != "fvsRun")
       {
@@ -4621,17 +4633,17 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         cmd = paste0("clusterEvalQ(fvschild,source('",rsFn,"'))")
         cat ("run script load cmd=",cmd,"\n")
         rtn = try(eval(parse(text=cmd)))
-        if (class(rtn) == "try-error") return()
+        if (inherits(rtn,"try-error")) return()
         runOps <- if (is.null(globals$fvsRun$uiCustomRunOps)) list() else 
           globals$fvsRun$uiCustomRunOps
         rtn = try(clusterExport(fvschild,list("runOps"),envir=environment())) 
-        if (class(rtn) == "try-error") return()
+        if (inherits(rtn,"try-error")) return()
       }
       foo = paste0(globals$fvsRun$uuid,".key")
       cmd = paste0("clusterEvalQ(fvschild,",'fvsSetCmdLine("--keywordfile=',foo,'"))')
       cat ("load run cmd=",cmd,"\n")
       rtn = try(eval(parse(text=cmd))) 
-      if (class(rtn) == "try-error") return()
+      if (inherits(rtn,"try-error")) return()
       cat ("at for start\n") 
       allSum = list()
       for (i in 1:length(globals$fvsRun$stands))
@@ -4648,7 +4660,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
           try(clusterEvalQ(fvschild,fvsRun()))
         }
         cat ("rtn class for stand i=",i," is ",class(rtn),"\n")
-        if (class(rtn) == "try-error")
+        if (inherits(rtn,"try-error"))
         { 
           cat ("run try error\n")
           return()
@@ -4656,12 +4668,12 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
         rtn = rtn[[1]]
         if (rtn != 0) break          
         ids = try(clusterEvalQ(fvschild,fvsGetStandIDs()))
-        if (class(ids) == "try-error") break
+        if (inherits(ids,"try-error")) break
         ids = ids[[1]]
         rn = paste0("SId=",ids["standid"],";MId=",ids["mgmtid"])
         cat ("rn=",rn,"\n")
         rtn = try(clusterEvalQ(fvschild,fvsSetupSummary(fvsGetSummary())))
-        if (class(rtn) == "try-error") break
+        if (inherits(rtn,"try-error")) break
         allSum[[i]] = rtn[[1]]
         names(allSum)[i] = rn
       }
@@ -4671,7 +4683,7 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
                    value = length(globals$fvsRun$stands)+4)
       outf=paste0(globals$fvsRun$uuid,".out")
       errScan = try(extnErrorScan(outf))
-      if (class(errScan) == "try-error") errScan = 
+      if (inherits(errScan,"try-error")) errScan = 
         "Error scan failed likely due to invalid multibyte strings in output"
       output$uiErrorScan <- renderUI(list(
         h6(paste0("Run made with: ",globals$fvsRun$FVSpgm)," ",attr(errScan,"pgmRV")),
@@ -4823,10 +4835,8 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
              "where KeywordFile = '",globals$fvsRun$uuid,"';"))
          if (nrow(cases) == 0) return()
 cat ("download run as xlsx, ncases=",nrow(cases),"\n")
-         tmp = paste0("tmp",gsub("-","",runuuid),Sys.getpid(),"genoutput")
-         dbExecute(dbGlb$dbOcon,paste0("attach database ':memory:' as ",tmp))
-         casesToGet = paste0(tmp,".casesToGet")
-         dbWriteTable(dbGlb$dbOcon,name=DBI::SQL(casesToGet),value=cases,overwirte=TRUE)
+         dbExecute(dbGlb$dbOcon, "drop table if exists tmp_get_cases")
+         dbWriteTable(dbGlb$dbOcon, "tmp_get_cases", cases, temporary = TRUE, overwrite = TRUE)
          out = list()
          cmpYes = if ("CmpMetaData" %in% tabs) 
          { 
@@ -4838,14 +4848,13 @@ cat ("download run as xlsx, ncases=",nrow(cases),"\n")
            qry = if (!is.null(cmpYes) && cmpYes && substr(tab,1,3) == "Cmp")
              paste0("select * from ",tab," limit ",excelRowLimit,";") else
              paste0("select * from ",tab," where ",tab,".CaseID in",
-                    " (select CaseID from ",casesToGet,") limit ",excelRowLimit,";")
+                    " (select CaseID from tmp_get_cases) limit ",excelRowLimit,";")
           dat = try(dbGetQuery(dbGlb$dbOcon,qry))
-          if (class(dat) == "try-error") next
+          if (inherits(dat,"try-error")) next
           if (nrow(dat) == 0) next
           out[[tab]] = dat
 cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
-         dbExecute(dbGlb$dbOcon,paste0("detach database ",tmp,";"))
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
   ## dlPrjBackup
@@ -5640,11 +5649,12 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
       cases = try(dbGetQuery(dbGlb$dbOcon,
                          paste0("select CaseID,StandID from FVS_Cases where KeywordFile = '",
                                 input$mapDsRunList,"'")))
-      if (class(cases)=="try-error") return()
+      if (inherits(cases,"try-error")) return()
       # if there are reps (same stand more than once), just use the first rep, ignore the others
       cases = cases[!duplicated(cases$StandID),]
-      dbExecute(dbGlb$dbOcon,"drop table if exists temp.mapsCases")
-      dbWriteTable(dbGlb$dbOcon,DBI::SQL("temp.mapsCases"),cases[,1,drop=FALSE])
+      dbExecute(dbGlb$dbOcon, "drop table if exists tmp_maps_cases")
+      dbWriteTable(dbGlb$dbOcon, "tmp_maps_cases", cases[,1,drop=FALSE],
+                   temporary=TRUE, overwrite=TRUE)
       tabs = setdiff(myListTables(dbGlb$dbOcon),
                      c("CmpSummary","FVS_Cases","CmpSummary_East"))
       tables = list()
@@ -5662,8 +5672,8 @@ cat ("mapDsRunList input$mapDsRunList=",input$mapDsRunList,"\n")
         if (length(intersect(c("caseid","standid","year"),tolower(tb$name))) != 3) next
         if (!(tab %in% stdLvl)) next
         cnt = try(dbGetQuery(dbGlb$dbOcon,paste0("select count(*) from ",tab,
-                                                 " where CaseID in (select CaseID from temp.mapsCases) limit 1")))
-        if (class(cnt) == "try-error") next
+                                                 " where CaseID in (select CaseID from tmp_maps_cases) limit 1")))
+        if (inherits(cnt,"try-error")) next
         if (cnt[1,1]) tables=append(tables,tab)
       }
       if (length(tables)) names(tables) = tables
@@ -5702,8 +5712,8 @@ cat ("mapDsRunList input$mapDsTable=",isolate(input$mapDsTable),
       # prepare display data
       dispData = try(dbGetQuery(dbGlb$dbOcon,paste0("select * from ",
                    isolate(input$mapDsTable),
-                   " where CaseID in (select CaseID from temp.mapsCases)")))
-      if (class(dispData)=="try-error" || nrow(dispData)==0) return()
+                   " where CaseID in (select CaseID from tmp_maps_cases)")))
+      if (inherits(dispData,"try-error") || nrow(dispData)==0) return()
       dispData = dispData[,-1] #remove CaseID
       # if species is a variable, pick the one to display and ditch the others
       sps = na.omit(match(c("SpeciesFVS","SpeciesPLANTS","SpeciesFIA"),names(dispData)))
@@ -5794,13 +5804,14 @@ cat ("left to get: length(uidsToGet)=",length(uidsToGet),
         })
         if (is.null(inInit)) inInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
 cat ("mapDsRunList trying to use the table=",inInit,"\n")
-        dbWriteTable(dbGlb$dbIcon,DBI::SQL("temp.uidsToGet"),data.frame(stds=uidsToGet),overwrite=TRUE)
+        dbWriteTable(dbGlb$dbIcon, "tmp_uids_to_get", data.frame(stds = uidsToGet),
+                     temporary = TRUE, overwrite = TRUE)
         sid = if (inInit %in% c("FVS_PlotInit","FVS_PlotInit_Plot"))
                "StandPlot_ID" else "Stand_ID"
         qry = paste0("select distinct ",sid," as Stand_ID,Latitude,Longitude from ",inInit,
-                     " where ",sid," in (select * from temp.uidsToGet)")    
+                     " where ",sid," in (select * from tmp_uids_to_get)")
         latLng = try(dbGetQuery(dbGlb$dbIcon,qry))
-        dbExecute(dbGlb$dbIcon,"drop table if exists temp.uidsToGet")
+        dbExecute(dbGlb$dbIcon,"drop table if exists tmp_uids_to_get")
         if (class(latLng)!="try-error" && nrow(latLng))
         {
           idxLng = grep("Longitude",names(latLng),ignore.case=TRUE)
@@ -6118,7 +6129,7 @@ cat ("delete all runs and outputs\n")
         x = flst[i]
         progress$set(message = paste0("Adding ",x," to ",zfile), value = i)
         rtn=if (file.exists(zfile)) try(zipr_append(zfile,x)) else try(zipr(zfile,x))
-        if (class(rtn)=="try-error") 
+        if (inherits(rtn,"try-error")) 
         {
           progress$set(message = paste0("Failed to add ",x," to ",zfile), value = i+1)
           Sys.sleep(.2)
@@ -6244,7 +6255,7 @@ cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")
           td <- tempdir()
           rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
                     overwrite=TRUE,junkpaths=FALSE))
-          if (class(rtn)=="try-error") return()
+          if (inherits(rtn,"try-error")) return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
           del=NULL
           for (todel in c("^www","^rFVS","R$",".html$",".zip$","treeforms.RData",
@@ -6296,7 +6307,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           lapply(dir(),function(x) unlink(x,recursive=TRUE,force=TRUE))
           rtn = try(unzip (paste0(curdir,"/",fvsWorkBackup),exdir=td,
                     overwrite=TRUE,junkpaths=FALSE))
-          if (class(rtn)=="try-error") return()
+          if (inherits(rtn,"try-error")) return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
           del=NULL
           # TODO: most of this list is related to old versions the software (pre "package")
@@ -6441,7 +6452,7 @@ cat("delete project button.")
     if (tab %in% getSheetNames(xlsxfile))
     {
       sdat = try(read.xlsx(xlsxFile=xlsxfile,sheet=tab))
-      if (class(sdat) == "try-error") return (NULL)
+      if (inherits(sdat,"try-error")) return (NULL)
       if (nrow(sdat)==0 || ncol(sdat)==0) return (NULL)
       if (!is.null(cols) && max(cols)<=ncol(sdat)) sdat = sdat[,cols]
       sdat[sdat == " "]=NA
@@ -6677,7 +6688,7 @@ cat("curDir=",curDir," input dir=",getwd(),"\n")
 cat ("cmd=",cmd,"\n")
       schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else
                                                    try(system(cmd,intern=TRUE))
-      if (class(schema)=="try-error" || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
+      if (inherits(schema,"try-error") || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
       {
         setwd(curDir) 
         progress$close()  
@@ -6777,11 +6788,11 @@ cat ("cmd done.\n")
       dbo = dbConnect(dbDrv,"FVS_Data.db")
       dbdis=system.file("extdata","databaseDescription.xlsx",package="fvsOL")
       standNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_StandInit"))
-      standNT = if (class(standNT) == "try-error") NULL else apply(standNT[,c(1,3)],2,toupper)
+      standNT = if (inherits(standNT,"try-error")) NULL else apply(standNT[,c(1,3)],2,toupper)
       treeNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_TreeInit"))
-      treeNT = if (class(treeNT) == "try-error") NULL else apply(treeNT[,c(1,3)],2,toupper)
+      treeNT = if (inherits(treeNT,"try-error")) NULL else apply(treeNT[,c(1,3)],2,toupper)
       plotNT = try(read.xlsx(xlsxFile=dbdis,sheet="FVS_PlotInit"))
-      plotNT = if (class(plotNT) == "try-error") NULL else apply(plotNT[,c(1,3)],2,toupper)
+      plotNT = if (inherits(plotNT,"try-error")) NULL else apply(plotNT[,c(1,3)],2,toupper)
       # Screen Input tables for duplicate column names
       dupTables = list()
       dupColumns = list()
@@ -6925,13 +6936,13 @@ cat ("cmd done.\n")
           {
             tab2fix=tabs[idx]
             grps=try(dbGetQuery(dbo,paste0("select distinct groups from '",tab2fix,"'")))
-            if (class(grps)=="try-error") next
+            if (inherits(grps,"try-error")) next
             if (is.na(grps[1,1])) next
             grps=unique(unlist(lapply(grps[,1],function (x) scan(text=x,what="character",quiet=TRUE))))
             if (any(is.na(match(addgrps,grps))) && !length(match(grps,addgrps)))  
             {
               Tb=try(dbReadTable(dbo,tab2fix))
-              if (class(Tb)=="try-error") next
+              if (inherits(Tb,"try-error")) next
               idx=match("groups",tolower(names(Tb)))
               if (!is.na(idx) && nrow(Tb)) 
               {
@@ -6993,7 +7004,7 @@ cat ("checking tabs[idx]=",tabs[idx],"\n")
         qry = paste0("select ",idf," from '",tab2fix,"'") 
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
-        if (class(sidTb)=="try-error") next
+        if (inherits(sidTb,"try-error")) next
         dups = duplicated(sidTb[,1])
         if (all(!dups)) next
         keep <- list()
@@ -7005,7 +7016,7 @@ cat ("qry=",qry,"\n")
           }
         }
         sidTb=try(dbReadTable(dbo,tab2fix))
-        if (class(sidTb)=="try-error") next
+        if (inherits(sidTb,"try-error")) next
         sidTb=sidTb[as.numeric(keep),]
         dbWriteTable(dbo,tab2fix,sidTb,overwrite=TRUE)
         sidmsg=c(sidmsg,tab2fix)
@@ -7022,7 +7033,7 @@ cat ("checking tabs[idx]=",tabs[idx],"\n")
         qry = paste0("select ",idf," from '",tab2fix,"' NOT INDEXED")
 cat ("qry=",qry,"\n") 
         sidTb=try(dbGetQuery(dbo,qry))
-        if (class(sidTb)=="try-error") next
+        if (inherits(sidTb,"try-error")) next
         if(length(sidTb[[1]])==0) next
         sidTb <- data.frame(trim(sidTb[[1]]))
         names(sidTb) <- toupper(idf)
@@ -7031,7 +7042,7 @@ cat ("qry=",qry,"\n")
           oldSID <- grep("Stand_ID",names(sidTbAll),ignore.case=TRUE)
         sidTbAll <- sidTbAll[,-oldSID]
         sidTbAll <- append(sidTbAll,sidTb, after=0)
-        if (class(sidTbAll)=="try-error") next
+        if (inherits(sidTbAll,"try-error")) next
         dbWriteTable(dbo,tab2fix,data.frame(sidTbAll),overwrite=TRUE)
       }
 cat ("sidmsg=",sidmsg,"\n")
@@ -7104,7 +7115,7 @@ cat ("calling fixFVSKeywords\n")
     if (is.null(addkeys)) need = TRUE else
     {
       gtab = try(dbReadTable(dbGlb$dbIcon,addkeys))
-      need = class(gtab) == "try-error"
+      need = inherits(gtab,"try-error")
       if (!need) need = nrow(gtab) == 0
       names(gtab) = toupper(names(gtab))
       if (!need) need = all(is.na(gtab$FVSKEYWORDS))
@@ -7285,7 +7296,7 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
     oldtabs = myListTables(dbGlb$dbIcon)
     progress$set(message = "Attaching new database.", value=2)
     attach = try(dbExecute(dbGlb$dbIcon,paste0("attach '",dbGlb$newFVSData,"' as addnew;")))
-    if (class(attach) == "try-error")
+    if (inherits(attach,"try-error"))
     {
       output$step2ActionMsg <- renderText("New data could not be added")
       unlink(dbGlb$newFVSData)
@@ -7300,7 +7311,7 @@ cat ("try to get exclusive lock on input database, trycnt=",trycnt,"\n");
       qry=paste0("create table ",tab," as select * from addnew.",tab)
 cat("qry=",qry,"\n")
       rtn = try(dbExecute(dbGlb$dbIcon,qry))
-      if (class(rtn)=="try-error") cat ("qry failed:",qry,"\n")
+      if (inherits(rtn,"try-error")) cat ("qry failed:",qry,"\n")
     }
     newtabs = setdiff(newtabs,justNew)
     for (tab in newtabs)
@@ -7308,7 +7319,7 @@ cat("qry=",qry,"\n")
       i=i+1
       progress$set(message = paste0("Loading ",tab), value = i)
       rows=try(dbGetQuery(dbGlb$dbIcon,paste0("select count(*) from ",tab)))
-      if (class(rows)=="try-error") next
+      if (inherits(rows,"try-error")) next
       if (class(rows)=="data.frame" && rows[1,1]==0) 
       {
         cat ("no rows in ",tab,"\n")
@@ -7323,7 +7334,7 @@ cat("qry=",qry,"\n")
         qry = paste0("delete from ",tab," where Stand_ID in ",
                      "(select Stand_ID from addnew.",tab,")")
         rtn = try(dbExecute(dbGlb$dbIcon,qry))
-        if (class(rtn)=="try-error") cat ("removing duplicated Stand_IDs failed.")
+        if (inherits(rtn,"try-error")) cat ("removing duplicated Stand_IDs failed.")
       }          
       if (tolower(tab) == "fvs_groupaddfilesandkeywords") 
         dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where 'Groups' in ",
@@ -7343,7 +7354,7 @@ cat("qry=",qry,"\n")
                 " ",newTdef$type[ii],";")
 cat ("alter table qry=",qry,"\n")
           rtn = try(dbExecute(dbGlb$dbIcon,qry))
-          if (class(rtn)=="try-error") cat ("qry failed\n")
+          if (inherits(rtn,"try-error")) cat ("qry failed\n")
         }
       }
       alln = paste0(newTdef$name,collapse=",")
@@ -7351,7 +7362,7 @@ cat ("alter table qry=",qry,"\n")
                    " from addnew.",tab,";") 
 cat ("insert qry=",qry,"\n")
       rtn = try(dbExecute(dbGlb$dbIcon,qry))
-      if (class(rtn)=="try-error") cat ("qry failed\n")
+      if (inherits(rtn,"try-error")) cat ("qry failed\n")
     }
     dbExecute(dbGlb$dbIcon,paste0("detach addnew;"))
     unlink(dbGlb$newFVSData)
@@ -7434,7 +7445,7 @@ cat ("Upload new rows\n")
     isolate({ 
       indat = try(read.csv(file=input$uploadStdTree$datapath,as.is=TRUE,colClasses="character"))
       unlink(input$uploadStdTree$datapath)
-      if (class(indat) == "try-error" || is.null(indat) || nrow(indat)==0)
+      if (inherits(indat,"try-error") || is.null(indat) || nrow(indat)==0)
       {                       
         output$uploadActionMsg = renderText("Input empty, no data loaded.")
         Sys.sleep(1)
@@ -7514,7 +7525,7 @@ cat ("add column qry=",qry,"\n")
 
       sids=try(dbGetQuery(dbGlb$dbIcon,paste0("select distinct stand_id from ",
                           isolate(input$uploadSelDBtabs))))
-      sids=if (class(sids)=="try-error") NA else sids[,1]
+      sids=if (inherits(sids,"try-error")) NA else sids[,1]
       isid=charmatch("stand_id",tolower(names(indat)))
       msg=NULL
       if (!(is.na(sids) || is.na(isid))) 
@@ -7545,7 +7556,7 @@ cat ("add column qry=",qry,"\n")
                 paste0(colnames(row),collapse=","),") values (",vals,");")
 cat ("insert qry=",qry,"\n")
         res = try(dbExecute(dbGlb$dbIcon,qry))
-        if (class(res) == "try-error") {err=TRUE; break} else insertCount = insertCount+1
+        if (inherits(res,"try-error")) {err=TRUE; break} else insertCount = insertCount+1
       }
       if (err) 
       {
@@ -7709,10 +7720,11 @@ cat ("no current FVS_ClimAttrs\n")
       return()      
     }
     progress$set(message = "Building temporary FVS_ClimAttrs table",value = 4) 
-    dbWriteTable(dbGlb$dbIcon,"temp.FVS_ClimAttrs",climd,overwrite=TRUE)
+    dbWriteTable(dbGlb$dbIcon, "tmp_fvs_clim_attrs", climd, 
+                 temporary = TRUE, overwrite = TRUE)
     rm (climd)  
     progress$set(message = "Query distinct stands and scenarios",value = 5)
-    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'temp.FVS_ClimAttrs'")
+    distinct = dbGetQuery(dbGlb$dbIcon,"select distinct Stand_ID,Scenario from 'tmp_fvs_clim_attrs'")
     progress$set(message = "Cleaning previous climate data as needed",value = 6)    
     dbBegin(dbGlb$dbIcon)
     results = apply(distinct,1,function (x,dbIcon)
@@ -7729,9 +7741,9 @@ cat ("no current FVS_ClimAttrs\n")
     {
 cat ("simple copy from new, all rows were deleted\n")
       dbExecute(dbGlb$dbIcon,"drop table FVS_ClimAttrs")
-      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'temp.FVS_ClimAttrs'")
+      dbExecute(dbGlb$dbIcon,"create table 'FVS_ClimAttrs' as select * from 'tmp_fvs_clim_attrs'")
     } else {
-      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'temp.FVS_ClimAttrs' limit 1")
+      newAttrs = dbGetQuery(dbGlb$dbIcon,"select * from 'tmp_fvs_clim_attrs' limit 1")
       if (!identical(colnames(oldAttrs),colnames(newAttrs)))
       {
 cat ("need to match columns, cols are not identical\n")
@@ -7755,7 +7767,7 @@ cat ("length(newmiss)=",length(newmiss)," selnew=",selnew,"\n")
         {
           dbBegin(dbGlb$dbIcon)
           for (mis in newmiss) dbExecute(dbGlb$dbIcon,
-            paste0('alter table "temp.FVS_ClimAttrs" add "',mis,'" real'))
+            paste0('alter table "tmp_fvs_clim_attrs" add "',mis,'" real'))
           dbCommit(dbGlb$dbIcon)
         }
 cat ("length(oldmiss)=",length(oldmiss),"\n")
@@ -7769,11 +7781,11 @@ cat ("length(oldmiss)=",length(oldmiss),"\n")
       }
       attrs = colnames(dbGetQuery(dbGlb$dbIcon,"select * from 'FVS_ClimAttrs' limit 1"))
       sel = paste0(attrs,collapse=",")
-      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'temp.FVS_ClimAttrs'")
+      qry=paste0("insert into FVS_ClimAttrs (",sel,") select ",sel," from 'tmp_fvs_clim_attrs'")
 cat("insert qry=",qry,"\n")
       dbExecute(dbGlb$dbIcon,qry)
     }
-    dbExecute(dbGlb$dbIcon,'drop table "temp.FVS_ClimAttrs"')
+    dbExecute(dbGlb$dbIcon,'drop table "tmp_fvs_clim_attrs"')
     progress$set(message = "Recreating FVS_ClimAttrs index",value = 9)
     dbExecute(dbGlb$dbIcon,'drop index if exists StdScnIndex')
     dbExecute(dbGlb$dbIcon,"create index StdScnIndex on FVS_ClimAttrs (Stand_ID, Scenario);")
@@ -7828,7 +7840,7 @@ cat ("msg=",msg,"\n")
       {
         rtn = try(dbGetQuery(dbGlb$dbIcon,
           paste0("select distinct Stand_ID from '",dbGlb$tblName,"'")))
-        if (class(rtn)=="try-error")
+        if (inherits(rtn,"try-error"))
         {
 cat ("stand_ID query error.\n")
            return()
@@ -7991,7 +8003,7 @@ cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
               for (ins in inserts) 
               {
                 res = try(dbExecute(dbGlb$dbIcon,ins))
-                if (class(res) == "try-error") {err=TRUE; break}
+                if (inherits(res,"try-error")) {err=TRUE; break}
               }
               if (err) 
               {
@@ -8025,7 +8037,7 @@ cat ("commitChanges, mode=",input$mode,"len tbl=",length(input$tbl),"\n")
                              id)
 cat ("edit del, qry=",qry,"\n")                     
                 res = try(dbExecute(dbGlb$dbIcon,qry))
-                if (class(res) == "try-error") {err=TRUE; break}
+                if (inherits(res,"try-error")) {err=TRUE; break}
                 nprocess = nprocess+1
                 if (!is.null(dbGlb$sids)) dbGlb$sids = NULL
               } else {              
@@ -8061,7 +8073,7 @@ cat ("edit del, qry=",qry,"\n")
                     " where _ROWID_ = ",id)
 cat ("edit upd, qry=",qry,"\n")
                 res = try(dbExecute(dbGlb$dbIcon,qry))              
-                if (class(res) == "try-error") {err=TRUE; break}
+                if (inherits(res,"try-error")) {err=TRUE; break}
                 nprocess = nprocess+1
               }
             }
@@ -8273,7 +8285,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
      if (!exists("spd",envir=dbGlb,inherit=FALSE)) return(NULL)   
      stdInit = getTableName(dbGlb$dbIcon,"FVS_StandInit")
      ids1 = try(dbGetQuery(dbGlb$dbIcon,paste0('select distinct Stand_ID from ',stdInit)))
-     ids1 = if (class(ids1)=="try-error") list() else unlist(ids1)
+     ids1 = if (inherits(ids1,"try-error")) list() else unlist(ids1)
      names(ids1) = NULL
      if ("FVS_Cases" %in% 
        dbGetQuery(dbGlb$dbOcon,"SELECT * FROM sqlite_master where type='table'")$name)
@@ -8427,7 +8439,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
         tmpPrj = file.path(getwd(),tmpPrj)
         setwd(tmpPrj)
         uz = try(unzip(input$uploadRunsRdat$datapath))
-        if (class(uz)=="try-error") 
+        if (inherits(uz,"try-error")) 
         {
 cat("uploaded zip failed\n")
           output$uploadRunsRdatMsg <- renderText("Uploaded file could not be unzipped.")
@@ -8659,7 +8671,7 @@ cat ("in customRunOps runScript: ",input$runScript,"\n")
         if (!file.exists(fn)) fn=system.file("extdata", fn, package="fvsOL")
         if (!file.exists(fn)) return()        
         rtn = try(source(fn,local=TRUE))
-        if (class(rtn) == "try-error") return()
+        if (inherits(rtn,"try-error")) return()
         uiF = try(eval(parse(text=paste0(sub("fvsRun","ui",globals$fvsRun$runScript)))))
         if (class(uiF) != "function") return()
         output$uiCustomRunOps = renderUI(uiF(globals$fvsRun))

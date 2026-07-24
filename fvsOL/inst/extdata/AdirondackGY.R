@@ -1,44 +1,35 @@
+################################################################################
+# v5.1.0 
+#
+# Adirondack Variant of the Forest Vegetation Simulator (FVS-ADK)                                                                                            #
+# Developed by Aaron Weiskittel, University of Maine, School of Forest Resources
+# aaron.weiskittel@maine.edu
+# 
+#
+#
+################################################################################
 
-AdirondackGYVersionTag = "SUNY_GYv5ck"
+AdirondackGYVersionTag = "AdirondackV5.1.0"
+
+### required packages
+library(dplyr) # needed for arrange, mutate, left_join, group_by, summarise, across, ungroup
+library(purrr) # needed for map
+
+
+##############################
+#### major update summary ####
+####
+
+# 5.1.0
+  # Removed dependencies: nlme, plyr
+  # Added functions make_adk_tree(), make_fvs_tree(), make_fvs_regen() to handle data handoff between R and FVS. Includes correction to trees per ha (each plot treated as independent in component calculations)
+  # AdirondackGYOneStand() returns dataframe instead of list
+  # Removed sort.data.frame() function and replaced with dplyr::arrange()
+  # Updated ingrowth to calculate total height and crown ratio
+  # Bug fixes: temp$pBRH; SUNY.HCB 
+
 
 ###Adirondack functions
-library(plyr)  #needed for ddply
-
-#sort data frames
-sort.data.frame <- function(form,dat)
-{
-  if(inherits(dat,"formula")){
-    f=dat
-    dat=form
-    form=f
-  }
-  if(form[[1]] != "~") stop("Formula must be one-sided.")
-  formc <- as.character(form[2])
-  formc <- gsub(" ","",formc)
-  if(!is.element(substring(formc,1,1),c("+","-"))) formc<-paste("+",formc,sep="")
-  vars <- unlist(strsplit(formc, "[\\+\\-]"))
-  vars <- vars[vars!=""]
-  calllist <- list()
-  pos=1
-  for(i in 1:length(vars)){
-    varsign <- substring(formc,pos,pos)
-    pos <- pos+1+nchar(vars[i])
-    if(is.factor(dat[,vars[i]])){
-      if(varsign=="-")
-        calllist[[i]] <- -rank(dat[,vars[i]])
-      else
-        calllist[[i]] <- rank(dat[,vars[i]])
-    }
-    else {
-      if(varsign=="-")
-        calllist[[i]] <- -dat[,vars[i]]
-      else
-        calllist[[i]] <- dat[,vars[i]]    
-    }
-  }
-  dat[do.call("order",calllist),]
-}
-
 #Species function
 SPP.func=function(SPP){            
   if(SPP=='AB'){ #American beech
@@ -162,7 +153,7 @@ SPP.func=function(SPP){
     drought=0
     waterlog=0}
   else if(SPP=='PB'){ #paper birch
-    SPtype='SW'
+    SPtype='HW'
     sg=0.55
     wd=0.48
     shade=1.54
@@ -664,6 +655,7 @@ Ingrowth.Comp=function(SPP,BA,PBA,ClimateSI,MinDBH){
 ## Ingrowth function
 ING.TreeList=function(Sum.temp,INGROWTH="Y",MinDBH=10)
 {
+  Sum.temp = as.data.frame(Sum.temp)
   # create one tree recored for each species setting DBH to MinDBH
   TreeCon=Sum.temp[Sum.temp$IPH>0,,drop=FALSE]
   InTree=NULL
@@ -672,7 +664,7 @@ ING.TreeList=function(Sum.temp,INGROWTH="Y",MinDBH=10)
     SPP=c('BF','RM','WP','OH','OS','GB','PB','YB','RS','BS','WS')
     new=t(TreeCon[,paste0(SPP,".ING")])
     rownames(new)=SPP
-    colnames(new)=TreeCon[,"PLOT"]
+    colnames(new)=TreeCon[["PLOT"]]
     for(i in 1:nrow(TreeCon))
     {
       EXPF=new[new[,i]>0,i]
@@ -1893,54 +1885,162 @@ Honer.Vol=function(SPP,HT,DBHO,topD=NA,topHT=NA){
   MR.dib=(topD^2/DBHO^2)*(1-0.04365*b2)^-2
   return(Vtm3)}	
   
-Summary.GY=function(tree){
-  library(nlme)
-  tree$ba<-round((tree$DBH^2*0.00007854)*tree$EXPF,2)
-  tree$sdi=(tree$DBH/25.4)^1.605*tree$EXPF
-  tree$ba.WP=ifelse(tree$SP=='WP',tree$ba,0)
-  tree$ba.BF=ifelse(tree$SP=='BF',tree$ba,0)
-  tree$ba.RM=ifelse(tree$SP=='RM',tree$ba,0)
-  tree$ba.RS=ifelse(tree$SP=='RS',tree$ba,0)
-  tree$ba.BS=ifelse(tree$SP=='BS',tree$ba,0)
-  tree$ba.WS=ifelse(tree$SP=='WS',tree$ba,0)
-  tree$ba.PB=ifelse(tree$SP=='PB',tree$ba,0)
-  tree$ba.YB=ifelse(tree$SP=='YB',tree$ba,0)
-  tree$ba.GB=ifelse(tree$SP=='YB',tree$ba,0)
-  tree$CR=((tree$HT-tree$HCB)/tree$HT)*tree$EXPF
-  tree$HT=tree$HT*tree$EXPF
-  temp <- subset(tree,select=c("YEAR","STAND","PLOT",'TREE','DBH','HT','CR','EXPF',"ba",'ba.WP','ba.BF','ba.RM','ba.RS','ba.BS','ba.PB','ba.YB','ba.GB','ba.WS','sdi'))
-  temp<-groupedData(ba~ba|YEAR/STAND/PLOT,data=temp)
-  temp <- gsummary(temp,sum)
-  temp$BA<-temp$ba
-  temp$BAPH<-temp$ba
-  temp$tph<-temp$EXPF 
-  temp$qmd<-sqrt(temp$BAPH/(0.00007854*temp$tph))
-  temp$pWP.ba=temp$ba.WP/temp$BAPH
-  temp$pBF.ba=temp$ba.BF/temp$BAPH
-  temp$pRM.ba=temp$ba.RM/temp$BAPH
-  temp$pRS.ba=temp$ba.RS/temp$BAPH
-  temp$pBS.ba=temp$ba.BS/temp$BAPH
-  temp$pWS.ba=temp$ba.WS/temp$BAPH
-  temp$pPB.ba=temp$ba.PB/temp$BAPH
-  temp$pYB.ba=temp$ba.YB/temp$BAPH
-  temp$pGB.ba=temp$ba.GB/temp$BAPH
-  temp$Avg.HT=temp$HT/temp$EXPF
-  temp$Avg.LCR=temp$CR/temp$EXPF
-  temp=subset(temp,select=c("YEAR","STAND","PLOT",'BA','tph','qmd','sdi','Avg.HT','Avg.LCR','pWP.ba','pBF.ba','pRM.ba','pRS.ba','pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba'))
-  temp
+Summary.GY = function(tree) {
+  tree = tree %>%
+    dplyr::mutate(ba = round((DBH^2 * 0.00007854) * EXPF, 2),
+                  sdi = (DBH/25.4)^1.605 * EXPF,
+                  ba.WP = ifelse(SP=='WP', ba, 0),
+                  ba.BF = ifelse(SP=='BF', ba, 0),
+                  ba.RM = ifelse(SP=='RM', ba, 0),
+                  ba.RS = ifelse(SP=='RS', ba, 0),
+                  ba.BS = ifelse(SP=='BS', ba, 0),
+                  ba.WS = ifelse(SP=='WS', ba, 0),
+                  ba.PB = ifelse(SP=='PB', ba, 0),
+                  ba.YB = ifelse(SP=='YB', ba, 0),
+                  ba.GB = ifelse(SP=='GB', ba, 0),
+                  cr.wt = ((HT - HCB) / HT) * EXPF,
+                  ht.wt = HT * EXPF)
+  tree %>%
+    dplyr::group_by(YEAR, STAND, PLOT) %>%
+    dplyr::summarise(BA = sum(ba),
+                     tph = sum(EXPF),
+                     sdi = sum(sdi),
+                     Avg.HT = sum(ht.wt) / sum(EXPF),
+                     Avg.LCR = sum(cr.wt) / sum(EXPF),
+                     ba.WP = sum(ba.WP),
+                     ba.BF = sum(ba.BF),
+                     ba.RM = sum(ba.RM),
+                     ba.RS = sum(ba.RS),
+                     ba.BS = sum(ba.BS),
+                     ba.WS = sum(ba.WS),
+                     ba.PB = sum(ba.PB),
+                     ba.YB = sum(ba.YB),
+                     ba.GB = sum(ba.GB),
+                     .groups = 'drop') %>%
+    dplyr::mutate(qmd = sqrt(BA / (0.00007854 * tph)),
+                  pWP.ba = ba.WP / BA,
+                  pBF.ba = ba.BF / BA,
+                  pRM.ba = ba.RM / BA,
+                  pRS.ba = ba.RS / BA,
+                  pBS.ba = ba.BS / BA,
+                  pWS.ba = ba.WS / BA,
+                  pPB.ba = ba.PB / BA,
+                  pYB.ba = ba.YB / BA,
+                  pGB.ba = ba.GB / BA) %>%
+    dplyr::select(YEAR, STAND, PLOT, BA, tph, qmd, sdi,
+                  Avg.HT, Avg.LCR, pWP.ba, pBF.ba, pRM.ba,
+                  pRS.ba, pBS.ba, pWS.ba, pPB.ba, pYB.ba, pGB.ba)
 }
 
+## Create Adirondack model input dataframe from FVS tree list
+#' Create ADK tree list dataframe
+#'
+#' @param tree.list Dataframe: Tree list from FVS. Required fields: plot, species
+#'   (FVS numeric species code), tpa, dbh (in), ht (ft), cratio (pct), dg (in),
+#'   htg (ft), mort
+#' @param num.plots Numeric: Number of plots in a stand. Used to convert
+#'   stand-level trees per acre to plot-level trees per hectare.
+#' @param spcodes Matrix: FVS species codes from fvsGetSpeciesCodes(). FVS
+#'   numeric code is the row number; column 'fvs' holds the alpha species code.
+#' @return Dataframe: Tree list with uppercase field names and metric units,
+#'   ready for AdirondackGYOneStand(). Key fields: id, TREE, SP, DBH (cm),
+#'   HT (m), CR (proportion), EXPF (plot-level trees per hectare), DG (cm),
+#'   HTG (m).
+# Note: EXPF = TPA * num.plots * 2.47105 (stand TPA -> plot TPH)
+make_adk_tree = function(tree.list, num.plots, spcodes) {
+  in.to.cm = 2.54
+  ft.to.m = 0.3048
+  ha.to.ac = 2.47105
+
+  tree.list %>%
+    dplyr::rename_with(toupper) %>%
+    dplyr::rename(SP = SPECIES, EXPF = TPA) %>%
+    dplyr::mutate(id = seq_len(n()),
+                  TREE = id,
+                  CR = abs(CRATIO) * 0.01,
+                  DBH = DBH * in.to.cm,
+                  HT = HT * ft.to.m,
+                  DG = DG * in.to.cm,
+                  HTG = HTG * ft.to.m,
+                  EXPF = EXPF * dplyr::coalesce(num.plots, 1L) * ha.to.ac,
+                  SP = spcodes[SP, 1])
+}
+
+#### Prepare output tree list ####
+#### for FVS fvsSetTreeAttrs()
+#' Create FVS return tree list
+#'
+#' @param incr.tree Dataframe: Original-tree rows from AdirondackGYOneStand()
+#'   output (rows where !is.na(id)). Required fields: id, dDBH (cm), dHT (m),
+#'   HCB (m), dHCB (m), HT (m), dEXPF (plot TPH,
+#'   optional).
+#' @param num.plots Numeric: Number of plots in a stand. Used to convert
+#'   plot-level trees per hectare back to stand-level trees per acre.
+#' @return Dataframe: Tree dataframe ready for rFVS::fvsSetTreeAttrs(). Fields:
+#'   id, dg (in), htg (ft), cratio (percent), mort (stand-level TPA).
+# Note: assumes incr.tree$EXPF is plot-level trees per hectare
+make_fvs_tree = function(tree, num.plots) {
+  cm.to.in = 0.393701
+  m.to.ft = 3.28084
+  ac.to.ha = 0.404686
+
+  tofvs = tree %>%
+    dplyr::transmute(
+      id,
+      dg = dDBH * cm.to.in,
+      htg = dHT * m.to.ft,
+      cratio = -round((1 - ((HCB + dHCB) / (HT + dHT))) * 100, 0),
+      mort = dEXPF * ac.to.ha / dplyr::coalesce(num.plots, 1L)) %>% 
+  as.data.frame()
+  
+  tofvs
+}
+
+#### Tree list for FVS fvsAddTrees()
+#' Make dataframe to pass to fvsAddTrees()
+#'
+#' @param incr.ingrow Dataframe: Ingrowth rows from AdirondackGYOneStand()
+#'   output (rows where is.na(id)). Required fields: DBH (cm), HT (m), 
+#'   height to crown base (m), PLOT, SP (alpha species code), EXPF (plot TPH).
+#' @param num.plots Numeric: Number of plots in a stand. Used to convert
+#'   plot-level trees per hectare back to stand-level trees per acre.
+#' @param spcodes Matrix: FVS species codes from fvsGetSpeciesCodes(). FVS
+#'   numeric code is the row number; column 'fvs' holds the alpha species code.
+#' @return Dataframe: Tree dataframe ready for rFVS::fvsAddTrees(). Fields:
+#'   dbh (in), species (FVS numeric code), ht (ft), cratio (percent), plot,
+#'   tpa (stand-level trees per acre).
+# Note: assumes incr.ingrow$EXPF is plot-level trees per hectare
+make_fvs_regen = function(ingrow, num.plots, spcodes) {
+  cm.to.in = 0.393701
+  m.to.ft = 3.28084
+  ac.to.ha = 0.404686
+
+  toadd = ingrow %>%
+    dplyr::transmute(
+      dbh = DBH * cm.to.in,
+      species = match(SP, spcodes[, 'fvs']),
+      ht = HT * m.to.ft,
+      cratio = -round((1 - (HCB  / HT )) * 100, 0),
+      plot = as.numeric(PLOT),
+      tpa = EXPF * ac.to.ha / dplyr::coalesce(num.plots, 1L)) %>%
+    as.data.frame()
+  
+  toadd
+}
+
+#### Execute model ####
 ###Adirondack growth and yield model (not called by FVS)
-AdirondackGY=function(tree,stand,ops=NULL)
-{
-  ops=as.list(ops)
-  ans = ddply(tree,.(STAND), function (x,stand,ops) 
-    {
-      stand = as.list(subset(stand,STAND == x[1,"STAND"]))
-      AdirondackGYOneStand(tree,stand=stand,ops=ops)
-    }, stand, ops)                
-  tree<-sort.data.frame(ans,~+YEAR+STAND+PLOT+TREE)
-  tree
+AdirondackGY = function(tree, stand, ops = NULL) {
+  ops = as.list(ops)
+  tree %>%
+    dplyr::group_by(STAND) %>%
+    dplyr::group_split() %>%
+    purrr::map(\(x) {
+      stand.x = as.list(stand[stand$STAND == x$STAND[1], ])
+      AdirondackGYOneStand(x, stand=stand.x, ops=ops)
+    }) %>%
+    dplyr::bind_rows() %>%
+    dplyr::arrange(YEAR, STAND, PLOT, TREE)
 }
 
 # this is the call used by FVS
@@ -1984,14 +2084,13 @@ AdirondackGYOneStand=function(tree,stand,ops)
                 'ba.BF','ba.RM','ba.SPR','ba.BRH','ba.OH','ba.OS','ba.RS',
                 'ba.BS','ba.PB','ba.YB'))
 
-  temp = ddply(temp,.(PLOT),
-    function(x)
-    {
-      rtn = as.data.frame(t(colSums(x[,c(-1,-2)])))
-      rtn$PLOT = x$PLOT[1]
-      rtn$maxTREE = max(x$TREE)
-      rtn
-    }) 
+  temp = temp %>%
+    dplyr::group_by(PLOT) %>%
+    dplyr::summarise(
+      dplyr::across(c(EXPF, ba, ba.SW, ba.WP, ba.BF, ba.RM, ba.SPR,
+                      ba.BRH, ba.OH, ba.OS, ba.RS, ba.BS, ba.PB, ba.YB), sum),
+      maxTREE = max(TREE),
+      .groups = 'drop')
                 
   temp$BAPH<-temp$ba
   temp$tph<-temp$EXPF 
@@ -2007,9 +2106,9 @@ AdirondackGYOneStand=function(tree,stand,ops)
   temp$pRS.ba=ifelse(temp$pSPR.ba==0,0,temp$ba.RS/temp$ba.SPR)
   temp$pBS.ba=ifelse(temp$pSPR.ba==0,0,temp$ba.BS/temp$ba.SPR)
   temp$pWS.ba=ifelse(temp$pSPR.ba==0,0,1-(temp$pRS.ba+temp$pBS.ba))
-  temp$pPB.ba=ifelse(temp$pBRH==0,0,temp$ba.PB/temp$ba.BRH)
-  temp$pYB.ba=ifelse(temp$pBRH==0,0,temp$ba.YB/temp$ba.BRH)
-  temp$pGB.ba=ifelse(temp$pBRH==0,0,1-(temp$pPB.ba+temp$pYB.ba))
+  temp$pPB.ba=ifelse(temp$pBRH.ba==0,0,temp$ba.PB/temp$ba.BRH)
+  temp$pYB.ba=ifelse(temp$pBRH.ba==0,0,temp$ba.YB/temp$ba.BRH)
+  temp$pGB.ba=ifelse(temp$pBRH.ba==0,0,1-(temp$pPB.ba+temp$pYB.ba))
   temp=subset(temp,select=c("PLOT",'BAPH','maxTREE','tph','qmd','pHW.ba',
     'pWP.ba','pBF.ba','pRM.ba','pSPR.ba','pBRH.ba','pOH.ba','pOS.ba',
     'pRS.ba','pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba'))
@@ -2018,36 +2117,39 @@ AdirondackGYOneStand=function(tree,stand,ops)
   if (verbose) cat ("at Sum.temp\n") 
 
   temp$maxTREE = NULL
-  tree=merge(tree,temp,by="PLOT")
+  tree = dplyr::left_join(tree, temp, by='PLOT')
   
   #Compute basal area in larger trees
-  tree<-sort.data.frame(tree,~+PLOT-DBH)
-  temp = unlist(by(tree$ba,INDICES=tree$PLOT,FUN=cumsum))
-  tree$BAL = temp-tree$ba
-  temp = unlist(by(tree$ba.SW,INDICES=tree$PLOT,FUN=cumsum))
-  tree$BAL.SW = temp-tree$ba.SW
-  tree$BAL.HW = tree$BAL-tree$BAL.SW
+  tree = tree %>%
+    dplyr::arrange(PLOT, dplyr::desc(DBH)) %>%
+    dplyr::group_by(PLOT) %>%
+    dplyr::mutate(BAL = cumsum(ba) - ba,
+                  BAL.SW = cumsum(ba.SW) - ba.SW,
+                  BAL.HW = BAL - BAL.SW) %>%
+    dplyr::ungroup()
 
   #compute tree-level crown width-related metrics
-  tree$mcw=mapply(mcw,sp=tree$SP,dbh=tree$DBH)
-  tree$lcw=mapply(lcw,sp=tree$SP,mcw=tree$mcw,dbh=tree$DBH)
-  tree$MCA=100*((pi*(tree$mcw/2)^2)/10000)*tree$EXPF
-  tree$MCA.SW<-ifelse(tree$SPtype=='SW',tree$MCA,0)
-  temp = unlist(by(tree$MCA,INDICES=tree$PLOT,FUN=cumsum))
-  tree$CCFL = temp-tree$MCA
-  temp = unlist(by(tree$MCA.SW,INDICES=tree$PLOT,FUN=cumsum))
-  tree$CCFL.SW = temp-tree$MCA.SW
-  tree$CCFL.HW=tree$CCFL-tree$CCFL.SW
+  tree = tree %>%
+    dplyr::mutate(mcw = mapply(mcw, sp=SP, dbh=DBH),
+                  lcw = mapply(lcw, sp=SP, mcw=mcw, dbh=DBH),
+                  MCA = 100 * ((pi * (mcw/2)^2) / 10000) * EXPF,
+                  MCA.SW = ifelse(SPtype=='SW', MCA, 0)) %>%
+    dplyr::group_by(PLOT) %>%
+    dplyr::mutate(CCFL = cumsum(MCA) - MCA,
+                  CCFL.SW = cumsum(MCA.SW) - MCA.SW,
+                  CCFL.HW = CCFL - CCFL.SW) %>%
+    dplyr::ungroup()
 
   #calculate plot CCF
-  temp = ddply(tree[,c('PLOT','MCA')],.(PLOT),function (x) sum(x$MCA))
-  colnames(temp)[2] = "CCF"
-  tree=merge(tree,temp,by=c('PLOT'))
+  temp = tree %>%
+    dplyr::group_by(PLOT) %>%
+    dplyr::summarise(CCF = sum(MCA), .groups = 'drop')
+  tree = dplyr::left_join(tree, temp, by='PLOT')
   #save the plot CCF's in Sum.temp for use with ingrowth
-  Sum.temp = merge(Sum.temp,temp,by="PLOT")
+  Sum.temp = dplyr::left_join(Sum.temp, temp, by='PLOT')
 
   #calculate heights of any with missing values.
-  #generally, none will be missing when funciton is used with FVS, but some or
+  #generally, none will be missing when function is used with FVS, but some or
   #all would be missing when code us used to grow tree lists from other sources.
   if (any(is.na(tree$HT))) 
   {
@@ -2066,7 +2168,7 @@ AdirondackGYOneStand=function(tree,stand,ops)
     {
       if (is.null(tree$HCB)) tree$HCB = NA
       # Height to crown base
-      pHCB=mapply(SUNY.HCB,SPP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
+      pHCB=mapply(SUNY.BHT,SPP=tree$SP,TYPE=tree$SPtype,DBH=tree$DBH,
                     HT=tree$HT,BAL=tree$BAL,BA=tree$BAPH,CSI=CSI)
       tree$HCB=ifelse(is.na(tree$HCB),pHCB,tree$HCB)
     }
@@ -2157,6 +2259,51 @@ AdirondackGYOneStand=function(tree,stand,ops)
     Sum.temp$WS.ING=Sum.temp$SPR.ING*Sum.temp$pWS.ba
 
     ingrow = ING.TreeList(Sum.temp,INGROWTH,MinDBH=MinDBH)
+    
+    # Add predicted heights and crown bases if there are ingrowth records
+    if (!is.null(ingrow) && nrow(ingrow) > 0) {
+      tree.max.bal=tree %>% 
+        dplyr::group_by(PLOT) %>% 
+        dplyr::summarise(bal.plot.max=max(BAL), 
+                         .groups = 'drop')
+      
+      spp.lookup = purrr::map_dfr(unique(ingrow$SP), function(sp) {
+        r = SPP.func(sp)
+        data.frame(SP = sp, 
+                   SPtype = r[['SPtype']], 
+                   shade = as.numeric(r[['shade']]))  })
+      
+      
+      ingrow = ingrow %>%
+        dplyr::left_join(spp.lookup, 
+                         by = 'SP') %>% 
+        #Compute basal area in larger trees
+        dplyr::arrange(PLOT, 
+                       dplyr::desc(DBH)) %>%
+        dplyr::group_by(PLOT) %>%
+        dplyr::mutate(ba=(DBH^2*0.00007854)*EXPF,
+                      BAL = cumsum(ba) - ba) %>%
+        dplyr::ungroup() %>% 
+        dplyr::left_join(tree.max.bal, 
+                         by = 'PLOT') %>% 
+        dplyr::mutate(BAL= BAL + dplyr::coalesce(bal.plot.max, 0)) %>% # coalesce() to handle cases where we have plots with no existing tree records
+        
+        dplyr::mutate(HT= purrr::pmap_dbl(
+          list(SPP=SP, 
+               TYPE=SPtype, 
+               DBH=DBH,  
+               BAL=BAL, 
+               BA=ba),
+          SUNY.HT),
+          HCB = purrr::pmap_dbl(
+            list(SPP=SP, TYPE=SPtype, 
+                 DBH=DBH, HT=HT, 
+                 BAL=BAL, BA=ba, CSI=CSI),
+            SUNY.BHT))
+      
+    }
+    
+    
   }
   
   #Scale the growth to the number of years in the period. 
@@ -2176,9 +2323,16 @@ AdirondackGYOneStand=function(tree,stand,ops)
 
   if (verbose) cat ("at return, nrow(tree)=",nrow(tree)," ingrow=",
        if (is.null(ingrow)) "NULL" else nrow(ingrow),"\n")
-       
-  # return the original trees and the ingrowth separately
-  list(tree=tree,ingrow=ingrow)
+
+  # Append ingrowth
+  if (!is.null(ingrow)) {
+    tree = tree %>%
+      dplyr::bind_rows(as.data.frame(ingrow))
+  }
+  
+  tree=as.data.frame(tree)
+  
+  tree
 }
 
     

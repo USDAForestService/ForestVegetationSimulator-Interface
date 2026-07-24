@@ -107,55 +107,75 @@ mkCheckBox <- function (pkey, pmt, choices, fpvs)
 }
 
 
-mkSelectInput <- function (inputId, label, choices, fpvs, 
-                           type="list", valpair=FALSE)
-{
+mkSelectInput <- function(inputId, label, choices, fpvs,
+                          type = "list", valpair = FALSE) {
   llast <- FALSE
-  choices = trim(scan(text=choices,what=" ",sep="\n",quiet=TRUE))
-  sel = grep ("^>",choices)
-  if (length(sel)) choices[sel] = trim(substring(choices[sel],2))
+  choices <- trim(scan(text = choices, what = " ", sep = "\n", quiet = TRUE))
+  sel <- grep("^>", choices)
+  if (length(sel)) choices[sel] <- trim(substring(choices[sel], 2))
   edt <- 0
-  if (! (is.null(fpvs) || is.na(fpvs)))
-  {
-    sel = if (is.na(suppressWarnings(as.numeric(fpvs)))) 
-      grep (paste0("^",fpvs),choices) else fpvs
+  if (!(is.null(fpvs) || is.na(fpvs))) {
+    sel <- if (is.na(suppressWarnings(as.numeric(fpvs))))
+      grep(paste0("^", fpvs), choices) else fpvs
     edt <- 1
-  } 
-cat ("in mkSelectInput type=",type," fpvs=",fpvs," sel=",sel,"\n")
-  mklist = if (valpair)
-    lapply(choices, function (x) trim(unlist(strsplit(x,"="))[1])) else
-      as.list(as.character(0:(length(choices)-1)))
-  names(mklist) = choices
-  
-  if (length(sel) && edt==0) 
-    { 
-      if (sel==length(choices)){
-        sel <- sel - 1 
-        llast <- TRUE
-      } 
-      if (!valpair) sel = match(as.character(sel),mklist) 
-      if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else {
+  }
+cat("in mkSelectInput type=", type, " fpvs=", fpvs, " sel=", sel, "\n")
+  mklist <- if (valpair) {
+    lapply(choices, function(x) trim(unlist(strsplit(x, "="))[1]))
+  } else {
+    as.list(as.character(0:(length(choices)-1)))
+  }
+  names(mklist) <- choices
+
+  if (length(sel) && edt == 0) {
+    if (sel == length(choices)) {
+      sel <- sel - 1
+      llast <- TRUE
+    }
+    if (!valpair) {
+      sel = match(as.character(sel),mklist)
+    }
+    if (is.na(sel)) {
+      sel <- "0"
+    } else {
+      as.character(if (valpair) {
+        sel <- sel
+      } else {
         if (llast) sel <- sel - 1
         else sel <- sel - 2
       })
-      #if (is.na(sel)) sel <- "0" else as.character(if (valpair) sel <- sel else if(sel == length(choices)) sel <- sel-1 else sel <- sel-2)
-  } 
-  if(!length(sel) && edt==0) sel="0"
-  if(!length(sel) && edt==1 && !valpair) sel=mklist[1]
-  if (valpair && is.na(mklist[1]) && edt==0) mklist[1] <- " "
-  if (valpair && is.na(mklist[1]) && edt==1) mklist[1] <- sel[1]
-  if (valpair && gsub('"','',mklist[1])==" "  && edt==0) sel <- as.character(as.numeric(sel)-1)
-  if (valpair && gsub('"','',mklist[1])!=" " && edt==1){
-    if(choices[1]==""){
-    sel <- as.character(mklist[mklist[[1]][1]])
-    mklist[1] <- as.character((mklist[1]))
+    }
+  }
+
+  # A hacky solution to select the correct forest type in a MODTYPE keyword edit
+  if (label[1] == "Forest type:" && !is.null(fpvs) && !is.na(fpvs)) {
+    sel <- match(as.character(sel), mklist)
+  }
+
+  if (!length(sel) && edt == 0) sel = "0"
+  if (!length(sel) && edt == 1 && !valpair) sel = mklist[1]
+  if (valpair && is.na(mklist[1]) && edt == 0) mklist[1] <- " "
+  if (valpair && is.na(mklist[1]) && edt == 1) mklist[1] <- sel[1]
+  if (valpair && gsub('"', "", mklist[1]) == " "  && edt == 0) {
+    sel <- as.character(as.numeric(sel) - 1)
+  }
+  if (valpair && gsub('"', "", mklist[1]) != " " && edt == 1) {
+    if(choices[1] == "") {
+      sel <- as.character(mklist[mklist[[1]][1]])
+      mklist[1] <- as.character((mklist[1]))
     } else sel <- as.character(as.numeric(sel))
   }
-  switch (type,
-    "checkboxgroup"=checkboxGroupInput(inputId,label,mklist,selected=sel), 
-    "radiogroup"=myRadioGroup(inputId,label,
-         mklist,selected=sel),
-     myInlineListButton (inputId, label, mklist, selected=sel,deltll=2))
+
+  # A hacky solution to select the correct forest type in a CLIMDATA keyword edit # nolint: line_length_linter.
+  if (label[1] == "Pick a GCM/Scenario to use" &&
+        !is.null(fpvs) && !is.na(fpvs)) {
+    sel <- mklist[as.numeric(sel)]
+  }
+
+  switch(type,
+         "checkboxgroup" = checkboxGroupInput(inputId, label, mklist, selected = sel),  # nolint: line_length_linter.
+         "radiogroup" = myRadioGroup(inputId, label, mklist, selected = sel),
+         myInlineListButton(inputId, label, mklist, selected = sel, deltll = 2))
 }
 
 mkSelhabPa<- function (pkey,prms,pmt,fpvs,choices,globals)
@@ -513,6 +533,7 @@ mkVarList <- function (globals)
      "InvYear: Inventory year"="InvYear", 
      "Lat: The latitude of the stand"="Lat", 
      "Long: The longitude of the stand"="Long", 
+     "LocCode: Forest Location Code"="LocCode",
      "MAI: Mean annual increment"="MAI",                                                                                         
      "No: The constant 0"="No", 
      "NumTrees: Number tree records"="NumTrees", 
