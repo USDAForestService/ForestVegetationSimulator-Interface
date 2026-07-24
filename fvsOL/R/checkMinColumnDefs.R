@@ -73,7 +73,8 @@ checkMinColumnDefs <- function(dbo, progress = NULL, pn = 0) {
 
         # Add logic to check for blank entries
         # Note: Sqlite extensions 'math', 'regexp', 'series', 'csv' not enabled by default
-        RSQLite::initExtension(dbo, extension = c('regexp'))
+        init_ext_fun <- getExportedValue("RSQLite", "initExtension")
+        init_ext_fun(dbo, extension = c('regexp'))
         q <- paste0("SELECT COUNT(*) FROM ", initnm, " WHERE ", e,
            " NOT REGEXP '[A-Za-z0-9_]' OR ", e, " IS NULL")
         

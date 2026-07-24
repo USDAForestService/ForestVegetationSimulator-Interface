@@ -33,8 +33,8 @@ FVS, and then explore the outputs. The input data are measurements of
 trees stored in an input database. Tools for installing and editing
 that database are included.</p>
 <p>These instructions assume that you are already familiar with FVS.  
-<a href="https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/EssentialFVS.pdf" target="_blank">
-Press here</a> to view an essential background manual. 
+<a href="https://www.fs.usda.gov/sites/default/files/forest-management/essential-fvs.pdf" target="_blank">
+Click here</a> to view an essential background manual. 
 </p>
 <p>The interface was designed to run in a true client/server
 configuration, whereby the data and software are stored on a server
@@ -334,13 +334,13 @@ Here is a select statement that will result in just the cases for a given run:</
 <p>
 A similar select statement is used by FVSOnline to build a temporary table that 
 contains a list of all the CaseID values associated with one or more KeywordFile values. 
-This table, called, temp.Cases, is automatically built or rebuilt every time the you 
+This table, called, tmp_cases, is automatically built or rebuilt every time the you 
 change the selections in <b>"Runs to consider"</b>. In turn, when you desire to explore one of the 
 other FVS output tables, FVSOnline uses this table to limit the rows to include just the rows
 related to runs that are loaded for exploration. For example, to select just the rows in the 
 FVS_Summary2 table that are related to the selected runs, FVSOnline uses this query:
 <p>
-<code>select * from FVS_Summary2 where CaseID in (select CaseID from temp.Cases);</code></p>
+<code>select * from FVS_Summary2 where CaseID in (select CaseID from tmp_cases);</code></p>
 <p>
 The <b>Custom Query</b> tab allows you to build and save your custom output 
 database queries. Queries like those show above can be used to select just the data 
