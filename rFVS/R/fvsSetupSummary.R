@@ -5,7 +5,7 @@
 #' shown as a vertical drop to the post thin level.
 #'
 #' @param asum as returned from [fvsGetSummary()]
-#' @return A reorganized version of [`asum`].
+#' @return A reorganized version of `asum`.
 #' @examples
 #'   fvsSetupSummary(fvsGetSummary())
 #' @export

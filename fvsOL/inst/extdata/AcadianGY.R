@@ -1,46 +1,40 @@
 # $Id: AcadianGY.R 3968 2022-04-28 10:36:05Z nickcrookston $
 ################################################################################
-# v12.3.5.r 
+# v12.5.0.r 
 #
 # Acadian Variant of the Forest Vegetation Simulator (FVS-ACD)                                                                                            #
 # Developed by Aaron Weiskittel, University of Maine, School of Forest Resources
 # aaron.weiskittel@maine.edu
 # 
 #
-# For commercial thinning modifiers, proportion of basal area removed 'pBArm', 
-# ratio of QMD before and after thinning 'QMDratio', stand basal area at the 
-# time of thinning 'BApre', and year of commercial thinning 'YEAR_CT' need to 
-# be defined
-#
-# For SBW modifiers, cumulative defoliation % 'CDEF', initial year of 
-# spruce budworm outbreak 'SBW.YR', and duration of spruce budworm
-# outbreak in years 'SBW.DUR'
-#
 #
 ################################################################################
 
-library(plyr)  # needed for ddply
-library(dplyr) # added 12/21/2020 for dplyr::arrange, mutate, rowwise, left_join, tribble, select, group_by, summarise
-# library(nlme)  # needed for groupedData and gsummary
+library(dplyr) # needed arrange, mutate, left_join, tibble, select, group_by, summarise, ungroup, case_when, all_of
 library(purrr) # needed for pmap_*
 
-AcadianVersionTag = "AcadianV12.3.5"
+AcadianVersionTag = "AcadianV12.5.0"
 
 ##############################
 #### major update summary ####
 ####
 
+# 12.5.0
+  # significant rewrite of codebase   
+  # standardized variable names
+  # removed variables not used in calculations
+  # SPP.func() deprecated replaced with tribble (table) sp.attr
+  # removed cyclen references; cycle length is always 1 and FVS users can select reporting frequency
+  # removed plyr dependency 
+  # modularized calculations- each model component has a calc_*() function that calls the component and modifier functions
+  # added validation functions for tree, stand and ops dataframes
+ 
 # 12.3.5 
-  # Previous mortality equations; BA increment constraint at stand level
-
-# 12.3.4 -- experimental
-  # mortality changed to single step- Chen individual tree survival calculation
-
-# 12.3.3
-  # plot basal area increment calculation changed to stand 
+  # Retain rrevious mortality equations; discontinued experimental use of Chen et al equations
+  # changed calculation of cubic foot volume from tcuft to mcuft to align with FVS output update (customRun file)
 
 # 12.3.2
-  # plot basal area increment calculation modified to better handle cases where both basal area and relative density have high values
+  # stand basal area increment calculation modified to better handle cases where both basal area and relative density have high values
   # removed SM from dDBH.HW.mod() and tsurv_hw_mod()
   # removed library(nlme) dependency
   # new or revised functions related to FVS tree list read and write 
@@ -53,7 +47,7 @@ AcadianVersionTag = "AcadianV12.3.5"
 
 
 # 12.3.1
-  # dBA_plot_fun() modified to incorporate new plot basal area increment equation from Aaron Weiskittel 
+  # dBA_plot_fun() modified to incorporate new stand basal area increment equation from Aaron Weiskittel 
   # new functions: make_acd_tree(); make_fvs_tree(); make_fvs_regen() to facilitate reading and writing FVS tree lists
 
 # 12.3.0 
@@ -94,703 +88,1008 @@ AcadianVersionTag = "AcadianV12.3.5"
 
 ##############################
 
-                                                                                     
-#Define all functions below
 
 
-#Species function
-SPP.func=function(SPP)
-{            
-  SPcodes = c( 
-    'AB',  # AB=American beech
-    'AS',  # AS=ash                  
-    'BA',  # BA=black ash
-    'BC',  # BC=black cherry
-    'BF',  # BF=balsam fir
-    'BP',  # BP=balsam poplar         
-    'BS',  # BS=black spruce
-    'BT',  # BT=bigtooth aspen
-    'EC',  # EC=eastern cottonwood
-    'EH',  # EH=eastern hemlock
-    'GA',  # GA=green ash
-    'GB',  # GB=gray birch
-    'HH',  # HH=eastern hophornbeam
-    'JP',  # JP=jack pine
-    'NS',  # NS=Norway spruce
-    'OH',  # OH=other hardwoods
-    'OS',  # OS=other softwoods
-    'PB',  # PB=paper birch
-    'PC',  # PC=pin cherry  
-    'PR',  # PR=pin cherry 
-    'QA',  # QA=quaking aspen
-    'RB',  # RB=river birch
-    'RM',  # RM=red maple
-    'RP',  # RP=red pine 
-    'RN',  # RN=red pine
-    'RO',  # RO=red oak
-    'RS',  # RS=red spruce
-    'SB',  # SB=Sweet birch
-    'SM',  # SM=sugar maple
-    'ST',  # ST=striped maple
-    'TA',  # TA=larch/tamarack
-    'WA',  # WA=white ash
-    'WC',  # WC=northern white cedar
-    'WP',  # WP=white pine
-    'WS',  # WS=white spruce
-    'YB',  # YB=yellow birch
-    '99')  # other
-   SPtype = c(
-    'HW', # AB=American beech
-    'HW', # AS=ash
-    'HW', # BA=black ash
-    'HW', # BC=black cherry
-    'SW', # BF=balsam fir
-    'HW', # BP=balsam poplar
-    'SW', # BS=black spruce
-    'HW', # BT=bigtooth aspen
-    'HW', # EC=eastern cottonwood
-    'SW', # EH=eastern hemlock
-    'HW', # GA=green ash
-    'HW', # GB=gray birch
-    'HW', # HH=eastern hophornbeam
-    'SW', # JP=jack pine
-    'SW', # NS=Norway spruce
-    'HW', # OH=other hardwoods
-    'SW', # OS=other softwoods
-    'SW', # PB=paper birch
-    'HW', # PC=pin cherry  
-    'HW', # PR=pin cherry 
-    'HW', # QA=quaking aspen
-    'HW', # RB=river birch
-    'HW', # RM=red maple
-    'SW', # RP=red pine 
-    'SW', # RN=red pine
-    'HW', # RO=red oak
-    'SW', # RS=red spruce
-    'HW', # SB=Sweet birch
-    'HW', # SM=sugar maple
-    'HW', # ST=striped maple
-    'SW', # TA=larch/tamarack
-    'HW', # WA=white ash
-    'SW', # WC=northern white cedar
-    'SW', # WP=white pine
-    'SW', # WS=white spruce
-    'HW', # YB=yellow birch
-    'HW') # other
-   attrs = matrix (c(
-    # sg      wd     shade drought  waterlog
-      0.64  ,0.56   , 4.75 , 1.5  , 1.5 ,    # AB=American beech
-      0.57  ,0.51   , 2.84 , 2.74 , 3.02,    # AS=ash                 
-      0.5   ,0.45   , 2.96 , 2    , 3.5 ,    # BA=black ash
-      0.5   ,0.47   , 2.46 , 3.02 , 1.06,    # BC=black cherry
-      0.35  ,0.33   , 5.01 , 1    , 2   ,    # BF=balsam fir
-      0.34  ,0.31   , 1.27 , 1.77 , 2.63,    # BP=balsam poplar
-      0.46  ,0.38   , 4.08 , 2.0  , 2.0 ,    # BS=black spruce
-      0.39  ,0.36   , 1.21 , 2.5  , 2   ,    # BT=bigtooth aspen
-      0.4   ,0.37   , 1.76 , 1.57 , 3.03,    # EC=eastern cottonwood
-      0.4   ,0.38   , 4.83 , 1    , 1.25,    # EH=eastern hemlock
-      0.56  ,0.53   , 3.11 , 3.85 , 2.98,    # GA=green ash
-      0.48  ,0.45   , 1.5  , 2.34 , 1   ,    # GB=gray birch
-      0.78  ,0.63   , 4.58 , 3.25 , 1.07,    # HH=eastern hophornbeam
-      0.43  ,0.4    , 1.36 , 4    , 1   ,    # JP=jack pine
-      0.43  ,0.37023, 4.45 , 1.75 , 1.22,    # NS=Norway spruce
-      0.5121,0      , 2.29 ,  0   , 0   ,    # OH=other hardwoods
-      0.445 ,0      , 2.27 , 0    , 0   ,    # OS=other softwoods
-      0.55  ,0.48   , 1.54 , 2.02 , 1.25,    # PB=paper birch
-      0.38  ,0.36   , 2.26 , 0    , 0   ,    # PC=pin cherry  
-      0.38  ,0.36   , 2.26 , 0    , 0   ,    # PR=pin cherry 
-      0.38  ,0.35   , 1.21 , 1.77 , 1.77,    # QA=quaking aspen
-      0.62  ,0.49   , 1.45 , 1.53 , 2.85,    # RB=river birch
-      0.54  ,0.49   , 3.44 , 1.84 , 3.08,    # RM=red maple
-      0.46  ,0.41   , 1.89 , 3    , 1   ,    # RP=red pine 
-      0.46  ,0.41   , 1.89 , 3    , 1   ,    # RN=red pine
-      0.63  ,0.56   , 2.75 , 2.88 , 1.12,    # RO=red oak
-      0.4   ,0.37   , 4.39 , 2.5  , 2   ,    # RS=red spruce
-      0.65  ,0.6    , 2.58 , 3    , 1   ,    # SB=Sweet birch
-      0.63  ,0.56   , 4.76 , 2.25 , 1.09,    # SM=sugar maple
-      0.46  ,0.44   , 3.56 , 2    , 1   ,    # ST=striped maple
-      0.53  ,0.49   , 0.98 , 2    , 3   ,    # TA=larch/tamarack
-      0.6   ,0.55   , 2.46 , 2.38 , 2.59,    # WA=white ash             
-      0.31  ,0.29   , 3.45 , 2.71 , 1.46,    # WC=northern white cedar
-      0.35  ,0.34   , 3.21 , 2.29 , 1.03,    # WP=white pine
-      0.4   ,0.33   , 4.15 , 2.88 , 1.02,    # WS=white spruce
-      0.62  ,0.55   , 3.17 , 3    , 2   ,    # YB=yellow birch
-      0.3   ,0.3    , 3.0  , 0    , 0   ),   # other
-        ncol=5,byrow=TRUE)
-  sprow = match(SPP,SPcodes)
-  sprow[is.na(sprow)] = length(SPcodes) 
-  #note that only SPtype, shade, and sg are used in the calling routines.
-  return(list(SPtype=SPtype[sprow],shade=attrs[sprow,3],sg=attrs[sprow,1]))
-}
- 
+#### Species functional attributes ####
+sp.attr = dplyr::tribble(
+  ~species,  ~sp.type, ~sg, ~wd, ~shade, ~drought, ~waterlog, ~sp.grp.ingrowth,
+  #species sp.type  sg     wd      shade   drought waterlog  sp.grp.ingrowth
+  'AB',  'HW',  0.64,  0.56,    4.75,  1.5,   1.5,      'AB',    # AB=American beech
+  'AS',  'HW',  0.57,  0.51,    2.84,  2.74,  3.02,     'OH',    # AS=ash                 
+  'BA',  'HW',  0.5,   0.45,    2.96,  2,     3.5,      'OH',    # BA=black ash
+  'BC',  'HW',  0.5,   0.47,    2.46,  3.02,  1.06,     'OH',    # BC=black cherry
+  'BF',  'SW',  0.35,  0.33,    5.01,  1,     2,        'BF',    # BF=balsam fir
+  'BP',  'HW',  0.34,  0.31,    1.27,  1.77,  2.63,     'OH',    # BP=balsam poplar
+  'BS',  'SW',  0.46,  0.38,    4.08,  2.0,   2.0,      'SPR',   # BS=black spruce
+  'BT',  'HW',  0.39,  0.36,    1.21,  2.5,   2,        'OH',    # BT=bigtooth aspen
+  'EC',  'HW',  0.4,   0.37,    1.76,  1.57,  3.03,     'OH',    # EC=eastern cottonwood
+  'EH',  'SW',  0.4,   0.38,    4.83,  1,     1.25,     'OS',    # EH=eastern hemlock
+  'GA',  'HW',  0.56,  0.53,    3.11,  3.85,  2.98,     'OH',    # GA=green ash
+  'GB',  'HW',  0.48,  0.45,    1.5,   2.34,  1,        'BCH',   # GB=gray birch
+  'HH',  'HW',  0.78,  0.63,    4.58,  3.25,  1.07,     'OH',    # HH=eastern hophornbeam
+  'JP',  'SW',  0.43,  0.4,     1.36,  4,     1,        'OS',    # JP=jack pine
+  'NS',  'SW',  0.43,  0.37023, 4.45,  1.75,  1.22,     'OS',    # NS=Norway spruce
+  'OH',  'HW',  0.5121, 0,      2.29,  0,     0,        'OH',    # OH=other hardwoods
+  'OS',  'SW',  0.445, 0,       2.27,  0,     0,        'OS',    # OS=other softwoods
+  'PB',  'HW',  0.55,  0.48,    1.54,  2.02,  1.25,     'BCH',   # PB=paper birch
+  'PC',  'HW',  0.38,  0.36,    2.26,  0,     0,        'OH',    # PC=pin cherry  
+  'PR',  'HW',  0.38,  0.36,    2.26,  0,     0,        'OH',    # PR=pin cherry 
+  'QA',  'HW',  0.38,  0.35,    1.21,  1.77,  1.77,     'QA',    # QA=quaking aspen
+  'RB',  'HW',  0.62,  0.49,    1.45,  1.53,  2.85,     'BCH',   # RB=river birch
+  'RM',  'HW',  0.54,  0.49,    3.44,  1.84,  3.08,     'RM',    # RM=red maple
+  'RP',  'SW',  0.46,  0.41,    1.89,  3,     1,        'OS',    # RP=red pine 
+  'RN',  'SW',  0.46,  0.41,    1.89,  3,     1,        'OS',    # RN=red pine
+  'RO',  'HW',  0.63,  0.56,    2.75,  2.88,  1.12,     'OH',    # RO=red oak
+  'RS',  'SW',  0.4,   0.37,    4.39,  2.5,   2,        'SPR',   # RS=red spruce
+  'SB',  'HW',  0.65,  0.6,     2.58,  3,     1,        'BCH',   # SB=Sweet birch
+  'SM',  'HW',  0.63,  0.56,    4.76,  2.25,  1.09,     'SM',    # SM=sugar maple
+  'ST',  'HW',  0.46,  0.44,    3.56,  2,     1,        'OH',    # ST=striped maple
+  'TA',  'SW',  0.53,  0.49,    0.98,  2,     3,        'OS',    # TA=larch/tamarack
+  'WA',  'HW',  0.6,   0.55,    2.46,  2.38,  2.59,     'OH',    # WA=white ash             
+  'WC',  'SW',  0.31,  0.29,    3.45,  2.71,  1.46,     'WC',    # WC=northern white cedar
+  'WP',  'SW',  0.35,  0.34,    3.21,  2.29,  1.03,     'WP',    # WP=white pine
+  'WS',  'SW',  0.4,   0.33,    4.15,  2.88,  1.02,     'SPR',   # WS=white spruce
+  'YB',  'HW',  0.62,  0.55,    3.17,  3,     2,        'BCH',   # YB=yellow birch
+  '99',  'HW',  0.3,   0.3,     3.0,   0,     0,        'OH')    # other
+
+
 #### Crown prediction ####
-#Maximum crown width
-mcw=function(sp,dbh)
-{
-  SPcodes=c('BF','BS','EH','WP','NC','RS','WS','AB','GB','RB','RO','PB','QA',
-            'RM','SM','YB','OH','OS','99')       
-  coefs = matrix(c(
-   # a1           a2
-    1.37       , 0.572      ,    # BF
-    0.535      , 0.742      ,    # BS
-    2.44       , 0.408      ,    # EH   
-    1.24       , 0.585      ,    # WP
-    1.63       , 0.436      ,    # NC
-    1.80       , 0.461      ,    # RS
-    1.50       , 0.496      ,    # WS
-    2.93       , 0.434      ,    # AB
-    2.24       , 0.382      ,    # GB
-    2.24       , 0.382      ,    # RB
-    4.08       , 0.310      ,    # RO
-    1.48       , 0.623      ,    # PB
-    1.31       , 0.586      ,    # QA
-    2.17       , 0.491      ,    # RM
-    3.31       , 0.356      ,    # SM
-    4.04       , 0.308      ,    # YB
-    4.04       , 0.308      ,    # OH
-    1.597128571, 0.513957143,    # OS
-    2.24262    , 0.462653333),   # 99
-    ncol=2,byrow=TRUE)
-  sprow = match(sp,SPcodes)
-  sprow[is.na(sprow)] = length(SPcodes)  
-  mcw=coefs[sprow,1]*dbh**coefs[sprow,2]
-  return(mcw)
+
+##### Species parameters ###
+# Maximum crown width parameters
+mcw.spp = tibble::tribble(
+  ~species, ~a1, ~a2,
+  'BF', 1.37, 0.572,
+  'BS', 0.535, 0.742,
+  'EH', 2.44, 0.408,
+  'WP', 1.24, 0.585,
+  'NC', 1.63, 0.436,
+  'RS', 1.80, 0.461,
+  'WS', 1.50, 0.496,
+  'AB', 2.93, 0.434,
+  'GB', 2.24, 0.382,
+  'RB', 2.24, 0.382,
+  'RO', 4.08, 0.310,
+  'PB', 1.48, 0.623,
+  'QA', 1.31, 0.586,
+  'RM', 2.17, 0.491,
+  'SM', 3.31, 0.356,
+  'YB', 4.04, 0.308,
+  'OH', 4.04, 0.308,
+  'OS', 1.597128571, 0.513957143,
+  '99', 2.24262, 0.462653333)
+
+# Largest crown width parameters  
+lcw.spp = tibble::tribble(
+  ~species, ~b1, ~b2,
+  'BF', 1.49, 0.105,
+  'BS', 1, 0.174,
+  'EH', 1.90, -0.057,
+  'WP', 1, 0.147,
+  'NC', 2.19, -0.080,
+  'RS', 4.33, -0.264,
+  'WS', 2.09, -0.069,
+  'AB', 1, 0.194,
+  'GB', 3.10, -0.214,
+  'RB', 3.10, -0.214,
+  'RO', 4.10, -0.272,
+  'PB', 2.10, -0.035,
+  'QA', 2.65, 0.157,
+  'RM', 2.63, -0.132,
+  'SM', 1, 0.161,
+  'YB', 4.23, -0.264,
+  'OH', 2.65, 0.157,
+  'OS', 2.3276, 0.027842857,
+  '99', 2.79282, -0.090113333)
+
+##### maximum crown width ####
+# Russell, MB; Weiskittel, AR. 2011. Maximum and largest crown width equations 
+# for 15 tree species in Maine. Northern Journal of Applied Forestry, 28(2): 
+#   84-91. doi: 10.1093/njaf/28.2.84
+
+
+#' Maximum crown width
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param a1 Numeric: Species a1 parameter
+#' @param a2 Numeric: Species a2 parameter
+#' @return Numeric: Maximum crown width (m)
+#'
+mcw = function(sp, dbh, a1, a2) {
+  
+  # Calculate maximum crown width
+  mcw = a1 * (dbh^a2)
+  
+  mcw
 }
 
-   
-#These are the parm ests for estimating largest crown width (lcw)
-lcw=function(sp,mcw,dbh){
-  SPcodes=c('BF','BS','EH','WP','NC','RS','WS','AB','GB','RB','RO','PB','QA',
-            'RM','SM','YB','OH','OS','99')
-  coefs = matrix(c(
-   # b1           b2            
-     1.49   , 0.105       ,   # BF     
-     1      , 0.174       ,   # BS
-     1.90   , -0.057      ,   # EH
-     1      , 0.147       ,   # WP
-     2.19   , -0.080      ,   # NC
-     4.33   , -0.264      ,   # RS
-     2.09   , -0.069      ,   # WS
-     1      , 0.194       ,   # AB
-     3.10   , -0.214      ,   # GB
-     3.10   , -0.214      ,   # RB
-     4.10   , -0.272      ,   # RO
-     2.10   , -0.035      ,   # PB
-     2.65   , 0.157       ,   # QA
-     2.63   , -0.132      ,   # RM
-     1      , 0.161       ,   # SM
-     4.23   , -0.264      ,   # YB
-     2.65   , 0.157       ,   # OH
-     2.3276 , 0.027842857 ,   # OS
-     2.79282, -0.090113333),  # 99
-    ncol=2,byrow=TRUE)     
-  sprow = match(sp,SPcodes)
-  sprow[is.na(sprow)] = length(SPcodes)  
-  lcw=mcw/(coefs[sprow,1]*dbh**coefs[sprow,2])      
-  return(lcw)
-}   
+##### largest crown width ####
+# Russell, MB; Weiskittel, AR. 2011. Maximum and largest crown width equations 
+# for 15 tree species in Maine. Northern Journal of Applied Forestry, 28(2): 
+#   84-91. doi: 10.1093/njaf/28.2.84
 
+#' largest crown width
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param mcw Numeric: Maximum crown width (m)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param b1 Numeric: Species b1 parameter
+#' @param b2 Numeric: Species b2 parameter
+#' @return Numeric: Largest crown width (m)
+#'
+lcw = function(sp, mcw, dbh, b1, b2) {
+  
+  # Calculate largest crown width
+  lcw = mcw / (b1 * (dbh^b2))
+  
+  lcw
+}
+
+##### Calculate crown variables ####
+#' Calculate crown variables 
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param mcw.parm Dataframe: MCW parameter table (default mcw.spp)
+#' @param lcw.parm Dataframe: LCW parameter table (default lcw.spp)
+#' @return Dataframe: Tree data with added crown columns (mcw, lcw, mca, ccfl)
+#'
+calc_crown = function(tree.data, mcw.parm = mcw.spp, lcw.parm = lcw.spp) {
+  
+  # tree.data required.cols = c('sp', 'dbh', 'expf', 'plot')
+ 
+  # Calculate crown dimensions
+  tree.data=tree.data %>%
+    dplyr::mutate(idx.mcw = match(sp, mcw.parm$species, nomatch = match('99', mcw.parm$species)),
+           a1 = mcw.parm$a1[idx.mcw],
+           a2 = mcw.parm$a2[idx.mcw],
+           mcw = mcw(sp, dbh, a1, a2),
+           
+           idx.lcw = match(sp, lcw.parm$species, nomatch = match('99', lcw.parm$species)),
+           b1 = lcw.parm$b1[idx.lcw],
+           b2 = lcw.parm$b2[idx.lcw],
+           lcw = lcw(sp, mcw, dbh, b1, b2),
+           
+           mca = 100 * ((pi * (mcw / 2)^2) / 10000) * expf) %>%
+    dplyr::select(-idx.mcw, -a1, -a2, -idx.lcw, -b1, -b2) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(ccfl = cumsum(mca) - mca) %>%
+    dplyr::ungroup()
+  
+  tree.data
+}
 
 #### Height prediction ####
+
+##### Total height ####
 ### Total height prediction function (updated 8/31/2012) using species as a random effect
-HTPred=function(SPP,DBH,CSI,CCF,BAL) 
-{     
-  c0=  12.44847305
-  c1=  0.801705832
-  c2=  0.043617034
-  c3=  1.048674338
-  c4=  0.011483716
-  c5=  -0.007550999
-  switch (SPP,
-    'AB' = {c0.spp=-1.63260226433876; c3.spp=-0.123848276720533}  ,
-    'AE' = {c0.spp=-0.692010776894357; c3.spp=0.0346080772461358} ,
-    'AH' = {c0.spp=-5.98009416964362; c3.spp=-0.032783189788012}  ,
-    'AI' = {c0.spp=-6.44978562263189; c3.spp=-0.0984022226851643} ,
-    'AP' = {c0.spp=-12.0735361325049; c3.spp=-0.475976304087567}  ,
-    'AS' = {c0.spp=6.69760483331092; c3.spp=-0.125318550191217}   ,
-    'BA' = {c0.spp=-1.61716890163543; c3.spp=-0.141587177559468}  ,
-    'BC' = {c0.spp=-4.52724204655813; c3.spp=-0.172605143041673}  ,
-    'BE' = {c0.spp=-1.60563943164767; c3.spp=-0.424565045666305}  ,
-    'BF' = {c0.spp=1.77471065080046; c3.spp=0.1571978021787}      ,                          
-    'BL' = {c0.spp=-9.82751389751524; c3.spp=-0.292624067773788}  ,
-    'BN' = {c0.spp=0.861243905640667; c3.spp=-0.103226577993538}  ,
-    'BO' = {c0.spp=1.17024253111731; c3.spp=-0.0431150821737857}  ,
-    'BP' = {c0.spp=2.52163661595498; c3.spp=-0.0633568443480465}  ,
-    'BR' = {c0.spp=5.44303876725562; c3.spp=0.354363882079203}    ,
-    'BS' = {c0.spp=3.88571664605334; c3.spp=0.1886808269048}      ,
-    'BT' = {c0.spp=5.2832906396451; c3.spp=-0.0670620453873463}   ,
-    'BW' = {c0.spp=2.52499880080404; c3.spp=0.153925181183304}    ,
-    'EC' = {c0.spp=7.0881673102164; c3.spp=0.182126907461261}     ,
-    'EH' = {c0.spp=0.0643545746867161; c3.spp=0.260671290553969}  ,
-    'EL' = {c0.spp=-0.460173779709119; c3.spp=0.194209222023289}  ,
-    'GA' = {c0.spp=-1.47263156202317; c3.spp=-0.0743884734979349} ,
-    'GB' = {c0.spp=-1.03938349314791; c3.spp=-0.238717166776341}  ,
-    'HH' = {c0.spp=-2.45397316779551; c3.spp=-0.17636502944365}   ,
-    'HK' = {c0.spp=-0.139225685811506; c3.spp=-0.107092112450714} ,
-    'HT' = {c0.spp=-0.498373011862981; c3.spp=0.000508524335021695},
-    'JP' = {c0.spp=12.2041796567474; c3.spp=0.507127061137884}    ,
-    'NC' = {c0.spp=-0.154777524407996; c3.spp=0.0506677142901254} ,
-    'NS' = {c0.spp=10.7572546403292; c3.spp=0.761510842024224}    ,
-    'OH' = {c0.spp=-0.152274609199728; c3.spp=-0.0773943323672784},
-    'OP' = {c0.spp=-1.25201364651662; c3.spp=0.19704750471505}    ,
-    'OS' = {c0.spp=6.64418468070433; c3.spp=0.154974733190601}    ,
-    'PB' = {c0.spp=2.85568786741337; c3.spp=-0.053133050063968}   ,
-    'PI' = {c0.spp=6.11926846598162; c3.spp=0.396180643433203}    ,
-    'PL' = {c0.spp=-12.5774578312843; c3.spp=-0.354402924932074}  ,
-    'PP' = {c0.spp=-2.03524755338192; c3.spp=0.0284495830511636}  ,
-    'PR' = {c0.spp=-5.27943940700261; c3.spp=-0.276675997378359}  ,
-    'PY' = {c0.spp=2.39961434182412; c3.spp=-0.0302798406740612}  ,
-    'QA' = {c0.spp=5.28547878831447; c3.spp=-0.0166932060459991}  ,
-    'RC' = {c0.spp=-13.3554875880232; c3.spp=-0.364956123989416}  ,
-    'RL' = {c0.spp=-13.464860796814; c3.spp=-0.373319415146871}   ,
-    'RM' = {c0.spp=1.13361861116141; c3.spp=-0.124923006598654}   ,
-    'RN' = {c0.spp=2.35424925615196; c3.spp=0.4332474439509}      ,
-    'RO' = {c0.spp=0.567158528857343; c3.spp=5.49241830858304E-05},
-    'RS' = {c0.spp=3.28913339723299; c3.spp=0.197832299388656}    ,
-    'SB' = {c0.spp=5.0591881231944; c3.spp=0.263270570106115}     ,
-    'SC' = {c0.spp=-1.77707771556552; c3.spp=0.272984904670842}   ,
-    'SE' = {c0.spp=-1.20436304154548; c3.spp=-0.217453987421684}  ,                       
-    'SH' = {c0.spp=3.42398432816088; c3.spp=0.00852401379505827}  ,
-    'SM' = {c0.spp=1.83135273162116; c3.spp=-0.1509017085778}     ,
-    'SO' = {c0.spp=-0.337608194904877; c3.spp=0.00266584203067429},
-    'ST' = {c0.spp=-4.21455499968947; c3.spp=-0.158534452384565}  ,
-    'SV' = {c0.spp=-1.66795214963112; c3.spp=-0.180378852473763}  ,
-    'SW' = {c0.spp=1.3081369384269; c3.spp=0.031660020193251}     ,
-    'TA' = {c0.spp=3.03898203229266; c3.spp=-0.070139469703331}   ,
-    'WA' = {c0.spp=1.58571626982993; c3.spp=-0.152599799179656}   ,
-    'WC' = {c0.spp=-2.63796730677436; c3.spp=0.157097825004126}   ,
-    'WO' = {c0.spp=-0.179572014160004; c3.spp=0.050014945223132}  ,
-    'WP' = {c0.spp=1.89177965275704; c3.spp=0.217933074706457}    ,
-    'WS' = {c0.spp=2.83053645408208; c3.spp=0.284913386127066}    ,
-    'YB' = {c0.spp=-1.13450171811265; c3.spp=-0.179629568670318}  ,            
-           {c0.spp=0; c3.spp=0}
-     )
-  ht=(1.37+((c0+c0.spp)+CSI^c1)*(1-exp(-c2*DBH))^(c3+c3.spp+c4*log(CCF+1)+c5*BAL))
-  #ht=(1.37+((c0)+CSI^c1)*(1-exp(-c2*DBH))^(c3+c4*log(CCF+1)+c5*BAL))
-  return(ht=ht)
+
+# Height prediction species parameters
+ht.pred.spp = dplyr::tribble(
+  ~species, ~c0, ~c3,
+  "AB", -1.63260226433876, -0.123848276720533,
+  "AE", -0.692010776894357, 0.0346080772461358,
+  "AH", -5.98009416964362, -0.032783189788012,
+  "AI", -6.44978562263189, -0.0984022226851643,
+  "AP", -12.0735361325049, -0.475976304087567,
+  "AS", 6.69760483331092, -0.125318550191217,
+  "BA", -1.61716890163543, -0.141587177559468,
+  "BC", -4.52724204655813, -0.172605143041673,
+  "BE", -1.60563943164767, -0.424565045666305,
+  "BF", 1.77471065080046, 0.1571978021787,
+  "BL", -9.82751389751524, -0.292624067773788,
+  "BN", 0.861243905640667, -0.103226577993538,
+  "BO", 1.17024253111731, -0.0431150821737857,
+  "BP", 2.52163661595498, -0.0633568443480465,
+  "BR", 5.44303876725562, 0.354363882079203,
+  "BS", 3.88571664605334, 0.1886808269048,
+  "BT", 5.2832906396451, -0.0670620453873463,
+  "BW", 2.52499880080404, 0.153925181183304,
+  "EC", 7.0881673102164, 0.182126907461261,
+  "EH", 0.0643545746867161, 0.260671290553969,
+  "EL", -0.460173779709119, 0.194209222023289,
+  "GA", -1.47263156202317, -0.0743884734979349,
+  "GB", -1.03938349314791, -0.238717166776341,
+  "HH", -2.45397316779551, -0.17636502944365,
+  "HK", -0.139225685811506, -0.107092112450714,
+  "HT", -0.498373011862981, 0.000508524335021695,
+  "JP", 12.2041796567474, 0.507127061137884,
+  "NC", -0.154777524407996, 0.0506677142901254,
+  "NS", 10.7572546403292, 0.761510842024224,
+  "OH", -0.152274609199728, -0.0773943323672784,
+  "OP", -1.25201364651662, 0.19704750471505,
+  "OS", 6.64418468070433, 0.154974733190601,
+  "PB", 2.85568786741337, -0.053133050063968,
+  "PI", 6.11926846598162, 0.396180643433203,
+  "PL", -12.5774578312843, -0.354402924932074,
+  "PP", -2.03524755338192, 0.0284495830511636,
+  "PR", -5.27943940700261, -0.276675997378359,
+  "PY", 2.39961434182412, -0.0302798406740612,
+  "QA", 5.28547878831447, -0.0166932060459991,
+  "RC", -13.3554875880232, -0.364956123989416,
+  "RL", -13.464860796814, -0.373319415146871,
+  "RM", 1.13361861116141, -0.124923006598654,
+  "RN", 2.35424925615196, 0.4332474439509,
+  "RO", 0.567158528857343, 5.49241830858304E-05,
+  "RS", 3.28913339723299, 0.197832299388656,
+  "SB", 5.0591881231944, 0.263270570106115,
+  "SC", -1.77707771556552, 0.272984904670842,
+  "SE", -1.20436304154548, -0.217453987421684,
+  "SH", 3.42398432816088, 0.00852401379505827,
+  "SM", 1.83135273162116, -0.1509017085778,
+  "SO", -0.337608194904877, 0.00266584203067429,
+  "ST", -4.21455499968947, -0.158534452384565,
+  "SV", -1.66795214963112, -0.180378852473763,
+  "SW", 1.3081369384269, 0.031660020193251,
+  "TA", 3.03898203229266, -0.070139469703331,
+  "WA", 1.58571626982993, -0.152599799179656,
+  "WC", -2.63796730677436, 0.157097825004126,
+  "WO", -0.179572014160004, 0.050014945223132,
+  "WP", 1.89177965275704, 0.217933074706457,
+  "WS", 2.83053645408208, 0.284913386127066,
+  "YB", -1.13450171811265, -0.179629568670318)
+
+# Rijal, B; Weiskittel, AR; Kershaw, JA. 2012a. Development of regional height to 
+# diameter equations for 15 tree species in the North American Acadian Region. Forestry: 
+# An International Journal of Forest Research 85(3): 379-390.  doi:10.1093/forestry/cps036
+
+
+#' Predict total height 
+#' 
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param csi Numeric: Climate site index (m)
+#' @param ccf Numeric: Crown competition factor
+#' @param bal Numeric: Basal area larger (m^2 per ha)
+#' @param c0.spp Numeric: Species c0 parameter
+#' @param c3.spp Numeric: Species c3 parameter
+#' @return Numeric: Predicted height (m)
+#'
+pred_ht = function(dbh, csi, ccf, bal, c0.spp, c3.spp) {
+  
+  # Fixed parameters
+  c0 = 12.44847305
+  c1 = 0.801705832
+  c2 = 0.043617034
+  c3 = 1.048674338
+  c4 = 0.011483716
+  c5 = -0.007550999
+  
+  # Calculate total height
+  ht = (1.37 + ((c0 + c0.spp) + csi^c1) * 
+          (1 - exp(-c2 * dbh))^(c3 + c3.spp + c4 * log(ccf + 1) + c5 * bal))
+  
+  ht
 }
 
-### Height to crown base function (updated 9/11/12 using species as random effect)
-HCBPred=function(SPP,DBH,HT,CCF,BAL) 
-{     ## Respective parameters are in order
-  DHR=DBH/HT
-  a0=  0.29070
-  a1=  0.00636
-  a2=  -0.02288
-  a3=  0.08232
-  a4=  -0.03086
-  a5=  -0.01701 
-  a0.spp = switch (SPP,
-    'AB' = -0.218384027 ,
-    'AI' = 0.081713772  ,
-    'AP' = 0.177509753  ,
-    'BA' = 0.112652176  ,
-    'BC' = -0.198822609 ,
-    'BF' = 0.093585699  ,
-    'BP' = -0.136722421 ,
-    'BR' = 0.015598341  ,
-    'BS' = -0.227771445 ,
-    'BT' = 0.010040571  ,
-    'EC' = 0.507259999  ,
-    'EH' = 0.403937729  ,
-    'GB' = -0.181632328 ,
-    'HK' = 0.114597638  ,
-    'JP' = -0.270782917 ,
-    'NC' = -0.20514384  ,
-    'NS' = 0.955552766  ,
-    'OH' = -0.042894377 ,
-    'OP' = -0.718040335 ,
-    'PB' = -0.180946077 ,
-    'PI' = 0.548550524  ,
-    'PR' = -0.270887959 ,
-    'QA' = 0.060833757  ,
-    'RM' = -0.202478201 ,
-    'RN' = -0.150518738 ,
-    'RO' = -0.37021733  ,
-    'RS' = -0.121308265 ,
-    'SC' = 0.244204218  ,
-    'SE' = 0.24302215   ,
-    'SM' = -0.16382426  ,
-    'TA' = -0.304007105 ,
-    'WA' = -0.148338171 ,
-    'WC' = 0.419622685  ,
-    'WO' = 0.167213142  ,
-    'WP' = -0.146685117 ,
-    'WS' = 0.100275538  ,
-    'YB' = 0.003235064  ,
-           0)
-  #hcb=HT/(1+exp(-((a0+a0.spp)+a1*DBH+a2*HT+a3*DHR+a4*log(CCF+1)+a5*(BAL+1))))^(1/6)
-  hcb=HT/(1+exp((a0+a0.spp)+a1*DBH+a2*HT+a3*DHR+a4*log(CCF+1)+a5*(BAL+1)))
-  return(hcb=hcb)
+#' Wrapper to calculate predicted heights for tree list
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data
+#' @param csi Numeric: Climate site index (m)
+#' @param ht.spp.parms Dataframe: Species parameters (default ht.pred.spp)
+#' @return Dataframe: Tree data with ht column added
+#'
+calc_ht = function(tree.data, plot.data, csi = stand$csi, 
+                   ht.spp.parms = ht.pred.spp) {
+  
+  tree.data.names= colnames(tree.data)   
+  
+  tree = tree.data %>% 
+    dplyr::left_join(plot.data %>% 
+                       dplyr::select(plot, ccf), 
+                     by = 'plot') %>%
+    dplyr::mutate(idx = match(sp, ht.spp.parms$species, nomatch = match('OH', ht.spp.parms$species)),
+                  c0.spp = ht.spp.parms$c0[idx],
+                  c3.spp = ht.spp.parms$c3[idx],
+                  pht = pred_ht(dbh, csi, ccf, bal, c0.spp, c3.spp)) %>%
+    dplyr::select(dplyr::all_of(tree.data.names), pht)
+  
+  tree
 }
 
-#### Form and risk ####
-#Form Classification from Castle et al. (2017; CJFR 47: 1457-1467)
-#Returns the probability of single straight stem (STM), 
-#extensive sweep and lean (LSW), multiple stems (MST),
-#significant fork on first 5 m (LF)
-form.prob=function(SPP,DBH)
-{
-  if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-  else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0}
-  else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0}
-  else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0}
-  else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-  STM=exp(-0.9491+0.0174*DBH-0.2826*SPP.RO+0.7541*SPP.SM-0.0208*SPP.YB)/(
-    1+exp(-0.9491+0.0174*DBH-0.2826*SPP.RO+0.7541*SPP.SM-0.0208*SPP.YB))
-  LSW=exp(-1.1143-0.0322*DBH+0.7910*SPP.RO-0.2325*SPP.SM+0.2980*SPP.YB)/(
-    1+exp(-1.1143-0.0322*DBH+0.7910*SPP.RO-0.2325*SPP.SM+0.2980*SPP.YB))  
-  MST=exp(-0.4110-0.5009*SPP.RO-1.1347*SPP.RO-0.7557*SPP.YB)/(1+
-    exp(-0.4110-0.5009*SPP.RO-1.1347*SPP.RO-0.7557*SPP.YB))
-  LF=exp(-4.0677+0.0322*DBH+0.1139*SPP.RO+0.6278*SPP.SM+1.0681*SPP.YB)/(1+
-    exp(-4.0677+0.0322*DBH+0.1139*SPP.RO+0.6278*SPP.SM+1.0681*SPP.YB))
-  xx=1/(STM+LSW+MST+LF)
-  STM=STM*xx
-  LSW=LSW*xx
-  MST=MST*xx
-  LF=LF*xx
-  STM=ifelse(SPP=='RO' | SPP=='SM' | SPP=='RM' | SPP=='YB',STM,0)
-  LSW=ifelse(SPP=='RO' | SPP=='SM' | SPP=='RM' | SPP=='YB',LSW,0)
-  MST=ifelse(SPP=='RO' | SPP=='SM' | SPP=='RM' | SPP=='YB',MST,0)
-  LF=ifelse(SPP=='RO' | SPP=='SM' | SPP=='RM' | SPP=='YB',LF,0)
-  return(list(STM=STM,LSW=LSW,MST=MST,LF=LF))
-}
+##### Height to crown base ####  
+  
+### Height to crown base function updated 9/11/12 using species as random effect
+  
+ # Height to crown base species parameters
+  hcb.pred.spp = dplyr::tribble(
+    ~species, ~a0.spp,
+    "AB", -0.218384027,
+    "AI", 0.081713772,
+    "AP", 0.177509753,
+    "BA", 0.112652176,
+    "BC", -0.198822609,
+    "BF", 0.093585699,
+    "BP", -0.136722421,
+    "BR", 0.015598341,
+    "BS", -0.227771445,
+    "BT", 0.010040571,
+    "EC", 0.507259999,
+    "EH", 0.403937729,
+    "GB", -0.181632328,
+    "HK", 0.114597638,
+    "JP", -0.270782917,
+    "NC", -0.20514384,
+    "NS", 0.955552766,
+    "OH", -0.042894377,
+    "OP", -0.718040335,
+    "PB", -0.180946077,
+    "PI", 0.548550524,
+    "PR", -0.270887959,
+    "QA", 0.060833757,
+    "RM", -0.202478201,
+    "RN", -0.150518738,
+    "RO", -0.37021733,
+    "RS", -0.121308265,
+    "SC", 0.244204218,
+    "SE", 0.24302215,
+    "SM", -0.16382426,
+    "TA", -0.304007105,
+    "WA", -0.148338171,
+    "WC", 0.419622685,
+    "WO", 0.167213142,
+    "WP", -0.146685117,
+    "WS", 0.100275538,
+    "YB", 0.003235064)
 
-#Risk Classification from Castle et al. (2017; CJFR 47: 1457-1467)
-#returns the probability of a tree being high risk
-risk.prob=function(SPP,DBH)
-{
-  if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-  else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0}
-  else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0}
-  else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0}
-  else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-  HR=exp(-0.6886-0.0001*DBH-0.0184*SPP.RO-0.1513*SPP.SM-0.9851*SPP.YB
-         -0.0393*(DBH*SPP.RO)-0.0164*(DBH*SPP.SM)+0.0196*(DBH*SPP.YB))/(1+
-    exp(-0.6886-0.0001*DBH-0.0184*SPP.RO-0.1513*SPP.SM-0.9851*SPP.YB
-    -0.0393*(DBH*SPP.RO)-0.0164*(DBH*SPP.SM)+0.0196*(DBH*SPP.YB)))
-  HR=ifelse(SPP=='RO' | SPP=='SM' | SPP=='RM' | SPP=='YB',HR,0)
-  return(HR=HR)
-}
+# Rijal, B; Weiskittel, AR; Kershaw, JA. 2012b. Development of height to crown base 
+# models for thirteen tree species of the North American Acadian Region. Forestry 
+# Chronicle 88: 60-73.  
 
+ #' Predict height to crown base
+ #' 
+ #' @param dbh Numeric: Diameter at breast height (cm)
+ #' @param ht Numeric: Total tree height (m)
+ #' @param dhr Numeric: Height diameter ratio
+ #' @param ccf Numeric: Crown competition factor
+ #' @param bal Numeric: Basal area larger (m^2 per ha)
+ #' @param a0.spp Numeric: Species parameter
+ #' @return Numeric: Predicted height to crown base (m)
+ #'
+  pred_hcb = function(dbh, ht, dhr, ccf, bal, a0.spp) {
+    
+    # parameters
+    a0 = 0.29070
+    a1 = 0.00636
+    a2 = -0.02288
+    a3 = 0.08232
+    a4 = -0.03086
+    a5 = -0.01701
+    
+    # Calculate height to crown base
+    hcb = ht / (1 + exp((a0 + a0.spp) + a1 * dbh + a2 * ht + a3 * dhr + 
+                          a4 * log(ccf + 1) + a5 * (bal + 1)))
+    
+    hcb
+  }
+  
+#' Wrapper to calculate height to crown base for tree list
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data
+#' @param hcb.spp.parms Dataframe: Species parameters (default hcb.pred.spp)
+#' @return Dataframe: Tree data with hcb column added
+#'
+  calc_hcb = function(tree.data, plot.data, hcb.spp.parms = hcb.pred.spp) {
+    
+    tree.data.names= colnames(tree.data)  
+    
+    tree=tree.data %>% 
+      dplyr::left_join(plot.data %>% 
+                         dplyr::select(plot, ccf), 
+                       by = 'plot') %>%
+      dplyr::mutate(idx = match(sp, hcb.spp.parms$species, nomatch = match('OH', hcb.spp.parms$species)),
+                    a0.spp = hcb.spp.parms$a0.spp[idx],
+                    dhr = dbh / ht,
+                    phcb = pred_hcb(dbh, ht, dhr, ccf, bal, a0.spp)) %>%
+      dplyr::select(dplyr::all_of(tree.data.names), phcb)
+    
+    tree
+  }
+  
+#### Form and risk prediction ####
+  
+  # Form prediction parameters 
+  form.pred.spp = dplyr::tribble(
+    ~species, ~stm.b0, ~stm.b1, ~stm.b2, ~lsw.b0, ~lsw.b1, ~lsw.b2, ~mst.b0, ~mst.b2, ~lf.b0, ~lf.b1, ~lf.b2,
+    'RO',     -0.9491, 0.0174, -0.2826, -1.1143, -0.0322,  0.7910, -0.4110, -0.5009, -4.0677, 0.0322, 0.1139,
+    'SM',     -0.9491, 0.0174,  0.7541, -1.1143, -0.0322, -0.2325, -0.4110, -1.1347, -4.0677, 0.0322, 0.6278, 
+    'YB',     -0.9491, 0.0174, -0.0208, -1.1143, -0.0322,  0.2980, -0.4110, -0.7557, -4.0677, 0.0322, 1.0681,
+    'RM',     -0.9491, 0.0174,  0.0000, -1.1143, -0.0322,  0.0000, -0.4110,  0.0000, -4.0677, 0.0322, 0.0000, 
+    'OH',      0.0000, 0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000, 0.0000, 0.0000)
+  # assumes typo in older versions
+  # MST=exp(-0.4110- 0.5009* SPP.RO- 1.1347*SPP.RO- 0.7557*SPP.YB)/(1+
+  #     exp(-0.4110- 0.5009*SPP.RO- 1.1347*SPP.RO- 0.7557*SPP.YB))
+  # should 1.1347*SPP.RO have been 1.1347*SPP.SM
+  
+  # Risk prediction parameters  
+  risk.pred.spp = dplyr::tribble(
+    ~species, ~hr.b0, ~hr.b1, ~hr.b2, ~hr.b3,
+    'RO', -0.6886, -0.0001, -0.0184,  -0.0393, 
+    'SM', -0.6886, -0.0001, -0.1513,  -0.0164,
+    'YB', -0.6886, -0.0001, -0.9851,   0.0196,
+    'RM', -0.6886, -0.0001,  0.0000,   0.0000, 
+    'OH',  0.0000,  0.0000,  0.0000,   0.0000)
+
+##### Hardwood form ####  
+  # Castle, ME; Weiskittel, AR; Wagner, RG; Ducey, MJ; Frank, JF; Pelletier, G. 2017. 
+  # Variation in stem form and risk of four commercially important hardwood species 
+  # in the Acadian forest: Implications for potential sawlog volume and tree classification 
+  # systems. Canadian Journal of Forest Research. 47(11): 1457-1467.
+  
+  #Returns the probability of single straight stem (STM), 
+  #extensive sweep and lean (LSW), multiple stems (MST),
+  #significant fork on first 5 m (LF)
+  
+  #' Calculate form class probabilities for tree list
+  #' 
+  #' @param tree.data Dataframe: Tree list
+  #' @param form.spp.parms Dataframe: Form parameter table (default form.pred.spp)
+  #' @return Dataframe: Tree list with form probabilities (stm.prob, lsw.prob, mst.prob, lf.prob)
+  calc_form_prob = function(tree.data, form.spp.parms = form.pred.spp) {
+    
+    # Filter applicable species and calculate probabilities
+    tree.form = tree.data %>%
+      dplyr::filter(sp %in% c('RO', 'SM', 'RM', 'YB')) %>%
+      dplyr::left_join(form.spp.parms, 
+                       by = c('sp' = 'species')) %>%
+      dplyr::mutate(stm = exp(stm.b0 + stm.b1 * dbh + stm.b2) / 
+                      (1 + exp(stm.b0 + stm.b1 * dbh + stm.b2)),
+                    
+                    lsw = exp(lsw.b0 + lsw.b1 * dbh + lsw.b2 ) / 
+                      (1 + exp(lsw.b0 + lsw.b1 * dbh + lsw.b2 )),
+                    
+                    mst = exp(mst.b0 + mst.b2 ) / 
+                      (1 + exp(mst.b0 + mst.b2)),
+                    
+                    lf = exp(lf.b0 + lf.b1 * dbh + lf.b2) / 
+                      (1 + exp(lf.b0 + lf.b1 * dbh + lf.b2)),
+                    # Normalize probabilities
+                    total.prob = stm + lsw + mst + lf,
+                    stm.prob = ifelse(total.prob > 0, stm / total.prob, NA_real_),
+                    lsw.prob = ifelse(total.prob > 0, lsw / total.prob, NA_real_),
+                    mst.prob = ifelse(total.prob > 0, mst / total.prob, NA_real_),
+                    lf.prob = ifelse(total.prob > 0, lf / total.prob, NA_real_)) %>%
+      dplyr::select(plot, tree, 
+                    stm.prob, lsw.prob, mst.prob, lf.prob)
+    
+    tree = tree.data %>%
+      dplyr::left_join(tree.form, 
+                       by = c('plot', 'tree'))
+    
+    tree
+  }
+ 
+##### Hardwood risk ####
+  # Castle, ME; Weiskittel, AR; Wagner, RG; Ducey, MJ; Frank, JF; Pelletier, G. 2017. 
+  # Variation in stem form and risk of four commercially important hardwood species 
+  # in the Acadian forest: Implications for potential sawlog volume and tree classification 
+  # systems. Canadian Journal of Forest Research. 47(11): 1457-1467.
+  
+  #' Calculate hardwood risk probability for tree list
+  #' 
+  #' @param tree.data Dataframe: Tree list
+  #' @param risk.spp.parms Dataframe: Risk parameter table (default risk.pred.spp)
+  #' @return Dataframe: Tree data with high risk probability (risk.prob)
+  calc_risk_prob = function(tree.data, risk.spp.parms = risk.pred.spp) {
+    
+    # Filter applicable species and calculate probability
+    tree.risk = tree.data %>%
+      dplyr::filter(sp %in% c('RO', 'SM', 'RM', 'YB')) %>%
+      dplyr::left_join(risk.spp.parms, 
+                       by = c('sp' = 'species')) %>%
+      dplyr::mutate(hr = exp(hr.b0 + hr.b1 * dbh + hr.b2 + hr.b3 * dbh) /
+                      (1+ exp(hr.b0 + hr.b1 * dbh + hr.b2 + hr.b3 * dbh)),
+                    risk.prob = ifelse(hr >= 0, 
+                                       hr, 
+                                       NA_real_)) %>%
+      dplyr::select(plot, tree, risk.prob)
+    
+    tree = tree.data %>%
+      dplyr::left_join(tree.risk, 
+                       by = c('plot', 'tree'))
+    
+    tree
+  }
+ 
 #### Diameter increment ####
+
+# Species random effects parameters
+ddbh.spp = tibble::tribble(
+  ~species, ~ddbh.b0.spp, ~ddbh.b2.spp, ~ddbh.b3.spp, ~ddbh.b4.spp,
+  
+  #species|----------ddbh.b0.spp-|----------ddbh.b2.spp-|----------ddbh.b3.spp-|----------ddbh.b4.spp-|
+  #-------|----------------------|----------------------|----------------------|----------------------|
+  'AB',     -0.35229300349977,  -0.00320266087038405,   -0.280946863448189,    0.0224134774905559,
+  'AE',      0.525848414142466,  0.013991275456242,      0.412199430293274,    0.133837343770701, 
+  'AH',     -0.563196640320761, -0.01077075539195,       0.0670133879698583,   0.0411626357856011, 
+  'AI',      0.0206561707667808,-0.000133492112204404,   0.00604358781482393, -0.000290675616258897, 
+  'AL',     -1.39566897323315,  -0.000609093629818986,  -0.358275097112723,    0.0189886825701186,  # 	Alder spp. FIA:350; Mapped to NC in FVS-NE
+  'AP',      0.274305700135926, -0.0102065952875863,     0.67051254435555,     0.0378917157417856, 
+  'AW',      0.274056500403582,  0.00332679657906075,    0.11176485808573,    -0.00233348958863975, 
+  'BA',     -0.438617439122267, -0.0022924817415948,    -0.226866504779093,    0.000647108990407897, 
+  'BC',     -0.279503150796968, -0.0165193146291975,    -0.448777856671972,    0.129218944771525, 
+  'BE',      0.757730775072063,  0.00184989739560478,   -0.145270886735823,   -0.079685465435807, 
+  'BF',      0.218141150555071, -0.00643400053014112,   -0.0262015176388915,  -0.0646867462894489, 
+  'BH',      0.0819668443898863, 0.000841343024792485,   0.0170397550545379,  -0.00382472350301523, 
+  'BN',      0.0589621277531259, 0.016876722904582,     -0.512634541103034,   -0.0856035985165029, 
+  'BO',      0.107935674233564,  0.0176564165685457,    -0.00544094948482233, -0.00616179384680487, 
+  'BP',      0.606188793076239, -0.00977183436369207,    0.214468436803594,   -0.0164368644086746, 
+  'BR',     -0.0664233470667451,-0.000131289490261372,  -0.0221300235777483,   0.00315273402640522, 
+  'BS',     -0.276634107961408, -0.0223933899622142,    -0.0621958644556339,  -0.0340210607126585, 
+  'BT',     -0.350923645391202,  0.00677617700565758,   -0.501315826210755,    0.000443327372257035, 
+  'BW',      0.852838875626812, -0.00749469682441489,    0.563426492847638,    0.0865682041795566, 
+  'CC',     -0.646060138282966,  0.0185634940525597,    -0.217332456059064,   -0.00468805063509814, # Chokecherry	Prunus virginiana L.; Mapped to PR in FVS-NE
+  'DW',     -0.28835019262561,   0.00226777705843645,   -0.0727887365452367,   0.00620864120347165, 
+  'EC',      1.58534419438753,   0.0221556233917705,     0.99011590136056,    -0.0316723426356603, 
+  'EH',      0.23832806753631,   0.00118716829863115,    0.119839150759218,   -0.0649429567847272, 
+  'GA',     -0.266610352981902,  0.0142439347090041,    -0.157160602427669,    0.0201046549950529, 
+  'GB',      0.569983699945702, -0.0664764747642257,     0.198468738812332,   -0.000182703428282641, 
+  'HH',     -0.501569825162518, -0.00670231905749689,   -0.019651784641892,    0.0906523218981392, 
+  'HT',     -0.0613234444247148,-0.000889502151334581,   0.0430025231765345,  -0.00278983116616843, 
+  'JP',     -0.420043432830034,  0.00403607564949984,   -0.187599015525425,   -0.0389091733228937, 
+  'MA',      0.468084314323129,  0.00958064279983111,    0.678223987792607,    0.0295813570930029,  # Mountain ash Spp.	Sorbus L.; Mapped to OH in FVS-NE
+  'MM',      0.0317209810222673,-0.0340400816174698,     0.168052731769139,    0.00882258268527404, # Mountain maple	Acer spicatum Lam.; Mapped to BE in FVS-NE
+  'NM',      0.547337559525123,  0.00368970130406897,    0.192702714249798,   -0.0257238213929463, 
+  'NS',      0.920841840601976, -0.0105302018827745,     0.36415087893201,    -0.0694155463378462, 
+  'PB',     -0.385839297400118, -0.01555970103088,      -0.308091415912301,   -0.0187005222638015, 
+  'PP',      0.225132074554987,  0.00034883061835917,   -0.0492140542436018,  -0.0214534992754162, 
+  'PR',      0.300351370819549, -0.00518831177987846,    0.287346478205465,   -0.0129989659266202, 
+  'QA',     -0.15077181884078,   0.00539704035058058,   -0.340232559896089,    0.0199221562824125, 
+  'RM',     -0.298278566308469, -0.00498222690678925,   -0.265474647776576,    0.000258040319045941, 
+  'RN',      0.821039623095964, -0.0222637540954861,    -0.0705092414278761,  -0.0620751900997439, 
+  'RO',     -1.20176658090374,   0.020834595446663,     -0.650193065347603,    0.0138347896809763, 
+  'RS',      0.0618488755956072, 0.00202537566145879,    0.00991911205114839, -0.0471014659203857, 
+  'SB',      0.180027893811038,  0.00407646754964104,    0.294830204810925,    0.0456285448463209, 
+  'SC',      0.29168375283719,   0.00840462598363303,    0.103224327654649,   -0.0375172178406619, 
+  'SE',     -0.84474776429187,   0.0194048566748705,    -0.185320642808431,    0.00481365467481041, 
+  'SH',     -0.276495487332175, -0.00407826652188834,    0.0014859893481595,   0.0105292454393637, 
+  'SM',     -0.638439361494548,  0.010114858457283,     -0.449980116702653,    0.0359737559039904, 
+  'SO',      0.576833877897729,  0.0118108307007871,     0.0504539076473394,  -0.0238409166069867, 
+  'ST',     -0.0873041359161447, 0.00436311438537946,   -0.116019942616605,    0.00452898449176065, 
+  'SV',      1.95860936146763,  -0.0214431695728021,     1.32444277392846,    -0.0107689951306809, 
+  'SW',     -0.0393354836772844,-0.00134712871863332,   -0.0101392382579872,   0.00262020551416272, 
+  'SY',      0.118394684213857,  0.00110586034750494,    0.00666275043203567, -0.00950736753890871, 
+  'TA',     -0.897319686496974,  0.0258707228911306,    -0.196336997360169,    0.0289693031310198, 
+  'TM',     -0.108285936575492,  0.000104669900393849,   0.0210335148827363,   0.00194415039443045, 
+  'WA',     -0.590367228757044,  0.00605548042245326,   -0.606966608557039,   -0.0338602035136779, 
+  'WC',     -0.585163503410162,  0.0129733373547068,     0.0997296337920071,   0.0176629033621184, 
+  'WI',     -0.527848384033003, -0.00395736879810604,   -0.15209423465787,     0.0325890859068867,  # Willow Salix L.; Mapped to BL in FVS-NE
+  'WO',     -0.838565888443553,  0.0302991107570669,    -0.102629218123826,    0.0502891203363538, 
+  'WP',      0.789109370527834, -0.0027631019480008,     0.0685266140378779,  -0.0334226215626329, 
+  'WS',      0.237471389318614, -0.00805483001640084,   -0.0435582953989746,  -0.0628031955872689, 
+  'YB',     -0.209369611424538, -0.00157109828388873,   -0.237820855906853,    0.0044801516909863, 
+  'YP',     -0.113657528638608, -0.00042568172058744,   -0.0555107654593295,   0.00168118033975285,
+  '99',      0.0,                0.0,                    0.0,                  0.0,
+  'OH',      0.0,                0.0,                    0.0,                  0.0,
+  'OS',      0.0,                0.0,                    0.0,                  0.0)
+
+# Hardwood form and risk modifier species parameters
+ddbh.hw.mod.spp = tibble::tribble(
+  ~species, ~spp.coeff, ~dbh.interaction,
+  'RO', -0.3453, 0.0511,
+  'SM', 0.0, 0.0,     # reference species (PB)
+  'YB', -0.2494, 0.0251,
+  'RM', -0.6377, 0.0477,
+  'QA', -0.1059, 0.0476,
+  'PB', 0.0, 0.0)       # reference species
+
+# SBW modifier region and species parameters
+ddbh.sbw.region = tibble::tribble(
+  ~region, ~species, ~b1, ~b2, ~b3, ~b4, ~b5, ~b6, ~b7,
+  'ME', 'BF', 0.1187, 0.0019, -0.0327, -0.0412, 0.3950, -1.2813, -0.0016,
+  'ME', 'BS', 0.0675, 0.0019, -0.0327, -0.0412, 0.3950, -0.9477, -0.0006,
+  'ME', 'RS', 0.0675, 0.0019, -0.0327, -0.0412, 0.3950, -0.9477, -0.0006,
+  'ME', 'WS', 0.0321, 0.0019, -0.0327, -0.0412, 0.3950, -0.3715, -0.0183,
+  'NB', 'BF', 0.0701, -0.0190, -0.0277, -0.0027, 0.0, -0.8200, -0.0018,
+  'NB', 'BS', 0.0320, -0.0190, -0.0277, -0.0027, 0.0, -0.6861, -0.0012,
+  'NB', 'RS', 0.0320, -0.0190, -0.0277, -0.0027, 0.0, -0.6861, -0.0012,
+  'NB', 'WS', 0.0487, -0.0190, -0.0277, -0.0027, 0.0, -0.7839, -0.0006)
 
 ### Kuehne, C., Russell, M., Weiskittel, A., and Kershaw Jr, J. 2020. 
 ### Comparing strategies for representing individual-tree secondary growth 
 ### in mixed-species stands in the Acadian Forest region. Forest Ecology 
 ### and Management 459:117823. https://doi.org/https://doi.org/10.1016/j.foreco.2019.117823
 
-
-#species random effects
-ddbh.fun.spp=tribble(
-  ~Spp, ~ddbh.b0.spp, ~ddbh.b2.spp, ~ddbh.b3.spp, ~ddbh.b4.spp,
+#' Calculate diameter increment using Kuehne model
+#' 
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param cr Numeric: Crown ratio (proportion 0-1)
+#' @param bal.sw Numeric: Basal area in larger softwood trees (m^2 per ha)
+#' @param bal.hw Numeric: Basal area in larger hardwood trees (m^2 per ha)
+#' @param csi Numeric: Climate site index (m)
+#' @param ddbh.b0.spp Numeric: Species b0 parameter
+#' @param ddbh.b2.spp Numeric: Species b2 parameter
+#' @param ddbh.b3.spp Numeric: Species b3 parameter
+#' @param ddbh.b4.spp Numeric: Species b4 parameter
+#' @param ht Numeric: Total tree height (m)
+#' @return Numeric: Diameter increment (cm)
+ddbh = function(dbh, cr, bal.sw, bal.hw, csi, ddbh.b0.spp, ddbh.b2.spp, ddbh.b3.spp, ddbh.b4.spp, ht) {
   
-  #Spp-|----------ddbh.b0.spp-|----------ddbh.b2.spp-|----------ddbh.b3.spp-|----------ddbh.b4.spp-|
-  #----|----------------------|----------------------|----------------------|----------------------|
-  "AB",     -0.35229300349977,  -0.00320266087038405,   -0.280946863448189,    0.0224134774905559,
-  "AE",      0.525848414142466,  0.013991275456242,      0.412199430293274,    0.133837343770701, 
-  "AH",     -0.563196640320761, -0.01077075539195,       0.0670133879698583,   0.0411626357856011, 
-  "AI",      0.0206561707667808,-0.000133492112204404,   0.00604358781482393, -0.000290675616258897, 
-  "AL",     -1.39566897323315,  -0.000609093629818986,  -0.358275097112723,    0.0189886825701186,  # 	Alder spp. FIA:350; Mapped to NC in FVS-NE
-  "AP",      0.274305700135926, -0.0102065952875863,     0.67051254435555,     0.0378917157417856, 
-  "AW",      0.274056500403582,  0.00332679657906075,    0.11176485808573,    -0.00233348958863975, 
-  "BA",     -0.438617439122267, -0.0022924817415948,    -0.226866504779093,    0.000647108990407897, 
-  "BC",     -0.279503150796968, -0.0165193146291975,    -0.448777856671972,    0.129218944771525, 
-  "BE",      0.757730775072063,  0.00184989739560478,   -0.145270886735823,   -0.079685465435807, 
-  "BF",      0.218141150555071, -0.00643400053014112,   -0.0262015176388915,  -0.0646867462894489, 
-  "BH",      0.0819668443898863, 0.000841343024792485,   0.0170397550545379,  -0.00382472350301523, 
-  "BN",      0.0589621277531259, 0.016876722904582,     -0.512634541103034,   -0.0856035985165029, 
-  "BO",      0.107935674233564,  0.0176564165685457,    -0.00544094948482233, -0.00616179384680487, 
-  "BP",      0.606188793076239, -0.00977183436369207,    0.214468436803594,   -0.0164368644086746, 
-  "BR",     -0.0664233470667451,-0.000131289490261372,  -0.0221300235777483,   0.00315273402640522, 
-  "BS",     -0.276634107961408, -0.0223933899622142,    -0.0621958644556339,  -0.0340210607126585, 
-  "BT",     -0.350923645391202,  0.00677617700565758,   -0.501315826210755,    0.000443327372257035, 
-  "BW",      0.852838875626812, -0.00749469682441489,    0.563426492847638,    0.0865682041795566, 
-  "CC",     -0.646060138282966,  0.0185634940525597,    -0.217332456059064,   -0.00468805063509814, # Chokecherry	Prunus virginiana L.; Mapped to PR in FVS-NE
-  "DW",     -0.28835019262561,   0.00226777705843645,   -0.0727887365452367,   0.00620864120347165, 
-  "EC",      1.58534419438753,   0.0221556233917705,     0.99011590136056,    -0.0316723426356603, 
-  "EH",      0.23832806753631,   0.00118716829863115,    0.119839150759218,   -0.0649429567847272, 
-  "GA",     -0.266610352981902,  0.0142439347090041,    -0.157160602427669,    0.0201046549950529, 
-  "GB",      0.569983699945702, -0.0664764747642257,     0.198468738812332,   -0.000182703428282641, 
-  "HH",     -0.501569825162518, -0.00670231905749689,   -0.019651784641892,    0.0906523218981392, 
-  "HT",     -0.0613234444247148,-0.000889502151334581,   0.0430025231765345,  -0.00278983116616843, 
-  "JP",     -0.420043432830034,  0.00403607564949984,   -0.187599015525425,   -0.0389091733228937, 
-  "MA",      0.468084314323129,  0.00958064279983111,    0.678223987792607,    0.0295813570930029,  # Mountain ash Spp.	Sorbus L.; Mapped to OH in FVS-NE
-  "MM",      0.0317209810222673,-0.0340400816174698,     0.168052731769139,    0.00882258268527404, # Mountain maple	Acer spicatum Lam.; Mapped to BE in FVS-NE
-  "NM",      0.547337559525123,  0.00368970130406897,    0.192702714249798,   -0.0257238213929463, 
-  "NS",      0.920841840601976, -0.0105302018827745,     0.36415087893201,    -0.0694155463378462, 
-  "PB",     -0.385839297400118, -0.01555970103088,      -0.308091415912301,   -0.0187005222638015, 
-  "PP",      0.225132074554987,  0.00034883061835917,   -0.0492140542436018,  -0.0214534992754162, 
-  "PR",      0.300351370819549, -0.00518831177987846,    0.287346478205465,   -0.0129989659266202, 
-  "QA",     -0.15077181884078,   0.00539704035058058,   -0.340232559896089,    0.0199221562824125, 
-  "RM",     -0.298278566308469, -0.00498222690678925,   -0.265474647776576,    0.000258040319045941, 
-  "RN",      0.821039623095964, -0.0222637540954861,    -0.0705092414278761,  -0.0620751900997439, 
-  "RO",     -1.20176658090374,   0.020834595446663,     -0.650193065347603,    0.0138347896809763, 
-  "RS",      0.0618488755956072, 0.00202537566145879,    0.00991911205114839, -0.0471014659203857, 
-  "SB",      0.180027893811038,  0.00407646754964104,    0.294830204810925,    0.0456285448463209, 
-  "SC",      0.29168375283719,   0.00840462598363303,    0.103224327654649,   -0.0375172178406619, 
-  "SE",     -0.84474776429187,   0.0194048566748705,    -0.185320642808431,    0.00481365467481041, 
-  "SH",     -0.276495487332175, -0.00407826652188834,    0.0014859893481595,   0.0105292454393637, 
-  "SM",     -0.638439361494548,  0.010114858457283,     -0.449980116702653,    0.0359737559039904, 
-  "SO",      0.576833877897729,  0.0118108307007871,     0.0504539076473394,  -0.0238409166069867, 
-  "ST",     -0.0873041359161447, 0.00436311438537946,   -0.116019942616605,    0.00452898449176065, 
-  "SV",      1.95860936146763,  -0.0214431695728021,     1.32444277392846,    -0.0107689951306809, 
-  "SW",     -0.0393354836772844,-0.00134712871863332,   -0.0101392382579872,   0.00262020551416272, 
-  "SY",      0.118394684213857,  0.00110586034750494,    0.00666275043203567, -0.00950736753890871, 
-  "TA",     -0.897319686496974,  0.0258707228911306,    -0.196336997360169,    0.0289693031310198, 
-  "TM",     -0.108285936575492,  0.000104669900393849,   0.0210335148827363,   0.00194415039443045, 
-  "WA",     -0.590367228757044,  0.00605548042245326,   -0.606966608557039,   -0.0338602035136779, 
-  "WC",     -0.585163503410162,  0.0129733373547068,     0.0997296337920071,   0.0176629033621184, 
-  "WI",     -0.527848384033003, -0.00395736879810604,   -0.15209423465787,     0.0325890859068867,  # Willow Salix L.; Mapped to BL in FVS-NE
-  "WO",     -0.838565888443553,  0.0302991107570669,    -0.102629218123826,    0.0502891203363538, 
-  "WP",      0.789109370527834, -0.0027631019480008,     0.0685266140378779,  -0.0334226215626329, 
-  "WS",      0.237471389318614, -0.00805483001640084,   -0.0435582953989746,  -0.0628031955872689, 
-  "YB",     -0.209369611424538, -0.00157109828388873,   -0.237820855906853,    0.0044801516909863, 
-  "YP",     -0.113657528638608, -0.00042568172058744,   -0.0555107654593295,   0.00168118033975285,
-  "99",      0.0,                0.0,                    0.0,                  0.0,
-  "OH",      0.0,                0.0,                    0.0,                  0.0,
-  "OS",      0.0,                0.0,                    0.0,                  0.0
-)
-
-#Revised diameter increment function from Christian Kuehne (11/30/20)
-  dDBH_fun=function(SPP,DBH,CR,BAL.SW,BAL.HW,CSI, b0.SPP, 
-                    b2.SPP, b3.SPP, b4.SPP){
-    
-    SPP=ifelse(is.na(SPP),'ZZ',SPP)
-    
-    #fixed parameter estimates
-    b0=-1.64233500448509 
-    b1=0.37697814748048 
-    b2=-0.0256836602459228 
-    b3=0.713456068528815 
-    b4=-0.0657468647965586 
-    b5=-0.0177402942446082 
-    b8=0.135377049425137 
-    
-    #species random effects from ddbh.fun.spp
-    
-    #model form from Kuehne
-    dDBH=exp((b0+b0.SPP)+((b1)*log(DBH))+((b2+b2.SPP)*DBH)+((b3+b3.SPP)*log(CR))+((b4+b4.SPP)*log(BAL.SW+.1))+((b5)*(BAL.HW))+((b8)*log(CSI)))
-    
-    return(dDBH=dDBH)
-  }
-
-## Diameter increment HW form and risk modifier
-  dDBH.HW.mod=function(SPP,DBH,BAL,Form,Risk){
-    
-    # check for valid species, form and risk codes
-    if(is.na(Form) | !(gsub('[^0-9]', '', Form) %in% 1:8) |
-       is.na(Risk) | !(gsub('[^0-9]', '', Risk) %in% 1:4) |
-       !SPP %in% c('RO', 'SM', 'YB', 'RM', 'PB', 'QA')){
-      mod=1
-    }else{
-      #Convert NHRI form classes
-      if(Form == 'F1' | Form == 'F7' | Form == 'F3' | Form == 'F4'){new.Form = 'A'}
-      else{new.Form = 'B'} #We could have catch for other form types but probably not needed.
-      
-      #Convert NHRI risk classes
-      if(Risk == 'R1' | Risk == 'R2'){new.Risk = 'LR'}
-      else{new.Risk = 'HR'} #We could have catch for other risk types but probably not needed.
-   
-      if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-      else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-      else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
-      #else if(SPP=='PB'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think we can remove this. PB wil default to intercept
-      else if(SPP=='QA'){SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
-      else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will assume a value of 0.
-      if(new.Form=='A'){Form.A=1; Form.B=0}
-      else{Form.A=0; Form.B=1}
-      if(new.Risk=='HR'){HR=1; LR=0}
-      else{HR=0; LR=1}
-      
-      dDBH.a=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
-                 -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB+
-                   0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
-                   0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB)+0.2176)
-      dDBH.b=exp(-2.9487-0.1090*DBH+1.2111*log(DBH)-0.0430*BAL-0.1059*SPP.QA
-                 -0.6377*SPP.RM-0.3453*SPP.RO-0.2494*SPP.YB-0.0250*Form.B+
-                   0.2176*LR+0.0476*(DBH*SPP.QA)+0.0477*(DBH*SPP.RM)+
-                   0.0511*(DBH*SPP.RO)+0.0251*(DBH*SPP.YB))
-      mod=dDBH.b/dDBH.a}
-    mod
-  }  
-    
+  # Fixed parameter estimates
+  b0 = -1.64233500448509 
+  b1 = 0.37697814748048 
+  b2 = -0.0256836602459228 
+  b3 = 0.713456068528815 
+  b4 = -0.0657468647965586 
+  b5 = -0.0177402942446082 
+  b8 = 0.135377049425137 
   
-## Diameter thinning modifier function (3/15/16 based on results by Christian Kuehne)
-dDBH.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR)
-{
-  TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) # time since thinning
-  # balsam fir 
-  if(SPP=="BF"){
-    y0 = -0.2566
-    y1 = -22.7609
-    y2 =  0.7745
-    y3 =  1.0511
-  }
-  # red spruce 
-  else if(SPP=="RS"){
-    y0= -0.5010; 
-    y1=-20.1147; 
-    y2=0.8067; 
-    y3=1.1905}
+  # use minimum DBH of 1cm 
+  dbh = ifelse(dbh<1, 1, dbh)
   
-  SP=ifelse(SPP=='BF' | SPP=='RS',1,0)
-  dDBH.mod = ifelse(!is.na(PERCBArm) & !is.na(QMDratio) & !is.na(BApre) & !is.na(YEAR_CT) & YEAR_CT <= YEAR & SP==1,
-                    1+(exp(y0+(y1/((100*PERCBArm*QMDratio)+0.01)))*y2^TST*TST^y3),1.0)
-  return(dDBH.mod = round(dDBH.mod,5))
-}        
-
-#Diameter increment modifier for SBW (Cen et al. 2016)
-dDBH.SBW.mod=function(Region,SPP,DBH,BAL.SW,BAL.HW,CR,avgDBH.SW,topht,CDEF=NA)
-{
-  BF=ifelse(SPP=='BF',1,0)
-  BS.RS=ifelse(SPP=='BS'|SPP=='RS',1,0)
-  WS=ifelse(SPP=='WS',1,0)
-  CDEF2=ifelse(is.na(CDEF),0,CDEF)
-  if(Region=='ME')
-  {
-    b1.BF=0.1187
-    b1.BS.RS=0.0675
-    b1.WS=0.0321
-    b2=0.0019
-    b3=-0.0327
-    b4=-0.0412
-    b5=0.3950
-    b6.BF=-1.2813
-    b6.BS.RS=-0.9477
-    b6.WS=-0.3715
-    b7.BF=-0.0016
-    b7.BS.RS=-0.0006
-    b7.WS=-0.0183 
-  }              
-  else if(Region=='NB')
-  {                                                                     
-    b1.BF=0.0701
-    b1.BS.RS=0.0320
-    b1.WS=0.0487
-    b2=-0.0190
-    b3=-0.0277
-    b4=-0.0027
-    b5=0.0  
-    b6.BF=-0.8200
-    b6.BS.RS= -0.6861
-    b6.WS=-0.7839
-    b7.BF= -0.0018
-    b7.BS.RS=-0.0012
-    b7.WS=-0.0006
-  }
-  dDBHa=(b1.BF*BF+b1.BS.RS*BS.RS+b1.WS*WS)*DBH*exp(b2*BAL.HW+b3*BAL.SW+b4*topht+b5*CR+
-                ((b6.BF*BF+b6.BS.RS*BS.RS+b6.WS*WS)*(DBH/avgDBH.SW))+(b7.BF*BF+b7.BS.RS*BS.RS+b7.WS*WS)*0)
-  dDBHb=(b1.BF*BF+b1.BS.RS*BS.RS+b1.WS*WS)*DBH*exp(b2*BAL.HW+b3*BAL.SW+b4*topht+b5*CR+
-                ((b6.BF*BF+b6.BS.RS*BS.RS+b6.WS*WS)*(DBH/avgDBH.SW))+(b7.BF*BF+b7.BS.RS*BS.RS+b7.WS*WS)*CDEF2)
-  dDBH.mod=ifelse(is.na(CDEF) | SPP!='BF' & SPP!='RS' & SPP!='BS' & SPP!='WS',1.0,dDBHb/dDBHa)
-  return(dDBH.mod)
+  # diameter increment
+  ddbh = ifelse(ht < 1.3716, 0, exp((b0 + ddbh.b0.spp) + (b1 * log(dbh)) + ((b2 + ddbh.b2.spp) * dbh) + 
+               ((b3 + ddbh.b3.spp) * log(cr)) + ((b4 + ddbh.b4.spp) * log(bal.sw + 0.1)) + 
+               (b5 * bal.hw) + (b8 * log(csi))))
+  
+  ddbh
 }
 
-#### Stand basal area increment ####
-#### 2/22/2023 version 12.3.0
-    #### Chen, Cen; Rijal, Baburam and Weiskittel, Aaron. Draft 
-    #### Comparative assessment of time-explicit, state-space and simultaneous
-    #### models for stand-level volume growth and yield predictions across 
-    #### complex forest stands in the Acadian region of North America
+# hardwood form and risk diameter increment modifier
+# Castle, ME; Weiskittel, AR; Ducey, MJ; Wagner, RG; Frank, JF; Pelletier, G. 
+# 2018. Evaluating the influence of stem form and damage on individual tree 
+# diameter increment and survival in the Acadian Region: Implications for 
+# predicting future value of northern commercial hardwood stands. Canadian 
+# Journal of Forest Research 48: 1-13.
 
-### * required tree list variables ###
-    ## Existing ACD variables (trees df)
-    # Ba = total stand basal area (m2 per ha; tree list variable BAPH)
-    # pHW.ba = average stand percent HW basal area (calculated in the "temp" table- temp$pHW.ba)
-    # RD.mod = average stand relative density SDI/SDImax (calculated in the "temp" table- temp$RD.mod using different calculation with stand stand qmd<10)
+#' Calculate hardwood form and risk modifier
+#' 
+#' @param sp Character: Species code
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param bal Numeric: Basal area in larger trees (m^2 per ha)
+#' @param form Character: Form class (F1-F8)
+#' @param risk Character: Risk class ('R1', 'R2')
+#' @param spp.coeff Numeric: Species coefficient
+#' @param dbh.interaction Numeric: DBH interaction coefficient
+#' @return Numeric: Modifier value
+ddbh_hw_mod = function(sp, dbh, bal, form, risk, spp.coeff, dbh.interaction) {
+  
+  # Check for valid species, form and risk codes
+  if (is.na(form) | !(gsub('[^0-9]', '', form) %in% 1:8) |
+      is.na(risk) | !(gsub('[^0-9]', '', risk) %in% 1:4) |
+      !sp %in% c('RO', 'SM', 'YB', 'RM', 'PB', 'QA')) {
+    return(1)
+  }
+  
+  # Convert NHRI form classes
+  new.form = ifelse(form %in% c('F1', 'F7', 'F3', 'F4'), 'A', 'B')
+  
+  # Convert NHRI risk classes
+  new.risk = ifelse(risk %in% c('R1', 'R2'), 'LR', 'HR')
+  
+  # Set form indicators
+  form.b = ifelse(new.form == 'B', 1, 0)
+  
+  # Set risk indicators  
+  lr = ifelse(new.risk == 'LR', 1, 0)
+  
+  ddbh.hw.mod = (exp(-2.9487 - 0.1090 * dbh + 1.2111 * log(dbh) - 0.0430 * bal + 
+           spp.coeff - 0.0250 * form.b + 0.2176 * lr + 
+           dbh.interaction * dbh)) /
+    
+                (exp(-2.9487 - 0.1090 * dbh + 1.2111 * log(dbh) - 0.0430 * bal + 
+                     spp.coeff + dbh.interaction * dbh + 0.2176))
+  
+  ddbh.hw.mod
+}
 
-### * Additional required variables ###
-    # CSI = climate site index global variable from .GlobalEnv$CSI --stand$CSI (default= 12)
-    # q0; q1; q2; q3; q4 and k parameter estimates (defined inside function)
+# Post-thinning diameter increment modifier  
+  # Weiskittel, AR; Hennigar, C;  Kershaw, JA. 2015. Extending the Acadian variant 
+  # of FVS to managed stands. In: Wagner, RG, ed. Cooperative Forestry Research Unit: 
+  # 2014 Annual Report. University of Maine, School of Forest Resources, Orono, ME; pp 67-74.
 
-# Stand BA increment calculation
-    dBA_stand_fun=function(RD, CSI, pHW.ba, Ba){
-        
-        # Weiskittel revised parameter estimates
-        q0 = 0.04968
-        q1 =-0.15018 
-        q2 =-0.13355 
-        q3 = 0.00010 
-        q4 = 0.11753 
-        k = 64.45952 
-        
-        ## Equation 3  
-            # dBa/dt=rt*Ba*(1-Ba/k)
-        ## assuming t=1
-        
-        # rt=q0+q1*RD+q2*CSI+q3*pHW.ba   
-        # dBa= rt*Ba*(1-Ba/k)
-        
-        
-        #Weiskittel revised equation form
-        rt= q0+q1*log(RD+1e-6)+q2*log(CSI)+q3*log(pHW.ba*100+1e-6)+q4*log(CSI*RD+1e-6)
-        dBa= ifelse(rt<0 & Ba*(1-(Ba/k))<0, 0.00227*Ba, rt*Ba*(1-(Ba/k))) # if high relative density and 
-                      # basal area values, equation will yield positive basal area increment. In these cases limit to 0.227% of plot BA (5th percentile in FIA data analysis)
-        
-        dBa=ifelse(dBa<(0.00227*Ba), 0.00227*Ba, dBa) # constrain to minimum of 0.227% of plot BA
-         
-        dBa
-        
-    }
+#' Calculate diameter thinning modifier
+#' 
+#' @param sp Character: Species code
+#' @param ba.perc.rmv Numeric: Percent basal area removed (proportion 0-1)
+#' @param ba.pre.thin Numeric: Pre-thinning basal area (m^2 per ha)
+#' @param qmd.ratio Numeric: QMD ratio before and after thinning 
+#' @param year.thin Numeric: Commercial thinning year
+#' @param year Numeric: Current year
+#' @return Numeric: Modifier value
+ddbh_thin_mod = function(sp, ba.perc.rmv, ba.pre.thin, qmd.ratio, year.thin, year) {
+  
+  # Check for valid species and thinning year
+  if (!sp %in% c('BF', 'RS') | is.na(year.thin)) {
+    return(1)
+  }
+  
+  # time since thinning
+  tst = year - year.thin 
+  
+  # Species parameter estimates
+  # Balsam fir 
+  if (sp == 'BF') {
+    y0 = -0.2566
+    y1 = -22.7609
+    y2 = 0.7745
+    y3 = 1.0511
+  } else {
+    # Red spruce 
+    y0 = -0.5010
+    y1 = -20.1147
+    y2 = 0.8067
+    y3 = 1.1905
+  }
+  
+  ddbh.thin.mod = ifelse(!is.na(ba.perc.rmv) & 
+                           !is.na(qmd.ratio) & 
+                           !is.na(ba.pre.thin) & 
+                           year.thin <= year,
+                         round(1 + (exp(y0 + (y1 / ((100 * ba.perc.rmv * qmd.ratio) + 0.01))) * y2^tst * tst^y3), 5),
+                         1.0)
+  
+  ddbh.thin.mod
+}
 
+# Chen, C; Weiskittel, AR; Bataineh, M; MacLean, DA. 2018. Refining the Forest 
+# Vegetation Simulator for projecting the effects of spruce budworm defoliation 
+# in the Acadian Region of North America. Forestry Chronicles 94: 240-253.
 
-# wrapper function executes  dBA_plot_fun() and sets dDBH if plot dBA is less than sum of tree level BA increment
-    calc_stand_ba= function(tree.list, stand.smry){
-        
-      ba.stand=stand.smry$BAPH
-      
-        # calculate stand level basal area increment
-        stand.smry = stand.smry %>% 
-#            dplyr::group_by(PLOT) %>% 
-            dplyr::summarise(dBA = dBA_stand_fun(RD=RD.mod, 
-                                                CSI=CSI, 
-                                                pHW.ba=pHW.ba, 
-                                                Ba=BAPH)) %>% 
-            dplyr::ungroup()
-        
-        # upper BA limit
-        k = 64.45952 
-        
-        
-        tree.list=tree.list %>% 
-            dplyr::mutate(dBA.tree=0.00007854*EXPF*((dDBH+DBH)^2-DBH^2)) %>%  # tree level diameter increment equation ba
-            # sum tree level BA increment
-            # dplyr::group_by(PLOT) %>% 
-            dplyr::mutate(dBA.tree.sum=sum(dBA.tree, na.rm=T)) %>% 
-            dplyr::ungroup() %>% 
-            # allocate plot level BA increment using tree level BA increment as percent of plot total tree level BA increment 
-            # dplyr::left_join(stand.smry,
-            #                  by='PLOT') %>% 
-            dplyr::mutate(dBA=stand.smry$dBA,
-                          dBA.tree.plot=(dBA*(dBA.tree/dBA.tree.sum)+dBA.tree)/2, # average of plot ba and individual tree
-                          dBA.tree.plotba=dBA*(dBA.tree/dBA.tree.sum), # plot ba only
-                          # dDBH=ifelse(dBA.tree.sum>dBA, sqrt((dBA.tree.plot+ba)/0.00007854/EXPF)-DBH, dDBH)) %>% 
-                          dDBH=case_when(ba.stand>(k*0.8) & dBA.tree.sum>dBA ~sqrt((dBA.tree.plotba+ba)/0.00007854/EXPF)-DBH,
-                                         ba.stand>(k*0.6) & dBA.tree.sum>dBA ~sqrt((dBA.tree.plot+ba)/0.00007854/EXPF)-DBH, 
-                                         TRUE ~dDBH)) %>% 
-            dplyr::select(-dBA.tree,
-                          -dBA.tree.sum,
-                          -dBA.tree.plot,
-                          -dBA.tree.plotba,
-                          -dBA)
-        
-        tree.list
-    }
+#' Calculate spruce budworm modifier  
+#' 
+#' @param region Character: Region code; options are ME, NB, NS, QC (default 'ME')
+#' @param sp Character: Species code
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param bal.sw Numeric: Basal area in larger softwood trees (m^2 per ha)
+#' @param bal.hw Numeric: Basal area in larger hardwood trees (m^2 per ha)
+#' @param cr Numeric: Crown ratio (proportion 0-1)
+#' @param dbh.sw.avg Numeric: Average softwood DBH (cm)
+#' @param ht.top100 Numeric: Average height of top 100 trees (m)
+#' @param sbw.cdef Numeric: SBW cumulative defoliation (percent)
+#' @param b1 Numeric: b1 parameter
+#' @param b2 Numeric: b2 parameter
+#' @param b3 Numeric: b3 parameter
+#' @param b4 Numeric: b4 parameter
+#' @param b5 Numeric: b5 parameter
+#' @param b6 Numeric: b6 parameter
+#' @param b7 Numeric: b7 parameter
+#' @return Numeric: Modifier value
+ddbh_sbw_mod = function(region='ME', sp, dbh, bal.sw, bal.hw, cr, dbh.sw.avg, ht.top100, sbw.cdef, 
+                        b1, b2, b3, b4, b5, b6, b7) {
+  
+  # Check species and defoliation
+  if (!sp %in% c('BF', 'RS', 'BS', 'WS') | is.na(sbw.cdef)) {
+    return(1.0)
+  }
+  
+  ddbh.sbw.mod = (b1 * dbh * 
+                    exp(b2 * bal.hw + b3 * bal.sw + b4 * ht.top100 + b5 * cr +
+                          (b6 * (dbh / dbh.sw.avg)) + (b7 * sbw.cdef)))/
+                  (b1 * dbh * 
+                    exp(b2 * bal.hw + b3 * bal.sw + b4 * ht.top100 + b5 * cr +
+                          (b6 * (dbh / dbh.sw.avg)) ))
+    
+  ddbh.sbw.mod
+}
 
+#Plot basal area increment 
+
+#### Chen, Cen; Rijal, Baburam and Weiskittel, Aaron. Draft 
+#### Comparative assessment of time-explicit, state-space and simultaneous
+#### models for stand-level volume growth and yield predictions across 
+#### complex forest stands in the Acadian region of North America
+
+#' Calculate plot basal area increment
+#' 
+#' @param rd Numeric: Relative density
+#' @param csi Numeric: Climate site index (m)
+#' @param ba.perc.hw Numeric: Percent hardwood basal area (proportion 0-1)
+#' @param ba.plot Numeric: Plot basal area (m^2 per ha)
+#' @return Numeric: Plot basal area increment
+plot_ba_incr = function(rd, csi, ba.perc.hw, ba.plot) {
+  
+  # Weiskittel revised parameter estimates
+  q0 = 0.04968
+  q1 = -0.15018
+  q2 = -0.13355
+  q3 = 0.00010
+  q4 = 0.11753
+  k = 64.45952
+  
+  ## Equation 3  
+  # dBa/dt=rt*ba.plot*(1-ba.plot/k)
+  ## assuming t=1
+  
+  # rt=q0+q1*RD+q2*csi+q3*ba.perc.hw   
+  # dBa= rt*ba.plot*(1-ba.plot/k)
+  
+  #Weiskittel revised equation form
+  rt = q0 + q1 * log(rd + 1e-6) + q2 * log(csi) + q3 * log(ba.perc.hw * 100 + 1e-6) + q4 * log(csi * rd + 1e-6)
+  dba = ifelse(rt < 0 & ba.plot * (1 - (ba.plot / k)) < 0, 
+               0.00227 * ba.plot, 
+               rt * ba.plot * (1 - (ba.plot / k))) # if high relative density and 
+  # basal area values, equation will yield positive basal area increment. In these cases limit to 0.227% of plot BA (5th percentile in FIA data analysis)
+  
+  dba = ifelse(dba < (0.00227 * ba.plot), 0.00227 * ba.plot, dba) # constrain to minimum of 0.227% of plot BA
+  
+  dba
+}
+
+#' Wrapper function to calculate diameter increment with modifiers and constraints
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data  
+#' @param csi Numeric: Climate site index (m; default stand$csi)
+#' @param region Character: Region code; options are ME, NB, NS, QC (default stand$region)
+#' @param use.cap.dbh Logical: Apply maximum DBH constraint (default ops$use.cap.dbh)
+#' @param use.sbw.mod Logical: Apply SBW outbreak modifiers (default ops$use.sbw.mod)
+#' @param use.hw.mod Logical: Apply hardwood form and risk modifiers (default ops$use.hw.mod)
+#' @param use.thin.mod Logical: Apply post-commercial thinning modifiers (default ops$use.thin.mod)
+#' @param thin.ba.perc.rmv Numeric: Plot basal area percent removed (percent; default ops$thin.ba.perc.rmv)
+#' @param thin.ba.pre Numeric: Plot pre-thin basal area (m^2 per ha; default ops$thin.ba.pre)
+#' @param thin.qmd.ratio Numeric: Thinning QMD ratio. Before thinning QMD / After thinning QMD (default ops$thin.qmd.ratio)
+#' @param thin.year Numeric: Thinning year (year; default ops$thin.year)
+#' @param sbw.cdef Numeric: Spruce budworm outbreak cumulative defoliation (percent; default ops$sbw.cdef)
+#' @param sbw.yr Numeric: Initial year of spruce budworm outbreak (year; default ops$sbw.yr)
+#' @param sbw.dur Numeric: Duration of spruce budworm outbreak (years; default ops$sbw.dur)
+#' @param ddbh.spp.df Dataframe: Species parameter table for diameter increment
+#' @param ddbh.hw.mod.spp.df Dataframe: Species parameter table for diameter increment hardwood form and risk modifier
+#' @param ddbh.sbw.region.df Dataframe: Region/species parameter table for diameter increment SBW modifier
+#' @return Dataframe: Tree data with diameter increment calculations
+calc_ddbh = function(tree.data, plot.data, csi = stand$csi, region = stand$region,
+                     use.cap.dbh = ops$use.cap.dbh, 
+                     use.sbw.mod = ops$use.sbw.mod, 
+                     use.hw.mod = ops$use.hw.mod, 
+                     use.thin.mod = ops$use.thin.mod,
+                     thin.ba.perc.rmv = ops$thin.ba.perc.rmv,
+                     thin.ba.pre = ops$thin.ba.pre,
+                     thin.qmd.ratio = ops$thin.qmd.ratio,
+                     thin.year = ops$thin.year,
+                     sbw.cdef = ops$sbw.cdef, 
+                     sbw.yr = ops$sbw.yr, 
+                     sbw.dur = ops$sbw.dur, 
+                     ddbh.spp.df = ddbh.spp, 
+                     ddbh.hw.mod.spp.df = ddbh.hw.mod.spp, 
+                     ddbh.sbw.region.df= ddbh.sbw.region) {
+  
+  # tree list names
+  tree.data.names= colnames(tree.data)
+  
+  # Join species parameters
+  tree = tree.data %>% 
+    dplyr::left_join(ddbh.spp.df, 
+                     by = c('sp'='species')) %>%
+    dplyr::mutate(across(c(ddbh.b0.spp, ddbh.b2.spp, ddbh.b3.spp, ddbh.b4.spp), 
+                         ~ifelse(is.na(.x), 0, .x)))
+  
+  
+  # Calculate diameter increment 
+  tree = tree %>%
+    dplyr::mutate(ddbh = dplyr::case_when(ht<1.3716 ~0,
+                                          TRUE ~ddbh(dbh, cr, bal.sw, bal.hw, csi, 
+                              ddbh.b0.spp, ddbh.b2.spp, ddbh.b3.spp, ddbh.b4.spp, ht)))
+  
+  # Calculate modifiers 
+  
+  # Hardwood form and risk modifier
+  if(use.hw.mod == TRUE) {
+   
+    tree = tree %>%
+      dplyr::mutate(idx.hw.mod = match(sp, ddbh.hw.mod.spp.df$species, nomatch = match('PB', ddbh.hw.mod.spp.df$species)),
+                    hw.mod.spp.coeff = ddbh.hw.mod.spp.df$spp.coeff[idx.hw.mod],
+                    hw.mod.dbh.interaction = ddbh.hw.mod.spp.df$dbh.interaction[idx.hw.mod])%>%
+      dplyr::mutate(ddbh.form.risk.mod = ifelse(!is.na(form) & !is.na(risk),
+                                                ddbh_hw_mod(sp = sp, dbh = dbh, bal = bal,
+                                                            form = form, risk = risk, 
+                                                            spp.coeff = hw.mod.spp.coeff, 
+                                                            dbh.interaction = hw.mod.dbh.interaction), 1))%>% 
+      select( -idx.hw.mod, 
+              -hw.mod.spp.coeff, -hw.mod.dbh.interaction)
+  } else {
+    tree = tree %>%
+      dplyr::mutate(ddbh.form.risk.mod = 1)
+  }
+  
+  # Post-thinning modifier
+  if (use.thin.mod == TRUE &
+      !is.na(thin.ba.perc.rmv) &
+      !is.na(thin.ba.pre) &
+      !is.na(thin.qmd.ratio) &
+      !is.na(thin.year)) {
+    tree = tree %>%
+      dplyr::mutate(ddbh.thin.mod = purrr::pmap_dbl(list(sp, thin.ba.perc.rmv, 
+                                                         thin.ba.pre, thin.qmd.ratio, thin.year, year), 
+                                                    ddbh_thin_mod)) 
+  } else {
+    tree = tree %>%
+      dplyr::mutate(ddbh.thin.mod = 1)
+  }
+  
+  # Spruce budworm modifier
+  if(use.sbw.mod == TRUE & 
+      region %in% c('ME', 'NB') &
+      !is.na(sbw.cdef) & sbw.cdef > 0 &
+      !is.na(sbw.yr) & sbw.yr<=tree$year[1] &
+      !is.na(sbw.dur) & tree$year[1]<=sbw.yr+sbw.dur)  {
+    
+    # SBW modifier species and region parameters
+    
+    # filter parms for selected region #
+    ddbh.sbw.region.df=ddbh.sbw.region.df %>% 
+      filter(region==!!region)
+    
+    tree = tree %>%
+      dplyr::mutate(sbw.mod.idx = match(sp,  
+                                        ddbh.sbw.region.df$species),
+                    sbw.b1 = ddbh.sbw.region.df$b1[sbw.mod.idx],
+                    sbw.b2 = ddbh.sbw.region.df$b2[sbw.mod.idx],
+                    sbw.b3 = ddbh.sbw.region.df$b3[sbw.mod.idx],
+                    sbw.b4 = ddbh.sbw.region.df$b4[sbw.mod.idx],
+                    sbw.b5 = ddbh.sbw.region.df$b5[sbw.mod.idx],
+                    sbw.b6 = ddbh.sbw.region.df$b6[sbw.mod.idx],
+                    sbw.b7 = ddbh.sbw.region.df$b7[sbw.mod.idx])
+    
+    tree = tree %>%
+      dplyr::left_join(plot.data %>% 
+                         dplyr::select(plot, dbh.sw.avg, ht.top100=topht),
+                       by='plot') %>% 
+      dplyr::mutate(ddbh.sbw.mod = purrr::pmap_dbl(list(region, sp, dbh, bal.sw, bal.hw, cr, dbh.sw.avg, ht.top100, sbw.cdef,
+                                                        sbw.b1, sbw.b2, sbw.b3, sbw.b4, sbw.b5, sbw.b6, sbw.b7), 
+                                                   ddbh_sbw_mod)) %>% 
+      dplyr::select(-dbh.sw.avg, -ht.top100, -sbw.mod.idx,
+             -sbw.b1, -sbw.b2, -sbw.b3, -sbw.b4, -sbw.b5, -sbw.b6, -sbw.b7)
+    
+  } else {
+    tree = tree %>%
+      dplyr::mutate(ddbh.sbw.mod = 1)
+  }
+  
+  # Apply modifiers
+  tree = tree %>%
+    dplyr::mutate(ddbh = ddbh * ddbh.thin.mod * ddbh.sbw.mod * ddbh.form.risk.mod * ddbh.mult)
+  
+  # plot basal area constraint constant
+    k = 64.45952
+  
+  # Calculate plot basal area constraint
+  plot.smry.ba = plot.data %>%
+    dplyr::mutate(dba = plot_ba_incr(rd = rd.mod, csi = csi, 
+                                     ba.perc.hw = ba.perc.hw, ba.plot = ba.plot))
+  
+  # Apply plot basal area constraint
+    # above 0.8*k - proportion of plot ba only
+    # above 0.6*k - average of predicted BA increment and proportion of plot ba
+  tree = tree %>%
+    dplyr::mutate(dba.tree = 0.00007854 * expf * ((ddbh + dbh)^2 - dbh^2)) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(dba.tree.sum = sum(dba.tree, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(plot.smry.ba %>% 
+                       dplyr::select(plot, ba.plot, dba), 
+                     by = 'plot') %>%
+    dplyr::mutate(dba.tree.plot = dba * (dba.tree / dba.tree.sum),
+                  ddbh = dplyr::case_when(ba.plot > (k*0.8) & dba.tree.sum > dba ~
+                                            sqrt((dba.tree.plot + ba) / 0.00007854 / expf) - dbh, 
+                                          ba.plot > (k*0.6) & dba.tree.sum > dba ~
+                                            sqrt(((dba.tree.plot+dba.tree)/2 + ba) / 0.00007854 / expf) - dbh, 
+                                          TRUE ~ddbh)) 
+  
+  # Apply diameter growth cap if requested
+  if (use.cap.dbh == TRUE) {
+    tree = tree %>%
+      dplyr::mutate(ddbh = dplyr::case_when((ddbh + dbh) > max.dbh ~ 0,
+                                            TRUE ~ ddbh))
+  }
+  
+ 
+  # Clean up temporary columns
+  tree = tree %>%
+    dplyr::select(dplyr::all_of(tree.data.names), ddbh)
+  
+  tree
+}
 
 
 #### Height increment ####
-# 12/21/2020 removed Htincr(); not called in code Height increment (10/8/14) (Russell et al. 2014 EJFR)
-# Htincr=function(SPP,HT,CR,BAL.SW,BAL.HW,BAPH,CSI)                 
-# 12/21/2020 replaced dHT;  Height increment (2/12/16) 
 
-#species random effects
-dht.fun.spp=tribble(
-  ~Spp, ~dht.b0.spp, ~dht.b2.spp,
+# Species random effects parameters
+dht.spp = dplyr::tribble(
+  ~species, ~dht.b0.spp, ~dht.b2.spp,
   
-  #Spp-|--------dht.b0.spp-|----------dht.b2.spp-|
-  #----|-------------------|---------------------|
+  #species|--------dht.b0.spp-|----------dht.b2.spp-|
+  #-------|-------------------|---------------------|
   "AB",   -1.02612824864817,   0.0346037998631002,
   "AE",    1.43819563280052,  -0.0959572257517136,
   "AH",   -0.673062037647421,  0.0230922230586148, 
@@ -849,419 +1148,909 @@ dht.fun.spp=tribble(
   "OH",    0.0,                0.0,
   "OS",    0.0,                0.0)
 
-#Revised dHT equation from Christian Kuehne (11/30/20)
-  dHT_fun=function(SPP,HT,CR,CCFL,CSI, b0.SPP, b2.SPP) {
-    
-    SPP=ifelse(is.na(SPP),'ZZ',SPP)
-    
-    #fixed parameter estimates
-    b0=-2.19445331289132 
-    b1=0.42640409105239 
-    b2=-0.0647071404836054 
-    b3=0.394836682501739 
-    b4=-0.0114287748735248 
-    b7=0.00029415038133825
-    
-    #species random effects from dht.fun.spp
-    
-    #model form from Kuehne
-    dHT=exp((b0+b0.SPP)+(b1)*log(HT)+(b2+b2.SPP)*HT+(b3)*(CR)+(b4)*(CCFL/100)+b7*(CSI^2))
-    
-    return(dHT=dHT)
-  }
+# SBW height modifier species parameters
+dht.sbw.spp = dplyr::tribble(
+  ~species, ~b1, ~b5, ~b6,
+  'BF', 0.0013, 0.3676, -0.0017,
+  'BS', 0.0009, 0.2881, -0.0014,
+  'RS', 0.0009, 0.2881, -0.0014,
+  'WS', 0.0005, 0.6800, 0.0001)
 
-# thinning height modifier (Kuehne et al. 2016)
-dHT.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
-  TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) # time since thinning
-  dHT.mod=ifelse(is.na(YEAR_CT),1,0)
-  # balsam fir 
-  if(SPP=="BF"){
+# Kuehne, C; Weiskittel, AR; Kershaw, JA. 2022. Development and evaluation of refined 
+# annualized individual tree diameter and height increment equations for the Acadian 
+# Variant of the Forest Vegetation Simulator: Implication for forest carbon estimates. 
+# Mathematical and Computational Forestry & Natural-Resource Sciences 14(2): 9-31
+
+#' Calculate height increment
+#' 
+#' @param ht Numeric: Tree height (m)
+#' @param cr Numeric: Crown ratio (proportion 0-1)
+#' @param ccfl Numeric: Crown competition factor
+#' @param csi Numeric: Climate site index (m)
+#' @param dht.b0.spp Numeric: Species b0 parameter from dht.spp table
+#' @param dht.b2.spp Numeric: Species b2 parameter from dht.spp table
+#' @return Numeric: Height increment (m)
+dht = function(ht, cr, ccfl, csi, dht.b0.spp, dht.b2.spp) {
+  
+  # Fixed parameter estimates
+  b0 = -2.19445331289132 
+  b1 = 0.42640409105239 
+  b2 = -0.0647071404836054 
+  b3 = 0.394836682501739 
+  b4 = -0.0114287748735248 
+  b7 = 0.00029415038133825
+  
+  # Model form from Kuehne
+  dht = exp((b0 + dht.b0.spp) + b1 * log(ht) + (b2 + dht.b2.spp) * ht + 
+              b3 * cr + b4 * (ccfl / 100) + b7 * csi^2)
+  
+  dht
+}
+
+#' Calculate height thinning modifier
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param ba.perc.rmv Numeric: Percent basal area removed (proportion 0-1)
+#' @param ba.pre.thin Numeric: Pre-thinning basal area (m^2 per ha)
+#' @param qmd.ratio Numeric: QMD ratio before and after thinning
+#' @param year.thin Numeric: Commercial thinning year
+#' @param year Numeric: Current year
+#' @return Numeric: Height increment modifier value
+dht_thin_mod = function(sp, ba.perc.rmv, ba.pre.thin, qmd.ratio, year.thin, year) {
+  
+  if (!sp %in% c('BF', 'RS') | is.na(year.thin) | year.thin > year | (year - year.thin) >= 5) {
+    return(1)
+  }
+  
+  tst = year - year.thin # time since thinning
+  
+  # Species parameter estimates
+  # Balsam fir 
+  if (sp == "BF") {
     y0 = -1.8443
     y1 = 5.2969
-    y2 =  1.0532
-    y3 =  0.0#00001
-    dHT.mod=1-(exp(y0+y1/((100*PERCBArm)+0.01))*y2^TST*TST^y3)
-  }
-  # red spruce 
-  else if(SPP=="RS"){
+    y2 = 1.0532
+    y3 = 0.0
+  } else if (sp == "RS") {
+    # Red spruce 
     y0 = -1.8426
     y1 = 6.2781
     y2 = 1.1596
-    y3 = 0.0#00001
-    dHT.mod=1-(exp(y0+y1/((100*PERCBArm)+0.01))*y2^TST*TST^y3)}
-  SP=ifelse(SPP=='BF' | SPP=='RS',1,0)
-  dHT.mod = ifelse(!is.na(YEAR_CT) & YEAR_CT <= YEAR & SP==1 | TST<5,max(0.75,min(dHT.mod,1.25)),1)
-  dHT.mod = ifelse(is.na(dHT.mod),1,dHT.mod)
-  return(dHT.mod = dHT.mod)
+    y3 = 0.0
+  }
+  
+  dht.thin.mod = 1 - (exp(y0 + y1 / ((100 * ba.perc.rmv) + 0.01)) * y2^tst * tst^y3)
+  dht.thin.mod = pmax(0.75, pmin(dht.thin.mod, 1.25))
+  
+  dht.thin.mod
 }
 
 
-# SBW Height modifier (Cen et al. 2016)
-dHT.SBW.mod=function(SPP,DBH,topht,CR,avg.DBH.SW,CDEF='NA')
-{
-  BF=ifelse(SPP=='BF',1,0)
-  BS.RS=ifelse(SPP=='BS'|SPP=='RS',1,0)
-  WS=ifelse(SPP=='WS',1,0)
-  CDEF2=ifelse(is.na(CDEF),0,CDEF)
-  b1.BF=0.0013
-  b1.BS.RS=0.0009
-  b1.WS=0.0005
-  b2=-0.0011
-  b3=0.0316
-  b4=2.4512
-  b5.BF=0.3676
-  b5.BS.RS=0.2881
-  b5.WS=0.6800
-  b6.BF=-0.0017
-  b6.BS.RS=-0.0014
-  b6.WS=0.0001
-  dHTa=(b1.BF*BF+b1.BS.RS*BS.RS+b1.WS*WS)*DBH*exp(b2*DBH^2+b3*topht+b4*CR+(b5.BF*BF+b5.BS.RS*BS.RS+b5.WS*WS)*(DBH/avg.DBH.SW)
-                                                  +(b6.BF*BF+b6.BS.RS*BS.RS+b6.WS*WS)*0)
-  dHTb=(b1.BF*BF+b1.BS.RS*BS.RS+b1.WS*WS)*DBH*exp(b2*DBH^2+b3*topht+b4*CR+(b5.BF*BF+b5.BS.RS*BS.RS+b5.WS*WS)*(DBH/avg.DBH.SW)
-                                                  +(b6.BF*BF+b6.BS.RS*BS.RS+b6.WS*WS)*CDEF2)
-  dHT.mod=ifelse(is.na(CDEF) | SPP!='BF' & SPP!='RS' & SPP!='BS' & SPP!='WS',1.0,dHTb/dHTa)
-  return(dHT.mod)
+
+#' Calculate SBW height modifier
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht.top100 Numeric: Average height of top 100 trees (m)
+#' @param cr Numeric: Crown ratio (proportion 0-1)
+#' @param dbh.sw.avg Numeric: Average softwood DBH (cm)
+#' @param sbw.cdef Numeric: SBW cumulative defoliation (percent)
+#' @param b1 Numeric: Species b1 parameter from dht.sbw.spp table
+#' @param b5 Numeric: Species b5 parameter from dht.sbw.spp table
+#' @param b6 Numeric: Species b6 parameter from dht.sbw.spp table
+#' @return Numeric: Height increment modifier value
+dht_sbw_mod = function(sp, dbh, ht.top100, cr, dbh.sw.avg, sbw.cdef, b1, b5, b6) {
+  
+  if (!sp %in% c('BF', 'BS', 'RS', 'WS') | is.na(sbw.cdef)) {
+    return(1.0)
+  }
+  
+  sbw.cdef = ifelse(is.na(sbw.cdef), 0, sbw.cdef)
+  
+  # Fixed parameter estimates
+  b2 = -0.0011
+  b3 = 0.0316
+  b4 = 2.4512
+  
+  dht.mod = (b1 * dbh * exp(b2 * dbh^2 + b3 * ht.top100 + b4 * cr + 
+                              b5 * (dbh / dbh.sw.avg) + b6 * sbw.cdef))/
+    
+    (b1 * dbh * exp(b2 * dbh^2 + b3 * ht.top100 + b4 * cr + 
+                      b5 * (dbh / dbh.sw.avg)))
+  
+  dht.mod
 }
+
+#' Wrapper function to calculate height increment with modifiers and constraints
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data  
+#' @param csi Numeric: Climate site index (m; default stand$csi)
+#' @param use.cap.ht Logical: Apply maximum total tree height constraint (default ops$use.cap.ht)
+#' @param use.sbw.mod Logical: Apply SBW outbreak modifiers (default ops$use.sbw.mod)
+#' @param use.thin.mod Logical: Apply post-commercial thinning modifiers (default ops$use.thin.mod)
+#' @param thin.ba.perc.rmv Numeric: Plot basal area percent removed (percent; default ops$thin.ba.perc.rmv)
+#' @param thin.ba.pre Numeric: Plot pre-thin basal area (m^2 per ha; default ops$thin.ba.pre)
+#' @param thin.qmd.ratio Numeric: Thinning QMD ratio. Before thinning QMD / After thinning QMD (default ops$thin.qmd.ratio)
+#' @param thin.year Numeric: Thinning year (year; default ops$thin.year)
+#' @param sbw.cdef Numeric: Spruce budworm outbreak cumulative defoliation (percent; default ops$sbw.cdef)
+#' @param sbw.yr Numeric: Initial year of spruce budworm outbreak (year; default ops$sbw.yr)
+#' @param sbw.dur Numeric: Duration of spruce budworm outbreak (years; default ops$sbw.dur)
+#' @param region Character: Region code; options are ME, NB, NS, QC (default stand$region)
+#' @param dht.spp.df Dataframe: Species parameter table for height increment (default dht.spp)
+#' @param dht.sbw.spp.df Dataframe: Species parameter table for SBW modifier (default dht.sbw.spp)
+#' @return Dataframe: Tree data with height increment calculations
+calc_dht = function(tree.data, plot.data, csi = stand$csi, 
+                    use.cap.ht = ops$use.cap.ht, 
+                    use.sbw.mod = ops$use.sbw.mod, 
+                    use.thin.mod = ops$use.thin.mod,
+                    thin.ba.perc.rmv = ops$thin.ba.perc.rmv,
+                    thin.ba.pre = ops$thin.ba.pre,
+                    thin.qmd.ratio = ops$thin.qmd.ratio,
+                    thin.year=ops$thin.year,
+                    sbw.cdef = ops$sbw.cdef,
+                    sbw.yr = ops$sbw.yr,
+                    sbw.dur = ops$sbw.dur,
+                    region=stand$region,
+                    dht.spp.df = dht.spp, 
+                    dht.sbw.spp.df = dht.sbw.spp) {
+  
+  # get tree list variable names
+  tree.data.names= colnames(tree.data)   
+  
+  # Height increment
+  tree = tree.data %>%
+    # Species parameters
+    dplyr::mutate(idx = match(sp,  
+                                 dht.spp.df$species,
+                                 nomatch = match('99', dht.spp.df$species)), # OH, OS and 99 use b0=0 and b2=0
+                  dht.b0.spp = dht.spp.df$dht.b0.spp[idx],
+                  dht.b2.spp = dht.spp.df$dht.b2.spp[idx],
+      # Calculate height increment
+      dht = dht(ht, cr, ccfl, csi, dht.b0.spp, dht.b2.spp))
+  
+  # Post-thinning modifier
+  if (use.thin.mod == TRUE &
+      !is.na(thin.ba.perc.rmv) &
+      !is.na(thin.ba.pre) &
+      !is.na(thin.qmd.ratio) &
+      !is.na(thin.year)) {
+    tree = tree %>%
+      dplyr::mutate(dht.thin.mod = purrr::pmap_dbl(list(sp, thin.ba.perc.rmv, thin.ba.pre, 
+                                                        thin.qmd.ratio, thin.year, year), 
+                                                   dht_thin_mod))
+  } else {
+    tree = tree %>%
+      dplyr::mutate(dht.thin.mod = 1)
+  }
+  
+  # Spruce budworm modifier
+  if (use.sbw.mod == TRUE &  #dht
+      !is.na(sbw.cdef) & sbw.cdef > 0 &
+      !is.na(sbw.yr) & sbw.yr<=tree$year[1] &
+      !is.na(sbw.dur) & tree$year[1]<=sbw.yr+sbw.dur)  { 
+   
+    tree = tree %>% 
+        # Join plot-level data 
+      dplyr::left_join(plot.data %>% 
+                         dplyr::select(plot, 
+                                       dbh.sw.avg, 
+                                       ht.top100=topht),
+                       by = 'plot') %>%
+      # SBW modifier species parameters
+      dplyr::mutate(sbw.mod.idx = match(sp,  
+                                        dht.sbw.spp.df$species),
+                    sbw.b1 = dht.sbw.spp.df$b1[sbw.mod.idx],
+                    sbw.b5 = dht.sbw.spp.df$b5[sbw.mod.idx],
+                    sbw.b6 = dht.sbw.spp.df$b6[sbw.mod.idx],
+                    dht.sbw.mod = purrr::pmap_dbl(list(sp, dbh, ht.top100, cr, dbh.sw.avg, sbw.cdef,
+                                                       sbw.b1, sbw.b5, sbw.b6), 
+                                                  dht_sbw_mod)) %>%
+      dplyr::select(-dbh.sw.avg, -ht.top100, 
+                    -sbw.mod.idx, -sbw.b1, -sbw.b5, -sbw.b6)
+    
+  } else {
+    tree = tree %>%
+      dplyr::mutate(dht.sbw.mod = 1)
+  }
+  
+  
+  # Apply modifiers
+  tree = tree %>%
+    dplyr::mutate(dht = dht * dht.thin.mod * dht.sbw.mod * dht.mult)
+  
+  # Apply height cap 
+  if (use.cap.ht == TRUE) {
+    tree = tree %>%
+      dplyr::mutate(dht = dplyr::case_when((dht + ht) > max.height ~ 0,
+                                           TRUE ~ dht))
+  }
+  
+  # Clean up temporary columns
+  tree = tree %>%
+    dplyr::select(dplyr::all_of(tree.data.names), dht)
+  
+  tree
+}
+
+
 
 ### Crown recession ####
-#dynamic crown recession equation (Russell et al. 2014; EJFR)
-dHCB=function(dHT,DBH,HT,HCB,CCF,shade)
-{
-  CL=HT-HCB
-  CR=CL/HT
-  b1=4.000
-  b2=-0.8395
-  b3=-0.2196
-  b4=-0.3059
-  b5=-0.00553
-  b6=0.09821  
-  dHCB=(CL+dHT)/(1+exp(b1+b2*log(CR+0.01)+b3*log(CCF+1)+ b4*log(1.01-CR)
-                       +b5*(shade^2)+b6*log(shade*CR)))
-  return(dHCB=dHCB)
+
+
+# Dynamic crown recession equation 
+# Russell, MB; Weiskittel, AR; Kershaw, JA. 2014. Comparing strategies for modeling 
+# individual-tree height and height-to-crown base increment in mixed-species Acadian 
+# forests of northeastern North America. European Journal of Forest Research. 
+# 133:1121-1135. doi: 10.1007/s10342-014-0827-1
+
+#' Calculate height to crown base change
+#' 
+#' @param dht Numeric: Height increment (m)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Total tree height (m)
+#' @param hcb Numeric: Height to crown base (m)
+#' @param ccf Numeric: Crown competition factor
+#' @param shade Numeric: Shade tolerance value
+#' @return Numeric: Height to crown base change (m)
+dhcb = function(dht, dbh, ht, hcb, ccf, shade) {
+  
+  # Fixed parameter estimates
+  b1 = 4.000
+  b2 = -0.8395
+  b3 = -0.2196
+  b4 = -0.3059
+  b5 = -0.00553
+  b6 = 0.09821 
+  
+  # Crown length and crown ratio
+  cl = ht - hcb
+  cr = cl / ht
+  
+  # Crown base
+  dhcb = (cl + dht) / (1 + exp(b1 + b2 * log(cr + 0.01) + b3 * log(ccf + 1) + 
+                                 b4 * log(1.01 - cr) + b5 * (shade^2) + b6 * log(shade * cr)))
+  
+  dhcb
 }
 
-
-#crown recession thinning modifier
-dHCB.thin.mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
-  TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) # time since thinning
-  # balsam fir 
-  if(SPP=="BF"){
+#' Calculate crown recession thinning modifier
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param ba.perc.rmv Numeric: Percent basal area removed (proportion 0-1)
+#' @param ba.pre.thin Numeric: Pre-thinning basal area (m^2 per ha)
+#' @param qmd.ratio Numeric: QMD ratio before and after thinning 
+#' @param year.thin Numeric: Commercial thinning year
+#' @param year Numeric: Current year
+#' @return Numeric: Crown recession modifier value
+dhcb_thin_mod = function(sp, ba.perc.rmv, ba.pre.thin, qmd.ratio, year.thin, year) {
+  
+  if (!sp %in% c('BF', 'RS') | is.na(year.thin)) {
+    return(1)
+  }
+  
+  # time since thinning
+  tst = year - year.thin 
+  
+  # Species parameter estimates
+  # Balsam fir 
+  if (sp == 'BF') {
     y0 = -0.4208
     y1 = -17.0998
-    y2 =  0.7986
-    y3 =  0.0521
-    dHCB.mod=1-(exp(y0+y1/((100*PERCBArm*QMDratio)+0.01))*y2^TST*TST^y3)
-  }
-  # red spruce 
-  else if(SPP=="RS"){
+    y2 = 0.7986
+    y3 = 0.0521
+  } else {
+    # Red spruce 
     y0 = -1.0778
     y1 = -14.7694
     y2 = 0.7758
     y3 = 1.1164
-    dHCB.mod=1-(exp(y0+y1/((100*PERCBArm*QMDratio)+0.01))*y2^TST*TST^y3)}
-  SP=ifelse(SPP=='BF' | SPP=='RS',1,0)
-  dHCB.mod = ifelse((!is.na(YEAR_CT) & YEAR_CT <= YEAR) & SP==1,min(abs(dHCB.mod),1),1)
-  return(dHCB.mod = dHCB.mod)
+  }
+  
+  dhcb.thin.mod = ifelse(!is.na(ba.perc.rmv) & 
+                           !is.na(qmd.ratio) & 
+                           !is.na(ba.pre.thin) & 
+                           year.thin <= year,
+                         1 - (exp(y0 + (y1 / ((100 * ba.perc.rmv * qmd.ratio) + 0.01))) * y2^tst * tst^y3),
+                         1.0)
+  
+  dhcb.thin.mod = pmin(abs(dhcb.thin.mod), 1)
+  
+  dhcb.thin.mod
+}
+
+#' Wrapper function to calculate crown recession 
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data  
+#' @param use.thin.mod Logical: Apply post-commercial thinning modifiers (default ops$use.thin.mod)
+#' @param thin.ba.perc.rmv Numeric: Plot basal area percent removed (percent; default ops$thin.ba.perc.rmv)
+#' @param thin.ba.pre Numeric: Plot pre-thin basal area (m^2 per ha; default ops$thin.ba.pre)
+#' @param thin.qmd.ratio Numeric: Thinning QMD ratio. Before thinning QMD / After thinning QMD (default ops$thin.qmd.ratio)
+#' @param thin.year Numeric: Thinning year (year; default ops$thin.year)
+#' @return Dataframe: Tree data with crown recession calculations
+calc_dhcb = function(tree.data, plot.data, use.thin.mod = ops$use.thin.mod,
+                     thin.ba.perc.rmv = ops$thin.ba.perc.rmv,
+                     thin.ba.pre = ops$thin.ba.pre,
+                     thin.qmd.ratio = ops$thin.qmd.ratio,
+                     thin.year = ops$thin.year) {
+  
+  # Join plot summary values
+  tree = tree.data %>% 
+    dplyr::left_join(plot.data %>% 
+                       dplyr::select(plot, ccf), 
+                     by = 'plot')
+  
+  # Calculate crown recession
+  tree = tree %>%
+    dplyr::mutate(dhcb =  dhcb(dht, dbh, ht, hcb, ccf, shade))
+  
+  # Post-thinning modifier
+  if (use.thin.mod == TRUE &
+      !is.na(thin.ba.perc.rmv) &
+      !is.na(thin.ba.pre) &
+      !is.na(thin.qmd.ratio) &
+      !is.na(thin.year)) {
+    tree = tree %>%
+      dplyr::mutate(dhcb.thin.mod = purrr::pmap_dbl(list(sp, thin.ba.perc.rmv, thin.ba.pre, 
+                                                         thin.qmd.ratio, thin.year, year), 
+                                                    dhcb_thin_mod))
+  } else {
+    tree = tree %>%
+      dplyr::mutate(dhcb.thin.mod = 1)
+  }
+  
+  # Apply modifier to crown recession
+  tree = tree %>%
+    dplyr::mutate(dhcb = dhcb * dhcb.thin.mod)
+  
+  # Clean up temporary columns
+  tree = tree %>%
+    dplyr::select(-dhcb.thin.mod, -ccf)
+  
+  tree
 }
 
 #### Mortality ####
-# Plot mortality 
-#Mortality using the approach of Kershaw
-stand.mort.prob=function(Region,BA,BAG,QMD,pBA.BF,pBA.IH)
-{
-  BA.BF=pBA.BF*BA
-  BA.IH=pBA.IH*BA
-  if(Region=='ME'){b0=0.6906978; b1=0.149228; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.871958}
-  else if(Region=='NB'){b0=0.699147; b1=0.1250758; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.7268086}
-  else if(Region=='NS'){b0=0.2756542; b1=0.1499495; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.9148455}
-  else if(Region=='PQ'){b0=1.0472726; b1=0.161746; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.7351621}
-  else{b0=0.6906978; b1=0.149228; b2=-0.001855535; b3=-2.557345; b4=-0.05507579; b5=0.06414701; b6=0.0432701; cut=0.871958}
-  k=b0+b1*BA+b2*BA^2+b3*BAG+b4*QMD+b5*BA.BF+b6*BA.IH
-  prob=exp(k)/(1+exp(k))
-  return(c(prob=prob,cut=cut))
-}
 
-stand.mort.BA=function(Region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih)
-{
-  BA.BF=pBA.bf*BA
-  BA.IH=pBA.ih*BA
-  if(Region=='ME'){b0=0.1857844; b1=0.2315199; b2=0.02020253; b3=0.5674303; b4=-2.037042; b5=0.06815229;
-  b6=0.3345308; b7=0.09950853}
-  else if(Region=='NB'){b0=0.5987741; b1=0.2315199; b2=0.02020253; b3=0.1888859; b4=-2.037042; b5=0.14607033;
-  b6=0.3284819; b7=0.09950853}
-  else if(Region=='NS'){b0=0.1302331; b1=0.2315199; b2=0.02020253; b3=0.589446; b4=-2.037042; b5=0.0867806; 
-  b6=0.2243597; b7=0.09950853}
-  else if(Region=='PQ'){b0=0.1068258; b1=0.2315199; b2=0.02020253; b3=0.6810417; b4=-2.037042; b5=0.01171661; 
-  b6=0.494071; b7=0.09950853}
-  else{b0=0.1857844; b1=0.2315199; b2=0.02020253; b3=0.5674303; b4=-2.037042; b5=0.06815229;
-  b6=0.3345308; b7=0.09950853}
-  BA.mort=(b0+b1*pBA.bf+b2*pBA.ih)*BA^(b3+b4*BAG)
-  BF.mort=ifelse(QMD==0,0,b5*BA.BF^b6+b7*(QMD.BF/QMD))
-  mort.tot=BA.mort+BF.mort
-  return(mort.tot=mort.tot)
-}
-
-## tree mortlaity 
-tree.mort.prob=function(SPP,DBH)
-{
-  SPcodes = c('AB','AE','AH','AP','BA','BC','BE','BF','BL','BN','BO','BP','BS',
-              'BT','BW','CC','EC','EH','GA','GB','HH','JP','NM','NS','OH','PB',
-              'PP','PR','QA','RM','RO','RP','RS','SB','SH','SM','SP','ST','SV',
-              'TA','WA','WC','WL','WO','WP','WS','YB','99')
-  spConst = matrix(c(
-    # b0             b1              b2        Djump Scale Shape=4.5 
-    2.152681379  , -0.0269825907,  0.0002203177 , 41  , 20  , 4.5 ,  # AB
-    2.948346662  , -0.1017558326,  0.0018279137 , 22.5, 40  , 2   ,  # AE
-    4.552236589  , -0.4626664119,  0.0125996045 , 12  , 15  , 4.5 ,  # AH
-    5.6430024532 , -0.4644532732,  0.0132654057 , 16  , 10.6, 4.1 ,  # AP
-    1.7183600838 , 0.0393047451 ,  -0.0023514773, 39  , 37  , 4.25,  # BA
-    4.8627898851 , -0.3695674404,  0.0109822297 , 9.2 , 31  , 3.63,  # BC
-    4.552236589  , -0.2313332059,  0.0125996045 , 14  , 20  , 4.5 ,  # BE
-    2.5743949775 , -0.0851930923,  0.0015971909 , 53  , 40.6, 1.51,  # BF
-    -3.5183135273, 0.5008393656 ,  -0.0114432915, 10  , 10  , 2   ,  # BL
-    9.6140856026 , -0.8619281584,  0.0215901194 , 15  , 27.5, 1.5 ,  # BN
-    2.7402431243 , -0.0403087   ,  0.0014846314 , 40  , 40  , 2   ,  # BO
-    1.8795415329 , -0.3915484285,  0.0298003249 , 33  , 33.6, 4.75,  # BP
-    1.9568828063 , 0.0535388009 ,  -0.0010376306, 34  , 22  , 3.75,  # BS
-    2.1791849646 , -0.0125375225,  0.0008529794 , 40  , 30  , 3   ,  # BT
-    -1.4145296118, 0.3204863989 ,  -0.0029710752, 15  , 30  , 3   ,  # BW
-    4.8627898851 , -0.3695674404,  0.0109822297 , 10  , 20  , 3.63,  # CC
-    -0.4584998714, 0.1992627013 ,  -0.0028451758, 40.6, 11  , 4.28,  # EC
-    4.5205542708 , -0.0670350692,  0.0012041907 , 50  , 40  , 3.5 ,  # EH
-    7.2061395918 , -0.2239701333,  0.0070370484 , 34  , 39.6, 3.41,  # GA
-    0.1922677751 , 0.1517490102 ,  -0.0039268819, 16  , 8.2 , 3.83,  # GB
-    2.9674489273 , -0.1009595852,  0.0071673636 , 18  , 24  , 2   ,  # HH
-    -0.4488149338, 0.1939739736 ,  -0.0019541699, 30  , 20  , 3   ,  # JP
-    4.552236589  , -0.2313332059,  0.0125996045 , 24  , 40  , 4.5 ,  # NM
-    17.4833923331, -1.809142126 ,  0.0616970369 , 15  , 35  , 2   ,  # NS
-    4.552236589  , -0.5204997134,  0.0125996045 , 12  , 10  , 4.5 ,  # OH
-    2.5863343441 , -0.0518497247,  0.0021853588 , 26.4, 41.2, 1.88,  # PB
-    12.1649655944, -1.0483772747,  0.0233147008 , 25.8, 41.6, 4.41,  # PP
-    -1.2171488097, 0.3211464783 ,  -0.0097154365, 10  , 40  , 2   ,  # PR
-    -0.4584998714, 0.1992627013 ,  -0.0028451758, 60.6, 11  , 4.28,  # QA
-    2.1674971386 , 0.0557266595 ,  -0.0010435394, 60.2, 40.6, 4.38,  # RM
-    3.1202275212 , -0.041290776 ,  0.0022978235 , 41  , 40.4, 3.27,  # RO
-    1.1361278304 , 0.1436446742 ,  0.0018438454 , 30  , 30  , 3   ,  # RP
-    2.0420797297 , 0.0425701678 ,  -0.0004901795, 41  , 32  , 4.8 ,  # RS
-    44.2565091524, -2.4248136198,  0.1388397603 , 22  , 35.6, 4.57,  # SB
-    4.552236589  , -0.2313332059,  0.0125996045 , 15  , 10  , 4.5 ,  # SH
-    2.7069022565 , 0.0086263655 ,  0.0007235392 , 54.4, 42  , 1.33,  # SM
-    5            , -0.3         ,  0.01         , 20  , 40  , 3   ,  # SP
-    4.5522366258 , -0.4626664068,  0.012599604  , 4.4 , 24.4, 4.51,  # ST
-    4.552236589  , -0.2313332059,  0.0125996045 , 24  , 40  , 4.5 ,  # SV
-    1.4269435976 , 0.0886275939 ,  -0.0021232407, 30  , 33.6, 4.5 ,  # TA
-    1.0042653571 , 0.165359309  ,  -0.0005814562, 21  , 40  , 4   ,  # WA
-    3.647647507  , -0.0606735724,  0.0008507857 , 40  , 45  , 5   ,  # WC
-    -3.5183135273, 0.5008393656 ,  -0.0114432915, 10  , 10  , 2   ,  # WL
-    -4.8640326448, 0.6250645999 ,  -0.0064419714, 18  , 40  , 4   ,  # WO
-    3.3383526175 , -0.0294498474,  0.0009561864 , 61.2, 41.2, 2.87,  # WP
-    0.5437824528 , 0.1052397713 ,  0.0006332627 , 19  , 54  , 2   ,  # WS
-    2.6967072576 , -0.001250889 ,  0.0007521152 , 48  , 60  , 2   ,  # YB
-    2.6967072576 , -0.001250889 ,  0.0007521152 , 48  , 60  , 2   ), # 99
-    ncol=6,byrow=TRUE)
-  sprow = match(SPP,SPcodes)
-  sprow[is.na(sprow)] = nrow(spConst)
-  # same as: ddd <- b0 + b1 * DBH + b2 * DBH^2
-  ddd <- spConst[sprow,1] + spConst[sprow,2] * DBH + spConst[sprow,3] * DBH^2 
-  surv <- exp(ddd)/(1 + exp(ddd))
-  # same as: IDj <- as.integer(DBH/Djump)
-  IDj <- as.integer(DBH/spConst[sprow,4])
-  # same as: exp(-Scale * ((IDj * (DBH - Djump))^Shape))
-  Wprob <-1.0# exp(-SPcoefs[sprow,5] * ((IDj * (DBH - SPcoefs[sprow,4]))^SPcoefs[sprow,6]))
-  tsurv <- surv * Wprob
-  return(tsurv=tsurv)
-}
+# Tree mortality probability species parameters
+tree.mort.spp = dplyr::tribble(
+  ~species, ~b0, ~b1, ~b2, ~d.jump, ~scale, ~shape,
+  'AB', 2.152681379, -0.0269825907, 0.0002203177, 41, 20, 4.5,
+  'AE', 2.948346662, -0.1017558326, 0.0018279137, 22.5, 40, 2,
+  'AH', 4.552236589, -0.4626664119, 0.0125996045, 12, 15, 4.5,
+  'AP', 5.6430024532, -0.4644532732, 0.0132654057, 16, 10.6, 4.1,
+  'BA', 1.7183600838, 0.0393047451, -0.0023514773, 39, 37, 4.25,
+  'BC', 4.8627898851, -0.3695674404, 0.0109822297, 9.2, 31, 3.63,
+  'BE', 4.552236589, -0.2313332059, 0.0125996045, 14, 20, 4.5,
+  'BF', 2.5743949775, -0.0851930923, 0.0015971909, 53, 40.6, 1.51,
+  'BL', -3.5183135273, 0.5008393656, -0.0114432915, 10, 10, 2,
+  'BN', 9.6140856026, -0.8619281584, 0.0215901194, 15, 27.5, 1.5,
+  'BO', 2.7402431243, -0.0403087, 0.0014846314, 40, 40, 2,
+  'BP', 1.8795415329, -0.3915484285, 0.0298003249, 33, 33.6, 4.75,
+  'BS', 1.9568828063, 0.0535388009, -0.0010376306, 34, 22, 3.75,
+  'BT', 2.1791849646, -0.0125375225, 0.0008529794, 40, 30, 3,
+  'BW', -1.4145296118, 0.3204863989, -0.0029710752, 15, 30, 3,
+  'CC', 4.8627898851, -0.3695674404, 0.0109822297, 10, 20, 3.63,
+  'EC', -0.4584998714, 0.1992627013, -0.0028451758, 40.6, 11, 4.28,
+  'EH', 4.5205542708, -0.0670350692, 0.0012041907, 50, 40, 3.5,
+  'GA', 7.2061395918, -0.2239701333, 0.0070370484, 34, 39.6, 3.41,
+  'GB', 0.1922677751, 0.1517490102, -0.0039268819, 16, 8.2, 3.83,
+  'HH', 2.9674489273, -0.1009595852, 0.0071673636, 18, 24, 2,
+  'JP', -0.4488149338, 0.1939739736, -0.0019541699, 30, 20, 3,
+  'NM', 4.552236589, -0.2313332059, 0.0125996045, 24, 40, 4.5,
+  'NS', 17.4833923331, -1.809142126, 0.0616970369, 15, 35, 2,
+  'OH', 4.552236589, -0.5204997134, 0.0125996045, 12, 10, 4.5,
+  'PB', 2.5863343441, -0.0518497247, 0.0021853588, 26.4, 41.2, 1.88,
+  'PP', 12.1649655944, -1.0483772747, 0.0233147008, 25.8, 41.6, 4.41,
+  'PR', -1.2171488097, 0.3211464783, -0.0097154365, 10, 40, 2,
+  'QA', -0.4584998714, 0.1992627013, -0.0028451758, 60.6, 11, 4.28,
+  'RM', 2.1674971386, 0.0557266595, -0.0010435394, 60.2, 40.6, 4.38,
+  'RO', 3.1202275212, -0.041290776, 0.0022978235, 41, 40.4, 3.27,
+  'RP', 1.1361278304, 0.1436446742, 0.0018438454, 30, 30, 3,
+  'RS', 2.0420797297, 0.0425701678, -0.0004901795, 41, 32, 4.8,
+  'SB', 44.2565091524, -2.4248136198, 0.1388397603, 22, 35.6, 4.57,
+  'SH', 4.552236589, -0.2313332059, 0.0125996045, 15, 10, 4.5,
+  'SM', 2.7069022565, 0.0086263655, 0.0007235392, 54.4, 42, 1.33,
+  'SP', 5, -0.3, 0.01, 20, 40, 3,
+  'ST', 4.5522366258, -0.4626664068, 0.012599604, 4.4, 24.4, 4.51,
+  'SV', 4.552236589, -0.2313332059, 0.0125996045, 24, 40, 4.5,
+  'TA', 1.4269435976, 0.0886275939, -0.0021232407, 30, 33.6, 4.5,
+  'WA', 1.0042653571, 0.165359309, -0.0005814562, 21, 40, 4,
+  'WC', 3.647647507, -0.0606735724, 0.0008507857, 40, 45, 5,
+  'WL', -3.5183135273, 0.5008393656, -0.0114432915, 10, 10, 2,
+  'WO', -4.8640326448, 0.6250645999, -0.0064419714, 18, 40, 4,
+  'WP', 3.3383526175, -0.0294498474, 0.0009561864, 61.2, 41.2, 2.87,
+  'WS', 0.5437824528, 0.1052397713, 0.0006332627, 19, 54, 2,
+  'YB', 2.6967072576, -0.001250889, 0.0007521152, 48, 60, 2,
+  '99', 2.6967072576, -0.001250889, 0.0007521152, 48, 60, 2)
 
 
+# Plot mortality probability region parameters 
+stand.mort.prob.region = dplyr::tribble(
+  ~region, ~b0, ~b1, ~b2, ~b3, ~b4, ~b5, ~b6, ~cut,
+  'ME', 0.6906978, 0.149228, -0.001855535, -2.557345, -0.05507579, 0.06414701, 0.0432701, 0.871958,
+  'NB', 0.699147, 0.1250758, -0.001855535, -2.557345, -0.05507579, 0.06414701, 0.0432701, 0.7268086,
+  'NS', 0.2756542, 0.1499495, -0.001855535, -2.557345, -0.05507579, 0.06414701, 0.0432701, 0.9148455,
+  'QC', 1.0472726, 0.161746, -0.001855535, -2.557345, -0.05507579, 0.06414701, 0.0432701, 0.7351621)
 
+# Plot mortality basal area region parameters
+stand.mort.ba.region = dplyr::tribble(
+  ~region, ~b0, ~b1, ~b2, ~b3, ~b4, ~b5, ~b6, ~b7,
+  'ME', 0.1857844, 0.2315199, 0.02020253, 0.5674303, -2.037042, 0.06815229, 0.3345308, 0.09950853,
+  'NB', 0.5987741, 0.2315199, 0.02020253, 0.1888859, -2.037042, 0.14607033, 0.3284819, 0.09950853,
+  'NS', 0.1302331, 0.2315199, 0.02020253, 0.589446, -2.037042, 0.0867806, 0.2243597, 0.09950853,
+  'QC', 0.1068258, 0.2315199, 0.02020253, 0.6810417, -2.037042, 0.01171661, 0.494071, 0.09950853)
 
-#### mortality modifiers ###
-  # SBW mortality modifier: stand level
-    smort_sbw_mod=function(Region, BA, BA.BF, topht, CDEF)
-    {
-      if(Region=='ME')
-      {
-        b1=-2.6380
-        b2=0.0114
-        b3=-0.0076
-        b4=0.0074
-      }
-      else if(Region=='NB')
-      {
-        b1=-3.0893
-        b2=0.0071
-        b3=-0.0037
-        b4=0.0
-      }
-      else
-      {
-        b1=-2.6380
-        b2=0.0114
-        b3=-0.0076
-        b4=0.0074
-      }
-      VOL=(topht/2)*BA
-      pBF=BA.BF/BA
-      aa=(1/(1+exp(-b1)))*(1/(1+exp(-(b2*0*BA.BF+b3*VOL+b4*0))))
-      bb=(1/(1+exp(-b1)))*(1/(1+exp(-(b2*CDEF*BA.BF+b3*VOL+b4*CDEF))))
-      rat=ifelse(is.na(CDEF),1,bb/aa)
-      
-      # result is mortality probability multiplier value >=1
-      return(rat=rat)
-    }
-
+# Plot SBW mortality modifier region parameters
+smort.sbw.region = dplyr::tribble(
+  ~region, ~b1, ~b2, ~b3, ~b4,
+  'ME', -2.6380, 0.0114, -0.0076, 0.0074,
+  'NB', -3.0893, 0.0071, -0.0037, 0.0)
   
-  # SBW survival modifier: tree record (Cen et al. 2016) 
-    # ? Cen Chen, Aaron Weiskittel, Mohammad Bataineh, and David A. MacLean. 2017. Even low levels of spruce budworm defoliation affect mortality and ingrowth but net growth is more driven by competition. Canadian Journal of Forest Research. 47(11): 1546-1556. https://doi.org/10.1139/cjfr-2017-0012
-    # C Chen, A Weiskittel, M Bataineh, DA MacLean. 2017. Evaluating the influence of varying levels of spruce budworm defoliation on annualized individual tree growth and mortality in Maine, USA and New Brunswick, Canada
-    #  Forest Ecology and Management 396:184-194. https://doi.org/10.1016/j.foreco.2017.03.026 . 
-    tsurv_sbw_mod=function(Region,SPP,DBH,CR,HT,BAL.HW,BAL.SW,avgHT.SW,CDEF=NA)
-    {
-      BF=ifelse(SPP=='BF',1,0)
-      BS.RS=ifelse(SPP=='BS'|SPP=='RS',1,0)
-      WS=ifelse(SPP=='WS',1,0)
-      CDEF2=ifelse(is.na(CDEF),0,CDEF)
-      if(Region=='ME')
-      {
-        b1=-6.5208
-        b2=-0.4866
-        b3.BF=-0.0355
-        b3.BS.RS=-0.1231
-        b3.WS=-0.1755                        
-        b4=0.0316
-        b5.BF=1.5087
-        b5.BS.RS=1.5087
-        b5.WS=1.5087
-        b6=-0.0175
-        b7=0.0274
-        b8.BF=0.0040
-        b8.BS.RS=0.0056
-        b8.WS=0.0207
-      }
-      else if(Region=='NB')
-      {
-        b1=-6.8310
-        b2=0.0
-        b3.BF=-0.2285
-        b3.BS.RS=-0.2285
-        b3.WS=-0.2285
-        b4=0.2025
-        b5.BF=2.1703
-        b5.BS.RS=2.0809
-        b5.WS=1.5802
-        b6=0.0
-        b7=0.0
-        b8.BF=0.0029
-        b8.BS.RS=0.0101
-        b8.WS=0.0021
-      }
-      tmorta=(1-exp(-exp(b1+b2*CR+(b3.BF*BF+b3.BS.RS*BS.RS+b3.WS*WS)*DBH+b4*avgHT.SW+
-                           (b5.BF*BF+b5.BS.RS*BS.RS+b5.WS*WS)*(HT/avgHT.SW)+b6*BAL.SW+b7*BAL.HW+
-                           (b8.BF*BF+b8.BS.RS*BS.RS+b8.WS*WS)*0)))
-      tmortb=(1-exp(-exp(b1+b2*CR+(b3.BF*BF+b3.BS.RS*BS.RS+b3.WS*WS)*DBH+b4*avgHT.SW+
-                           (b5.BF*BF+b5.BS.RS*BS.RS+b5.WS*WS)*(HT/avgHT.SW)+b6*BAL.SW+b7*BAL.HW+
-                           (b8.BF*BF+b8.BS.RS*BS.RS+b8.WS*WS)*CDEF2)))
-      tmort.mod=ifelse(is.na(CDEF) | SPP!='BF' & SPP!='RS' & SPP!='BS' & SPP!='WS',1.0,(1-tmortb)/(1-tmorta))
-      
-      # result is survival probability (range zero to one)
-      return(tmort.mod)  
-    }
-    
-  # HW survival modifier: tree record from Castle et al. (2017)
-    tsurv_hw_mod=function(SPP,DBH,BAL,BA,Form){
-      
-      # check for valid species and form codes
-      if(is.na(Form) | !(gsub('[^0-9]', '', Form) %in% 1:8) |
-         !SPP %in% c('RO', 'YB', 'RM', 'PB', 'QA')){
-        mod=1
-      }else{
-        #Convert NHRI form classes
-        if(Form == 'F1'){new.Form = 'STM'}
-        else if(Form == 'F2'){new.Form = 'SWP'}
-        else if(Form == 'F5' | Form == 'F8'){new.Form = 'MST'}
-        else{new.Form = 'OTHER'}
-        
-        if(SPP=='RO'){SPP.RO=1; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-        else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.RM=0; SPP.QA=0; SPP.PB=0}
-        else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.YB=0; SPP.QA=0; SPP.PB=0}
-        #else if(SPP=='PB'){SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=1} I think this can be removed since PB is baseline species (intercept term)
-        else if(SPP=='QA'){SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=1; SPP.PB=0}
-        else{SPP.RO=0; SPP.YB=0; SPP.RM=0; SPP.QA=0; SPP.PB=0} #PB will take on a value of 0
-        if(new.Form=='STM'){STM=1; SWP=0; MST=0}
-        else if(new.Form =='SWP'){STM=0; SWP=1; MST=0}
-        else{STM=0; SWP=0; MST=0}
-        
-        mort.a=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                     5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-                     0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082)/(1+exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                                                                              5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-                                                                              0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082))
-        
-        mort.b=exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                     5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) +
-                     0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP)/(1 + exp(15.1991-0.1509*DBH-0.1232*BAL-1.4053*sqrt(BA)-2.7907*SPP.QA-3.9809*SPP.RM-0.7937*SPP.RO+
-                                                                                               5.2531*SPP.YB+0.0791*(DBH*SPP.QA)+0.8343*(DBH*SPP.RM) + 0.8944*(DBH*SPP.RO)+0.1528*(DBH*SPP.YB)+3.3082*STM+2.2518*SWP))
-        
-        mod=mort.b/mort.a}
-      # result is survival probability (range zero to one)
-      mod
-    }
+# Tree SBW survival modifier region-species parameters
+tsurv.sbw.region.spp = dplyr::tribble(
+  ~region, ~sp, ~b1, ~b2, ~b3, ~b4, ~b5, ~b6, ~b7, ~b8,
+  'ME', 'BF', -6.5208, -0.4866, -0.0355, 0.0316, 1.5087, -0.0175, 0.0274, 0.0040,
+  'ME', 'BS', -6.5208, -0.4866, -0.1231, 0.0316, 1.5087, -0.0175, 0.0274, 0.0056,
+  'ME', 'RS', -6.5208, -0.4866, -0.1231, 0.0316, 1.5087, -0.0175, 0.0274, 0.0056,
+  'ME', 'WS', -6.5208, -0.4866, -0.1755, 0.0316, 1.5087, -0.0175, 0.0274, 0.0207,
+  'NB', 'BF', -6.8310, 0.0, -0.2285, 0.2025, 2.1703, 0.0, 0.0, 0.0029,
+  'NB', 'BS', -6.8310, 0.0, -0.2285, 0.2025, 2.0809, 0.0, 0.0, 0.0101,
+  'NB', 'RS', -6.8310, 0.0, -0.2285, 0.2025, 2.0809, 0.0, 0.0, 0.0101,
+  'NB', 'WS', -6.8310, 0.0, -0.2285, 0.2025, 1.5802, 0.0, 0.0, 0.0021)
 
-  # Thinning survival modifier: stand level
-    ssurv_thin_mod=function(YEAR_CT, YEAR, PERCBArm, BApre){
-        
-        # time since thinning
-      TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) 
-      
-      # parameter estimates 
-      b30=-1.2402
-      b31=-24.5202
-      b32=-1.1302
-      b33=1.5884
-      y30=8.3385
-      y31=-601.3096
-      y32=0.5507
-      y33=1.5798
-      
-      #BAmort=exp(b30+(b31/BA)+b32*PCT+b33*pBA.BF)
-      mod=ifelse(!is.na(YEAR_CT) & YEAR_CT <= YEAR, 
-                 1.0+exp(y30+(y31/((100*(PERCBArm)+BApre)+0.01)))*y32^TST*TST^y33,
-                 1.0)
-      #BAmort=BAmort*mod
-      
-      # result is survival probability multiplier value >=1
-      mod
-    }  
+# Tree hardwood form and risk survival modifier species parameters
+tsurv.hw.spp = dplyr::tribble(
+  ~sp, ~b0, ~b1,
+  'QA', -2.7907, 0.0791,
+  'RM', -3.9809, 0.8343,
+  'RO', -0.7937, 0.8944,
+  'YB',  5.2531, 0.1528,
+  'PB', 0, 0)
+
+#' Calculate plot mortality probability 
+#' 
+#' @param ba Numeric: Plot basal area (m^2 per ha) 
+#' @param bag Numeric: Basal area growth (m^2 per ha)
+#' @param qmd Numeric: Quadratic mean diameter (cm)
+#' @param ba.bf Numeric: Plot basal area in balsam fir (m^2 per ha)
+#' @param ba.ihw Numeric: Plot basal area in intolerant hardwoods (m^2 per ha)
+#' @param b0 Numeric: Intercept parameter
+#' @param b1 Numeric: BA parameter
+#' @param b2 Numeric: BA squared parameter
+#' @param b3 Numeric: BAG parameter
+#' @param b4 Numeric: QMD parameter
+#' @param b5 Numeric: BF BA parameter
+#' @param b6 Numeric: IH BA parameter
+#' @return Numeric: Mortality probability (proportion 0-1)
+stand_mort_prob = function(ba, bag, qmd, ba.bf, ba.ihw, b0, b1, b2, b3, b4, b5, b6) {
+  
+  
+  k = b0 + b1 * ba + b2 * ba^2 + b3 * bag + b4 * qmd + b5 * ba.bf + b6 * ba.ihw
+  
+  mort.prob = exp(k) / (1 + exp(k))
+  
+  mort.prob
+}
+
+#' Calculate stand mortality basal area
+#' 
+#' @param ba Numeric: Plot basal area (m^2 per ha)
+#' @param bag Numeric: Basal area growth (m^2 per ha)
+#' @param qmd Numeric: Quadratic mean diameter (cm)
+#' @param qmd.bf Numeric: Balsam fir quadratic mean diameter (cm)
+#' @param ba.bf Numeric: Plot basal area in balsam fir (m^2 per ha)
+#' @param ba.ihw Numeric: Plot basal area in intolerant hardwoods (m^2 per ha)
+#' @param b0 Numeric: Intercept parameter
+#' @param b1 Numeric: ba.bf parameter
+#' @param b2 Numeric: ba.ihw parameter
+#' @param b3 Numeric: BA  parameter
+#' @param b4 Numeric: BAG exponent parameter
+#' @param b5 Numeric: BF mortality parameter
+#' @param b6 Numeric: BF BA parameter
+#' @param b7 Numeric: QMD ratio parameter
+#' @return Numeric: Total mortality basal area (m^2 per ha)
+stand_mort_ba = function(ba, bag, qmd, qmd.bf, ba.bf, ba.ihw, b0, b1, b2, b3, b4, b5, b6, b7) {
+  
+  
+  ba.perc.ihw = ifelse(ba == 0, 0, ba.ihw / ba)
+  ba.perc.bf  = ifelse(ba == 0, 0, ba.bf  / ba)
+  
+  ba.mort = (b0 + b1 * ba.perc.bf + b2 * ba.perc.ihw) * ba^(b3 + b4 * bag)
+  bf.mort = ifelse(qmd == 0, 0, b5 * ba.bf^b6 + b7 * (qmd.bf / qmd))
+  
+  ba.mort + bf.mort
+}
+
+#' Calculate tree survival probability
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param b0 Numeric: Intercept parameter
+#' @param b1 Numeric: DBH parameter
+#' @param b2 Numeric: DBH squared parameter
+#' @return Numeric: Tree survival probability (proportion 0-1)
+tree_surv_prob = function(sp, dbh, b0, b1, b2) {
+  
+  ddd = b0 + b1 * dbh + b2 * dbh^2
+  surv.prob = exp(ddd) / (1 + exp(ddd))
+  
+  surv.prob
+}
+
+#' SBW stand mortality modifier 
+#' 
+#' @param ba.plot Numeric: Plot basal area (m^2 per ha)
+#' @param ba.bf Numeric: Plot basal area in balsam fir (m^2 per ha)
+#' @param ht.top100 Numeric: Average height of top 100 trees (m)
+#' @param sbw.cdef Numeric: SBW cumulative defoliation (percent)
+#' @param b1 Numeric: Intercept parameter
+#' @param b2 Numeric: BF BA interaction parameter
+#' @param b3 Numeric: Volume parameter
+#' @param b4 Numeric: CDEF parameter
+#' @return Numeric: Mortality probability multiplier (>=1)
+smort_sbw_mod = function(ba.plot, ba.bf, ht.top100, sbw.cdef, b1, b2, b3, b4) {
+  
+  vol = (ht.top100 / 2) * ba.plot
+  
+  sbw.mod = ((1 / (1 + exp(-b1))) * (1 / (1 + exp(-(b2 * sbw.cdef * ba.bf + b3 * vol + b4 * sbw.cdef)))))/
+    ((1 / (1 + exp(-b1))) * (1 / (1 + exp(-(b3 * vol)))))
+  
+  sbw.mod
+}
+
+#' SBW mortality modifier for trees
+#' 
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param cr Numeric: Crown ratio (proportion 0-1)
+#' @param ht Numeric: Tree height (m)
+#' @param bal.hw Numeric: Basal area in larger hardwood trees (m^2 per ha)
+#' @param bal.sw Numeric: Basal area in larger softwood trees (m^2 per ha)
+#' @param ht.sw.avg Numeric: Average softwood height (m)
+#' @param sbw.cdef Numeric: SBW cumulative defoliation (percent)
+#' @param b1 Numeric: Intercept parameter
+#' @param b2 Numeric: Crown ratio parameter
+#' @param b3 Numeric: DBH parameter
+#' @param b4 Numeric: Height parameter
+#' @param b5 Numeric: Height ratio parameter
+#' @param b6 Numeric: BAL.SW parameter
+#' @param b7 Numeric: BAL.HW parameter
+#' @param b8 Numeric: CDEF parameter
+#' @return Numeric: Survival probability modifier (0-1)
+tsurv_sbw_mod = function(dbh, cr, ht, bal.hw, bal.sw, ht.sw.avg, sbw.cdef, b1, b2, b3, b4, b5, b6, b7, b8) {
+  
+  
+  sbw.surv.mod =  exp(-exp(b1 + b2 * cr + b3 * dbh + b4 * ht.sw.avg +
+                              b5 * (ht / ht.sw.avg) + b6 * bal.sw + b7 * bal.hw +
+                              b8 * sbw.cdef)) /
+                    exp(-exp(b1 + b2 * cr + b3 * dbh + b4 * ht.sw.avg +
+                               b5 * (ht / ht.sw.avg) + b6 * bal.sw + b7 * bal.hw))
+  
+  sbw.surv.mod
+}
+
+#'Tree hardwood form and risk survival modifier
+#' 
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param bal Numeric: Basal area in larger trees (m^2 per ha)
+#' @param ba.plot Numeric: Plot basal area (m^2 per ha)
+#' @param form Character: Form class (F1-F8)
+#' @param b0 Numeric: Species intercept
+#' @param b1 Numeric: DBH coefficient 
+#' @return Numeric: Survival probability modifier (0-1)
+tsurv_hw_mod = function(dbh, bal, ba.plot, form, b0, b1) {
+  
+  # Convert NHRI form classes
+  if (form == 'F1') {
+    new.form = 'STM'
+  } else if (form == 'F2') {
+    new.form = 'SWP'
+  } else if (form %in% c('F5', 'F8')) {
+    new.form = 'MST'
+  } else {
+    new.form = 'OTHER'
+  }
+  
+  # Set form indicators
+  stm = ifelse(new.form == 'STM', 1, 0)
+  swp = ifelse(new.form == 'SWP', 1, 0)
+  
+  
+  hw.surv.mod = (exp(15.1991 - 0.1509 * dbh - 0.1232 * bal - 1.4053 * sqrt(ba.plot) +
+                       b0 + b1 * dbh + 3.3082 * stm + 2.2518 * swp) /
+                   (1 + exp(15.1991 - 0.1509 * dbh - 0.1232 * bal - 1.4053 * sqrt(ba.plot) +
+                              b0 + b1 * dbh + 3.3082 * stm + 2.2518 * swp)))/
+    (exp(15.1991 - 0.1509 * dbh - 0.1232 * bal - 1.4053 * sqrt(ba.plot) +
+           b0 + b1 * dbh + 3.3082) /  
+       (1 + exp(15.1991 - 0.1509 * dbh - 0.1232 * bal - 1.4053 * sqrt(ba.plot) +
+                  b0 + b1 * dbh + 3.3082)))
+  
+  
+  hw.surv.mod
+  
+}
+
+#' Plot thinning survival modifier
+#' 
+#' @param year.thin Numeric: Commercial thinning year
+#' @param year Numeric: Current year
+#' @param ba.perc.rmv Numeric: Percent basal area removed (proportion 0-1)
+#' @param ba.pre.thin Numeric: Pre-thinning basal area (m^2 per ha)
+#' @return Numeric: Survival probability multiplier (>=1)
+ssurv_thin_mod = function(year.thin, year, ba.perc.rmv, ba.pre.thin) {
+  
+  tst = ifelse(is.na(year.thin), 0, year - year.thin)
+  
+  # Parameter estimates
+  y30 = 8.3385
+  y31 = -601.3096
+  y32 = 0.5507
+  y33 = 1.5798
+  
+  thin.mod = ifelse(!is.na(year.thin) & year.thin <= year,
+                    1.0 + exp(y30 + (y31 / ((100 * (ba.perc.rmv) + ba.pre.thin) + 0.01))) * y32^tst * tst^y33,
+                    1.0)
+  
+  thin.mod
+}
+
+#' Tree thinning survival modifier
+#' 
+#' @param sp Character: Species code ('BF', 'RS')
+#' @param ba.perc.rmv Numeric: Percent basal area removed (proportion 0-1)
+#' @param ba.pre.thin Numeric: Pre-thinning basal area (m^2 per ha)
+#' @param qmd.ratio Numeric: QMD ratio before and after thinning 
+#' @param year.thin Numeric: Commercial thinning year
+#' @param year Numeric: Current year
+#' @return Numeric: Survival probability multiplier (>=1)
+tsurv_thin_mod = function(sp, ba.perc.rmv, ba.pre.thin, qmd.ratio, year.thin, year) {
+  
+  if(!sp %in% c('BF', 'RS')){
+    return(1)
+  }
+  
+  tst = ifelse(is.na(year.thin), 0, year - year.thin)
+  
+  # Species parameter estimates
+  if (sp == 'BF') {
+    y0 = 1.7414
+    y1 = 7.0805
+    y2 = 0.6677
+    y3 = 0.8474
     
-  # Thinning survival modifier: tree record
-    tsurv_thin_mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR){
-        # time since thinning
-      TST = ifelse(is.na(YEAR_CT),0,YEAR - YEAR_CT) 
-      
-      # balsam fir 
-      if(SPP=="BF"){
-        y0=1.7414
-        y1=7.0805;
-        y2=0.6677; 
-        y3=0.8474
-        tmod=1+(exp(y0+(y1/(((100*PERCBArm+BApre)*QMDratio)+0.01)))*y2^TST*TST^y3)
-      }
-      
-      # red spruce 
-      else if(SPP=="RS"){
-        y0=10.5057;
-        y1=-650.8260;
-        y2=0.6948; 
-        y3=0.6429
-        tmod=1+(exp(y0+(y1/(((100*PERCBArm)+BApre)+0.01)))*y2^TST*TST^y3)}
-      
-      tmod = ifelse((!is.na(YEAR_CT) & YEAR_CT <= YEAR) & SPP %in% c('BF', 'RS'),
-                         tmod,
-                         1)
-      # result is survival probability multiplier value >=1
-      
-       tmod
-    }
+    thin.mod = ifelse((!is.na(year.thin) & year.thin <= year),
+                      1 + (exp(y0 + (y1 / (((100 * ba.perc.rmv + ba.pre.thin) * qmd.ratio) + 0.01))) * y2^tst * tst^y3),
+                      1)
+  } else if (sp == 'RS') {
+    y0 = 10.5057
+    y1 = -650.8260
+    y2 = 0.6948
+    y3 = 0.6429
+    
+    # RS doesn't include * qmd.ratio
+    thin.mod = ifelse((!is.na(year.thin) & year.thin <= year),
+                      1 + (exp(y0 + (y1 / ((100 * ba.perc.rmv + ba.pre.thin) + 0.01))) * y2^tst * tst^y3),
+                      1)
+  } 
+  
+  
+  thin.mod
+}
+
+#' Calculate mortality and modifiers for tree list
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data
+#' @param region Character: Region code; options are ME, NB, NS, QC (default stand$region)
+#' @param use.sbw.mod Logical: Apply SBW outbreak modifiers (default ops$use.sbw.mod)
+#' @param use.hw.mod Logical: Apply hardwood form and risk modifiers (default ops$use.hw.mod)
+#' @param thin.ba.perc.rmv Numeric: Plot basal area percent removed (percent; default ops$thin.ba.perc.rmv)
+#' @param thin.ba.pre Numeric: Plot pre-thin basal area (m^2 per ha; default ops$thin.ba.pre)
+#' @param thin.qmd.ratio Numeric: Thinning QMD ratio. Before thinning QMD / After thinning QMD (default ops$thin.qmd.ratio)
+#' @param thin.year Numeric: Thinning year (year; default ops$thin.year)
+#' @param use.thin.mod Logical: Apply post-commercial thinning modifiers (default ops$use.thin.mod)
+#' @param sbw.cdef Numeric: Spruce budworm outbreak cumulative defoliation (percent; default ops$sbw.cdef)
+#' @param sbw.yr Numeric: Initial year of spruce budworm outbreak (year; default ops$sbw.yr)
+#' @param sbw.dur Numeric: Duration of spruce budworm outbreak (years; default ops$sbw.dur)
+#' @param stand.mort.prob.region.df Dataframe: Plot mortality probability region parameters dataframe (default stand.mort.prob.region)
+#' @param stand.mort.ba.region.df Dataframe: Plot mortality basal area region parameters dataframe (default stand.mort.ba.region)
+#' @param smort.sbw.region.df Dataframe: Plot SBW mortality modifier region parameters dataframe (default smort.sbw.region)
+#' @param tsurv.sbw.region.spp.df Dataframe: Tree-level SBW survival modifier region-species parameters dataframe (default tsurv.sbw.region.spp)
+#' @return Dataframe: Tree data with mortality calculations
+calc_mortality = function(tree.data, plot.data, region = stand$region, 
+                          use.sbw.mod = ops$use.sbw.mod,
+                          use.hw.mod = ops$use.hw.mod, 
+                          use.thin.mod = ops$use.thin.mod, 
+                          thin.ba.perc.rmv = ops$thin.ba.perc.rmv,
+                          thin.ba.pre = ops$thin.ba.pre,
+                          thin.qmd.ratio = ops$thin.qmd.ratio,
+                          thin.year=ops$thin.year,
+                          sbw.cdef = ops$sbw.cdef,
+                          sbw.yr = ops$sbw.yr,
+                          sbw.dur = ops$sbw.dur,
+                          tsurv.sbw.region.spp.df=tsurv.sbw.region.spp,
+                          stand.mort.prob.region.df = stand.mort.prob.region,
+                          stand.mort.ba.region.df = stand.mort.ba.region,
+                          smort.sbw.region.df = smort.sbw.region) {
+  
+  # tree list names
+  tree.data.names= colnames(tree.data)
+  
+  # Calculate BA growth for top 30% of trees
+  tree = tree.data %>%
+    dplyr::arrange(plot, 
+                   desc(dbh)) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(cum.sdi.ward = cumsum(expf * (0.00015 + 0.00218 * sg) * ((dbh / 25)^1.605)),
+                  ba.growth.tree = ((dbh + ddbh)^2 * 0.00007854 - dbh^2 * 0.00007854) * expf,
+                  ba.growth.top30 = sum(ifelse(cum.sdi.ward <= 0.3, ba.growth.tree, 0))) %>%
+    dplyr::ungroup()
+  
+  # additional plot summary values
+  plot.bf = tree.data %>%
+    dplyr::group_by(plot) %>%
+    # plot balsam fir basal area
+    dplyr::summarise(ba.bf = sum(ifelse(sp == 'BF', ba, 0), na.rm = TRUE),
+                     tph.bf = sum(ifelse(sp == 'BF', expf, 0), na.rm = TRUE)) %>%
+    dplyr::ungroup() %>% 
+    dplyr::mutate(qmd.bf = sqrt(ba.bf/(0.00007854*tph.bf)))
+  
+  # Regional parameters for plot mortality probability
+  stand.prob.idx = match(region, stand.mort.prob.region.df$region, 
+                         nomatch = match('ME', stand.mort.prob.region.df$region)) # default Maine
+  stand.prob.parms = stand.mort.prob.region.df[stand.prob.idx, ]
+  
+  # Regional parameters for plot mortality basal area
+  stand.ba.idx = match(region, stand.mort.ba.region.df$region,
+                       nomatch = match('ME', stand.mort.ba.region.df$region)) # default Maine
+  stand.ba.parms = stand.mort.ba.region.df[stand.ba.idx, ]
+  
+  # Join tree and plot summary data 
+  tree = tree %>%
+    dplyr::left_join(plot.data %>% 
+                       dplyr::select(plot, ba.plot, qmd, ba.ihw, dbh.sw.avg, ht.sw.avg, topht), 
+                     by = 'plot') %>%
+    dplyr::left_join(plot.bf, 
+                     by = 'plot') %>%
+    # Stand mortality probability
+    dplyr::mutate(stand.pmort = purrr::pmap_dbl(list(ba.plot, ba.growth.top30, qmd, ba.bf, ba.ihw,
+                                                     stand.prob.parms$b0, stand.prob.parms$b1, stand.prob.parms$b2,
+                                                     stand.prob.parms$b3, stand.prob.parms$b4, stand.prob.parms$b5,
+                                                     stand.prob.parms$b6), 
+                                                stand_mort_prob),
+                  # Stand mortality basal area
+                  stand.mort.ba = purrr::pmap_dbl(list(ba=ba.plot, bag=ba.growth.top30, 
+                                                       qmd=qmd, qmd.bf=qmd.bf, ba.bf=ba.bf, 
+                                                       ba.ihw=ba.ihw,
+                                                       stand.ba.parms$b0, stand.ba.parms$b1, stand.ba.parms$b2,
+                                                       stand.ba.parms$b3, stand.ba.parms$b4, stand.ba.parms$b5,
+                                                       stand.ba.parms$b6, stand.ba.parms$b7),
+                                                  stand_mort_ba))
+  
+  # Post-thinning modifier
+  if (use.thin.mod == TRUE &
+      !is.na(thin.ba.perc.rmv) &
+      !is.na(thin.ba.pre) &
+      !is.na(thin.qmd.ratio) &
+      !is.na(thin.year)) {
+    
+    # Calculate stand-level thinning modifier
+    tree = tree %>%
+      dplyr::mutate(smort.thin.mod = purrr::pmap_dbl(list(thin.year, year, thin.ba.perc.rmv, thin.ba.pre),
+                                                     ssurv_thin_mod))
+    
+    # Calculate tree-level thinning modifier
+    tree = tree %>%
+      dplyr::mutate(tsurv.thin.mod = purrr::pmap_dbl(list(sp, thin.ba.perc.rmv, thin.ba.pre, thin.qmd.ratio, thin.year, year),
+                                                     tsurv_thin_mod))
+  } else {
+    tree = tree %>%
+      dplyr::mutate(smort.thin.mod = 1,
+                    tsurv.thin.mod = 1)
+  }
+  
+  #Spruce budworm modifier
+  if (use.sbw.mod == TRUE & 
+      region %in% c('ME', 'NB') &
+      !is.na(sbw.cdef) & sbw.cdef > 0 &
+      !is.na(sbw.yr) & sbw.yr<=tree$year[1] &
+      !is.na(sbw.dur) & tree$year[1]<=sbw.yr+sbw.dur)  {
+    
+    # Calculate plot SBW modifier
+    # SBW region parameters 
+    sbw.idx = match(region, smort.sbw.region$region, 
+                    nomatch = match('ME', smort.sbw.region$region))
+    sbw.plot.parms = smort.sbw.region[sbw.idx, ]
+    
+    tree = tree %>%
+      dplyr::mutate(smort.sbw.mod = purrr::pmap_dbl(list(ba.plot, ba.bf, topht, sbw.cdef,
+                                                         sbw.plot.parms$b1, sbw.plot.parms$b2, 
+                                                         sbw.plot.parms$b3, sbw.plot.parms$b4),
+                                                    smort_sbw_mod))
+    
+    # Calculate tree-level SBW modifier
+    # SBW region-species parameters
+    sel.region=ifelse(region %in% tsurv.sbw.region.spp$region, region, 'ME')
+    
+    sbw.tree.parm = tsurv.sbw.region.spp.df %>% 
+      dplyr::filter(region == sel.region)
+    
+    tree = tree %>%
+      # in this case join() is probably easier than match()
+      dplyr::left_join(sbw.tree.parm, 
+                       by = 'sp') %>%
+      dplyr::mutate(tsurv.sbw.mod = ifelse(sp %in% c('BF', 'RS', 'BS', 'WS') & !is.na(b1),
+                                           purrr::pmap_dbl(list(dbh=dbh, cr=cr, ht=ht, 
+                                                                bal.hw=bal.hw, bal.sw=bal.sw,
+                                                                ht.sw.avg=ht.sw.avg, sbw.cdef=sbw.cdef,
+                                                                b1, b2, b3, b4, b5, b6, b7, b8),
+                                                           tsurv_sbw_mod),
+                                           1)) %>%
+      dplyr::select(-b1, -b2, -b3, -b4, -b5, -b6, -b7, -b8)
+    
+  } else {
+    tree = tree %>%
+      dplyr::mutate(smort.sbw.mod = 1,
+                    tsurv.sbw.mod = 1)
+  }
+  
+  
+  # Hardwood form and risk modifier
+  if (use.hw.mod == TRUE) {
+    tree = tree %>%
+      dplyr::left_join(tsurv.hw.spp, 
+                       by = 'sp') %>%
+      dplyr::mutate(tsurv.hw.mod = ifelse(!is.na(form) & gsub('[^0-9]', '', form) %in% 1:8 & sp %in% c('RO', 'YB', 'RM', 'PB', 'QA') & !is.na(b0),
+                                          purrr::pmap_dbl(list(dbh, bal, ba.plot, form, b0, b1), 
+                                                          tsurv_hw_mod),
+                                          1)) %>%
+      dplyr::select(-b0, -b1)
+  } else {
+    tree = tree %>%
+      dplyr::mutate(tsurv.hw.mod = 1)
+  }
+  
+  # Apply stand mortality basal area modifiers 
+  tree = tree %>%
+    dplyr::mutate(stand.mort.ba = ifelse(stand.pmort > stand.prob.parms$cut,
+                                         stand.mort.ba * (1 / smort.thin.mod) * smort.sbw.mod,
+                                         0),
+                  stand.mort.ba = pmin(stand.mort.ba, ba.plot))
+  
+  # Get tree mortality species parameters and calculate survival
+  tree = tree %>%
+    dplyr::mutate(mort.idx = match(sp, tree.mort.spp$species, nomatch = match('99', tree.mort.spp$species)),
+                  b0 = tree.mort.spp$b0[mort.idx],
+                  b1 = tree.mort.spp$b1[mort.idx], 
+                  b2 = tree.mort.spp$b2[mort.idx],
+                  surv.tree = tree_surv_prob(sp, dbh, b0, b1, b2)) %>%
+    dplyr::select(-mort.idx, -b0, -b1, -b2)
+  
+  # Apply tree level mortality modifiers
+  tree = tree %>%
+    dplyr::mutate(tsurv = pmax(0, pmin(surv.tree *
+                                         tsurv.thin.mod * tsurv.sbw.mod * tsurv.hw.mod, 
+                                       1.0)),
+                  tmort = 1-tsurv)
+  
+  # Calculate tree mortality basal area and scale to stand basal area mortality
+  tree = tree %>%
+    dplyr::mutate(tree.mortba = ((dbh + ddbh)^2 * 0.00007854) * expf * tmort) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(sum.tree.mortba = sum(tree.mortba)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(mort.ratio = ifelse(stand.mort.ba > 0, sum.tree.mortba / stand.mort.ba, 0),
+                  tree.mortba.adj = ifelse(stand.mort.ba > 0, tree.mortba / mort.ratio, 0),
+                  ba.tree = 0.00007854 * (dbh + ddbh)^2,   
+                  dexpf = ifelse(stand.mort.ba > 0, tree.mortba.adj / ba.tree, 0) * mort.mult) # apply mortality multiplier
+  
+  # Remove temporary columns
+  tree = tree %>%
+    dplyr::select(dplyr::all_of(tree.data.names), dexpf)
+  
+  tree
+}
 
 #### Calibration ####    
 # multipliers for diameter increment, height increment and mortality
@@ -1269,8 +2058,8 @@ tree.mort.prob=function(SPP,DBH)
     
   # default tree size limits from northern New England FIA data and national champion tree data
     
-    tree.size.cap=tibble::tribble(
-      ~Species, ~max.dbh, ~max.height,
+    tree.size.cap=dplyr::tribble(
+      ~species, ~max.dbh, ~max.height,
       'AB',	  56.1,	    101,
       'AE',	  61.7,	    100.5,
       'AH',	  38.4,	    54.5,
@@ -1320,11 +2109,20 @@ tree.mort.prob=function(SPP,DBH)
       'YP',	  124.1,	    100,
       '99',	  63.5,	    98.8, # RM values	
       'OH',	  28.7,     98.8, # RM max height value		
-      'OS',	  22.6,	    84	# BS values
-    )
+      'OS',	  22.6,	    84 )	# BS values
+   
 
-  # create table of height and diameter increment multipliers from FVS species attributes and tree size cap       
-    make_fvs_calib=function(spcodes, tree.size.cap, in.to.cm=INtoCM, ft.to.m=FTtoM){
+#' create table of height and diameter increment and mortality multipliers from FVS species attributes and tree size cap       
+#' 
+#' @param spcodes Dataframe: FVS species codes from fvsGetSpeciesCodes(). Required fields- fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector 
+#' @param tree.size.cap Dataframe: tree size limits, Required fields: species (FVS alpha species code), max.dbh and max.height 
+#' @return Dataframe: Species calibration factors
+
+    make_fvs_calib=function(spcodes, tree.size.cap){
+      
+      # customary-metric conversion
+      in.to.cm = 2.54
+      ft.to.m = 0.3048
       
       # get fvs dll
       fvs.loaded=try(as.character(get(".FVSLOADEDLIBRARY",envir=.GlobalEnv)[['ldf']]),
@@ -1340,7 +2138,7 @@ tree.mort.prob=function(SPP,DBH)
       
       
       # calibration dataframe fields
-      calib.df = data.frame(SP=character(),
+      calib.df = data.frame(sp=character(),
                             baimult=numeric(), 
                             htgmult=numeric(),
                             mortmult=numeric(),
@@ -1356,7 +2154,7 @@ tree.mort.prob=function(SPP,DBH)
         dplyr::mutate(fvs.num=as.integer(rownames(.))) %>%
         dplyr::left_join(spcodes %>% 
                            as.data.frame() %>% 
-                           dplyr::transmute(SP=as.character(fvs),
+                           dplyr::transmute(sp=as.character(fvs),
                                             fvs.num=as.integer(rownames(.))),
                          by='fvs.num')
       
@@ -1364,8 +2162,8 @@ tree.mort.prob=function(SPP,DBH)
       # ensure that df contains all variable
       calib.fvs=calib.df %>% 
         dplyr::bind_rows(calib.fvs) %>% 
-        dplyr::rename(dDBH.mult=baimult,
-                      dHt.mult=htgmult,
+        dplyr::rename(ddbh.mult=baimult,
+                      dht.mult=htgmult,
                       mort.mult=mortmult,
                       maxdbh.fvs=maxdbh, 
                       maxht.fvs=maxht) 
@@ -1374,33 +2172,28 @@ tree.mort.prob=function(SPP,DBH)
       # join with default max height and diameter values
       calib.fvs=calib.fvs %>% 
         dplyr::left_join(tree.size.cap,
-                         by=c('SP'='Species')) %>% 
-        dplyr::mutate(dplyr::across(c(dDBH.mult, # if multipliers are 0 or 999 change to NA 
-                                      dHt.mult, 
+                         by=c('sp'='species')) %>% 
+        dplyr::mutate(dplyr::across(c(ddbh.mult, # if multipliers are 0 or 999 change to NA 
+                                      dht.mult, 
                                       mort.mult,
                                       maxdbh.fvs,
                                       maxht.fvs),
                                     ~ifelse(.x %in% c(0, 999), NA, .x)),
                       max.dbh=dplyr::coalesce(maxdbh.fvs, 
                                               max.dbh, 
-                                              tree.size.cap$max.dbh[tree.size.cap$Species=='99']) * in.to.cm, # metric conversion # FVS or default
+                                              tree.size.cap$max.dbh[tree.size.cap$species=='99']) * in.to.cm, # metric conversion # FVS or default
                       max.height=dplyr::coalesce(maxht.fvs, 
                                                  max.height, 
-                                                 tree.size.cap$max.height[tree.size.cap$Species=='99']) * ft.to.m,
-                      dDBH.mult=dplyr::coalesce(dDBH.mult, 1), 
-                      dHt.mult=dplyr::coalesce(dHt.mult, 1), 
+                                                 tree.size.cap$max.height[tree.size.cap$species=='99']) * ft.to.m,
+                      ddbh.mult=dplyr::coalesce(ddbh.mult, 1), 
+                      dht.mult=dplyr::coalesce(dht.mult, 1), 
                       mort.mult=dplyr::coalesce(mort.mult, 1)) %>% 
-        dplyr::select(SP, dDBH.mult, dHt.mult, mort.mult, max.dbh, max.height)
+        dplyr::select(sp, ddbh.mult, dht.mult, mort.mult, max.dbh, max.height)
       
       
       calib.fvs
     }
-# Arguments
-    # spcodes: FVS species codes. Required fields: fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector 
-    # tree.size.cap: tree size limits, Required fields: Species (FVS alpha species code), max.dbh and max.height 
-    # in.to.cm: inch to centimeter conversion. Default INtoCM from fvsUnitConversion("INtoCM")
-    # ft.to.m: foot to meter conversion. Default FTtoM from fvsUnitConversion("FTtoM")
-    
+   
     # Notes: 
       # function will test if FVS DLL is loaded
       # tree size limits from FVS-NE and tree.size.cap values are in customary units
@@ -1409,2474 +2202,1700 @@ tree.mort.prob=function(SPP,DBH)
     
     
 #### Ingrowth ####
-  ##INGROWTH FUNCTION of Li et al. (2011; CJFR 41, 2077-2089)
-  # PARMS is GNLS (generalized least squares) or NLME (mixed effects), 
-  # CutPoint is the probability threshold where ingrowth will occur
-  # BA is total basal area,
-  # TPH is trees per ha, 
-  # PHW is percent hardwood basal area, 
-  # MinDBH is the minimum threshold diameter (cm)
-  # ClimateSI is the climate site index (m)
-Ingrowth.FUN=function(PARMS,CutPoint,BA,TPH,QMD,PHW,MinDBH,ClimateSI,cyclen=1)
-{    
-  if(PARMS=="GNLS"){
-    a0=-0.2116   #-4.7867
-    a1=-0.0255   #0.0469
-    a2=-0.1396   #-0.8623
-    a3=-0.0054   #2.3E-5
-    a4=0.0433    #0.1541
-    a5=0.0409    #0.1508
-    a6=0.0
-    b0=3.8982    #3.9018
-    b1=-0.0257   #-0.0257
-    b2=-0.3668   #-0.3694
-    b3=0.0002    #0.0002
-    b4=0.0216    #0.0216
-    b5=-0.0514   #-0.0516
-    b6=0.0
-  } 
-  else if(PARMS=='NLME'){
-    b0 =          2.8466  #  0.1255  19E3    22.68    <.0001    0.05    2.6006    3.0926  -181.263
-    b1 =        -0.03114  #0.001039  19E3   -29.99    <.0001    0.05  -0.03318  -0.02911  -1243.77
-    b2 =         -0.2891  # 0.03785  19E3    -7.64    <.0001    0.05   -0.3633   -0.2149   -70.309
-    b3 =        0.003350  #0.000496  19E3     6.76    <.0001    0.05  0.002378  0.004321  -20015.9
-    a0 =        -0.08217  #  0.1536  19E3    -0.53    0.5927    0.05   -0.3833    0.2189  35.61166
-    a1 =          0.1113  #0.003037  19E3    36.64    <.0001    0.05    0.1053    0.1172  322.2762
-    a2 =         -1.2405  #  0.1100  19E3   -11.27    <.0001    0.05   -1.4562   -1.0248  -75.4676
-    a3 =         -0.2319  #       .  19E3      .       .        0.05         .         .  -1119.36
-    a4 =         0.03673  #       .  19E3      .       .        0.05         .         .  733.5435
-    b4 =          0.2248  #0.007891  19E3    28.49    <.0001    0.05    0.2093    0.2402  -801.094
-    a5 =         -0.7745  # 0.01281  19E3   -60.48    <.0001    0.05   -0.7996   -0.7494  944.4319
-    b5 =        -0.08223  #0.005889  19E3   -13.96    <.0001    0.05  -0.09378  -0.07069   74.8579
-    b6 =        -0.03548  #0.002736  19E3   -12.97    <.0001    0.05  -0.04084  -0.03011  1111.637
-    a6 =         -0.1301  # 0.009078  19E3   -14.33    <.0001    0.05   -0.1479   -0.1123  115.6522
-  } 
-  link1 = a0+a1*BA+a2*PHW+a3*(TPH/1000)+a4*ClimateSI+a5*(MinDBH)+a6*QMD #+a6*log(BA+0.1)#+a6*QMD*BA
-  PI  = (1/(1+exp(-link1)))
-  eta   = b0+b1*BA+ b2*PHW+b3*(TPH/1000)+b4*ClimateSI+b5*(MinDBH)+b6*QMD #+b6*log(BA+0.1)#+b6*QMD*BA
-  IPH  = exp(eta)
-  if (cyclen>1) 
-  {
-    PI = 1-((1-PI)^(1/cyclen))
-    IPH = IPH*cyclen
-  }
-  if(missing(CutPoint)) CutPoint=0.9995 #JAK added missing conditional
-  IPH = if(CutPoint == 0) IPH*PI else ifelse(PI>=CutPoint,IPH,0)
-  return(list(IPH=IPH))
-}
   
-Ingrowth.Comp=function(SPP,BA,PBA,ClimateSI,MinDBH)
-{
-  b10 =-2.5645#            -2.73758   #   0.0901     -30.39       <.0001
-  b11 =0.0020#            0.002377   #  0.00107       2.23       0.0258
-  b12 =2.6624#            2.686944   #   0.0333      80.57       <.0001
-  b13 =-0.0010 #           0.002534   #  0.00606       0.42       0.6759
-  b14 =-0.0127  #          0.004319   #  0.00393       1.10       0.2722
-  b20 = -3.0291#           -2.99285   #   0.0836     -35.80       <.0001
-  b21 = 0.0027#       #    0.002577   #  0.00102       2.52       0.0118
-  b22 = 2.7779     #     2.786347   #   0.0342      81.49       <.0001
-  b23 = 0.0211  #    0.018084   #  0.00522       3.46       0.0005
-  b24 = 0.0221 #            0.020181   #  0.00397       5.09       <.0001
-  b30 = -0.6566#            -0.5514   #   0.0658      -8.38       <.0001
-  b31 = 0.0123#           0.011912   # 0.000725      16.43       <.0001
-  b32 =1.7669#            1.772014   #   0.0174     102.07       <.0001
-  b33 =-0.0421#            -0.04203   #  0.00442      -9.52       <.0001
-  b34 =-0.0283#           -0.03874   #  0.00292     -13.25       <.0001
-  b40 =-1.2500#            -1.19912   #   0.0687     -17.44       <.0001
-  b41 =-0.0132 #          -0.01296    #0.000715     -18.12       <.0001
-  b42 = 2.0470#           2.056631   #   0.0193     106.43       <.0001
-  b43 = -0.0514 #          -0.05463   #  0.00478     -11.42       <.0001
-  b44 =  0.0351#          0.029222   #  0.00301       9.71       <.0001
-  b50 = -5.1074#           -5.08361   #   0.0912     -55.77       <.0001
-  b51 = -0.0117#          -0.01191   #  0.00135      -8.79       <.0001
-  b52 =  3.8817#          3.902292   #   0.0560      69.63       <.0001
-  b53 =  0.0501#          0.046106   #  0.00620       7.44       <.0001
-  b54 =  0.0726#          0.070207   #  0.00556      12.63       <.0001
-  b60 =  -2.9832#          -3.10838   #   0.0667     -46.63       <.0001
-  b61 =  -0.0020#          -0.00164   # 0.000830      -1.97       0.0485
-  b62 =  2.4837#          2.496484   #   0.0228     109.58       <.0001
-  b63 =  0.0673#          0.069919   #  0.00439      15.92       <.0001
-  b64 =  -0.0167#          -0.00386   #  0.00293      -1.32       0.1868
-  b70 = -4.7182#           -4.73521   #   0.0778     -60.90       <.0001
-  b71 = 0.0070#           0.007145   # 0.000776       9.20       <.0001
-  b72  = 3.2269#          3.234359    #  0.0340      95.04       <.0001
-  b73  = 0.1000#          0.098841    # 0.00484      20.41       <.0001
-  b74  = 0.0188#          0.020639    # 0.00295       6.99       <.0001
-  if(SPP=='BCH')                   
-  {perc =b10+b11*BA+b12*PBA+b13*ClimateSI+b14*MinDBH}
-  else if(SPP=='BF')
-  {perc =b20+b21*BA+b22*PBA+b23*ClimateSI+b24*MinDBH}
-  else if(SPP=='RM')
-  {perc =b30+b31*BA+b32*PBA+b33*ClimateSI+b34*MinDBH}
-  else if (SPP=='SPR')
-  {perc =b40+b41*BA+b42*PBA+b43*ClimateSI+b44*MinDBH}
-  else if (SPP=='WP')
-  {perc =b50+b51*BA+b52*PBA+b53*ClimateSI+b54*MinDBH}
-  else if (SPP=='OH')
-  {perc =b60+b61*BA+b62*PBA+b63*ClimateSI+b64*MinDBH}
-  else if(SPP=='OS')
-  {perc =b70+b71*BA+b72*PBA+b73*ClimateSI+b74*MinDBH}
-  perc=1/(1+exp(-(perc)))
-  return(perc=perc)
-}
-
-## Ingrowth function                                                                                       
-ING.TreeList=function(Sum.temp,INGROWTH,MinDBH)
-{
-  TreeCon=Sum.temp[Sum.temp$IPH>0,]
-  if(nrow(TreeCon)==0 || toupper(substring(INGROWTH,1,1)) == "N") return(NULL)
-  for(i in 1:nrow(TreeCon))
-  {
-   STAND.c=ifelse(is.null(TreeCon$STAND[i]),
-                   1,
-                   as.character(unique(TreeCon$STAND[i])))
-    PLOT.c=TreeCon$PLOT[i]
-    YEAR.c=ifelse(is.null(TreeCon$YEAR[i]),
-                  1,
-                  as.numeric(TreeCon$YEAR[i]+1))
-    TREENum=TreeCon$maxTREE[i]
-    #SPP=c('BF','RM','WP','OH','OS','GB','PB','YB','RS','BS','WS')
-    #SPPn=c(TreeCon$BF.ING[i],TreeCon$RM.ING[i],TreeCon$WP.ING[i],TreeCon$OH.ING[i],TreeCon$OS.ING[i],TreeCon$GB.ING[i],TreeCon$PB.ING[i],
-    #  TreeCon$YB.ING[i],TreeCon$RS.ING[i],TreeCon$BS.ING[i],TreeCon$WS.ING[i])
-    # BLC - deal explicitly with AB, QA, SM, WC
-    SPP=c('BF','RM','WP','OH','OS','GB','PB','YB','RS','BS','WS','AB','QA','SM','WC')
-    SPPn=c(TreeCon$BF.ING[i],TreeCon$RM.ING[i],TreeCon$WP.ING[i],TreeCon$OH.ING[i],TreeCon$OS.ING[i],TreeCon$GB.ING[i],TreeCon$PB.ING[i],
-           TreeCon$YB.ING[i],TreeCon$RS.ING[i],TreeCon$BS.ING[i],TreeCon$WS.ING[i],
-           TreeCon$AB.ING[i],TreeCon$QA.ING[i],TreeCon$SM.ING[i],TreeCon$WC.ING[i])
-    nING=nrow(TreeCon)*length(SPP)
-    Sxx=ifelse(is.numeric(TreeCon$STAND),'numeric','character')
-    STANDx=vector(Sxx,nING)
-    PLOTx=vector('numeric',nING)
-    YEARx=vector('numeric',nING)
-    TREEx=vector('numeric',nING)
-    SPx=vector('character',nING)
-    DBHx=vector('numeric',nING)
-    HTx=vector('numeric',nING)
-    HCBx=vector('numeric',nING)
-    EXPFx=vector('numeric',nING)
-    pHTx=vector('numeric',nING)
-    pHCBx=vector('numeric',nING)      
-    Formx=vector('character',nING)      # JAK added
-    Riskx=vector('character',nING)      # JAK added
-    k=1
-    for(j in 1:length(SPP))
-    {
-      STANDx[k]=STAND.c
-      PLOTx[k]=PLOT.c
-      YEARx[k]=YEAR.c
-      TREEx[k]=TREENum+j
-      SPx[k]=SPP[j]
-      DBHx[k]=MinDBH
-      HTx[k]=NA
-      HCBx[k]=NA
-      EXPFx[k]=SPPn[j]
-      pHTx[k]=NA
-      pHCBx[k]=NA
-      Formx[k]<-'NA'  #JAK Added
-      Riskx[k]<-'NA'   #JAK Added
-      k=k+1
+    # Ingrowth composition species group parameters
+    ingrowth.comp.spp = dplyr::tribble(
+      ~group, ~b0,      ~b1,      ~b2,    ~b3,      ~b4,
+      "BCH",  -2.5645,  0.0020,   2.6624, -0.0010,  -0.0127,
+      "BF",   -3.0291,  0.0027,   2.7779,  0.0211,   0.0221,
+      "RM",   -0.6566,  0.0123,   1.7669, -0.0421,  -0.0283,
+      "SPR",  -1.2500, -0.0132,   2.0470, -0.0514,   0.0351,
+      "WP",   -5.1074, -0.0117,   3.8817,  0.0501,   0.0726,
+      "OH",   -2.9832, -0.0020,   2.4837,  0.0673,  -0.0167,
+      "OS",   -4.7182,  0.0070,   3.2269,  0.1000,   0.0188,
+      "AB",   -2.9832, -0.0020,   2.4837,  0.0673,  -0.0167,
+      "QA",   -2.9832, -0.0020,   2.4837,  0.0673,  -0.0167,
+      "SM",   -2.9832, -0.0020,   2.4837,  0.0673,  -0.0167,
+      "WC",   -4.7182,  0.0070,   3.2269,  0.1000,   0.0188
+    )
+    
+    # Ingrowth probability model parameters
+    ingrowth.prob.parms = dplyr::tribble(
+      ~model.type, ~a1,       ~a2,       ~a3,       ~a4,       ~a5,      ~a6,      ~a7,       ~b1,      ~b2,       ~b3,       ~b4,        ~b5,      ~b6,       ~b7,
+      "GNLS",      -0.2116,   -0.0255,   -0.1396,   -0.0054,   0.0433,   0.0409,   0.0,       3.8982,   -0.0257,   -0.3668,   0.0002,     0.0216,   -0.0514,   0.0,
+      "NLME",      -0.08217,   0.1113,   -1.2405,   -0.2319,   0.03673,  -0.7745,  -0.1301,   2.8466,   -0.03114,  -0.2891,   0.003350,   0.2248,   -0.08223,  -0.03548)
+    
+    # Li, R; Weiskittel, AR; Kershaw, JA. 2011. Modeling annualized occurrence, frequency, and composition of ingrowth using 
+    # mixed-effects zero-inflated models and permanent plots in the Acadian Forest Region of North America. Canadian Journal 
+    # of Forest Research 41(10): 2077-2089.
+    
+#' Calculate probability of ingrowth
+#' 
+#' @param ba Numeric: Plot basal area (m^2 per ha)
+#' @param tph Numeric: Trees per hectare
+#' @param qmd Numeric: Quadratic mean diameter (cm)
+#' @param ba.perc.hw Numeric: Percent hardwood basal area (proportion 0-1)
+#' @param min.dbh.ingrowth Numeric: Minimum DBH threshold for ingrowth (cm)
+#' @param cut.point.ingrowth Numeric: Probability threshold where ingrowth will occur (default 0.95)
+#' @param csi Numeric: Climate site index (m)
+#' @param a1 Numeric: Parameter a1
+#' @param a2 Numeric: Parameter a2
+#' @param a3 Numeric: Parameter a3
+#' @param a4 Numeric: Parameter a4
+#' @param a5 Numeric: Parameter a5
+#' @param a6 Numeric: Parameter a6
+#' @param a7 Numeric: Parameter a7
+#' @param b1 Numeric: Parameter b1
+#' @param b2 Numeric: Parameter b2
+#' @param b3 Numeric: Parameter b3
+#' @param b4 Numeric: Parameter b4
+#' @param b5 Numeric: Parameter b5
+#' @param b6 Numeric: Parameter b6
+#' @param b7 Numeric: Parameter b7
+#' @return Numeric: Ingrowth per hectare (ingrowth.ph)
+    prob_ingrowth = function(ba, tph, qmd, ba.perc.hw, min.dbh.ingrowth, 
+                             cut.point.ingrowth=0.95, csi, 
+                             a1, a2, a3, a4, a5, a6, a7,
+                             b1, b2, b3, b4, b5, b6, b7) {
+      
+      # Calculate link1
+      link1 = a1 + a2 * ba + a3 * ba.perc.hw + a4 * (tph / 1000) + 
+        a5 * csi + a6 * min.dbh.ingrowth + a7 * qmd
+      
+      # Calculate probability
+      ingrowth.prob = 1 / (1 + exp(-link1))
+      
+      # Calculate eta
+      eta = b1 + b2 * ba + b3 * ba.perc.hw + b4 * (tph / 1000) + 
+        b5 * csi + b6 * min.dbh.ingrowth + b7 * qmd
+      
+      # Calculate ingrowth per hectare
+      ingrowth.ph = exp(eta)
+      
+      # Apply probability threshold
+      ingrowth.ph = ifelse(ingrowth.prob >= cut.point.ingrowth, ingrowth.ph, 0)
+      
+      ingrowth.ph
     }
-    if(i==1)
-    {
-      InTree1 = data.frame(STAND=STANDx,PLOT=PLOTx,YEAR=YEARx,TREE=TREEx,SP=SPx,
-                          DBH=DBHx,HT=HTx,HCB=HCBx,EXPF=EXPFx,pHT=pHTx,pHCB=pHCBx,
-                          Form=Formx,Risk=Riskx) # JAK added Form and Risk
-      InTree1 = InTree1[InTree1$DBH>0 & InTree1$EXPF>0,]        
+    
+#' Calculate species composition ingrowth probability
+#' 
+#' @param ba Numeric: Plot basal area (m^2 per ha) 
+#' @param ba.perc.grp Numeric: Proportion of plot basal area in species group (0-1)
+#' @param csi Numeric: Climate site index (m)
+#' @param b0 Numeric: Intercept parameter
+#' @param b1 Numeric: Parameter b1
+#' @param b2 Numeric: Parameter b2
+#' @param b3 Numeric: Parameter b3
+#' @param b4 Numeric: Parameter b4
+#' @param min.dbh.ingrowth Numeric: Minimum DBH threshold for ingrowth (cm)
+#' @return Numeric: Species composition probability (0-1)
+    comp_ingrowth = function(ba, ba.perc.grp, b0, b1, b2, b3, b4, 
+                             csi=stand$csi, min.dbh.ingrowth) {
+      
+      # Calculate percent  
+      sp.perc = b0 + b1 * ba + b2 * ba.perc.grp + b3 * csi + b4 * min.dbh.ingrowth
+      
+      # Probability
+      sp.perc = 1 / (1 + exp(-(sp.perc)))
+      
+      sp.perc
     }
-    else if(i!=1)
-    {
-      InTree2 = data.frame(STAND=STANDx,PLOT=PLOTx,YEAR=YEARx,TREE=TREEx,SP=SPx,
-                          DBH=DBHx,HT=HTx,HCB=HCBx,EXPF=EXPFx,pHT=pHTx,pHCB=pHCBx,
-                          Form=Formx,Risk=Riskx) # JAK added Form and Risk
-      InTree2 = InTree2[InTree2$DBH>0 & InTree2$EXPF>0,]
-      InTree1 = rbind(InTree1,InTree2)
-    }  
-  }
-  InTree1
-}
-
-
+    
+#' Create ingrowth tree list 
+#' 
+#' @param tree.ingrowth.data Dataframe: Ingrowth data with species-level ingrowth values
+#' @param tree.data Dataframe: Tree list
+#' @param plot.data Dataframe: Plot summary data
+#' @param min.dbh.ingrowth Numeric: Minimum DBH treshold for ingrowth trees (cm)
+#' @param sp.attr.data Dataframe: species functional attributes table (default sp.attr)
+#' @return Dataframe: Ingrowth tree list
+    create_ingrowth_tree = function(tree.data, 
+                                    tree.ingrowth.data, 
+                                    plot.data, 
+                                    min.dbh.ingrowth, sp.attr.data) {
+      
+      # Break down species groups into individual species
+      species.grp.ba = tree.data %>% 
+        dplyr::filter(sp %in% c('GB', 'YB', 'PB', 'RS', 'BS', 'WS')) %>%
+        dplyr::group_by(plot, 
+                        sp.grp.ingrowth, 
+                        sp) %>% 
+        dplyr::summarise(ba.sp = sum(ba, na.rm = TRUE), 
+                         .groups = 'drop')
+      
+      tree.group.ingrowth = tree.ingrowth.data %>% 
+        dplyr::filter(sp.grp.ingrowth %in% c('SPR', 'BCH')) %>% 
+        dplyr::left_join(species.grp.ba, 
+                         by = c('plot', 'sp.grp.ingrowth')) %>%
+        dplyr::mutate(sp.prop = ifelse(sp.ba == 0, 1/n(), ba.sp / sp.ba),
+                      sp.ing = sp.ing * sp.prop) %>%
+        dplyr::select(-ba.sp, 
+                      -sp.prop)
+      
+      # Ingrowth year
+      year.ingrowth=tree.data$year[1]+1
+      
+      # Combine individual species and group records
+      tree.ingrowth = tree.ingrowth.data %>%
+        dplyr::filter(!sp.grp.ingrowth %in% c('SPR', 'BCH')) %>%
+        dplyr::mutate(sp=sp.grp.ingrowth) %>% 
+        dplyr::bind_rows(tree.group.ingrowth)%>% 
+        dplyr::filter(sp.ing>0) %>% 
+        dplyr::transmute(plot, 
+                         tree = max.tree.id + row_number(),
+                         sp,
+                         dbh = min.dbh.ingrowth,
+                         expf = sp.ing,
+                         ht = NA_real_,
+                         hcb = NA_real_,
+                         year = year.ingrowth,
+                         ba=(dbh^2*0.00007854)*expf)
+      
+      # Add predicted heights and crown bases if there are ingrowth records
+      if (!is.null(tree.ingrowth) && nrow(tree.ingrowth) > 0) {
+        tree.max.bal=tree.data %>% 
+          dplyr::group_by(plot) %>% 
+          dplyr::summarise(bal.plot.max=max(bal), 
+                           .groups = 'drop')
+        
+        tree.ingrowth = tree.ingrowth %>%
+          dplyr::left_join(sp.attr, 
+                           by=c('sp'='species')) %>% # calc BAL needs sp.type for HW/SW
+          calc_bal() %>% 
+          dplyr::left_join(tree.max.bal, 
+                           by = 'plot') %>% 
+          dplyr::mutate(bal=bal + dplyr::coalesce(bal.plot.max, 0)) %>% # future proof - coalesce() to handle cases where we have plots with no existing tree records
+          calc_ht(tree.data=., plot.data = plot.data) %>%
+          dplyr::mutate(ht = pht) %>% 
+          calc_hcb(tree.data=., plot.data = plot.data) %>%
+          dplyr::mutate(hcb = phcb,
+                        cr=1-(phcb/ht))
+      }
+      
+      tree.ingrowth
+    }
+    
+#' Ingrowth calculation wrapper function
+#' 
+#' @param tree.data Dataframe: Tree list 
+#' @param plot.data Dataframe: Plot summary data
+#' @param ingrowth.prob.parms.df Dataframe: Ingrowth probability model parameters df
+#' @param csi Numeric: Climate site index (m; default=stand$csi)
+#' @param min.dbh.ingrowth Numeric: Minimum DBH threshold for ingrowth (cm; default=ops$ingrowth.min.dbh)
+#' @param cut.point.ingrowth Numeric: Probability threshold for ingrowth occurrence (default ops$ingrowth.thrshld)
+#' @param sp.attr.data Dataframe: species functional attributes table (default sp.attr)
+#' @param ingrowth.comp.spp.df Dataframe: Ingrowth composition species group parameters dataframe (default ingrowth.comp.spp)
+#' @param model.type Character: Parameter estimates for prob_ingrowth(). Choices are NLME and GNLS (default 'GNLS')
+#' @return Dataframe: Ingrowth tree list
+    calc_ingrowth = function(tree.data, 
+                             plot.data,
+                             ingrowth.prob.parms.df = ingrowth.prob.parms,
+                             csi = stand$csi, 
+                             min.dbh.ingrowth=ops$ingrowth.min.dbh, 
+                             cut.point.ingrowth = ops$ingrowth.thrshld, 
+                             sp.attr.data = sp.attr,
+                             ingrowth.comp.spp.df = ingrowth.comp.spp, 
+                             model.type = 'GNLS') {
+      
+      # Required columns in plot.data
+        # 'plot', 'ba.plot', 'tph.plot', 'qmd', 'ba.perc.hw', 'max.tree.id')
+     
+      # Get parameters for specified model
+      parms = dplyr::filter(ingrowth.prob.parms.df, 
+                            model.type == !!model.type)
+      
+      # Calculate species group basal areas (sp.attr$sp.grp.ingrowth)
+      species.ba = tree.data %>% 
+        dplyr::group_by(plot, 
+                        sp.grp.ingrowth) %>% 
+        dplyr::summarise(sp.ba = sum(ba, na.rm = TRUE), 
+                         .groups = 'drop')
+      
+      # Calculate ingrowth per hectare at plot level
+      plot.data = plot.data %>%
+        dplyr::mutate(ingrowth.ph = prob_ingrowth(ba = ba.plot,
+                                                  tph = tph.plot,
+                                                  qmd = qmd,
+                                                  ba.perc.hw = ba.perc.hw,
+                                                  min.dbh.ingrowth = min.dbh.ingrowth,
+                                                  cut.point.ingrowth = cut.point.ingrowth,
+                                                  csi = csi,
+                                                  a1 = parms$a1, a2 = parms$a2, a3 = parms$a3, a4 = parms$a4,
+                                                  a5 = parms$a5, a6 = parms$a6, a7 = parms$a7,
+                                                  b1 = parms$b1, b2 = parms$b2, b3 = parms$b3, b4 = parms$b4,
+                                                  b5 = parms$b5, b6 = parms$b6, b7 = parms$b7))
+      
+      # Ingrowth species groups
+      species.groups = c('BF', 'RM', 'WP', 'SPR', 'BCH', 'OH', 
+                         'OS', 'AB', 'QA', 'SM', 'WC')
+      
+      # Calculate species group ingrowth 
+      tree.ingrowth = plot.data %>%
+        #tidyr::crossing(sp.grp.ingrowth = species.groups) %>% include all possible species
+        dplyr::left_join(species.ba, 
+                         by = c('plot')) %>%
+        # by = c('plot', 'sp.grp.ingrowth')) %>% # when using all possible species
+        dplyr::mutate(sp.ba = ifelse(is.na(sp.ba), 0, sp.ba),
+                      ba.perc.grp = ifelse(ba.plot == 0, 0, sp.ba / ba.plot),
+                      idx = match(sp.grp.ingrowth, ingrowth.comp.spp$group),
+                      b0 = ingrowth.comp.spp$b0[idx],
+                      b1 = ingrowth.comp.spp$b1[idx],
+                      b2 = ingrowth.comp.spp$b2[idx],
+                      b3 = ingrowth.comp.spp$b3[idx],
+                      b4 = ingrowth.comp.spp$b4[idx],
+                      comp.prob = purrr::pmap_dbl(list(ba.plot, 
+                                                       ba.perc.grp, 
+                                                       b0, b1, b2, b3, b4,
+                                                       csi,
+                                                       min.dbh.ingrowth), 
+                                                  comp_ingrowth),
+                      year = first(tree.data$year)) %>%
+        dplyr::select(-idx) %>%
+        dplyr::group_by(plot) %>%
+        dplyr::mutate(total.comp.prob = sum(comp.prob, na.rm = TRUE),
+                      comp.prob.norm = ifelse(total.comp.prob == 0, 
+                                              0, 
+                                              comp.prob / total.comp.prob),
+                      sp.ing = ingrowth.ph * comp.prob.norm) %>%
+        dplyr::ungroup()
+      
+      # Generate tree list
+      tree.ingrowth = create_ingrowth_tree(tree.data, 
+                                           tree.ingrowth, 
+                                           plot.data,
+                                           min.dbh.ingrowth,
+                                           sp.attr.data)
+      
+      tree.ingrowth
+    }
+   
 #### Prepare input tree list ####
 ####
 
 ## define model species  
-  acd.species.ht.dia=tribble(
-~Spp,
-'AB',
-'AE',   
-'AH' ,  
-'AL'  , 
-'AP'   ,
-'BA'   ,
-'BC'   ,
-'BE'   ,
-'BF'   ,
-'BN'   ,
-'BO'   ,
-'BP',
-'BR',  
-'BS',  
-'BT',  
-'BW',  
-'CC',  
-'EC',  
-'EH',  
-'GA',  
-'GB',  
-'HH',  
-'HT',  
-'JP',  
-'MA',  
-'MM',  
-'NM',  
-'NS',  
-'PB',  
-'PP',  
-'PR',  
-'QA',  
-'RM',  
-'RN',  
-'RO',  
-'RS',  
-'SB',  
-'SE',  
-'SH',  
-'SM',  
-'SO',  
-'ST',  
-'SV',  
-'TA',  
-'TM',  
-'WA',  
-'WC',  
-'WI',  
-'WO',  
-'WP',  
-'WS',  
-'YB',  
-'YP',  
-'99',  
-'OH',   
-'OS')
+  acd.species.ht.dia=ddbh.spp %>% 
+    dplyr::inner_join(dht.spp, by='species') %>% 
+    dplyr::select(species)
 
-## For tree list from FVS add FVS alpha species codes and identify records with species outside scope of the model 
-  validate_acd_tree_spp=function(tree.list, spcodes, acd.species=acd.species.ht.dia$Spp){
+## For tree list from FVS add FVS alpha species codes and identify records with species outside scope of the model
+    #' Prepare tree list using FVS tree list 
+    #' 
+    #' @param tree.data Dataframe: tree list from FVS. Required tree list fields: plot, species (fvs numeric species code), tpa, dbh, ht, cratio, mgmtcd, special (used in form, Risk)
+    #' @param spcodes Dataframe: FVS species codes. Required fields: fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector 
+    #' @param acd.species Dataframe: Acadian model species. Default species contained in the diameter and height increment parameter estimate tables (acd.species$sp)
+    #' @return Dataframe: Tree list with added columns (sp: FVS alpha speies code and acd.ex: indicator value to drop records when returning to FVS)
+    #'
+     validate_acd_tree_spp=function(tree.data, spcodes, acd.species=acd.species.ht.dia$species){
     
     # retain records in the projections for accurate plot values and change species to OH
     
-    tree.list=tree.list %>% 
+    tree.list=tree.data %>% 
       dplyr::rename(fvs.num= species) %>%
       dplyr::left_join(spcodes %>% 
                          as.data.frame() %>% 
-                         transmute(SP=fvs,
+                         transmute(sp=fvs,
                                    fvs.num=as.integer(rownames(.))),
                        by='fvs.num') %>%
-        dplyr::mutate(acd.ex=dplyr::case_when(!SP %in% acd.species ~TRUE, # indicator value to drop records when returning to FVS
+        dplyr::mutate(acd.ex=dplyr::case_when(!sp %in% acd.species ~TRUE, # indicator value to drop records when returning to FVS
                                               TRUE ~ FALSE),
-                      SP=dplyr::case_when(!SP %in% acd.species ~'OH', # assign species code OH
-                                          TRUE ~ SP))                                            
+                      sp=dplyr::case_when(!sp %in% acd.species ~'OH', # assign species code OH
+                                          TRUE ~ sp))                                            
       
       tree.list  
   }
-  
-# arguments 
-  # tree.list: tree list from FVS. Required tree.list fields: plot, species (fvs numeric species code), tpa, dbh, ht, cratio, mgmtcd, special (used in Form, Risk)
-  # spcodes: FVS species codes. Required fields: fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector 
-  # acd.species: Acadian model species. Default species contained in the diameter and height increment parameter estimate tables (acd.species$Spp)
+ 
 
-
-## drop invalid tree records not handled by ACD
-  validate_acd_tree_status=function(tree.list, acd.species=acd.species.ht.dia$Spp){
+## drop invalid tree records not handled by ACD (snags, dbh=0)
+     #' Filter tree records with DBH=0 and snags
+     #' @param tree.data Dataframe: tree list from FVS. Required tree list fields: mgmtcd, sp (FVS alpha species code), dbh
+     #' @param acd.species Dataframe: Acadian model species. Default species contained in the diameter and height increment parameter estimate tables (acd.species$sp)
+     #' @return Dataframe: Tree list 
+  validate_acd_tree_status=function(tree.data){
      
-    tree.list=tree.list %>% 
-      dplyr::filter(MGMTCD!=9, # remove snags from tree list
-                    DBH>0) # remove tree records with DBH zero or NULL
+    tree.list=tree.data %>% 
+      dplyr::filter(mgmtcd!=9, # remove snags from tree list
+                    dbh>0) # remove tree records with dbh zero or NULL
                    
     
     tree.list
     
   } 
-# arguments 
-  # tree.list: tree list from FVS. Required tree.list fields: mgmtcd, SP (FVS alpha species code), DBH
-  # acd.species: Acadian model species (FVS alpha species codes). Default species contained in the diameter and height increment parameter estimate tables (acd.species$Spp)
+
   
 ## create Acadian model input dataframe from FVS tree list
-make_acd_tree=function(tree.list, num.plots, calib.spp,
-                       in.to.cm=INtoCM, ft.to.m=FTtoM, ha.to.ac=HAtoACR){
+  #' Create ACD tree list dataframe
+  #' 
+  #' @param tree.list Dataframe: Tree list from FVS. Required tree.list fields: plot, species (fvs numeric species code), tpa, dbh, ht, cratio, mgmtcd, special (used in Form, Risk)
+  #' @param num.plots Numeric: Number of plots in a stand
+  #' @param calib.spp Dataframe: Data frame of species calibration and size limits. Required fields: sp (FVS alpha species code), ddbh.mult, dht.mult, mort.mult, max.dbh,  max.height
+  #' @return Dataframe: Tree list dataframe
+  # Note: FVS-NE dg; htg and mort=MORT remain in customary units
   
-  tree.list.names=c('cr', 'dbh', 'ht', 'special', 'SP')
+make_acd_tree=function(tree.list, num.plots, calib.spp){
+ 
+   # customary-metric conversion
+  in.to.cm = 2.54
+  ft.to.m = 0.3048
+  ha.to.ac = 2.47105
+  
+  tree.list.vars=c('cratio', 'dbh', 'ht', 'special', 'sp')
   
   # stop if tree list is missing required variables
   
-  # if(all(tree.list.names %in% names(tree.list))==FALSE){ 
+  # if(all(tree.list.vars %in% names(tree.list))==FALSE){ 
   #   stop('Required tree list variable missing')
-  #   message(setdiff(tree.list.names, names(orgtree)))
+  #   message(setdiff(tree.list.vars, names(tree.list)))
   # }
   
   tree.list=tree.list %>% 
-    dplyr::rename_with(.fn=toupper) %>% 
-    dplyr::rename(CR= CRATIO,
-                  EXPF= TPA) %>%
-    dplyr::mutate(TREE=seq.int(1:n()), # sequential tree id used to retain order of tree list from fvs
-                  CR = abs(CR) * 0.01,
-                  #change CR to a proportion and take abs; note that in FVS a negative CR
-                  #signals that CR change has been computed by the fire or insect/disease model
-                  DBH  = DBH  * in.to.cm, # metric conversion
-                  HT   = HT   * ft.to.m,
-                  EXPF = EXPF * dplyr::coalesce(num.plots, 1) * ha.to.ac, # each plot as "stand"
-                  Form = ifelse(SPECIAL > 0 & SPECIAL < 85, 
-                                paste0("F", as.integer(SPECIAL %/% 10)), 
+    dplyr::rename_with(.fn=tolower) %>% 
+    dplyr::rename(cr= cratio,
+                  expf= tpa) %>%
+    dplyr::mutate(tree=seq.int(1:n()), # sequential tree id used to retain order of tree list from fvs
+                  cr = abs(cr) * 0.01,
+                  #change cr to a proportion and take abs; note that in FVS a negative cr
+                  #signals that cr change has been computed by the fire or insect/disease model
+                  dbh  = dbh  * in.to.cm, # metric conversion
+                  ht   = ht   * ft.to.m,
+                  hcb = ht-cr*ht,
+                  expf = expf * dplyr::coalesce(num.plots, 1) * ha.to.ac, # each plot as "stand"
+                  form = ifelse(special > 0 & special < 85, 
+                                paste0("F", as.integer(special %/% 10)), 
                                 NA_character_),
-                  Risk = ifelse(SPECIAL > 0 & SPECIAL < 85, 
-                                paste0("R", as.integer(SPECIAL %%  10)),
+                  risk = ifelse(special > 0 & special < 85, 
+                                paste0("R", as.integer(special %%  10)),
                                 NA_character_)) %>% 
     dplyr::left_join(calib.spp,
-                     by='SP')
+                     by='sp')
   
     tree.list
   }
-# arguments 
-  # tree.list: tree list from FVS. Required tree.list fields: plot, species (fvs numeric species code), tpa, dbh, ht, cratio, mgmtcd, special (used in Form, Risk)
-  # num.plots: number of plots in a stand
-  # calib.spp: data frame of species calibration and size limits. Required fields: SP (FVS alpha species code), dDBH.mult, dHt.mult, mort.mult, max.dbh,  max.height
-  # in.to.cm: inch to centimeter conversion. Default INtoCM from fvsUnitConversion("INtoCM")
-  # ft.to.m: foot to meter conversion. Default FTtoM from fvsUnitConversion("FTtoM")
-  # ha.to.ac: hectare to acre conversion. Default HAtoACR from fvsUnitConversion("HAtoACR")
- # Note: FVS-NE dg; htg and mort=MORT remain in customary units
+
+#' Validate tree dataframe
+#' 
+#' Validates that the tree dataframe contains all required fields with appropriate
+#' types and values for processing in AcadianGYOneStand().
+#' 
+#' @param tree Dataframe: Tree dataframe with required variables
+#' @return Logical: TRUE if validation passes
+#' @details
+#' Validates:
+#' - All required fields are present (year, plot, sp, dbh, expf, ht, hcb, cr, form, risk)
+#' - Required fields are not NA (year, plot, sp, dbh, expf)
+#' - Numeric fields are numeric type (year, dbh, ht, hcb, cr, expf)
+#' - Character fields are character type (sp, form, risk)
+#' @examples
+#' tree = data.frame(year = 2024, plot = 1, sp = 'BF', dbh = 20, expf = 100, 
+#'                   ht = 15, hcb = 5, cr = 0.67, form = NA, risk = NA)
+#' validate_tree(tree)
+#'
+validate_tree = function(tree) {
+  
+  required.fields = c('year', 'plot', 'sp', 'dbh', 'expf', 'ht', 'hcb', 'cr', 'form', 'risk')
+  
+  missing.fields = setdiff(required.fields, names(tree))
+  
+  if (length(missing.fields) > 0) {
+    stop('tree dataframe missing required fields: ', 
+         paste(missing.fields, collapse = ', '))
+  }
+  
+  numeric.fields = c('year', 'dbh', 'ht', 'hcb', 'cr', 'expf')
+  invalid.numeric = numeric.fields[!sapply(tree[numeric.fields], is.numeric)]
+  
+  if (length(invalid.numeric) > 0) {
+    stop('tree fields must be numeric: ', 
+         paste(invalid.numeric, collapse = ', '))
+  }
+  
+  character.fields = c('sp', 'form', 'risk')
+  invalid.character = character.fields[!sapply(tree[character.fields], is.character)]
+  
+  if (length(invalid.character) > 0) {
+    stop('tree fields must be character: ', 
+         paste(invalid.character, collapse = ', '))
+  }
+  
+  required.populated = c('year', 'plot', 'sp', 'dbh', 'expf')
+  
+  all.na.fields = required.populated[sapply(tree[required.populated], function(x) all(is.na(x)))]
+  
+  if (length(all.na.fields) > 0) {
+    stop('tree dataframe fields have all NA values: ', 
+         paste(all.na.fields, collapse = ', '))
+  }
+  
+  any.na.fields = required.populated[sapply(tree[required.populated], function(x) any(is.na(x)))]
+  
+  if (length(any.na.fields) > 0) {
+    stop('tree dataframe fields have some NA values: ', 
+            paste(sapply(any.na.fields, function(f) {
+              paste0(f, ' (', sum(is.na(tree[[f]])), ')')
+            }), collapse = ', '))
+  }
+  
+  TRUE
+}
+
+#### Prepare model options (ops) ####
+#' Create ACD run options dataframe
+#' 
+#' @param verbose Logical or character: Print verbose output. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default FALSE)
+#' @param rtn.vars Character vector: Variables to return in output (default core variables)
+#' @param use.cap.dbh Logical or character: Apply maximum DBH constraint. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default TRUE).
+#' @param use.cap.ht Logical or character: Apply maximum total tree height constraint. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default TRUE)
+#' @param use.sbw.mod Logical or character: Apply SBW outbreak modifiers. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default FALSE)
+#' @param sbw.cdef Numeric: Spruce budworm outbreak cumulative defoliation (percent; default NA)
+#' @param sbw.yr Numeric: Initial year of spruce budworm outbreak (year; default NA)
+#' @param sbw.dur Numeric: Duration of spruce budworm outbreak (years; default NA)
+#' @param use.thin.mod Logical or character: Apply post-commercial thinning modifiers. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default TRUE)
+#' @param thin.ba.perc.rmv Numeric: Plot basal area percent removed (percent; default NA)
+#' @param thin.ba.pre Numeric: Plot pre-thin basal area (default NA)
+#' @param thin.qmd.ratio Numeric: Thinning QMD ratio. Before thinning QMD / After thinning QMD (default NA)
+#' @param thin.year Numeric: Thinning year (default NA)
+#' @param use.hw.mod Logical or character: Apply hardwood form and risk modifiers. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default FALSE)
+#' @param use.ingrowth Logical or character: Use ingrowth sub-model. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default TRUE)
+#' @param ingrowth.min.dbh Numeric: Minimum DBH threshold for ingrowth (cm; default 3.0)
+#' @param ingrowth.thrshld Numeric: Ingrowth threshold (default 0.95)
+#' @param use.vol Logical or character: Use Acadian volume calculation. Accepts TRUE/FALSE or 'Yes'/'No'/'Y'/'N' (default FALSE)
+#' @return Dataframe: Run options dataframe
+#'
+make_ops = function(verbose = FALSE,
+                    rtn.vars = c('year', 'plot', 'tree', 'sp', 'dbh', 'ht', 
+                                 'hcb', 'cr', 'expf', 'pht', 'phcb', 'form', 'risk', 
+                                 'ddbh.mult', 'dht.mult', 'mort.mult', 'max.dbh', 'max.height'),
+                    use.cap.dbh = TRUE,
+                    use.cap.ht = TRUE,
+                    use.sbw.mod = FALSE,
+                    sbw.cdef = NA_real_,
+                    sbw.yr = NA_real_,
+                    sbw.dur = NA_real_,
+                    use.thin.mod = FALSE,
+                    thin.ba.perc.rmv = NA_real_,
+                    thin.ba.pre = NA_real_,
+                    thin.qmd.ratio = NA_real_,
+                    thin.year = NA_real_,
+                    use.hw.mod = FALSE,
+                    use.ingrowth = FALSE,
+                    ingrowth.min.dbh = 3.0,
+                    ingrowth.thrshld = 0.95,
+                    use.vol = FALSE) {
+  
+  # Convert strings to logical-- in case someone redefines TRUE and FALSE 
+  char_to_logical = function(x) {
+    
+    if (is.logical(x)) return(x)
+    if (is.character(x)) {
+      x_upper = toupper(trimws(x))
+      if (x_upper %in% c("YES", "Y", "TRUE", "T")) return(TRUE)
+      if (x_upper %in% c("NO", "N", "FALSE", "F")) return(FALSE)
+    }
+    # Return original value if not convertible
+    x
+  }
+  
+  
+  # Create dataframe
+  ops = data.frame(verbose = char_to_logical(verbose),
+                   rtn.vars = I(list(rtn.vars)),
+                   # rtn.vars = I(rtn.vars),
+                   use.cap.dbh = char_to_logical(use.cap.dbh),
+                   use.cap.ht = char_to_logical(use.cap.ht),
+                   use.sbw.mod = char_to_logical(use.sbw.mod),
+                   sbw.cdef = sbw.cdef,
+                   sbw.yr = sbw.yr,
+                   sbw.dur = sbw.dur,
+                   use.thin.mod = char_to_logical(use.thin.mod),
+                   thin.ba.perc.rmv = thin.ba.perc.rmv,
+                   thin.ba.pre = thin.ba.pre,
+                   thin.qmd.ratio = thin.qmd.ratio,
+                   thin.year = thin.year,
+                   use.hw.mod = char_to_logical(use.hw.mod),
+                   use.ingrowth = char_to_logical(use.ingrowth),
+                   ingrowth.min.dbh = ingrowth.min.dbh,
+                   ingrowth.thrshld = ingrowth.thrshld,
+                   use.vol=use.vol) %>%
+    dplyr::mutate(dplyr::across(c(verbose, use.cap.dbh, use.cap.ht, use.sbw.mod, 
+                                  use.thin.mod, use.hw.mod, use.ingrowth), 
+                                as.logical),
+                  dplyr::across(c(sbw.cdef, sbw.yr, sbw.dur, thin.ba.perc.rmv, 
+                                  thin.ba.pre, thin.qmd.ratio, thin.year, 
+                                  ingrowth.min.dbh, ingrowth.thrshld), 
+                                as.numeric))
+  
+  # rtn.vars as a list column 
+  # ops$rtn.vars = list(rtn.vars)
+  
+  ops
+}
+
+#' Validate ops dataframe
+#' 
+#' Validates that the ops dataframe contains all required fields with appropriate
+#' types and values. Performs conditional validation based on logical flags.
+#' 
+#' @param ops Dataframe: Operations dataframe created by make_ops()
+#' @return Logical: TRUE if validation passes
+#' @details
+#' Validates:
+#' - All required fields are present
+#' - Logical fields are TRUE/FALSE (not NA)
+#' - Numeric fields are numeric type
+#' - Conditional requirements when use.ingrowth = TRUE (ingrowth.min.dbh, ingrowth.thrshld must be populated)
+#' - rtn.vars is a non-empty list containing all default variables
+#' @examples
+#' ops = make_ops()
+#' validate_ops(ops)
+#'
+validate_ops = function(ops) {
+  
+  required.fields = c('verbose', 'rtn.vars', 'use.cap.dbh', 'use.cap.ht', 
+                      'use.sbw.mod', 'sbw.cdef', 'sbw.yr', 'sbw.dur', 
+                      'use.thin.mod', 'thin.ba.perc.rmv', 'thin.ba.pre', 
+                      'thin.qmd.ratio', 'thin.year', 'use.hw.mod', 
+                      'use.ingrowth', 'ingrowth.min.dbh', 'ingrowth.thrshld', 
+                      'use.vol')
+  
+  missing.fields = setdiff(required.fields, names(ops))
+  
+  if (length(missing.fields) > 0) {
+    stop('ops dataframe missing required fields: ', 
+         paste(missing.fields, collapse = ', '))
+  }
+  
+  logical.fields = c('verbose', 'use.cap.dbh', 'use.cap.ht', 'use.sbw.mod', 
+                     'use.thin.mod', 'use.hw.mod', 'use.ingrowth', 'use.vol')
+  
+  invalid.logical = logical.fields[!sapply(ops[logical.fields], function(x) is.logical(x) && !is.na(x))]
+  
+  if (length(invalid.logical) > 0) {
+    stop('ops fields must be TRUE or FALSE (not NA): ', 
+         paste(invalid.logical, collapse = ', '))
+  }
+  
+  numeric.fields = c('sbw.cdef', 'sbw.yr', 'sbw.dur', 'thin.ba.perc.rmv', 
+                     'thin.ba.pre', 'thin.qmd.ratio', 'thin.year', 
+                     'ingrowth.min.dbh', 'ingrowth.thrshld')
+  
+  invalid.numeric = numeric.fields[!sapply(ops[numeric.fields], is.numeric)]
+  
+  if (length(invalid.numeric) > 0) {
+    stop('ops fields must be numeric: ', 
+         paste(invalid.numeric, collapse = ', '))
+  }
+  
+  if (ops$use.ingrowth) {
+    ingrowth.required = c('ingrowth.min.dbh', 'ingrowth.thrshld')
+    ingrowth.missing = ingrowth.required[sapply(ops[ingrowth.required], is.na)]
+    if (length(ingrowth.missing) > 0) {
+      stop('use.ingrowth = TRUE requires populated fields: ', 
+           paste(ingrowth.missing, collapse = ', '))
+    }
+  }
+  
+  if (!is.list(ops$rtn.vars) || length(ops$rtn.vars) == 0) {
+    stop('ops field rtn.vars must be a non-empty list')
+  }
+  
+  default.rtn.vars = c('year', 'plot', 'tree', 'sp', 'dbh', 'ht', 
+                       'hcb', 'cr', 'expf', 'pht', 'phcb', 'form', 'risk', 
+                       'ddbh.mult', 'dht.mult', 'mort.mult', 'max.dbh', 'max.height')
+  
+  missing.rtn.vars = setdiff(default.rtn.vars, ops$rtn.vars[[1]])
+  
+  if (length(missing.rtn.vars) > 0) {
+    stop('ops$rtn.vars missing default variables: ', 
+         paste(missing.rtn.vars, collapse = ', '))
+  }
+  
+  TRUE
+}
+
+#### Prepare stand dataframe ####
+#' Create ACD stand list
+#' 
+#' @param stand.id character: Stand identifier
+#' @param csi Numeric: Climate site index (m; default 12)
+#' @param elev Numeric: Elevation (m; default 350) 
+#' @param region Character: Region code; options are ME, NB, NS, QC (default 'ME')
+#' @return Dataframe: Stand dataframe
+#'
+  make_stand= function(stand.id,
+                       csi =12,
+                       elev =350, 
+                       region = 'ME'){
+    
+    stand=data.frame(stand.id=stand.id,
+                     csi = as.numeric(csi),
+                     elev = as.numeric(elev), 
+                     region = region)
+    
+    stand
+    
+  }
+
+#' Validate stand dataframe
+#' 
+#' Validates that the stand dataframe contains all required fields with appropriate
+#' types and values.
+#' 
+#' @param stand Dataframe: Stand dataframe created by make_stand()
+#' @return Logical: TRUE if validation passes
+#' @details
+#' Validates:
+#' - All required fields are present (stand.id, csi, elev, region)
+#' - stand.id is character type and not NA
+#' - csi is numeric and not NA
+#' - elev is numeric and not NA
+#' - region is character, not NA, and one of: ME, NB, NS, QC
+#' @examples
+#' stand = make_stand('stand1', csi = 12, elev = 350, region = 'ME')
+#' validate_stand(stand)
+#'
+validate_stand = function(stand) {
+  
+  required.fields = c('stand.id', 'csi', 'elev', 'region')
+  
+  missing.fields = setdiff(required.fields, names(stand))
+  
+  if (length(missing.fields) > 0) {
+    stop('stand dataframe missing required fields: ', 
+         paste(missing.fields, collapse = ', '))
+  }
+  
+  if (!is.character(stand$stand.id) || is.na(stand$stand.id)) {
+    stop('stand$stand.id must be character and not NA')
+  }
+  
+  if (!is.numeric(stand$csi) || is.na(stand$csi)) {
+    stop('stand$csi must be numeric and not NA')
+  }
+  
+  if (!is.numeric(stand$elev) || is.na(stand$elev)) {
+    stop('stand$elev must be numeric and not NA')
+  }
+  
+  valid.regions = c('ME', 'NB', 'NS', 'QC')
+  
+  if (!is.character(stand$region) || is.na(stand$region)) {
+    stop('stand$region must be character and not NA')
+  }
+  
+  if (!stand$region %in% valid.regions) {
+    stop('stand$region must be one of: ', 
+         paste(valid.regions, collapse = ', '), 
+         '. Got: ', stand$region)
+  }
+  
+  TRUE
+}
 
 #### Prepare output tree list ####
 #### for FVS fvsSetTreeAttrs()
-make_fvs_tree=function(tree.list, orgtree.list, num.plots, mort.model, cm.to.in=CMtoIN, 
-                       m.to.ft=MtoFT, ac.to.ha=ACRtoHA){
+#' Create FVS return tree list
+#' 
+#' @param tree.data Dataframe: tree list output from ACD, fields:  year; dbh; ht; hcb; expf; cr
+#' @param orgtree.list Dataframe: input tree list from FVS. orgtree.list fields tree; dbh; ht; expf; dg; htg; mort; cratio
+#' @param num.plots Numeric: number of plots in a stand
+#' @return Dataframe: FVS tree dataframe
+#'
+# Note- assumes tree.data$expf is plot trees per hectare
+
+make_fvs_tree=function(tree.data, orgtree.list, num.plots){
   
+  #customary-metric conversion 
+  cm.to.in=0.393701
+  m.to.ft = 3.28084
+  ac.to.ha = 0.404686
   
   # remove projected values for species not in ACD
-  tree.list=tree.list %>% 
+  tree.list=tree.data %>% 
     dplyr::anti_join(orgtree.list %>% 
-                       dplyr::filter(ACD.EX==TRUE), 
-                     by='TREE')
+                       dplyr::filter(acd.ex==TRUE), 
+                     by='tree')
   
   # dataframe with tree records not handled by ACD- snags and invalid DBH; species not in ACD
   tree.org=orgtree.list %>% 
-    dplyr::select(TREE, 
-                  dbh=DBH, # metric
-                  ht=HT, # metric
-                  expf=EXPF, # plot level TPH 
-                  dg=DG, # customary units
-                  htg=HTG, # customary units
-                  mort=MORT, # stand level TPA
-                  cratio=CR) %>% 
-    dplyr::anti_join(tree.list, 
-                     by='TREE')
+    dplyr::transmute(tree, 
+                  dbh, # metric
+                  ht, # metric
+                  expf, # plot level tph 
+                  dg, # customary units
+                  htg, # customary units
+                  mort, # stand level TPA
+                  cratio = round(cr * 100, 1)) %>%  # convert proportion to percentage
+    dplyr::anti_join(tree.list,
+                     by='tree')
   
   
   tree=orgtree.list %>% 
-    dplyr::select(TREE, 
-                  dbh.fvs=DBH,
-                  ht.fvs=HT, 
-                  expf.fvs=EXPF) %>% 
+    dplyr::select(tree, 
+                  dbh.fvs=dbh,
+                  ht.fvs=ht, 
+                  expf.fvs=expf) %>% 
     dplyr::inner_join(tree.list, # inner join excludes regeneration and records not handled by ACD
-                      by='TREE') %>% 
-    dplyr::mutate(dg=(DBH-dbh.fvs)*CMtoIN, # diameter growth to inches
-                  htg=(HT-ht.fvs)*MtoFT,  # height growth to feet
+                      by='tree') %>% 
+    dplyr::mutate(dg=(dbh-dbh.fvs)*cm.to.in, # diameter growth to inches
+                  htg=(ht-ht.fvs)*m.to.ft,  # height growth to feet
                   # set the crown ratio sign to negative so that FVS doesn't change them. 
-                  cratio = round((1-(HCB/HT))*-100, 1), # 
+                  cratio = round((1-(hcb/ht))*-100, 1), # 
                   # special=as.numeric(substr(Form,2,2))*10+ # will need this when we allow Acadian model to set Form and Risk 
                   #   as.numeric(substr(Risk,2,2)),
-                  mort=(expf.fvs-EXPF)*ACRtoHA,  # mortality TPH stand level to trees per acre
+                  mort=(expf.fvs-expf)*ac.to.ha,  # mortality TPH stand level to trees per acre
                   mort=mort/dplyr::coalesce(num.plots, 1)) %>%  # calculate stand level mortality TPA
     dplyr::bind_rows(tree.org) %>% # append tree records not handled by ACD
-    dplyr::arrange(TREE) %>% 
-    dplyr::select(DBH,
-                  SP,
+    dplyr::arrange(tree) %>% 
+    dplyr::select(#dbh,
+                  #sp,
                   dg,
                   htg,
-                  cratio,
+                  cratio ,
                   #special,
                   mort)
   
   
-  
-  if (mort.model != "Acadian") {
-      tree=tree %>% 
-          dplyr::select(-mort)
-  }
+  # previous version option to use FVS-NE mortality
+  # if (mort.model != "Acadian") {
+  #     tree=tree %>% 
+  #         dplyr::select(-mort)
+  # }
   
   #tibble to dataframe  
   tree=as.data.frame(tree)
   
   tree
 }
-# arguments 
-  # tree.list: tree list output from ACD. tree.list fields  YEAR; DBH; HT; HCB; EXPF; CR
-  # num.plots: number of plots in a stand
-  # orgtree.list: input tree list from FVS. orgtree.list fields TREE; DBH; HT; EXPF; DG; HTG; MORT; CRATIO
-  # mort.model: mortality model selected, Base or Acadian
-  # cm.to.in: centimeter to inch conversion. Default CMtoIN from fvsUnitConversion("CMtoIN")
-  # m.to.ft: meter to foot conversion. Default MtoFT from fvsUnitConversion("MtoFT")
-  # ac.to.ha: acre to hectare conversion. Default ACRtoHA from fvsUnitConversion("ACRtoHA")
-# Note assumes EXPF is plot trees per hectare
 
-#### for FVS fvsAddTrees()
-make_fvs_regen=function(tree.list, orgtree.list, num.plots, spcodes){
+#### tree list for FVS fvsAddTrees()
+#' Make dataframe to pass to fvsAddTrees()
+#' 
+#' @param tree.data Dataframe: Tree list output from ACD. tree.list fields  year; dbh; ht; hcb; expf; cr
+#' @param num.plots Numeric: number of plots in a stand
+#' @param orgtree.list Dataframe: input tree list from FVS. orgtree.list fields tree; dbh; ht; expf; dg; htg; mort; cratio
+#' @param spcodes Dataframe: FVS species codes from fvsGetSpeciesCodes(). Required fields- fvs (FVS alpha species code). FVS numeric code is the vector "row" number. Note fvsGetSpeciesCodes() returns a character vector
+#' @return Dataframe: Tree dataframe ready to apply in rFvs::fvsAddTrees()
+# Note assumes expf is plot trees per hectare
+#'
+make_fvs_regen=function(tree.data, orgtree.list, num.plots, spcodes){
   
-  CMtoIN  = fvsUnitConversion("CMtoIN")
-  MtoFT   = fvsUnitConversion("MtoFT")
-  ACRtoHA = fvsUnitConversion("ACRtoHA")
+  #customary-metric conversion 
+  cm.to.in = 0.393701
+  m.to.ft  = 3.28084
+  ac.to.ha = 0.404686
   
-  regen=tree.list %>% 
+  regen=tree.data %>% 
     dplyr::anti_join(orgtree.list,
-                     by='TREE') %>% 
-    dplyr::arrange(TREE) %>% 
-    dplyr::mutate(EXPF= EXPF/dplyr::coalesce(num.plots, 1)) %>%  # calculate stand level TPH
-    dplyr::transmute(dbh=dplyr::coalesce(DBH*CMtoIN, 0),
-                     species=match(SP, spcodes[,"fvs"]),
-                     ht= dplyr::coalesce(HT*MtoFT, 0),
-                     cratio= dplyr::coalesce(round((1-(HCB/HT))*-100, 1), 0),
-                     plot= as.numeric(PLOT),
-                     tpa= EXPF*ACRtoHA)
+                     by='tree') %>% 
+    dplyr::arrange(tree) %>% 
+    dplyr::mutate(expf= expf/dplyr::coalesce(num.plots, 1)) %>%  # calculate stand level TPH
+    dplyr::transmute(dbh=dplyr::coalesce(dbh*cm.to.in, 0),
+                     species=match(sp, spcodes[,"fvs"]),
+                     ht= dplyr::case_when(dbh<0.5 & ht>1 ~3, # if ingrowth dbh is less than 0.5 in and height>1 m - set to 3 ft
+                                          TRUE ~dplyr::coalesce(ht*m.to.ft, 0)),
+                     cratio= dplyr::coalesce(round((1-(hcb/ht))*-100, 1), 0),
+                     plot= as.numeric(plot),
+                     tpa= expf*ac.to.ha)
   
   #tibble to dataframe  
   regen=as.data.frame(regen)
   
   regen
 }
-# arguments 
-  # tree.list: tree list output from ACD. tree.list fields  YEAR; DBH; HT; HCB; EXPF; CR
-  # num.plots: number of plots in a stand
-  # orgtree.list: input tree list from FVS. orgtree.list fields TREE; DBH; HT; EXPF; DG; HTG; MORT; CRATIO
-  # spcodes: species codes from fvsGetSpeciesCodes()
-# Note assumes EXPF is plot trees per hectare
 
-#### Model execution ####       
-###Acadian growth and yield model
-Acadian.GY=function(tree,stand,ops=NULL)
-{
-  ops=as.list(ops)
-  ans = ddply(tree,.(STAND), function (x,stand,ops) 
-    {
-      stand = as.list(subset(stand,STAND == x[1,"STAND"]))
-      AcadianGYOneStand(tree,stand=stand,ops=ops)
-    }, stand, ops)                
-   tree<-dplyr::arrange(ans, YEAR,STAND,PLOT,TREE) # 12/21/2020 replaced tree<-sort.data.frame(ans,~+YEAR+STAND+PLOT+TREE)
+#### Calculated tree values ####
+
+#' Calculate basal area in larger trees (BAL) for each tree
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @return Dataframe: Tree data with added BAL columns (bal, bal.sw, bal.hw)
+#'
+calc_bal = function(tree.data) {
+  
+  # Check required columns
+  required.cols = c('plot', 'dbh', 'ba', 'sp.type')
+  missing.cols = setdiff(required.cols, names(tree.data))
+  if (length(missing.cols) > 0) {
+    stop(paste("Missing required columns:", paste(missing.cols, collapse = ", ")))
+  }
+  
+  # Sort by plot and descending DBH; calculate cumulative BA
+  tree=tree.data %>%
+    dplyr::arrange(plot, 
+            desc(dbh)) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(bal = cumsum(ba) - ba,
+           cumsum.sw = cumsum(ba * (sp.type == 'SW')),
+           bal.sw = cumsum.sw - (ba * (sp.type == 'SW')),
+           bal.hw = bal - bal.sw) %>%
+    dplyr::select(-cumsum.sw) %>% 
+    dplyr::ungroup()
+  
+  tree
+}
+
+
+#### Calculated plot values ####
+
+
+#' Calculate plot summary statistics from tree list
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @return Dataframe: Plot-level summary statistics
+#'
+calc_plot_summary = function(tree.data) {
+  
+  # Check required columns
+  required.cols = c('plot', 'tree', 'sp', 'dbh', 'expf', 'ba', 'sg', 'sp.type', 'shade')
+  missing.cols = setdiff(required.cols, names(tree.data))
+  if (length(missing.cols) > 0) {
+    stop(paste("Missing required columns:", paste(missing.cols, collapse = ", ")))
+  }
+  
+  # Plot level summary
+  plot.summary = tree.data %>%
+    dplyr::group_by(plot) %>%
+    dplyr::summarise(tph.plot = sum(expf, na.rm = TRUE),
+                     ba.plot = sum(ba, na.rm = TRUE),
+                     # Softwood basal area
+                     ba.sw = sum(ifelse(sp.type == 'SW', ba, 0), na.rm = TRUE),
+                     # intolerant hardwood basal area
+                     ba.ihw = sum(ifelse(sp.type == 'HW' & shade <2.0, ba, 0), na.rm = TRUE),
+                     # Specific gravity weighted by basal area, capped at 0.8
+                     meansg = pmin(sum(sg * ba, na.rm = TRUE) / 
+                                     sum(ba, na.rm = TRUE), 0.8, na.rm = TRUE),
+                     # SDI
+                     sdi = sum(ifelse(dbh >= 10, (dbh / 25.4)^1.6 * expf, 0), na.rm = TRUE),
+                     sdi.all = sum((dbh / 25.4)^1.6 * expf, na.rm = TRUE),
+                     # Softwood DBH average (where sp.type == 'SW')
+                     dbh.sw.avg = mean(ifelse(sp.type == 'SW', dbh, NA), na.rm = TRUE),
+                     # max tree number for ingrowth
+                     max.tree.id = max(tree, na.rm = TRUE), .groups = 'drop') %>%
+    # QMD
+    dplyr::mutate(qmd = sqrt(ba.plot / (0.00007854 * tph.plot)), 
+                  # percent plot BA in hardwood
+                  ba.perc.hw = ifelse(ba.plot == 0, 0, 1 - (ba.sw / ba.plot)))
+  
+  plot.summary
+}
+
+
+#' Calculate maximum Stand Density Index- Weiskittel and Kuehne (2019) 
+#' 
+#' @param plot.data Dataframe: Plot summary data
+#' @param tree.data Dataframe: Tree list for DBH range calculations
+#' @param csi Numeric: Climate site index (m)
+#' @param elev Numeric: Elevation (m)
+#' @return Dataframe: Input data with added SDI max columns (sdi.max, sdi.max.all)
+#'
+calc_sdi_max = function(plot.data, tree.data, csi, elev) {
+  
+  # Check required columns in plot.data
+  required.cols = c('plot', 'ba.perc.hw', 'meansg')
+  missing.cols = setdiff(required.cols, names(plot.data))
+  if (length(missing.cols) > 0) {
+    stop(paste("Missing required columns in plot.data:", paste(missing.cols, collapse = ", ")))
+  }
+  
+  # DBH ranges and species diversity 
+  plot.dbhrange = tree.data %>%
+    dplyr::group_by(plot) %>%
+    dplyr::summarise(dbh.range = ifelse(any(dbh >= 10, na.rm = TRUE),
+                                        max(ifelse(dbh >= 10, dbh, NA), na.rm = TRUE) - 
+                                          min(ifelse(dbh >= 10, dbh, NA), na.rm = TRUE), 0),
+                     dbh.range.all = max(dbh, na.rm = TRUE) - min(dbh, na.rm = TRUE),
+                     spp.div = n_distinct(sp),
+                     .groups = 'drop')
+  
+  # Join with plot data
+  plot.smry = plot.data %>% 
+    dplyr::left_join(plot.dbhrange, 
+                     by = 'plot')
+  
+  ## SDI max
+  # Weiskittel & Kuehne (2019) 
+  sdi_max_weiskittel = function(ba.perc.hw, meansg, dbh.range, spp.div, elev, csi) {
+    sdimax = 475.2079 - 1.5908 * ba.perc.hw - 236.9051 * log(meansg) + 
+      50.3299 * sqrt(dbh.range) + 13.5202 * spp.div + 
+      0.0685 * elev - 2.8537 * sqrt(elev) + 222.7836 / csi
+    
+    sdimax
+  }
+  
+  #
+  sdi_max = function(meansg) { 
+    
+    sdimax=1347.445 - 1003.870 * meansg 
+    
+    sdimax
+  }
+  
+  plot.smry=plot.smry %>%
+    dplyr::mutate(sdi.max = dplyr::coalesce(sdi_max_weiskittel(ba.perc.hw, 
+                                                               meansg, 
+                                                               dbh.range,
+                                                               spp.div, 
+                                                               elev, csi), 
+                                            sdi_max(meansg)),
+                  sdi.max.all = dplyr::coalesce(sdi_max_weiskittel(ba.perc.hw, 
+                                                                   meansg, 
+                                                                   dbh.range.all,
+                                                                   spp.div, 
+                                                                   elev, 
+                                                                   csi), 
+                                                sdi_max(meansg))) %>%
+    dplyr::select(-dbh.range, -dbh.range.all, -spp.div)
+  
+  plot.smry
+}
+
+#' Calculate modified relative density (rd.mod)
+#' 
+#' @param sdi Numeric: Stand Density Index values for tree records >=10cm
+#' @param sdi.all Numeric: Stand Density Index for all tree records
+#' @param sdi.max Numeric: Maximum Stand Density Index for tree records >=10cm
+#' @param sdi.max.all Numeric: Maximum Stand Density Index for all tree records  
+#' @param qmd Numeric: Quadratic mean diameter (cm)
+#' @return Numeric: Modified relative density values
+#'
+calc_relative_density = function(sdi, sdi.all, sdi.max, sdi.max.all, qmd) {
+  
+  # Calculate rd.mod
+  rd.mod = dplyr::case_when(qmd < 10 & !is.na(sdi.all) & !is.na(sdi.max.all) ~ sdi.all / sdi.max.all,
+                            qmd >= 10 & !is.na(sdi) & !is.na(sdi.max) ~ sdi / sdi.max,
+                            TRUE ~ 0)
+  
+  rd.mod
+}
+
+# Plot top height    
+#' Calculate plot top height 
+#' 
+#' @param tree.data Dataframe: Tree list
+#' @param topht.tph Numeric: Number of trees per hectare to include (default 100)
+#' @return Dataframe: Plot top height values with columns for plot and topht
+#'
+calc_topht = function(tree.data, topht.tph = 100) {
+  
+  plot.topht = tree.data %>%
+    dplyr::arrange(plot, 
+                   desc(ht)) %>%
+    dplyr::group_by(plot) %>%
+    dplyr::mutate(cum.expf = cumsum(expf),
+                  tree.inc = dplyr::case_when(cum.expf <= topht.tph ~ expf,
+                                              topht.tph - (cum.expf - expf) > 0 ~ topht.tph - (cum.expf - expf),
+                                              TRUE ~ 0),
+                  wt.ht = tree.inc * ht) %>%
+    dplyr::summarise(mean.ht = weighted.mean(ht, expf, na.rm = TRUE),
+                     wt.ht.sum = sum(wt.ht, na.rm = TRUE),
+                     tph.actual = sum(tree.inc, na.rm = TRUE),
+                     .groups = 'drop') %>%
+    dplyr::mutate(topht = ifelse(tph.actual > 0, 
+                                 wt.ht.sum / tph.actual, 
+                                 mean.ht)) %>%
+    dplyr::select(plot, 
+                  topht)
+  
+  plot.topht
+}
+
+
+
+#### Model execution ####  
+
+### Call Acadian growth and yield model for each stand
+Acadian.GY = function(tree, stand, ops = NULL) {
+  
+  ans = tree %>%
+    dplyr::filter(!is.na(stand.id)) %>%
+    split(.$stand.id) %>%
+    purrr::imap_dfr(function(tree.subset, stand.id.subset) {
+      stand.subset = subset(stand, stand.id == stand.id.subset)
+      
+      AcadianGYOneStand(tree = tree.subset, 
+                        stand = stand.subset, 
+                        ops = ops)
+    })
+  
+  tree = ans %>%
+    dplyr::arrange(year, stand.id, plot, tree)
+  
   tree
 }
 
   
 ###Acadian growth and yield model called for one stand at time
-AcadianGYOneStand <- function(tree,stand=NULL,ops=NULL)
+#' Run Acadian growth and yield model for one year for one stand
+#' 
+#' @param tree Dataframe: Tree list
+#' @param stand Dataframe: Stand attributes
+#' @param ops Dataframe: 
+#' @return Dataframe: Plot top height values with columns for plot and topht
+#'
+AcadianGYOneStand = function(tree, stand, ops)
 {
-  if (is.null(ops)) return(tree)
-  verbose            = if (is.null(ops$verbose))            FALSE else ops$verbose
-  INGROWTH           = if (is.null(ops$INGROWTH))           "Y"   else ops$INGROWTH
-  MinDBH             = if (is.null(ops$MinDBH))             10    else ops$MinDBH
-  #cyclen            = if (is.null(ops$cyclen))             1     else ops$cyclen
-  cyclen             = 1 # 2022-09-01 set cycle length to 1 
-  CutPoint           = if (is.null(ops$CutPoint))           0.95  else ops$CutPoint
-  mortType = "discrete" # version 12.3.5 dicrete only
-  maxRD              = if (is.null(ops$maxRD))              1.0   else ops$maxRD
-  useDBH_RDmodifier  = if (is.null(ops$useDBH_RDmodifier )) FALSE  else ops$useDBH_RDmodifier
-  useHT_RDmodifier   = if (is.null(ops$useHT_RDmodifier  )) FALSE  else ops$useHT_RDmodifier  
-  useMORT_RDmodifier = if (is.null(ops$useMORT_RDmodifier)) FALSE  else ops$useMORT_RDmodifier 
-  usedHTCap          = if (is.null(ops$usedHTCap))          TRUE  else ops$usedHTCap
-  SBW                = if (is.null(ops$SBW))                TRUE  else ops$SBW                           
-  rtnVars            = if (is.null(ops$rtnVars))  c("STAND","YEAR","PLOT","TREE","SP",
-   "DBH","HT","HCB","EXPF",'pHT','pHCB','Form','Risk',
-   'dDBH.mult', 'dHt.mult', 'mort.mult', 'max.dbh', 'max.height') else ops$rtnVars
-  use.cap.dbh=TRUE # use max DBH 
-  use.cap.ht=TRUE # use max total tree height
+  ### -----
+  ## before proceeding run 
+  ## * make.ops()
+  ## * make_stand() 
+  ## * make_acd_tree()
+  ### ----
 
-  CSI      = if (is.null(stand) || is.null(stand$CSI) || is.na(stand$CSI))   12 else stand$CSI
-  ELEV     = if (is.null(stand) || is.null(stand$ELEV) || is.na(stand$ELEV)) 350 else stand$ELEV
- 
-  if (verbose) cat ("AcadianGYOneStand: nrow(tree)=",nrow(tree)," CSI=",CSI," ELEV=",ELEV,
-    " INGROWTH=",INGROWTH," CutPoint=",CutPoint,"\n           cyclen=",cyclen,
-    " MinDBH=",MinDBH," SBW=",SBW," useDBH_RDmodifier=",useDBH_RDmodifier,
-    " useHT_RDmodifier=",useHT_RDmodifier,"\n           useMORT_RDmodifier=",
-    useMORT_RDmodifier," usedHTCap=",usedHTCap,"\n")                                               
-  if (exists("AcadianVersionTag") && verbose) 
-    cat("AcadianVersionTag=",AcadianVersionTag,"\n")
+##### Validate input data ####  
+  # validate_ops(ops)  
+  # validate_stand(stand)
+  # validate_tree(tree)
+  
+##### Add tree attributes ####
+  tree = tree %>% 
+      # species functional attributes
+    dplyr::left_join(sp.attr, 
+                     by=c('sp'='species')) %>% 
+        # basal area (plot level)
+    dplyr::mutate(ba=(dbh^2*0.00007854)*expf,
+         # clean form and risk       
+         form = dplyr::na_if(form, " "),
+         risk = dplyr::na_if(risk, " ")) %>% 
+      # Calculate BAL
+    calc_bal()
 
- 
-  temp = SPP.func(tree$SP)  
-  tree$SPtype=temp$SPtype
-  tree$shade=temp$shade
-  tree$SG=temp$sg
   
-  #set SBW  factors 
-  # this approach can cause SBW and CDEF to be NA
-  if (is.null(tree$CDEF))    tree$CDEF   =NA_real_
-  if (is.null(tree$SBW.YR))  tree$SBW.YR =NA_real_
-  if (is.null(tree$SBW.DUR)) tree$SBW.DUR=NA_real_
-  tree$SBW=ifelse(tree$SBW.YR>0 & tree$SBW.YR<=tree$YEAR & (tree$SBW.YR+tree$SBW.DUR)>=tree$YEAR,1,0)
-  tree$SBW=ifelse(is.na(tree$SBW), 0, tree$SBW) #resolves SBW value of NA
-  tree$CDEF=tree$CDEF*tree$SBW  
+##### Plot attributes ####
+    # Calculate plot summary
+  plot.smry = tree %>% 
+    calc_plot_summary() %>% 
+    # Calculate SDI max
+    calc_sdi_max(plot.data = ., 
+                 tree.data = tree, 
+                 csi = stand$csi, 
+                 elev = stand$elev) %>% 
+    # Relative density
+    dplyr::mutate(rd.mod = calc_relative_density(sdi, 
+                                          sdi.all, 
+                                          sdi.max, 
+                                          sdi.max.all, 
+                                          qmd))
   
-  #set thinning factors   
-  if (is.null(tree$pBArm))    tree$pBArm    = NA
-  if (is.null(tree$BApre))    tree$BApre    = NA
-  if (is.null(tree$QMDratio)) tree$QMDratio = NA
-  if (is.null(tree$YEAR_CT))  tree$YEAR_CT  = NA
-  ops$use.thinmod=ifelse(is.na(tree$YEAR_CT[1]), F, T) # would be better to update the customRun_fvsRunAcadian ops definition
+##### Crown area ####  
+ #calculate tree-level crown metrics (mcw, lcw, mca, ccfl)
+  tree = tree %>% 
+    calc_crown()
   
-  #hardwood modifiers
-  if (is.null(ops$use.hwmod)) ops$use.hwmod=T #default hw modifier set to TRUE 
-  
- # ingrowth
-  ops$MinDBH= if (is.null( ops$MinDBH) || is.na( ops$MinDBH) || !is.numeric(ops$MinDBH))  3.0 else  ops$MinDBH
-  #set Form & Risk
-  if (is.null(tree$Form) || is.null(tree$Risk))   
-  {
-    tree$Form = NA
-    tree$Risk = NA
-  }
-  toNA = !is.na(tree$Form) & tree$Form == " " |
-         !is.na(tree$Risk) & tree$Risk == " "
-  tree$Form[toNA] = NA
-  tree$Risk[toNA] = NA
-  
-  #set region
-  if (is.null(tree$Region))   tree$Region = 'ME'
-  
-  #set elev                                      
-  if (is.null(tree$ELEV))     tree$ELEV   = ELEV
-  tree$ELEV=ifelse(is.na(tree$ELEV), ELEV, tree$ELEV)
-  
- 
-  # need to catch tree records without valid species code
-  tree$ba=(tree$DBH^2*0.00007854)*tree$EXPF
-  tree$ba.SW=ifelse(tree$SPtype=='SW',tree$ba,0)
-  tree$ba.WP=ifelse(tree$SP=='WP',tree$ba,0)
-  tree$ba.BF=ifelse(tree$SP=='BF',tree$ba,0)
-  tree$ba.RM=ifelse(tree$SP=='RM',tree$ba,0)
-  tree$ba.SPR=ifelse(tree$SP=='RS' | tree$SP=='WS' | tree$SP=='BS',tree$ba,0)
-  tree$ba.BRH=ifelse(tree$SP=='GB' | tree$SP=='PB' | tree$SP=='RB' | tree$SP=='YB', tree$ba,0)
-  
-  # BLC - comment out so we can account for more species below
-  #tree$ba.OH=ifelse(tree$SPtype=='HW' & tree$ba.RM==0 & tree$ba.BRH==0,tree$ba,0)
-  #tree$ba.OS=ifelse(tree$SPtype=='SW' & tree$ba.WP==0 & tree$ba.BF==0 & tree$ba.SPR==0,tree$ba,0)
-  tree$ba.RS=ifelse(tree$SP=='RS',tree$ba,0)
-  tree$ba.BS=ifelse(tree$SP=='BS',tree$ba,0)
-  tree$ba.PB=ifelse(tree$SP=='PB',tree$ba,0)
-  tree$ba.YB=ifelse(tree$SP=='YB',tree$ba,0)
-  
-  # Add AB, QA, SM, WC
-  tree$ba.AB=ifelse(tree$SP=='AB',tree$ba,0)
-  tree$ba.QA=ifelse(tree$SP=='QA',tree$ba,0)
-  tree$ba.SM=ifelse(tree$SP=='SM',tree$ba,0)
-  tree$ba.WC=ifelse(tree$SP=='WC',tree$ba,0)
-  
-  # Add AB, QA, SM, WC                                                                          
-  tree$ba.OH=ifelse(tree$SPtype=='HW' & tree$ba.RM==0 & tree$ba.BRH==0 & 
-                    tree$ba.AB==0 & tree$ba.QA==0 & tree$ba.SM==0,tree$ba,0)
-  tree$ba.OS=ifelse(tree$SPtype=='SW' & tree$ba.WP==0 & tree$ba.BF==0 & 
-                    tree$ba.SPR==0 & tree$ba.WC==0,tree$ba,0)
-  
-  tree$ba.IHW=ifelse(tree$SPtype=='HW' & tree$shade<2.0,tree$ba,0)
-  tree$tph.BF=ifelse(tree$SP=='BF',tree$EXPF,0)
-
-  temp <- subset(tree,select=c("PLOT",'TREE','DBH','EXPF','ELEV','ba',
-    'ba.SW','ba.WP','ba.BF','ba.RM','ba.SPR','ba.BRH','ba.OH','ba.OS','ba.RS',
-    'ba.AB','ba.QA','ba.SM','ba.WC','ba.BS','ba.PB','ba.YB','ba.IHW','tph.BF'))
-
-  if (verbose) cat("process temp, make maxtree, nrow=",nrow(temp),"\n") 
-  temp = ddply(temp,.(PLOT),
-    function(x)
-    {
-      rtn = as.data.frame(t(colSums(x[,c(-1,-2,-3)])))
-      rtn$PLOT = x$PLOT[1]
-      rtn$ELEV = x$ELEV[1]
-      rtn$maxTREE = max(x$TREE) # used to generate ingrowth tree numbers
-      rtn
-    })                                
-  temp$BAPH<-temp$ba
-  tree$SG.wt=tree$SG*tree$ba
-  tree$DBH.SW=ifelse(tree$SPtype=='SW',tree$DBH,NA)
-  tree$DBH.10=ifelse(tree$DBH>=10,tree$DBH,NA)
-  tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
-  tree$SDIadd=(tree$DBH.10/25.4)^1.6*tree$EXPF
-  tree$SDIadd.all=(tree$DBH/25.4)^1.6*tree$EXPF
-  
-  if (verbose) cat("making temp2, nrow(trees)=",nrow(trees),"\n") 															  
-  temp2=ddply(tree,.(PLOT),plyr::summarize,
-              tph=sum(EXPF),
-              meanSG=sum(SG.wt)/sum(ba),
-              SDI=sum(SDIadd,na.rm=T),
-              SDI.all=sum(SDIadd.all, na.rm=T),
-              avgDBH.SW=mean(DBH.SW,na.rm=T),
-              avgDBH=mean(DBH.10,na.rm=T),
-              sdDBH=sd(DBH.10,na.rm=T),
-              SPP.DIV=length(unique(SP)),
-              minDBH=min(DBH.10,na.rm=T),
-              maxDBH=max(DBH.10,na.rm=T), # should DBH.10 be default=0 to prevent function returning NA and Inf 
-              DBH.RANGE.all=max(DBH,na.rm=T)-min(DBH,na.rm=T)) 
-  
-  temp=merge(temp,temp2,by=c('PLOT'))
-	if (verbose) cat("after temp2, nrow(temp2)=",nrow(temp2)," nrow(temp)=",nrow(temp))
-  
-  temp$avgDBH.SW=ifelse(is.na(temp$avgDBH.SW),0,temp$avgDBH.SW)
-  temp$qmd<-ifelse(temp$tph==0,0,sqrt(temp$BAPH/(0.00007854*temp$tph)))
-  temp$qmd.BF=ifelse(temp$tph.BF==0,0,sqrt(temp$ba.BF/(0.00007854*temp$tph.BF)))
-  temp$pHW.ba=ifelse(temp$BAPH==0,0,1-(temp$ba.SW/temp$BAPH))
-  temp$pWP.ba=ifelse(temp$BAPH==0,0,temp$ba.WP/temp$BAPH)
-  temp$pBF.ba=ifelse(temp$BAPH==0,0,temp$ba.BF/temp$BAPH)
-  temp$pRM.ba=ifelse(temp$BAPH==0,0,temp$ba.RM/temp$BAPH)
-  temp$pSPR.ba=ifelse(temp$BAPH==0,0,temp$ba.SPR/temp$BAPH)
-  temp$pBRH.ba=ifelse(temp$BAPH==0,0,temp$ba.BRH/temp$BAPH)
-  temp$pOH.ba=ifelse(temp$BAPH==0,0,temp$ba.OH/temp$BAPH)
-  temp$pOS.ba=ifelse(temp$BAPH==0,0,temp$ba.OS/temp$BAPH)
-  temp$pIHW.ba=ifelse(temp$BAPH==0,0,temp$ba.IHW/temp$BAPH)
-  temp$pRS.ba=ifelse(temp$pSPR.ba==0,0,temp$ba.RS/temp$ba.SPR)
-  temp$pBS.ba=ifelse(temp$pSPR.ba==0,0,temp$ba.BS/temp$ba.SPR)
-  temp$pWS.ba=ifelse(temp$pSPR.ba==0,0,1-(temp$pRS.ba+temp$pBS.ba))
-  temp$pPB.ba=ifelse(temp$pBRH==0,0,temp$ba.PB/temp$ba.BRH)
-  temp$pYB.ba=ifelse(temp$pBRH==0,0,temp$ba.YB/temp$ba.BRH)
-  temp$pGB.ba=ifelse(temp$pBRH==0,0,1-(temp$pPB.ba+temp$pYB.ba))
-  temp$pAB.ba=ifelse(temp$BAPH==0,0,temp$ba.AB/temp$BAPH)
-  temp$pQA.ba=ifelse(temp$BAPH==0,0,temp$ba.QA/temp$BAPH)
-  temp$pSM.ba=ifelse(temp$BAPH==0,0,temp$ba.SM/temp$BAPH)
-  temp$pWC.ba=ifelse(temp$BAPH==0,0,temp$ba.WC/temp$BAPH)
-  temp$qmd.BF=ifelse(is.na(temp$qmd.BF),0,temp$qmd.BF)
-  temp$DBH.RANGE=dplyr::coalesce(temp$maxDBH-temp$minDBH, 0)
-  temp$DBH.CV=temp$sdDBH/temp$avgDBH
-  temp$DBH.R=temp$avgDBH*(1+(((1.6064-1.0)*1.6064)/2)*temp$DBH.CV)^1.6064
-  temp$meanSG=ifelse(temp$meanSG>.80,.8,temp$meanSG)
-  # temp$SDImax=(483.2448-1.4563*temp$pHW.ba-212.705*log(temp$meanSG)+45.351*
-  #   sqrt(temp$DBH.RANGE)+14.811*temp$SPP.DIV-0.0848*temp$ELEV+0.0001*
-  #   temp$ELEV^2+331.3714*(1/CSI))
-  temp$SDImax=475.2079-1.5908*temp$pHW.ba-236.9051*log(temp$meanSG)+50.3299*sqrt(temp$DBH.RANGE)+ #Weiskittel & Kuehne 2019
-   13.5202*temp$SPP.DIV+0.0685*temp$ELEV-2.8537*sqrt(temp$ELEV)+222.7836*(1/CSI)
-  temp$SDImax2= 1347.445-1003.870*temp$meanSG #Weiskittel and Kuehne (2019)
-  #temp$SDImax2=-6017.3*temp$meanSG+4156.3
-  temp$SDImax=ifelse(is.na(temp$SDImax),temp$SDImax2,temp$SDImax)
-  temp$RD=temp$SDI/temp$SDImax
-  
-  # RD all DBH
-  temp$SDImax.all=475.2079-1.5908*temp$pHW.ba-236.9051* log(temp$meanSG)+ 50.3299* sqrt(temp$DBH.RANGE.all)+
-    13.5202*temp$SPP.DIV+0.0685*temp$ELEV-2.8537* sqrt(temp$ELEV)+222.7836*(1/CSI) #Weiskittel & Kuehne 2019
-  temp$SDImax.all=ifelse(is.na(temp$SDImax.all),temp$SDImax2,temp$SDImax.all)
-  temp$RD.all=temp$SDI.all/temp$SDImax.all
-  temp$RD.mod=case_when(temp$qmd<10 & !is.na(temp$RD.all) ~ temp$RD.all, # 11/12/21 added logic for RD
-                        temp$qmd>=10 & !is.na(temp$RD) ~temp$RD,
-                        TRUE ~0)
-  
-  temp=subset(temp,select=c("PLOT",'BAPH','tph','qmd','pHW.ba',
-    'pWP.ba','pBF.ba','pRM.ba','pSPR.ba','pBRH.ba','pOH.ba','pOS.ba','pRS.ba',
-    'pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba','qmd.BF','pIHW.ba','SDI',
-    'SDImax','meanSG','RD','RD.all', 'RD.mod', 'avgDBH.SW','maxTREE','pAB.ba','pQA.ba','pSM.ba','pWC.ba'))
-    #BLC - add AB, QA, SM, WC
-
-  Sum.temp=temp
-  temp$maxTREE = NULL
-  tree=merge(tree,Sum.temp,by="PLOT")
-
-  #Compute basal area in larger trees
-  tree<-dplyr::arrange(tree, PLOT, desc(DBH)) #12/21/2020 replaced tree<-sort.data.frame(tree,~+PLOT-DBH)
-  temp = unlist(by(tree$ba,INDICES=tree$PLOT,FUN=cumsum))
-  tree$BAL = temp-tree$ba
-  temp = unlist(by(tree$ba.SW,INDICES=tree$PLOT,FUN=cumsum))
-  tree$BAL.SW = temp-tree$ba.SW
-  tree$BAL.HW = tree$BAL-tree$BAL.SW
-  
-  #compute tree-level crown width-related metrics
-  tree$mcw=mcw(sp=tree$SP,dbh=tree$DBH)
-  tree$lcw=lcw(sp=tree$SP,mcw=tree$mcw,dbh=tree$DBH)
-  tree$MCA=100*((pi*(tree$mcw/2)^2)/10000)*tree$EXPF
-  tree$MCA.SW<-ifelse(tree$SPtype=='SW',tree$MCA,0)
-  temp = unlist(by(tree$MCA,INDICES=tree$PLOT,FUN=cumsum))
-  tree$CCFL = temp-tree$MCA
-  temp = unlist(by(tree$MCA.SW,INDICES=tree$PLOT,FUN=cumsum))
-  tree$CCFL.SW = temp-tree$MCA.SW
-  tree$CCFL.HW=tree$CCFL-tree$CCFL.SW  
   #calculate plot CCF
-  temp = ddply(tree[,c('PLOT','MCA')],.(PLOT),function (x) sum(x$MCA))
-  colnames(temp)[2] = "CCF"
-  tree=merge(tree,temp,by=c('PLOT'))
-  #save the plot CCF's in Sum.temp for use with ingrowth
-  Sum.temp = merge(Sum.temp,temp,by="PLOT")
+  plot.ccf = tree %>% 
+    dplyr::group_by(plot) %>%
+    dplyr::summarise(ccf = sum(mca, na.rm = TRUE),
+              .groups = 'drop')
   
-
+  #save the plot CCFs in plot.smry for use with height, height to crown base, crown recession and ingrowth
+  plot.smry = plot.smry %>% 
+    dplyr::left_join(plot.ccf,
+              by="plot")
+ 
+  #form and risk
+  # currently not predicting form and risk
   
+ 
+##### Height and crown ratio ####  
   #calculate heights of any with missing values.
   #generally, none will be missing when function is used with FVS, but some or
-  #all would be missing when code us used to grow tree lists from other sources. 
-
-  tree$pHT = is.na(tree$HT) | tree$HT>900 | tree$HT==0 # throws an error
-  if (any(tree$pHT)) 
-  {
-    pHT.m=mapply(HTPred,SPP=tree$SP,DBH=tree$DBH,CSI=CSI,                                
-                 CCF=tree$CCF,BAL=tree$BAL)
-    tree$HT=ifelse(tree$pHT,pHT.m,tree$HT)
-  }
-  tree$pHT = as.numeric(tree$pHT)
-  #compute plot top height
+  #all may be missing when code us used to grow tree lists from other sources. 
+  tree=tree %>% 
+          #predicted height
+    calc_ht(plot.data = plot.smry) %>% 
+    dplyr::mutate(#use predicted height if missing or > 50m and DBH> 2.5cm
+           ht= dplyr::case_when((ht %in% c(NA, 0)| ht>50) & dbh>2.5 ~pht,
+                        TRUE ~ ht)) %>% 
+           #predicted height to crown base (returns phcb)
+    calc_hcb(plot.data = plot.smry) %>% 
+           #use predicted height to crown base if crown ratio is missing or >99 and if hcb is missing or invalid
+    dplyr::mutate(hcb= dplyr::case_when(cr %in% c(NA, 0) | cr>99 | is.na(hcb) | hcb>ht  ~phcb, 
+                                TRUE ~hcb),
+                    cr= dplyr::case_when(cr %in% c(NA, 0) | cr>99 ~1-(phcb/ht),
+                        TRUE ~cr))
   
+# Compute plot-level heights
   
-  topht=tree %>% 
-    dplyr::group_by(PLOT) %>% 
-    dplyr::mutate(cum.EXPF = cumsum(EXPF), # incorporate tree inc conditional assignment in mutate call
-                  tree.inc = case_when(cum.EXPF<=100 ~EXPF,
-                                       100-(cum.EXPF-EXPF)>0 ~ 100-(cum.EXPF-EXPF),
-                                       TRUE ~0),
-                  wt.HT=tree.inc*HT) %>% 
-    dplyr::summarise(meanHT = mean(HT),
-                     wt.HT=sum(wt.HT),
-                     tree.inc=sum(tree.inc, na.rm=T), # na.rm=T resolves issue with NA tree.inc values 
-                     .groups='keep') %>% 
-    dplyr::ungroup() %>% 
-    dplyr::mutate(topht = ifelse(tree.inc > 0, wt.HT/tree.inc, meanHT))
+  # Plot top height (for 100 tph)
+  plot.topht = tree %>% 
+    calc_topht()
    
+  # Average softwood height
+  plot.avg.sw.ht=tree %>% 
+    dplyr::filter(sp.type=='SW') %>% 
+    dplyr::group_by(plot) %>% 
+    dplyr::summarise(ht.sw.avg = weighted.mean(ht, expf, na.rm = TRUE),
+                     .groups = 'drop') %>% 
+    ungroup() %>% 
+    dplyr::mutate(ht.sw.avg =  dplyr::coalesce(ht.sw.avg, 0))
   
-  tree=merge(tree,topht,by=c('PLOT'))
-  
+  # Add to plot summary
+  plot.smry=plot.smry %>% 
+    dplyr::left_join(plot.topht,
+                     by='plot') %>% 
+    dplyr::left_join(plot.avg.sw.ht, 
+                     by='plot')
  
-  
-  #compute average height of softwood and hardwood species
-  tree$HT.SW=ifelse(tree$SPtype=='SW',tree$HT,NA)
-  tree$HT.HW=ifelse(tree$SPtype=='HW',tree$HT,NA)
-  
-  avgHT=ddply(tree,.(PLOT),plyr::summarize,avgHT.SW=mean(HT.SW,na.rm=T),
-              avgHT.HW=mean(HT.HW,na.rm=T)) # avgHT.HW used where?
-  tree=merge(tree,avgHT,by=c('PLOT'))
-  tree$avgHT.SW=ifelse(is.na(tree$avgHT.SW),0,tree$avgHT.SW)
-  tree$avgHT.HW=ifelse(is.na(tree$avgHT.HW),0,tree$avgHT.HW)
-
-  # Add top ht value and avgHT values to plot summary table
-  Sum.temp=Sum.temp %>% 
-    dplyr::left_join(topht %>% 
-                       select(PLOT, 
-                              topht),
-                     by='PLOT') %>% 
-    dplyr::left_join(avgHT, 
-                     by='PLOT')
-  
-  tree$pHCB=FALSE
-  if (is.null(tree$CR) || any(is.na(tree$CR)))
-  {
-    if (is.null(tree$CR)) tree$CR = NA
-    # compute crown ratio from base height, compute if missing
-    if (is.null(tree$HCB)) tree$HCB = NA    
-    tree$pHCB = is.na(tree$HCB) | tree$HCB=='NA' | tree$HCB==0
-    {      
-      # Height to crown base
-      pHCB.m=mapply(HCBPred,SPP=tree$SP,DBH=tree$DBH,HT=tree$HT,
-                  CCF=tree$CCF,BAL=tree$BAL)
-      tree$HCB=ifelse(tree$pHCB,pHCB.m,tree$HCB)
-    }
-    tree$CR=ifelse(is.na(tree$CR),1-(tree$HCB/tree$HT),tree$CR)
-  }
-  tree$pHCB = as.numeric(tree$pHCB)
-  # maybe CR is defined on input and HCB is not, at this point CR will be defined.
-  if (is.null(tree$HCB)) tree$HCB = tree$HT*tree$CR
-
-  #diameter increment ###
-
-  tree= tree %>% #mutate(Form=NA, Risk=NA) %>% 
-    dplyr::left_join(ddbh.fun.spp,
-                     by=c('SP'='Spp')) %>%
-    dplyr::mutate(ddbh.b0.spp=ifelse(is.na(ddbh.b0.spp), 0, ddbh.b0.spp),  # default parameter estimate = 0
-                  ddbh.b2.spp=ifelse(is.na(ddbh.b2.spp), 0, ddbh.b2.spp), 
-                  ddbh.b3.spp=ifelse(is.na(ddbh.b3.spp), 0, ddbh.b3.spp), 
-                  ddbh.b4.spp=ifelse(is.na(ddbh.b4.spp), 0, ddbh.b4.spp)) %>% 
-    dplyr::rowwise() %>% 
-    dplyr::mutate(dDBH=ifelse(HT>=1.3716,
-                              dDBH_fun(SPP=SP, 
-                                       DBH = ifelse(DBH>=1, DBH, 1), # for tree records <1cm DBH and height >=breast height pass 1cm to dDBH function 
-                                       CR=CR, BAL.SW=BAL.SW, # apply diameter increment calculation
-                                BAL.HW=BAL.HW, CSI=CSI, b0.SPP=ddbh.b0.spp, 
-                                b2.SPP=ddbh.b2.spp, b3.SPP=ddbh.b3.spp, b4.SPP=ddbh.b4.spp), # version 12.3.2 remove cyclelen
-                              0), # if HT<4.5 DBH increment =0; FVS requires DBH even with HT less than breast height
-                  dDBH.form.risk.mod=ifelse(!is.na(Form) & !is.na(Risk), # appl form and risk modifer calculation
-                                            dDBH.HW.mod(SPP=SP, DBH=DBH, BAL=BAL, 
-                                                        Form=Form, Risk=Risk),
-                                            1)) %>% 
-    dplyr::ungroup()
-  
- ## stand BA #
-  # create stand summary dataframe for use in the calc_stand_ba() function
-  stand.smry.ba.incr=Sum.temp %>% 
-      transmute(PLOT, 
-                RD.mod, 
-                pHW.ba, 
-                BAPH, 
-                CSI=CSI) %>% 
-    summarise(RD.mod=mean(RD.mod, na.rm=T), 
-              pHW.ba=mean(pHW.ba, na.rm=T), 
-              BAPH=mean(BAPH, na.rm=T), 
-              CSI=mean(CSI, na.rm=T))
+##### Diameter increment ####
+  tree = tree %>%
+    calc_ddbh(plot.data = plot.smry)
  
- 
- 
-  # call wrapper function for dBA_plot_fun() and set dDBH if stand dBA is less than sum of tree level BA increment
-  tree=calc_stand_ba(tree.list=tree,
-                    stand.smry = stand.smry.ba.incr)
-      
-  tree$dDBH.thin.mod=mapply(dDBH.thin.mod,
-                            SPP=tree$SP, 
-                            PERCBArm = tree$pBArm, 
-                            BApre=tree$BApre, 
-                            QMDratio=tree$QMDratio, 
-                            YEAR_CT=tree$YEAR_CT, 
-                            YEAR=tree$YEAR)
-  
-  tree$dDBH.SBW.mod=mapply(dDBH.SBW.mod,Region=tree$Region,
-    SPP=tree$SP,DBH=tree$DBH,BAL.SW=tree$BAL.SW,BAL.HW=tree$BAL.HW,
-    CR=tree$CR,avgDBH.SW=tree$avgDBH.SW,topht=tree$topht,CDEF=tree$CDEF)
-
- # apply modifiers
-  tree=tree %>% 
-    dplyr::mutate(dDBH= dDBH*
-                    dDBH.thin.mod*
-                    dDBH.SBW.mod*
-                    dDBH.form.risk.mod*
-                    dDBH.mult)
-  # version 12.3.2 removed rdMod.dDBH_RDmod; added dDBH.mult
-  
-  
-  # stop diameter growth using max DBH
-  if(use.cap.dbh==T){
-    tree=tree %>% 
-      dplyr::mutate(dDBH=dplyr::case_when((dDBH+DBH)>max.dbh ~0,
-                                          TRUE ~dDBH)) 
-    
-  }
-  
- 
-## height increment  
+##### Height increment ####  
   tree= tree %>%
-    dplyr::left_join(dht.fun.spp, 
-              by=c('SP'='Spp')) %>% 
-    dplyr::mutate(dht.b0.spp=ifelse(is.na(dht.b0.spp), 0, dht.b0.spp), 
-                  dht.b2.spp=ifelse(is.na(dht.b2.spp), 0, dht.b2.spp)) %>% 
-    dplyr::rowwise() %>% 
-    dplyr::mutate(dHT=dHT_fun(SPP=SP, HT=HT, CR=CR, 
-                       CCFL=CCFL, CSI=CSI, b0.SPP=dht.b0.spp, b2.SPP=dht.b2.spp)*cyclen) %>% 
-    dplyr::ungroup()
-  
+    calc_dht(plot.data = plot.smry)
 
-  tree$dHT.thin.mod=mapply(dHT.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, 
-    BApre=tree$BApre, QMDratio=tree$QMDratio, YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
+#### Crown recession ####
+  tree= tree %>%
+    calc_dhcb(plot.data = plot.smry) 
   
-  tree$dHT.SBW.mod=mapply(dHT.SBW.mod,SPP=tree$SP,DBH=tree$DBH,topht=tree$topht,
-    CR=tree$CR, avg.DBH.SW=tree$avgDBH.SW, CDEF=tree$CDEF)
+  # if (verbose) cat ("mean tree$dHCB.thin.mod=",mean(tree$dHCB.thin.mod),"\n")  
+  # cat ("na dbh values=", sum(is.na(tree$dbh)), "\n")
+  # cat ("mean dbh=",mean(tree$dbh),"\n")
+  # cat ("mean expf=",mean(tree$expf),"\n")
+  # cat ("na expf values=", sum(is.na(tree$expf)), "\n")
 
-  # apply height increment modifiers 
-  tree=tree %>% 
-    dplyr::mutate(dHT=dHT*
-                    dHT.SBW.mod*
-                    dHT.thin.mod*
-                    dHt.mult)
-  # version 12.3.2 removed rdMod.dHT_RDmod; added dHT.mult
-  
-  
-  if(use.cap.ht==T){
-    tree=tree %>% 
-      dplyr::mutate(dHT=dplyr::case_when((dHT+HT)>max.height ~0,
-                                  TRUE ~dHT))
-    
-  }
-  
-  #  version 12.3.2 removed cap height growth (dHTmult)
-  # dHTmult = approxfun(c(CSI*2,CSI*2.5),c(1,0),rule=2)(tree$dHT+tree$HT)
-  # if (verbose) cat ("mean dHTmult=",mean(dHTmult),if (usedHTCap) " applied\n" else " not applied\n")
-  # ifelse(is.na(dHTmult), 1, dHTmult) # NA values halt execution 8/19/21
-  # if (usedHTCap) tree$dHT=tree$dHT*dHTmult
-  
-## crown recession
-  tree$dHCB=mapply(dHCB,dHT=tree$dHT,DBH=tree$DBH,HT=tree$HT,
-    HCB=tree$HCB,CCF=tree$CCF,shade=tree$shade)*cyclen
-
-  tree$dHCB.thin.mod=mapply(dHCB.thin.mod,SPP=tree$SP, PERCBArm = tree$pBArm, 
-    BApre=tree$BApre, QMDratio=tree$QMDratio, YEAR_CT=tree$YEAR_CT, YEAR=tree$YEAR)
-  if (verbose) cat ("mean tree$dHCB.thin.mod=",mean(tree$dHCB.thin.mod),"\n")  
-
-  tree$dHCB=tree$dHCB*tree$dHCB.thin.mod
-  
-  # cat ("na DBH values=", sum(is.na(tree$DBH)), "\n")
-  # cat ("mean DBH=",mean(tree$DBH),"\n")
-  # cat ("mean EXPF=",mean(tree$EXPF),"\n")
-  # cat ("na EXPF values=", sum(is.na(tree$EXPF)), "\n")
-  
- ## Mortality ####
- 
-  
+#### Mortality ####
   ## Mortality from version 12.1.6
-  tree = ddply (tree,.(PLOT, YEAR),
-                function (x)
-                { 
-                  x = x[sort(x$DBH,decreasing=TRUE,index.return=TRUE)$ix,]
-                  Csward1<-cumsum(x$EXPF*(0.00015+0.00218*x$SG)*((x$DBH/25)^1.605))
-                  bag=(((x$DBH+x$dDBH)^2*0.00007854)-
-                         (x$DBH)^2*0.00007854)*x$EXPF
-                  x$Sbag30=sum(ifelse(Csward1<=0.3,bag,0))
-                  x
-                })
-   # stand.mort.prob=function(Region,BA,BAG,QMD,pBA.BF,pBA.IH) 
-  tree$stand.pmort=as.vector(mapply(stand.mort.prob,
-                                    Region=tree$Region,
-                                    BA=tree$BAPH,
-                                    BAG=tree$Sbag30/cyclen,
-                                    QMD=tree$qmd,
-                                    pBA.BF=tree$pBF.ba,
-                                    pBA.IH=tree$pIHW.ba)[1,])    
+  tree=tree %>% 
+    calc_mortality(plot.data=plot.smry)
   
-  tree$stand.pmort.cut=as.vector(mapply(stand.mort.prob,
-                                        Region=tree$Region,
-                                        BA=tree$BAPH,
-                                        BAG=tree$Sbag30/cyclen, 
-                                        QMD=tree$qmd,
-                                        pBA.BF=tree$pBF.ba,
-                                        pBA.IH=tree$pIHW.ba)[2,])    
-  
-  if (verbose) cat ("mean tree$stand.pmort=",mean(tree$stand.pmort),"\n")
-  if (verbose) cat ("mean tree$stand.pmort.cut=",mean(tree$stand.pmort.cut),"\n")
-  
-  tree$pmort = mapply(function(threshold, prmortgt0)
-  {
-    w = 1
-    # prmortgt0 == 1 is OK here because v can be Inf.
-    v = (prmortgt0*w)/(1-prmortgt0)  
-    qbeta(threshold, v, w, lower.tail = FALSE)
-  },threshold=tree$stand.pmort.cut,prmortgt0=tree$stand.pmort)
-  
-  # stand.mort.BA=function(Region,BA,BAG,QMD,QMD.BF,pBA.bf,pBA.ih)
-  tree$stand.mort.BA=mapply(stand.mort.BA,
-                            Region=tree$Region,
-                            BA=tree$BAPH,
-                            BAG=tree$Sbag30/cyclen,
-                            QMD=tree$qmd,
-                            tree$qmd.BF,
-                            pBA.bf=tree$pBF.ba,
-                            pBA.ih=tree$pIHW.ba)
-
-  # thinning modifier- stand
-  # ssurv_thin_mod=function(YEAR_CT, YEAR, PERCBArm, BApre) -- updated to include only current arguments 
-  tree$smort.thin.mod=mapply(ssurv_thin_mod, 
-                             YEAR_CT=tree$YEAR_CT, 
-                             YEAR=tree$YEAR, 
-                             PERCBArm=tree$pBArm, 
-                             BApre=tree$BApre)
-  if (verbose) cat ("mean tree$smort.thin.mod=",mean(tree$smort.thin.mod),"\n")
-  
-  # SBW modifier - stand
-  # smort_sbw_mod=function(Region, BA, BA.BF, topht, CDEF)
-  tree$smort.SBW.mod=mapply(smort_sbw_mod,
-                            Region=tree$Region,
-                            BA=tree$BAPH,
-                            BA.BF=tree$pBF.ba*tree$BAPH,
-                            topht=tree$topht,
-                            CDEF=tree$CDEF)
-  if (verbose) cat ("mean tree$smort.SBW.mod=",mean(tree$smort.SBW.mod),"\n")
-  
-  #mortType == "discrete"
-  # tree$stand.mort.BA = if (mortType == "discrete") 
-  # {
-  #   tree.mort.lamda = -0.05
-  #   # BLC - change cyclen mortaltiy calculation AND add RD mort modifier
-  #   ifelse((tree$stand.pmort^(1/cyclen)) > 
-  #            tree$stand.pmort.cut^(1/cyclen), 
-  #          tree$stand.mort.BA*(1/tree$smort.thin.mod)*tree$smort.SBW.mod # smort.thin.mod appears to be survival probability not mortality as applied inprevious versions
-  #          * (cyclen * exp(tree.mort.lamda * (cyclen - 1))) * tree$rdMod.dMORT_RDmod, 0)   
-  # } else {   
-  #   # Crookston's alternative continuous 
-  #   w=1
-  #   pmort = qbeta(tree$stand.pmort.cut, 
-  #                 (tree$stand.pmort*w)/(1-tree$stand.pmort), w, lower.tail = FALSE)
-  #   if (verbose) cat ("mean pmort (continuous)=",mean(pmort)," sd=",sd(pmort),"\n")
-  #   tree$stand.mort.BA*tree$smort.thin.mod*tree$smort.SBW.mod*pmort
-  # } 
-  # 
-  
-  tree$stand.mort.BA = ifelse((tree$stand.pmort > tree$stand.pmort.cut), 
-           tree$stand.mort.BA*(1/tree$smort.thin.mod)*tree$smort.SBW.mod, # smort.thin.mod appears to be survival probability not mortality as applied inprevious versions
-           0)   
- 
-  
-  #SBW modifier- tree
-    # tsurv_sbw_mod=function(Region,SPP,DBH,CR,HT,BAL.HW,BAL.SW,avgHT.SW,CDEF=NA)  
-  tree$tsurv.SBW.mod=mapply(tsurv_sbw_mod,
-                            Region=tree$Region,
-                            SPP=tree$SP,
-                            DBH=tree$DBH,
-                            CR=tree$CR,
-                            HT=tree$HT,
-                            BAL.HW=tree$BAL.HW,
-                            BAL.SW=tree$BAL.SW,
-                            avgHT.SW=tree$avgHT.SW,
-                            CDEF=tree$CDEF)
-  if (verbose) cat ("mean tree$tsurv.SBW.mod=",mean(tree$tsurv.SBW.mod),"\n")
-  
-  # thinning modifer- tree
-    # tsurv_thin_mod = function(SPP, PERCBArm, BApre, QMDratio, YEAR_CT, YEAR)  
-  tree$tmort.thin.mod=mapply(tsurv_thin_mod, 
-                             SPP=tree$SP, 
-                             PERCBArm = tree$pBArm, 
-                             BApre=tree$BApre, 
-                             QMDratio=tree$QMDratio, 
-                             YEAR_CT=tree$YEAR_CT, 
-                             YEAR=tree$YEAR)
-  if (verbose) cat ("mean tree$tmort.thin.mod=",mean(tree$tmort.thin.mod),"\n")
-  
-  # hardwood modifier- tree
-    #  tsurv_hw_mod=function(SPP,DBH,BAL,BA,Form) 
-  tree$tmort.HW.mod=if (!is.null(tree$Form)) ifelse(is.na(tree$Form),1,
-                                                    mapply(tsurv_hw_mod,
-                                                           SPP=tree$SP,
-                                                           DBH=tree$DBH,
-                                                           Form=tree$Form,
-                                                           BAL=tree$BAL,
-                                                           BA=tree$BAPH)) else 1
-  
-  
-  ### tree mortality
-    # tree.mort.prob=function(SPP,DBH)
-  tree.surv.lamda = 0.0
-  tree$tsurv=pmax(0,pmin(1-(1-mapply(tree.mort.prob,
-                                     tree$SP,
-                                     tree$DBH)*(exp(tree.surv.lamda*(cyclen-1))))*
-                           tree$tsurv.SBW.mod*tree$tmort.thin.mod*tree$tmort.HW.mod,1.0))  # BLC - added in HW.mod to match AW 9.5/9.6 code
-  
-  
-  tree=tree %>% # 9/10/2021 updated mortality calculation execution 
-    dplyr::mutate(stand.mort.BA=case_when(stand.mort.BA>BAPH ~BAPH, # constrain stand BA mortality to total stand BA 
-                                          TRUE ~stand.mort.BA),
-                  tree.mortBA=((DBH+dDBH)^2*0.00007854)*EXPF*(1-tsurv)) %>% 
-    dplyr::group_by(PLOT) %>% 
-    dplyr::mutate(sum.tree.mortBA=sum(tree.mortBA)) %>%  # plot sum of tree ba mortality
-    dplyr::ungroup() %>% 
-    dplyr::mutate(cc=ifelse(stand.mort.BA>0, sum.tree.mortBA/stand.mort.BA, 0), # plot sum of tree ba mortality / stand ba mortality
-                  dd=ifelse(stand.mort.BA>0, tree.mortBA/cc, 0), # tree ba mortality / tree-stand mortality ratio
-                  ba.mort=(0.00007854*(DBH+dDBH)^2), # tree basal area
-                  dEXPF=ifelse(stand.mort.BA>0, dd/ba.mort,0))
-  
-  
-  
- 
-
-  ##INGROWTH
-  ingrow = NULL
-  if (toupper(substr(INGROWTH,1,1)) == "Y")
-  {
-    # JAK added CutPoint=CutPoint
-
-    Sum.temp$IPH=as.numeric(mapply(Ingrowth.FUN,PARMS='GNLS',CutPoint=CutPoint,
-           BA=Sum.temp$BAPH,TPH=Sum.temp$tph,QMD=Sum.temp$qmd,PHW=Sum.temp$pHW.ba,
-           MinDBH=ops$MinDBH,ClimateSI=CSI,cyclen))
-    
-    Sum.temp$pBCH.ING=mapply(Ingrowth.Comp,SPP='BCH',BA=Sum.temp$BAPH,PBA=Sum.temp$pBRH.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pBF.ING=mapply(Ingrowth.Comp,SPP='BF',BA=Sum.temp$BAPH,PBA=Sum.temp$pBF.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pRM.ING=mapply(Ingrowth.Comp,SPP='RM',BA=Sum.temp$BAPH,PBA=Sum.temp$pRM.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pSPR.ING=mapply(Ingrowth.Comp,SPP='SPR',BA=Sum.temp$BAPH,PBA=Sum.temp$pSPR.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pWP.ING=mapply(Ingrowth.Comp,SPP='WP',BA=Sum.temp$BAPH,PBA=Sum.temp$pWP.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pOH.ING=mapply(Ingrowth.Comp,SPP='OH',BA=Sum.temp$BAPH,PBA=Sum.temp$pOH.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pOS.ING=mapply(Ingrowth.Comp,SPP='OS',BA=Sum.temp$BAPH,PBA=Sum.temp$pOS.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pAB.ING=mapply(Ingrowth.Comp,SPP='OH',BA=Sum.temp$BAPH,PBA=Sum.temp$pAB.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pQA.ING=mapply(Ingrowth.Comp,SPP='OH',BA=Sum.temp$BAPH,PBA=Sum.temp$pQA.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pSM.ING=mapply(Ingrowth.Comp,SPP='OH',BA=Sum.temp$BAPH,PBA=Sum.temp$pSM.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pWC.ING=mapply(Ingrowth.Comp,SPP='OS',BA=Sum.temp$BAPH,PBA=Sum.temp$pWC.ba,ClimateSI=CSI,MinDBH=ops$MinDBH)
-    Sum.temp$pSP=Sum.temp$pBCH.ING+Sum.temp$pBF.ING+Sum.temp$pRM.ING+Sum.temp$pSPR.ING+Sum.temp$pWP.ING+Sum.temp$pOH.ING+Sum.temp$pOS.ING +
-                 Sum.temp$pAB.ING+Sum.temp$pQA.ING+Sum.temp$pSM.ING+Sum.temp$pWC.ING
-    
-    Sum.temp$pSPx=1/Sum.temp$pSP
-    Sum.temp$pBCH.ING=Sum.temp$pBCH.ING*Sum.temp$pSPx
-    Sum.temp$pBF.ING=Sum.temp$pBF.ING*Sum.temp$pSPx
-    Sum.temp$pRM.ING=Sum.temp$pRM.ING*Sum.temp$pSPx
-    Sum.temp$pSPR.ING=Sum.temp$pSPR.ING*Sum.temp$pSPx
-    Sum.temp$pWP.ING=Sum.temp$pWP.ING*Sum.temp$pSPx
-    Sum.temp$pOH.ING=Sum.temp$pOH.ING*Sum.temp$pSPx
-    Sum.temp$pOS.ING=Sum.temp$pOS.ING*Sum.temp$pSPx
-    Sum.temp$BCH.ING=Sum.temp$pBCH.ING*Sum.temp$IPH
-    Sum.temp$BF.ING=Sum.temp$pBF.ING*Sum.temp$IPH
-    Sum.temp$RM.ING=Sum.temp$pRM.ING*Sum.temp$IPH
-    Sum.temp$SPR.ING=Sum.temp$pSPR.ING*Sum.temp$IPH
-    Sum.temp$WP.ING=Sum.temp$pWP.ING*Sum.temp$IPH
-    Sum.temp$OH.ING=Sum.temp$pOH.ING*Sum.temp$IPH
-    Sum.temp$OS.ING=Sum.temp$pOS.ING*Sum.temp$IPH
-    Sum.temp$GB.ING=Sum.temp$BCH.ING*Sum.temp$pGB.ba
-    Sum.temp$PB.ING=Sum.temp$BCH.ING*Sum.temp$pPB.ba
-    Sum.temp$YB.ING=Sum.temp$BCH.ING*Sum.temp$pYB.ba
-    Sum.temp$RS.ING=Sum.temp$SPR.ING*Sum.temp$pRS.ba
-    Sum.temp$BS.ING=Sum.temp$SPR.ING*Sum.temp$pBS.ba
-    Sum.temp$WS.ING=Sum.temp$SPR.ING*Sum.temp$pWS.ba
-    
-    Sum.temp$pAB.ING=Sum.temp$pAB.ING*Sum.temp$pSPx
-    Sum.temp$pQA.ING=Sum.temp$pQA.ING*Sum.temp$pSPx
-    Sum.temp$pSM.ING=Sum.temp$pSM.ING*Sum.temp$pSPx
-    Sum.temp$pWC.ING=Sum.temp$pWC.ING*Sum.temp$pSPx
-    Sum.temp$AB.ING=Sum.temp$pAB.ING*Sum.temp$IPH
-    Sum.temp$QA.ING=Sum.temp$pQA.ING*Sum.temp$IPH
-    Sum.temp$SM.ING=Sum.temp$pSM.ING*Sum.temp$IPH
-    Sum.temp$WC.ING=Sum.temp$pWC.ING*Sum.temp$IPH
-    Sum.temp$YEAR=tree$YEAR[1]
-    ingrow = ING.TreeList(Sum.temp,INGROWTH,MinDBH=MinDBH)
-    
-    if (!is.null(ingrow))
-    {
-      # get predicted heights and HCB, use plot CCF and BA as BAL.
-      CCF =Sum.temp[ingrow[,"PLOT"],"CCF"]
-      BAPH=Sum.temp[ingrow[,"PLOT"],"BAPH"]
-      ingrow$HT=mapply(HTPred,SPP=ingrow$SP,DBH=ingrow$DBH,CSI=CSI,
-                       CCF=CCF,BAL=BAPH)                     
-      ingrow$HCB=mapply(HCBPred,SPP=ingrow$SP,DBH=ingrow$DBH,HT=ingrow$HT,
-                        CCF=CCF,BAL=BAPH)
-    }
+#### Ingrowth ####
+  if(ops$use.ingrowth == TRUE){
+    ingrowth= tree %>% 
+      calc_ingrowth(plot.data=plot.smry)
   }
 
+#### Output ####  
   #Update tree values
   tree=tree %>% 
-    dplyr::mutate(YEAR= YEAR+1,
-                  DBH= DBH+ dplyr::coalesce(dDBH, 0),
-                  HT= HT+ dplyr::coalesce(dHT, 0),
-                  HCB= HCB + dplyr::coalesce(dHCB, 0),
-                  EXPF= dplyr::coalesce(EXPF, 0) - dplyr::coalesce(dEXPF, 0),
-                  EXPF= ifelse(EXPF< 0.00001, 0.00001, EXPF),
-                  CR= (HT - HCB)/ HT) %>% 
-    dplyr::bind_rows(ingrow)    
- 
- 
+    dplyr::mutate(year= year+1,
+                  dbh= dbh+ dplyr::coalesce(ddbh, 0),
+                  ht= ht+ dplyr::coalesce(dht, 0),
+                  hcb= hcb+ dplyr::coalesce(dhcb, 0),
+                  expf= dplyr::coalesce(expf, 0) - dplyr::coalesce(dexpf, 0),
+                  expf= ifelse(expf< 0.00001, 0.00001, expf),
+                  cr= 1-(hcb/ht)) 
   
-  rtnVars=intersect(rtnVars,colnames(tree))
+  # Append ingrowth
+  if(exists('ingrowth')){
+    tree=tree %>% 
+    dplyr::bind_rows(ingrowth)    
+  }
+
+  # select return variables
+  rtn.vars=intersect(ops$rtn.vars[[1]],
+                     colnames(tree))
   tree=subset(tree,
-              select=rtnVars) %>% 
+              select=rtn.vars) %>% 
     as.data.frame()                          
 
 }         
 
-
+####
 #### Taper ####
-##Li et al. (2012) taper equations
-KozakTaper=function(Bark,SPP,DHT,DBH,HT,Planted){
-    if(Bark=='ob' & SPP=='AB'){
-        a0_tap=1.0693567631
-        a1_tap=0.9975021951
-        a2_tap=-0.01282775
-        b1_tap=0.3921013594
-        b2_tap=-1.054622304
-        b3_tap=0.7758393514
-        b4_tap=4.1034897617
-        b5_tap=0.1185960455
-        b6_tap=-1.080697381
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='BC'){
-        a0_tap=0.9802172591
-        a1_tap=0.9900811022
-        a2_tap=0.0215023934
-        b1_tap=0.6092829761
-        b2_tap=-0.54627086
-        b3_tap=0.5221909952
-        b4_tap=1.6561496035
-        b5_tap=0.040879378
-        b6_tap=-0.302807393
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='BF'){
-        a0_tap=0.88075316
-        a1_tap=1.01488665
-        a2_tap=0.01958804
-        b1_tap=0.41951756
-        b2_tap=-0.67232564
-        b3_tap=0.54329725
-        b4_tap=1.48181152
-        b5_tap=0.06470371
-        b6_tap=-0.34684837
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='BF'){
-        a0_tap=0.7909
-        a1_tap=0.9745
-        a2_tap=0.1198
-        b1_tap=0.2688
-        b2_tap=-0.55134
-        b3_tap=0.5612
-        b4_tap=0.9007
-        b5_tap=0.1257
-        b6_tap=-0.6708
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.87045800178728
-        a1_tap=0.998148536293802
-        a2_tap=0.0584816955042306
-        b1_tap=0.302539012401385
-        b2_tap=-0.605787065734974
-        b3_tap=0.588861845770261
-        b4_tap=0.8826608914125
-        b5_tap=0.103280103524893
-        b6_tap=-0.57432603217401
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='BP' | SPP=='BA'){
-        a0_tap=1.0036248405
-        a1_tap=0.744246238
-        a2_tap=0.2876417207
-        b1_tap=0.6634046516
-        b2_tap=-2.004812235
-        b3_tap=0.7507983401
-        b4_tap=3.9248261105
-        b5_tap=0.0276793767
-        b6_tap=-0.130928845
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='BS'){
-        a0_tap=0.80472902
-        a1_tap=1.00804553
-        a2_tap=0.05601099
-        b1_tap=0.35533529
-        b2_tap=-0.41320046
-        b3_tap=0.41527304
-        b4_tap=1.11652424
-        b5_tap=0.0990167
-        b6_tap=-0.40992056
-        b7_tap=0.11394943
-    }
-    else if(Bark=='ob' & SPP=='BS'){
-        a0_tap=0.858
-        a1_tap=0.9611
-        a2_tap=0.105
-        b1_tap=0.2604
-        b2_tap=-0.3409
-        b3_tap=0.4797
-        b4_tap=0.5008
-        b5_tap=0.1097
-        b6_tap=-0.4952
-        b7_tap=0.0969
-        #parms w/ FIA data
-        a0_tap=0.896382313496267
-        a1_tap=0.979157280469517
-        a2_tap=0.07070415827334
-        b1_tap=0.288205614793081
-        b2_tap=-0.303580327062765
-        b3_tap=0.435229599780184
-        b4_tap=0.287092390832665
-        b5_tap=0.0861036484421037
-        b6_tap=-0.407747649433411
-        b7_tap=0.371113950891855
-    }
-    else if(Bark=='ob' & SPP=='BT'){
-        a0_tap=1.0200889056
-        a1_tap=1.0054957243
-        a2_tap=-0.011030907
-        b1_tap=0.5104511725
-        b2_tap=-1.326415929
-        b3_tap=0.5568665797
-        b4_tap=7.2108347873
-        b5_tap=0.071149738
-        b6_tap=-0.571844802
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='EH'){
-        a0_tap=0.960235102
-        a1_tap=1.00821143
-        a2_tap=-0.025167937
-        b1_tap=0.825260258
-        b2_tap=1.962520834
-        b3_tap=0.415234319
-        b4_tap=-5.061571874
-        b5_tap=0.009839526
-        b6_tap=-0.095533007
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='EH'){
-        a0_tap=0.8681
-        a1_tap=0.916
-        a2_tap=0.1558
-        b1_tap=0.4067
-        b2_tap=-0.6163
-        b3_tap=0.4177
-        b4_tap=3.6257
-        b5_tap=0.1686
-        b6_tap=-0.8829
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.846409603849866
-        a1_tap=0.984317716125905
-        a2_tap=0.0807523481457474
-        b1_tap=0.445438700558324
-        b2_tap=-0.671467572085628
-        b3_tap=0.504954501484816
-        b4_tap=2.48940465528
-        b5_tap=0.124152912027385
-        b6_tap=-0.722954836646604
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='GA'){
-        a0_tap=1.0852385488
-        a1_tap=1.1861877395
-        a2_tap=-0.226193745
-        b1_tap=0.5198788065
-        b2_tap=1.4303205202
-        b3_tap=-0.349453901
-        b4_tap=3.1952591271
-        b5_tap=0.1391694941
-        b6_tap=-0.296716822
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='GB'){
-        a0_tap=1.0263926931
-        a1_tap=0.8835623138
-        a2_tap=0.1307522645
-        b1_tap=0.6113533288
-        b2_tap=-0.114188076
-        b3_tap=0.2883217076
-        b4_tap=2.657433495
-        b5_tap=0.0590046356
-        b6_tap=-0.175127606
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='JP'){
-        a0_tap=0.931552701
-        a1_tap=1.008192708
-        a2_tap=-0.004177373
-        b1_tap=0.431297353
-        b2_tap=-0.863672736
-        b3_tap=0.511698303
-        b4_tap=2.232484834
-        b5_tap=0.059865263
-        b6_tap=-0.331897255
-        b7_tap=0.039630786
-    }
-    else if(Bark=='ob' & SPP=='JP'){
-        a0_tap=1.0214
-        a1_tap=0.9817
-        a2_tap=0.0147
-        b1_tap=0.3753
-        b2_tap=-0.7954
-        b3_tap=0.499
-        b4_tap=2.0407
-        b5_tap=0.0768
-        b6_tap=-0.3335
-        b7_tap=0.0408
-        #parms w/ FIA data
-        a0_tap=0.842483072142665
-        a1_tap=0.99279768524928
-        a2_tap=0.0739425827838225
-        b1_tap=0.37221919371203
-        b2_tap=-0.723225866494174
-        b3_tap=0.453434142074953
-        b4_tap=1.33754275322832
-        b5_tap=0.073372838152118
-        b6_tap=-0.3105255908992
-        b7_tap=0.396398949039286
-    }
-    else if(Bark=='ib' & SPP=='NS'){
-        a0_tap=0.9308817
-        a1_tap=0.97360573
-        a2_tap=0.03522864
-        b1_tap=0.65078104
-        b2_tap=-0.30355787
-        b3_tap=0.37832812
-        b4_tap=1.18815216
-        b5_tap=0.03111631
-        b6_tap=-0.03172809
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='NS'){
-        a0_tap=1.0513
-        a1_tap=0.9487
-        a2_tap=0.0374
-        b1_tap=0.611
-        b2_tap=-0.3001
-        b3_tap=0.3731
-        b4_tap=1.1255
-        b5_tap=0.0318
-        b6_tap=-0.0297
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.950952303433305
-        a1_tap=0.99162401049595
-        a2_tap=0.0357175689757522
-        b1_tap=0.507484658718266
-        b2_tap=-0.44046929698967
-        b3_tap=0.405856745795155
-        b4_tap=1.2849978191539
-        b5_tap=0.0143964536822362
-        b6_tap=-0.0785889411281423
-        b7_tap=0.169725200257675
-    }
-    else if(Bark=='ib' & SPP=='PB'){
-        a0_tap=0.7161229027
-        a1_tap=0.9811224473
-        a2_tap=0.1382539493
-        b1_tap=0.4782152412
-        b2_tap=0.3091537448
-        b3_tap=0.3266307618
-        b4_tap=-0.302056097
-        b5_tap=0.0858585241
-        b6_tap=-0.278661048
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='PB'){
-        a0_tap=0.7161229027
-        a1_tap=0.9811224473
-        a2_tap=0.1382539493
-        b1_tap=0.4782152412
-        b2_tap=0.3091537448
-        b3_tap=0.3266307618
-        b4_tap=-0.302056097
-        b5_tap=0.0858585241
-        b6_tap=-0.278661048
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='QA'){
-        a0_tap=0.5586975794
-        a1_tap=0.9047841359
-        a2_tap=0.3075094544
-        b1_tap=0.7131251715
-        b2_tap=-0.588345303
-        b3_tap=0.4292045831
-        b4_tap=2.8516108932
-        b5_tap=0.0381609362
-        b6_tap=-0.13426388
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='RM'){
-        a0_tap=0.745826994
-        a1_tap=1.0092251371
-        a2_tap=0.0890931039
-        b1_tap=0.5861620841
-        b2_tap=-0.865905462
-        b3_tap=0.6539243149
-        b4_tap=3.0603989176
-        b5_tap=0.0827619274
-        b6_tap=-0.64859681
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='RM'){
-        a0_tap=0.745826994
-        a1_tap=1.0092251371
-        a2_tap=0.0890931039
-        b1_tap=0.5861620841
-        b2_tap=-0.865905462
-        b3_tap=0.6539243149
-        b4_tap=3.0603989176
-        b5_tap=0.0827619274
-        b6_tap=-0.64859681
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='RO'){
-        a0_tap=1.1751352376
-        a1_tap=1.02249704
-        a2_tap=-0.069888591
-        b1_tap=0.4505675893
-        b2_tap=-0.902884964
-        b3_tap=0.5812519636
-        b4_tap=3.6267479819
-        b5_tap=0.1656137742
-        b6_tap=-1.114281314
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='RP'){
-        a0_tap=0.9717883
-        a1_tap=1.00113806
-        a2_tap=-0.01597933
-        b1_tap=0.51143292
-        b2_tap=-0.9739954
-        b3_tap=0.25844201
-        b4_tap=4.75315518
-        b5_tap=0.05846224
-        b6_tap=-0.12372176
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='RP'){
-        a0_tap=1.0962
-        a1_tap=1.006
-        a2_tap=-0.0352
-        b1_tap=0.5
-        b2_tap=-0.9959
-        b3_tap=0.3007
-        b4_tap=4.6358
-        b5_tap=0.0473
-        b6_tap=-0.05
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=1.06470820904747
-        a1_tap=0.994899036827748
-        a2_tap=-0.0123828485987216
-        b1_tap=0.458957297467137
-        b2_tap=-1.04575412640177
-        b3_tap=0.361452014890273
-        b4_tap=4.00047777431758
-        b5_tap=0.0543368451581955
-        b6_tap=-0.128025447306836
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='RS'){
-        a0_tap=0.89797987
-        a1_tap=1.00579742
-        a2_tap=0.01667313
-        b1_tap=0.49500865
-        b2_tap=-0.63375155
-        b3_tap=0.3836274
-        b4_tap=1.41380994
-        b5_tap=0.08866994
-        b6_tap=-0.29753964
-        b7_tap=0.15192029
-    }
-    else if(Bark=='ob' & SPP=='RS'){
-        a0_tap=0.8758
-        a1_tap=0.992
-        a2_tap=0.0633
-        b1_tap=0.4128
-        b2_tap=-0.6877
-        b3_tap=0.4413
-        b4_tap=1.1818
-        b5_tap=0.1131
-        b6_tap=-0.4356
-        b7_tap=0.1042
-        #parms w/ FIA data
-        a0_tap=0.886886241411388
-        a1_tap=0.995431239145283
-        a2_tap=0.0541365481351767
-        b1_tap=0.411160410244944
-        b2_tap=-0.658022227353248
-        b3_tap=0.418213595349517
-        b4_tap=1.09113756405639
-        b5_tap=0.102379812299201
-        b6_tap=-0.40367256147942
-        b7_tap=0.104842994095004
-    }
-    #Sweet birch
-    else if(Bark=='ob' & SPP=='SB'){
-        a0_tap=0.8471057131
-        a1_tap=0.9875376729
-        a2_tap=0.0769690406
-        b1_tap=0.9322599144
-        b2_tap=-0.954580316
-        b3_tap=0.48553875
-        b4_tap=3.0294545606
-        b5_tap=0.0767610836
-        b6_tap=-0.238398236
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='SM'){
-        a0_tap=1.0517056747
-        a1_tap=0.96129896
-        a2_tap=0.0386037512
-        b1_tap=0.8556437779
-        b2_tap=-0.249723079
-        b3_tap=0.4149367053
-        b4_tap=1.2548340569
-        b5_tap=0.0412998707
-        b6_tap=-0.113500099
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='TL'  | SPP=='TA'){
-        a0_tap=0.7387
-        a1_tap=0.9716
-        a2_tap=0.1431
-        b1_tap=0.271
-        b2_tap=-0.4958
-        b3_tap=0.6508
-        b4_tap=-0.3887
-        b5_tap=0.1324
-        b6_tap=-0.7035
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.762977580507808
-        a1_tap=0.979320525735404
-        a2_tap=0.122788251183516
-        b1_tap=0.245935863173793
-        b2_tap=-0.564901857800367
-        b3_tap=0.666790795105499
-        b4_tap=-0.0728778930339496
-        b5_tap=0.143651487515151
-        b6_tap=-0.791188036888163
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='WA'){
-        a0_tap=0.8550736297
-        a1_tap=0.9768941226
-        a2_tap=0.0770356694
-        b1_tap=0.7819090026
-        b2_tap=-0.791762733
-        b3_tap=0.476698925
-        b4_tap=3.5003928402
-        b5_tap=0.0859040469
-        b6_tap=-0.487974342
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='WC'  | SPP=='NC'){
-        a0_tap=0.86118766
-        a1_tap=0.98152118
-        a2_tap=0.0568203
-        b1_tap=0.40717678
-        b2_tap=-0.05482572
-        b3_tap=0.47809459
-        b4_tap=-1.32512447
-        b5_tap=0.1538487
-        b6_tap=-0.53687808
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='WC' | SPP=='NC'){
-        a0_tap=0.902
-        a1_tap=0.9676
-        a2_tap=0.085
-        b1_tap=0.3204
-        b2_tap=-0.4336
-        b3_tap=0.5212
-        b4_tap=0.0157
-        b5_tap=0.137
-        b6_tap=-0.4585
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.876976728762079
-        a1_tap=0.972187200775237
-        a2_tap=0.0905032843727524
-        b1_tap=0.319643790061659
-        b2_tap=-0.495778605215774
-        b3_tap=0.546605647382787
-        b4_tap=-0.0540118375921429
-        b5_tap=0.131666046721139
-        b6_tap=-0.454765563250266
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='WP'){
-        a0_tap=1.04881379
-        a1_tap=1.00779696
-        a2_tap=-0.04595353
-        b1_tap=0.38085445
-        b2_tap=-0.85956463
-        b3_tap=0.34380669
-        b4_tap=4.60836993
-        b5_tap=0.111855
-        b6_tap=-0.5523203
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='WP'){
-        a0_tap=1.0202
-        a1_tap=0.985
-        a2_tap=0.0149
-        b1_tap=0.3697
-        b2_tap=-0.7512
-        b3_tap=0.3536
-        b4_tap=3.8496
-        b5_tap=0.1074
-        b6_tap=-0.5131
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.961977278802905
-        a1_tap=0.985977453808376
-        a2_tap=0.0333180987707418
-        b1_tap=0.383416881614619
-        b2_tap=-0.753661988626837
-        b3_tap=0.392529765236197
-        b4_tap=3.4224381734935
-        b5_tap=0.100601541094101
-        b6_tap=-0.485617012177084
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='WS'){
-        a0_tap=1.0202
-        a1_tap=0.985
-        a2_tap=0.0149
-        b1_tap=0.3697
-        b2_tap=-0.7512
-        b3_tap=0.3536
-        b4_tap=3.8496
-        b5_tap=0.1074
-        b6_tap=-0.5131
-        b7_tap=0
-        #parms w/ FIA data
-        a0_tap=0.75826241
-        a1_tap=0.98481863
-        a2_tap=0.09956165
-        b1_tap=0.36505143
-        b2_tap=-0.51501314
-        b3_tap=0.55913869
-        b4_tap=0.75846281
-        b5_tap=0.07011851
-        b6_tap=-0.44928376
-        b7_tap=0.07830011
-    }
-    else if(Bark=='ob' & SPP=='WS'){
-        a0_tap=0.7317
-        a1_tap=0.9577
-        a2_tap=0.1593
-        b1_tap=0.2638
-        b2_tap=-0.4246
-        b3_tap=0.5505
-        b4_tap=-0.1269
-        b5_tap=0.1145
-        b6_tap=-0.6249
-        b7_tap=0.088
-        #parms w/ FIA data
-        a0_tap=0.725059647049259
-        a1_tap=0.999930744977476
-        a2_tap=0.11890841412387
-        b1_tap=0.286031149725587
-        b2_tap=-0.417052954651359
-        b3_tap=0.581226449067082
-        b4_tap=-0.562751307358532
-        b5_tap=0.101380520664108
-        b6_tap=-0.563774194060357
-        b7_tap=0.096121529684134
-    }
-    else if(Bark=='ob' & SPP=='YB'){
-        a0_tap=1.1263776728
-        a1_tap=0.9485083275
-        a2_tap=0.0371321602
-        b1_tap=0.7662525552
-        b2_tap=-0.028147685
-        b3_tap=0.2334044323
-        b4_tap=4.8569609081
-        b5_tap=0.0753180483
-        b6_tap=-0.205052535
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='OH'){
-        a0_tap=0.947211744
-        a1_tap=0.971353083
-        a2_tap=0.063182322
-        b1_tap=0.633614831
-        b2_tap=-0.549156049
-        b3_tap=0.439010965
-        b4_tap=3.187595496
-        b5_tap=0.079154063
-        b6_tap=-0.41277508
-        b7_tap=0
-    }
-    else if(Bark=='ob' & SPP=='OS'){
-        a0_tap=0.88047918
-        a1_tap=0.988526494
-        a2_tap=0.0660791
-        b1_tap=0.365548416
-        b2_tap=-0.607245626
-        b3_tap=0.486832282
-        b4_tap=1.282373726
-        b5_tap=0.094120201
-        b6_tap=-0.447380533
-        b7_tap=0
-    }
-    else if(Bark=='ib' & SPP=='OS'){
-        a0_tap=0.896475601
-        a1_tap=1.001886257
-        a2_tap=0.020707494
-        b1_tap=0.391516469
-        b2_tap=-0.395638544
-        b3_tap=-0.011787171
-        b4_tap=1.335110611
-        b5_tap=0.076311559
-        b6_tap=-0.286988273
-        b7_tap=0
-    }
-    else{
-        a0_tap=0.896475601
-        a1_tap=1.001886257
-        a2_tap=0.020707494
-        b1_tap=0.391516469
-        b2_tap=-0.395638544
-        b3_tap=-0.011787171
-        b4_tap=1.335110611
-        b5_tap=0.076311559
-        b6_tap=-0.286988273
-        b7_tap=0
-    }
-    p = 1.3/HT
-    z = DHT/HT
-    Xi = (1 - z^(1/3))/(1 - p^(1/3))
-    Qi = 1 - z^(1/3)
-    y = (a0_tap * (DBH^a1_tap) * (HT^a2_tap)) * Xi^(b1_tap * z^4 + b2_tap * (exp(-DBH/HT)) +
-                                                        b3_tap * Xi^0.1 + b4_tap * (1/DBH) + b5_tap * HT^Qi + b6_tap * Xi + b7_tap*Planted)
-    Diam=ifelse(Bark=='ob' & DHT==1.37,DBH,y)
-    return(Diam=round(Diam,4))
+####
+
+## Kozak taper function parameters
+taper.kozak.spp = dplyr::tribble(
+  ~bark, ~species, ~a0, ~a1, ~a2, ~b1, ~b2, ~b3, ~b4, ~b5, ~b6, ~b7,
+  'ob', 'AB', 1.0693567631, 0.9975021951, -0.01282775, 0.3921013594, -1.054622304, 0.7758393514, 4.1034897617, 0.1185960455, -1.080697381, 0,
+  'ob', 'BC', 0.9802172591, 0.9900811022, 0.0215023934, 0.6092829761, -0.54627086, 0.5221909952, 1.6561496035, 0.040879378, -0.302807393, 0,
+  'ib', 'BF', 0.88075316, 1.01488665, 0.01958804, 0.41951756, -0.67232564, 0.54329725, 1.48181152, 0.06470371, -0.34684837, 0,
+  'ob', 'BF', 0.87045800178728, 0.998148536293802, 0.0584816955042306, 0.302539012401385, -0.605787065734974, 0.588861845770261, 0.8826608914125, 0.103280103524893, -0.57432603217401, 0,
+  'ob', 'BP', 1.0036248405, 0.744246238, 0.2876417207, 0.6634046516, -2.004812235, 0.7507983401, 3.9248261105, 0.0276793767, -0.130928845, 0,
+  'ob', 'BA', 1.0036248405, 0.744246238, 0.2876417207, 0.6634046516, -2.004812235, 0.7507983401, 3.9248261105, 0.0276793767, -0.130928845, 0,
+  'ib', 'BS', 0.80472902, 1.00804553, 0.05601099, 0.35533529, -0.41320046, 0.41527304, 1.11652424, 0.0990167, -0.40992056, 0.11394943,
+  'ob', 'BS', 0.896382313496267, 0.979157280469517, 0.07070415827334, 0.288205614793081, -0.303580327062765, 0.435229599780184, 0.287092390832665, 0.0861036484421037, -0.407747649433411, 0.371113950891855,
+  'ob', 'BT', 1.0200889056, 1.0054957243, -0.011030907, 0.5104511725, -1.326415929, 0.5568665797, 7.2108347873, 0.071149738, -0.571844802, 0,
+  'ib', 'EH', 0.960235102, 1.00821143, -0.025167937, 0.825260258, 1.962520834, 0.415234319, -5.061571874, 0.009839526, -0.095533007, 0,
+  'ob', 'EH', 0.846409603849866, 0.984317716125905, 0.0807523481457474, 0.445438700558324, -0.671467572085628, 0.504954501484816, 2.48940465528, 0.124152912027385, -0.722954836646604, 0,
+  'ob', 'GA', 1.0852385488, 1.1861877395, -0.226193745, 0.5198788065, 1.4303205202, -0.349453901, 3.1952591271, 0.1391694941, -0.296716822, 0,
+  'ob', 'GB', 1.0263926931, 0.8835623138, 0.1307522645, 0.6113533288, -0.114188076, 0.2883217076, 2.657433495, 0.0590046356, -0.175127606, 0,
+  'ib', 'JP', 0.931552701, 1.008192708, -0.004177373, 0.431297353, -0.863672736, 0.511698303, 2.232484834, 0.059865263, -0.331897255, 0.039630786,
+  'ob', 'JP', 0.842483072142665, 0.99279768524928, 0.0739425827838225, 0.37221919371203, -0.723225866494174, 0.453434142074953, 1.33754275322832, 0.073372838152118, -0.3105255908992, 0.396398949039286,
+  'ib', 'NS', 0.9308817, 0.97360573, 0.03522864, 0.65078104, -0.30355787, 0.37832812, 1.18815216, 0.03111631, -0.03172809, 0,
+  'ob', 'NS', 0.950952303433305, 0.99162401049595, 0.0357175689757522, 0.507484658718266, -0.44046929698967, 0.405856745795155, 1.2849978191539, 0.0143964536822362, -0.0785889411281423, 0.169725200257675,
+  'ib', 'PB', 0.7161229027, 0.9811224473, 0.1382539493, 0.4782152412, 0.3091537448, 0.3266307618, -0.302056097, 0.0858585241, -0.278661048, 0,
+  'ob', 'PB', 0.7161229027, 0.9811224473, 0.1382539493, 0.4782152412, 0.3091537448, 0.3266307618, -0.302056097, 0.0858585241, -0.278661048, 0,
+  'ob', 'QA', 0.5586975794, 0.9047841359, 0.3075094544, 0.7131251715, -0.588345303, 0.4292045831, 2.8516108932, 0.0381609362, -0.13426388, 0,
+  'ib', 'RM', 0.745826994, 1.0092251371, 0.0890931039, 0.5861620841, -0.865905462, 0.6539243149, 3.0603989176, 0.0827619274, -0.64859681, 0,
+  'ob', 'RM', 0.745826994, 1.0092251371, 0.0890931039, 0.5861620841, -0.865905462, 0.6539243149, 3.0603989176, 0.0827619274, -0.64859681, 0,
+  'ob', 'RO', 1.1751352376, 1.02249704, -0.069888591, 0.4505675893, -0.902884964, 0.5812519636, 3.6267479819, 0.1656137742, -1.114281314, 0,
+  'ib', 'RP', 0.9717883, 1.00113806, -0.01597933, 0.51143292, -0.9739954, 0.25844201, 4.75315518, 0.05846224, -0.12372176, 0,
+  'ob', 'RP', 1.06470820904747, 0.994899036827748, -0.0123828485987216, 0.458957297467137, -1.04575412640177, 0.361452014890273, 4.00047777431758, 0.0543368451581955, -0.128025447306836, 0,
+  'ib', 'RS', 0.89797987, 1.00579742, 0.01667313, 0.49500865, -0.63375155, 0.3836274, 1.41380994, 0.08866994, -0.29753964, 0.15192029,
+  'ob', 'RS', 0.886886241411388, 0.995431239145283, 0.0541365481351767, 0.411160410244944, -0.658022227353248, 0.418213595349517, 1.09113756405639, 0.102379812299201, -0.40367256147942, 0.104842994095004,
+  'ob', 'SB', 0.8471057131, 0.9875376729, 0.0769690406, 0.9322599144, -0.954580316, 0.48553875, 3.0294545606, 0.0767610836, -0.238398236, 0,
+  'ob', 'SM', 1.0517056747, 0.96129896, 0.0386037512, 0.8556437779, -0.249723079, 0.4149367053, 1.2548340569, 0.0412998707, -0.113500099, 0,
+  'ob', 'TL', 0.762977580507808, 0.979320525735404, 0.122788251183516, 0.245935863173793, -0.564901857800367, 0.666790795105499, -0.0728778930339496, 0.143651487515151, -0.791188036888163, 0,
+  'ob', 'TA', 0.762977580507808, 0.979320525735404, 0.122788251183516, 0.245935863173793, -0.564901857800367, 0.666790795105499, -0.0728778930339496, 0.143651487515151, -0.791188036888163, 0,
+  'ob', 'WA', 0.8550736297, 0.9768941226, 0.0770356694, 0.7819090026, -0.791762733, 0.476698925, 3.5003928402, 0.0859040469, -0.487974342, 0,
+  'ib', 'WC', 0.86118766, 0.98152118, 0.0568203, 0.40717678, -0.05482572, 0.47809459, -1.32512447, 0.1538487, -0.53687808, 0,
+  'ib', 'NC', 0.86118766, 0.98152118, 0.0568203, 0.40717678, -0.05482572, 0.47809459, -1.32512447, 0.1538487, -0.53687808, 0,
+  'ob', 'WC', 0.876976728762079, 0.972187200775237, 0.0905032843727524, 0.319643790061659, -0.495778605215774, 0.546605647382787, -0.0540118375921429, 0.131666046721139, -0.454765563250266, 0,
+  'ob', 'NC', 0.876976728762079, 0.972187200775237, 0.0905032843727524, 0.319643790061659, -0.495778605215774, 0.546605647382787, -0.0540118375921429, 0.131666046721139, -0.454765563250266, 0,
+  'ib', 'WP', 1.04881379, 1.00779696, -0.04595353, 0.38085445, -0.85956463, 0.34380669, 4.60836993, 0.111855, -0.5523203, 0,
+  'ob', 'WP', 0.961977278802905, 0.985977453808376, 0.0333180987707418, 0.383416881614619, -0.753661988626837, 0.392529765236197, 3.4224381734935, 0.100601541094101, -0.485617012177084, 0,
+  'ib', 'WS', 0.75826241, 0.98481863, 0.09956165, 0.36505143, -0.51501314, 0.55913869, 0.75846281, 0.07011851, -0.44928376, 0.07830011,
+  'ob', 'WS', 0.725059647049259, 0.999930744977476, 0.11890841412387, 0.286031149725587, -0.417052954651359, 0.581226449067082, -0.562751307358532, 0.101380520664108, -0.563774194060357, 0.096121529684134,
+  'ob', 'YB', 1.1263776728, 0.9485083275, 0.0371321602, 0.7662525552, -0.028147685, 0.2334044323, 4.8569609081, 0.0753180483, -0.205052535, 0,
+  'ob', 'OH', 0.947211744, 0.971353083, 0.063182322, 0.633614831, -0.549156049, 0.439010965, 3.187595496, 0.079154063, -0.41277508, 0,
+  'ob', 'OS', 0.88047918, 0.988526494, 0.0660791, 0.365548416, -0.607245626, 0.486832282, 1.282373726, 0.094120201, -0.447380533, 0,
+  'ib', 'OS', 0.896475601, 1.001886257, 0.020707494, 0.391516469, -0.395638544, -0.011787171, 1.335110611, 0.076311559, -0.286988273, 0
+)
+
+## Westfall Scott taper function parameters 
+taper.westfall.scott.spp = dplyr::tribble(
+  ~species, ~th1, ~th2, ~a1, ~a2, ~gm1, ~gm2, ~phi, ~lmd, ~bet1, ~bet2,
+  'SM', 6.5790, 0.0111, 1.0682, 1.1833, 0.1031, 0.2624, 0.1516, 1.1482, 0.6637, 3.0996,
+  'YB', 7.5437, 0.0103, 0.9961, 1.1042, 0.1313, 0.3539, 0.2091, 0.9478, 0.5995, 3.4205,
+  'PB', 7.5437, 0.0103, 0.9961, 1.1042, 0.1313, 0.3539, 0.2091, 0.9478, 0.5995, 3.4205,
+  'GB', 7.5437, 0.0103, 0.9961, 1.1042, 0.1313, 0.3539, 0.2091, 0.9478, 0.5995, 3.4205,
+  'SB', 7.5437, 0.0103, 0.9961, 1.1042, 0.1313, 0.3539, 0.2091, 0.9478, 0.5995, 3.4205,
+  'RM', 7.5707, 0.0105, 1.5273, 0.7684, 0.0931, 0.4223, 0.1441, 1.3910, 0.6453, 4.0737,
+  'GA', 3.3085, 0.0276, 1.2634, 0.9088, 0.1098, 0.5198, 0.1840, 1.7842, 0.6719, 5.1178,
+  'WA', 3.3085, 0.0276, 1.2634, 0.9088, 0.1098, 0.5198, 0.1840, 1.7842, 0.6719, 5.1178,
+  'BT', 3.3085, 0.0276, 1.2634, 0.9088, 0.1098, 0.5198, 0.1840, 1.7842, 0.6719, 5.1178,
+  'QA', 3.3085, 0.0276, 1.2634, 0.9088, 0.1098, 0.5198, 0.1840, 1.7842, 0.6719, 5.1178,
+  'BP', 3.3085, 0.0276, 1.2634, 0.9088, 0.1098, 0.5198, 0.1840, 1.7842, 0.6719, 5.1178,
+  'AB', 8.9843, 0.0107, 0.7621, 1.3734, 0.0956, 0.1650, 0.1924, 1.2237, 0.4626, 1.0954,
+  'RO', 12.8336, 0.0125, 0.9038, 1.0950, 0.0935, 0.3971, 0.2038, 1.0457, 0.5508, 3.4681,
+  'BC', 3.2042, 0.0479, 1.2507, 0.8075, 0.0800, 0.4170, 0.2227, 2.7226, 0.7065, 4.6476,
+  'BF', 5.3693, 0.0171, 1.4212, 0.3003, 0.0890, 0.6485, 0.1916, 1.8873, 0.4764, 2.6383,
+  'RS', 6.8745, 0.0110, 1.1241, 0.4107, 0.1376, 0.4842, 0.2038, 1.2598, 0.4986, 2.7865,
+  'BS', 6.8745, 0.0110, 1.1241, 0.4107, 0.1376, 0.4842, 0.2038, 1.2598, 0.4986, 2.7865,
+  'WS', 6.8745, 0.0110, 1.1241, 0.4107, 0.1376, 0.4842, 0.2038, 1.2598, 0.4986, 2.7865,
+  'WP', 7.1438, 0.0123, 0.8978, 0.7872, 0.0989, 0.4985, 0.2049, 0.9247, 0.5715, 2.0482,
+  'TA', 5.2913, 0.0411, 1.1291, 0.6831, 0.0745, 0.5798, 0.1896, 1.5776, 0.6616, 6.0645,
+  'NS', 5.2913, 0.0411, 1.1291, 0.6831, 0.0745, 0.5798, 0.1896, 1.5776, 0.6616, 6.0645,
+  'JP', 5.2913, 0.0411, 1.1291, 0.6831, 0.0745, 0.5798, 0.1896, 1.5776, 0.6616, 6.0645,
+  'WC', 5.4000, 0.0256, 1.9295, 0.8142, 0.0943, 0.9642, 0.2761, 1.8605, 1.3432, 1.3438,
+  'RP', 7.6044, 0.0148, 1.2379, 0.3304, 0.0759, 0.6611, 0.3008, 1.1569, 0.5462, 3.0627,
+  'EH', 7.2442, 0.0152, 1.4008, 0.8306, 0.0856, 0.4724, 0.2011, 1.5776, 0.6616, 6.0645,
+  'OH', 9.0505, 0.0241, 1.2980, 0.7684, 0.0684, 0.4555, 0.1769, 1.6684, 0.5408, 4.1821,
+  'OS', 6.418214286, 0.019585714, 1.305771429, 0.593785714, 0.093685714, 0.615528571, 0.223985714, 1.462628571, 0.685271429, 2.842342857,  #composite of all conifers
+  '99', 7.114957895, 0.016836842, 1.148384211, 0.857194737, 0.101226316, 0.460905263, 0.195610526, 1.351415789, 0.634036842, 3.302584211 #composite of all species
+)
+
+
+#' Calculate tree diameter at a given height using Li and Weiskittel - Kozak taper model
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Total tree height (m)
+#' @param ht.dia Numeric: Height at which to predict diameter (m)
+#' @param dia.type Character: Diameter type 'ob' (outside bark) or 'ib' (inside bark), kozak only (default 'ib')
+#' @param plt Integer: Plantation indicator (1=plantation, 0=natural), kozak only (default 0)
+#' @param taper.kozak.spp Dataframe: Kozak taper function parameters (default 0taper.kozak.spp)
+#' @return Numeric: Predicted diameter at the specified height
+#'
+# Li, R; Weiskittel, AR; Dick, A; Kershaw JA; Seymour, RS. 2012. Regional stem 
+# taper equations for eleven conifer species in the Acadian region of North America:
+# development and assessment. Northern Journal of Applied Forestry 29(1): 5-14
+# 
+# Weiskittel, AR; Li, R. 2012. Development of regional taper and volume equations: 
+# Hardwood species. In: Roth, BE ed. Cooperative Forestry Research Unit 2011 
+# Annual Report. University of Maine, School of Forest Resources, Orono, ME; pp 76-84.
+
+taper_kozak = function(sp, dbh, ht, ht.dia, dia.type = 'ib', plt = 0, 
+                       taper.kozak.spp=taper.kozak.spp) {
+  
+  # parameters
+  parms = taper.kozak.spp %>% 
+    dplyr::filter(bark == dia.type, 
+                  species == sp)
+  
+  # If no match found, use default parameters
+  if (is.na(parms$a0[1])) {
+    parms = taper.kozak.spp %>% 
+      dplyr::filter(bark == 'ib', 
+                    species == 'OS')
+  }
+  
+  # Calculate diameter
+  #adjusted if at breast height
+  p = 1.3/ht
+  z = ht.dia/ht
+  xi = (1 - z^(1/3))/(1 - p^(1/3))
+  qi = 1 - z^(1/3)
+  
+  if(dia.type == 'ob' & ht.dia == 1.37){
+    dia=dbh
+  }else{
+    dia=round( (parms$a0 * (dbh^parms$a1) * (ht^parms$a2)) * 
+                 xi^(parms$b1 * z^4 + parms$b2 * (exp(-dbh/ht)) +
+                       parms$b3 * xi^0.1 + parms$b4 * (1/dbh) + 
+                       parms$b5 * ht^qi + parms$b6 * xi + parms$b7*plt),
+               4)
+  }
+  
+  dia
 }
 
-DOBtoDIB=function(SPP,dob){
-    if(SPP=='AB'){
-        pcntbark=7
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='BC'){
-        pcntbark=10
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='BF'){
-        pcntbark=0
-        b0_bark=0.878
-        b1_bark=1.025}
-    # else if(SPP=='BP' | SPP=='BA'){            # BLC 09/10/2018 - implement new parameters from J.Frank 09/12/2016
-    #   pcntbark=18
-    #   b0_bark=1
-    #  b1_bark=1}
-    else if(SPP=='BP'){            # BLC 09/10/2018 - implement new parameters from J.Frank 09/12/2016
-        pcntbark=0
-        b0_bark=0.8737
-        b1_bark=1.012}
-    else if(SPP=='BA'){            # BLC 09/10/2018 - implement new parameters from J.Frank 09/12/2016
-        pcntbark=0
-        b0_bark=0.8499
-        b1_bark=1.041}
-    else if(SPP=='BS'){
-        pcntbark=0
-        b0_bark=0.871
-        b1_bark=1.026}
-    else if(SPP=='BT'){
-        pcntbark=15
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='EH'){
-        pcntbark=0
-        b0_bark=0.8916
-        b1_bark=1.0121}
-    else if(SPP=='GA'){
-        pcntbark=13
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='GB'){
-        pcntbark=12
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='JP'){
-        pcntbark=0
-        b0_bark=0.916
-        b1_bark=1.01}
-    else if(SPP=='NS'){
-        pcntbark=0
-        b0_bark=0.8558
-        b1_bark=1.0363}
-    else if(SPP=='PB'){
-        pcntbark=0
-        b0_bark=0.8969
-        b1_bark=1.0179}
-    else if(SPP=='QA'){
-        pcntbark=0
-        b0_bark=0.8449
-        b1_bark=1.0332}
-    else if(SPP=='RM'){
-        pcntbark=0
-        b0_bark=0.9214
-        b1_bark=1.0117}
-    else if(SPP=='RO'){
-        pcntbark=11
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='RP'){
-        pcntbark=0
-        b0_bark=0.928
-        b1_bark=0.999}
-    else if(SPP=='RS'){
-        pcntbark=0
-        b0_bark=0.864
-        b1_bark=1.029}
-    else if(SPP=='SB'){
-        pcntbark=12
-        b0_bark=1
-        b1_bark=1}
-    else if(SPP=='SM'){
-        pcntbark=0
-        b0_bark=0.9383
-        b1_bark=1.0064}
-    else if(SPP=='TL' | SPP=='TA'){
-        pcntbark=0
-        b0_bark=1.5106
-        b1_bark=0.8134}
-    else if(SPP=='WA'){
-        pcntbark=0
-        b0_bark=0.8834
-        b1_bark=1.0188}
-    else if(SPP=='WC' | SPP=='NC'){
-        pcntbark=0
-        b0_bark=0.7797
-        b1_bark=1.0569}
-    else if(SPP=='WP'){
-        pcntbark=0
-        b0_bark=0.926
-        b1_bark=1}
-    else if(SPP=='WS'){
-        pcntbark=0
-        b0_bark=0.886
-        b1_bark=1.022}
-    else if(SPP=='YB'){
-        pcntbark=0
-        b0_bark=0.8688
-        b1_bark=1.0275}
-    else if(SPP=='OH'){
-        pcntbark=0
-        b0_bark=0.892283333
-        b1_bark=1.01925} 
-    else if(SPP=='OS'){
-        pcntbark=0
-        b0_bark=0.887333009
-        b1_bark=1.019266336} 
-    else{
-        pcntbark=0
-        b0_bark=0.889808171
-        b1_bark=1.019266336}     
-    dib=ifelse(pcntbark==0,b0_bark*dob^b1_bark,dob*(1-(pcntbark/100)))
-    return(dib=round(dib,4))
+#' Calculate  diameter at a given height using Westfall & Scott taper model
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param ht.dia Numeric: Height at which to predict diameter (m)
+#' @param ht Numeric: Total tree height (m)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param taper.westfall.scott.spp Dataframe: Westfall Scott taper function parameters (default taper.westfall.scott.spp)
+#' @return Numeric: Predicted diameter at the specified height
+#'
+# Westfall, JA; Scott, CT. 2010. Taper Models for Commercial Tree Species in the
+# Northeastern United States, Forest Science 56(6): 515-528. doi: 10.1093/forestscience/56.6.515
+taper_westfall_scott = function(sp, dbh, ht, ht.dia, 
+                                taper.westfall.scott.spp=taper.westfall.scott.spp) {
+  
+  # parameters
+  idx = match(sp, taper.westfall.scott.spp$species, 
+              nomatch = match('99', taper.westfall.scott.spp$species))
+  parms = taper.westfall.scott.spp[idx, ]
+  
+  # Calculate taper
+  x = dbh/ht
+  z = ht.dia/ht
+  S1 = parms$th1/(1+(z/parms$th2)^parms$lmd)
+  S2 = (z/parms$bet1)^(parms$bet2*x)/(1+(z/parms$bet1)^(parms$bet2*x))
+  
+  dia = sqrt(dbh^2*(1.37/ht/parms$gm1)^parms$phi*
+               ((1-z)/(1-parms$gm1))^(parms$a1+S1)*
+               ((1-z)/(1-parms$gm2))^(parms$a2*S2))
+  
+  dia
 }
 
-smalians<-function(r1,r2,len){
-    L=(r1/2)^2*pi
-    S=(r2/2)^2*pi
-    vol=((L+S)/2)*len
-    return(round(vol,4))
+# Wrapper function
+#' Calculate tree taper using specified model
+#' 
+#' @param model Character: 'kozak' or 'westfall' 
+#' @param sp Character: Species code
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Total tree height (m)
+#' @param ht.dia Numeric: Height at which to predict diameter (m)
+#' @param dia.type Character: Diameter type 'ob' (outside bark) or 'ib' (inside bark), kozak only (default 'ib')
+#' @param plt Integer: Plantation indicator (1=plantation, 0=natural), kozak only (default 0)
+#' @return Numeric: Predicted diameter
+#'
+calc_taper = function(model = c('kozak', 'westfall'), sp, dbh, ht, ht.dia, 
+                      dia.type = 'ib', plt = 0) {
+  model = match.arg(model)
+  
+  if (model == 'kozak') {
+    taper_kozak(sp = sp, dbh = dbh, ht = ht, ht.dia = ht.dia, 
+                dia.type = dia.type, plt = plt)
+  } else {
+    taper_westfall_scott(sp = sp, dbh = dbh, ht = ht, ht.dia = ht.dia)
+  }
+}
+
+# trees.test=trees %>% 
+#   mutate(calc.dia=calc_taper(model = 'kozak', sp=.$sp, dbh=.$dbh, ht=.$ht, ht.dia=.$ht*0.9))
+
+#### Bark ratio ####
+
+# Bark ratio parameters 
+bark.ratio.spp = dplyr::tribble(
+  ~species, ~pcnt.bark, ~b0, ~b1,
+  "AB", 7, 1, 1,
+  "BC", 10, 1, 1,
+  "BF", 0, 0.878, 1.025,
+  "BP", 0, 0.8737, 1.012,
+  "BA", 0, 0.8499, 1.041,
+  "BS", 0, 0.871, 1.026,
+  "BT", 15, 1, 1,
+  "EH", 0, 0.8916, 1.0121,
+  "GA", 13, 1, 1,
+  "GB", 12, 1, 1,
+  "JP", 0, 0.916, 1.01,
+  "NS", 0, 0.8558, 1.0363,
+  "PB", 0, 0.8969, 1.0179,
+  "QA", 0, 0.8449, 1.0332,
+  "RM", 0, 0.9214, 1.0117,
+  "RO", 11, 1, 1,
+  "RP", 0, 0.928, 0.999,
+  "RS", 0, 0.864, 1.029,
+  "SB", 12, 1, 1,
+  "SM", 0, 0.9383, 1.0064,
+  "TL", 0, 1.5106, 0.8134,
+  "TA", 0, 1.5106, 0.8134,
+  "WA", 0, 0.8834, 1.0188,
+  "WC", 0, 0.7797, 1.0569,
+  "NC", 0, 0.7797, 1.0569,
+  "WP", 0, 0.926, 1,
+  "WS", 0, 0.886, 1.022,
+  "YB", 0, 0.8688, 1.0275,
+  "OH", 0, 0.892283333, 1.01925,
+  "OS", 0, 0.887333009, 1.019266336,
+  "99", 0, 0.889808171, 1.019266336
+)
+
+#' Calculate diameter inside bark (DIB) from diameter outside bark (DOB)
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param dob Numeric: Diameter outside bark (cm)
+#' @param bark.ratio.spp Dataframe: Bark ratio parameters (default bark.ratio.spp)
+#' @return Numeric vector: Diameter inside bark, rounded to 4 decimal places
+#'
+calc_dib = function(sp, dob, bark.ratio.spp=bark.ratio.spp) {
+  
+  # parameters
+  idx = match(sp, bark.ratio.spp$species, nomatch = match('99', bark.ratio.spp$species))
+  parms = bark.ratio.spp[idx, ]
+  
+  #calculate
+  dib = ifelse(parms$pcnt.bark == 0, 
+               parms$b0 * dob^parms$b1,
+               dob * (1 - parms$pcnt.bark/100))
+  dib = round(dib, 4)
+  
+  dib
+}
+
+#### Merch height ####
+#' Find merchantable height where diameter ~equals minimum merchantable diameter threshold
+#' @param sp Character: Species code (FVS alpha)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param ht Numeric: Total height (m)
+#' @param min.dia Numeric: Minimum merchantable diameter threshold (cm)
+#' @param stump.ht Numeric: Stump height (m; lower bound)
+#' @param ht.merch.limit Numeric: Merchantable height limit (m; upper bound for search; default total height) 
+#' @param taper.model Character: Taper model to use ('westfall' or 'kozak'; default 'kozak')
+#' @param dia.type Character: Diameter type 'ob' (outside bark) or 'ib' (inside bark), kozak only (default 'ib')
+#' @param plt Integer: Plantation indicator (1=plantation, 0=natural), kozak only (default 0)
+#' @return Numeric: Height where diameter equals min.dia
+calc_merch_height = function(sp, dbh, ht, min.dia, stump.ht = 0, ht.merch.limit = ht, 
+                             taper.model = 'kozak', dia.type = 'ib', plt = 0) {
+  
+  # handle data anomalies
+  if (min.dia <= 0.01) return(ht) # tip of tree returns total tree height
+  if (stump.ht >= ht) return(0)  # Invalid: stump exceeds total height
+  if (min.dia >= dbh) return(0)  # Invalid: merch diameter exceeds DBH
+  
+  # Objective - difference between actual and merch diameter limit
+  diameter.diff = function(height) {
+    dia = calc_taper(model = taper.model, sp = sp, dbh = dbh, ht = ht, 
+                     ht.dia = height, dia.type = dia.type, plt = plt)
+    abs(dia - min.dia)
+  }
+  
+  # optimize to find height 
+  result = try(optimize(diameter.diff, interval = c(stump.ht, ht.merch.limit), tol = 0.01), 
+               silent = TRUE)
+  
+  if (inherits(result, "try-error")) {
+    return(ht.merch.limit)  # Return limit height if optimization fails
+  } else {
+    return(result$minimum)
+  }
 }
 
 
-KozakTreeVol=function(Bark,SPP,DBH,HT,Planted,stump=NA,topHT=NA,topD=NA)
-{
-    sgmts = 100
-    stump=ifelse(is.na(stump),as.numeric(0.0),stump)
-    topHT=ifelse(is.na(topHT),as.numeric(HT),topHT)
-    topHT=ifelse(topHT>HT,as.numeric(HT),topHT)
-    topD=(ifelse(is.na(topD),as.numeric(0.001),topD))
-    L = (topHT - stump)/sgmts
-    i = 0
-    treeVolume = 0
-    while (i < sgmts) 
-    {
-        H1 = L * i + stump
-        H2 = L * (i + 1) + stump
-        if (HT - H1 < 1e-04){
-            dob1 = 0
-            dib1 = 0
-        }
-        else {
-            if (H1 == 0) 
-                H1 = 0.001
-            Esty1 = KozakTaper(Bark='ob',SPP=SPP,DHT=H1,DBH=DBH,HT=HT,Planted=Planted)
-            dob1 = as.numeric(Esty1)
-            dob1 = ifelse(dob1<topD,0,dob1)
-            dib1 = DOBtoDIB(SPP=SPP,dob=dob1)
-            dib1= ifelse(dob1<topD,0,dib1)
-        }
-        if (HT - H2 < 1e-04){
-            dob2 = 0
-            dib2 = 0
-        }
-        else {
-            if (H2 == 0)
-                H2 = 0.001
-            Esty2 = KozakTaper(Bark='ob',SPP=SPP,DHT=H2,DBH=DBH,HT=HT,Planted=Planted)
-            dob2 = as.numeric(Esty2)
-            dob2 = ifelse(dob2<topD,0,dob2)
-            dib2 = DOBtoDIB(SPP=SPP,dob=dob2)
-            dib2= ifelse(dob1<topD,0,dib2)
-        }
-        treeVolume <- ifelse(Bark=='ob',treeVolume + smalians(dob1, dob2, L * 100),
-                             treeVolume + smalians(dib1, dib2, L * 100))
-        i <- i + 1
-    }
-    treeVolume <- round(treeVolume/1e+06, 6)
-    return(treeVolume=treeVolume) 
+#### Volume ####
+
+## Volume using Kozak or Westfall taper function
+
+
+#' Calculate tree volume using specified taper model
+#' 
+#' @param tree.data Character: Dataframe: Tree list
+#' @param taper.model Character: Taper model to use ('westfall' or 'kozak'; default 'kozak')
+#' @param sp.col Character: Column name for species codes (default 'sp')
+#' @param dbh.col Character: Column name for diameter at breast height (default 'dbh')
+#' @param ht.col Character: Column name for total tree height (default 'ht')
+#' @param dia.type Character: Diameter type 'ob' (outside bark) or 'ib' (inside bark), kozak only (default 'ib')
+#' @param plt Integer: Plantation indicator (1=plantation, 0=natural), kozak only (default 0)
+#' @param stump Numeric: Stump height, overridden if a stump height column is provided (default 0.5)
+#' @param stump.col Character: Column name for stump height (optional)
+#' @param ht.merch.col Character: Column name for merchantable height (optional if you don't want merch height calculated)
+#' @param dia.merch Numeric: Minimum diameter threshold, overridden if minimum merchantable diameter column is provided (default 0.001)
+#' @param dia.merch.col Character: Column name for minimum diameter threshold (optional; if omitted defaults to single threshhold)
+#' @param segments Integer: Number of segments used to calculate volume (default 100)
+#' @return Dataframe: Tree data with added field, volume in cubic meters
+calc_tree_volume = function(tree.data, taper.model = c('kozak', 'westfall'),
+                            sp.col = 'sp', dbh.col = 'dbh', ht.col = 'ht',
+                            dia.type = 'ib', plt = 0, stump = 0.5, 
+                            stump.col = NULL, ht.merch.col = NULL, 
+                            dia.merch = 0.001, dia.merch.col = NULL, segments = 100) {
+  
+  # Validate inputs
+  taper.model = match.arg(taper.model)
+  
+  # Check required columns 
+  required.cols = c(sp.col, dbh.col, ht.col)
+  
+  missing.cols = setdiff(required.cols, names(tree.data))
+  if (length(missing.cols) > 0) {
+    stop(paste('Missing required columns:', paste(missing.cols, collapse = ', ')))
+  }
+  
+  tree.data.names= colnames(tree.data)
+  
+  tree.vol = tree.data %>%
+    dplyr::mutate(stump.height = if (!is.null(stump.col) && stump.col %in% names(tree.data)) {
+      .data[[stump.col]]
+    } else {
+      stump},
+    dia = if (!is.null(dia.merch.col) && dia.merch.col %in% names(tree.data)) {
+      .data[[dia.merch.col]]
+    } else {
+      dia.merch},
+    merch.height = if (!is.null(ht.merch.col) && ht.merch.col %in% names(tree.data)) {
+      .data[[ht.merch.col]]
+      
+    } else { 
+      purrr::pmap_dbl(list(sp = .data[[sp.col]], 
+                           dbh = .data[[dbh.col]], 
+                           ht = .data[[ht.col]],
+                           min.dia = dia,
+                           stump.ht = stump.height,
+                           taper.model = taper.model),
+                      calc_merch_height)
+    })
+  
+  # records which won't have volume calculated
+  tree.novol=tree.vol %>% 
+    filter(is.na(.data[[sp.col]]) | 
+             is.na(.data[[dbh.col]]) | 
+             is.na(.data[[ht.col]]) |
+             is.na(stump.height) |
+             is.na(dia) |
+             merch.height<=stump.height) %>% 
+    mutate(volume=0)
+  
+  
+  tree.vol=tree.vol %>% 
+    dplyr::filter(!is.na(.data[[sp.col]]),
+                  !is.na(.data[[dbh.col]]), 
+                  !is.na(.data[[ht.col]]),
+                  !is.na(stump.height),
+                  !is.na(dia),
+                  merch.height>stump.height) %>%         
+    # Calculate Smalians cubic meter volume using nested tibble
+    dplyr::mutate(segment.data = purrr::pmap(list(sp = .data[[sp.col]], 
+                                                  dbh = .data[[dbh.col]], 
+                                                  ht = .data[[ht.col]], 
+                                                  stump = stump.height, 
+                                                  merch = merch.height),
+                                             function(sp, dbh, ht, stump, merch) {
+                                               tibble::tibble(
+                                                 segment = 1:(segments + 1),
+                                                 segment.height = seq(stump,
+                                                                      merch,
+                                                                      length.out = segments + 1) ,
+                                                 diameter = purrr::map_dbl(segment.height,
+                                                                           ~ calc_taper(model = taper.model,
+                                                                                        sp = sp, dbh = dbh,
+                                                                                        ht = ht, ht.dia = .x,
+                                                                                        dia.type = dia.type, plt = plt)),
+                                                 area.upper = pi * ((diameter / 100) / 2)^2,
+                                                 seg.len = (merch - stump) / segments) %>%
+                                                 dplyr::mutate(area.lower = dplyr::lag(area.upper, default = NA),
+                                                               segment.volume = dplyr::coalesce(((area.lower + area.upper) / 2) * seg.len, 0))
+                                             }),
+                  volume = purrr::map_dbl(segment.data, 
+                                          ~ round(sum(.x$segment.volume, na.rm = TRUE), 6))) %>%
+    dplyr::bind_rows(tree.novol) %>% 
+    dplyr::select(dplyr::all_of(tree.data.names), volume)
+  
+  tree.vol
 }
 
-###################################################################################
-## Westfall & Scott 2010 Forest Science (56, 515-582)  FIA taper equations       #
-##################################################################################
-WestfallScott  <-  function(SPP,h,H,dbh){
-    if(SPP=='SM'){         #sugar maple
-        th1  =  6.5790
-        th2  =  0.0111
-        a1    =  1.0682
-        a2    =  1.1833
-        gm1  =  0.1031
-        gm2  =  0.2624
-        phi  =  0.1516
-        lmd  =  1.1482
-        bet1  =  0.6637
-        bet2  =  3.0996
-    }
-    else if(SPP=='YB' | SPP=='PB' | SPP=='GB' | SPP=='SB'){ #birches
-        th1 =  7.5437
-        th2 =  0.0103
-        a1 =  0.9961
-        a2  =  1.1042
-        gm1  =  0.1313
-        gm2  =  0.3539
-        phi  =  0.2091
-        lmd  =  0.9478
-        bet1  =  0.5995
-        bet2  =  3.4205
-    }
-    else if(SPP=='RM'){ #red maple
-        th1  =  7.5707                                           
-        th2  =  0.0105
-        a1    =  1.5273
-        a2    =  0.7684
-        gm1  =  0.0931
-        gm2  =  0.4223
-        phi  =  0.1441
-        lmd  =  1.3910
-        bet1  =  0.6453
-        bet2  =  4.0737
-    }
-    else if(SPP=='GA' | SPP=='WA' | SPP=='BT' | SPP=='QA' | SPP=='BP'){ #ash, quaking aspen, balsam poplar
-        th1  =  3.3085
-        th2  =  0.0276
-        a1    =  1.2634
-        a2    =  0.9088
-        gm1   =  0.1098
-        gm2  =  0.5198
-        phi  =  0.1840
-        lmd  =  1.7842
-        bet1  =  0.6719
-        bet2  =  5.1178
-    }
-    else if(SPP=='AB'){ #American beech
-        th1  =  8.9843
-        th2  =  0.0107
-        a1    =  0.7621
-        a2    =  1.3734
-        gm1  =  0.0956
-        gm2  =  0.1650
-        phi  =  0.1924
-        lmd  =  1.2237
-        bet1  =  0.4626                                                                         
-        bet2  =  1.0954
-    }
-    else if(SPP=='RO'){ #red oak
-        th1  =  12.8336
-        th2  =  0.0125
-        a1    =  0.9038
-        a2    =  1.0950
-        gm1  =  0.0935
-        gm2  =  0.3971
-        phi  =  0.2038
-        lmd  =  1.0457
-        bet1  =  0.5508
-        bet2  =  3.4681
-    }
-    else if(SPP=='BC'){           #black cherry
-        th1  =  3.2042
-        th2  =  0.0479
-        a1    =  1.2507
-        a2    =  0.8075
-        gm1  =  0.0800
-        gm2  =  0.4170
-        phi  =  0.2227
-        lmd  =  2.7226
-        bet1  =  0.7065
-        bet2  =  4.6476
-    }
-    else if(SPP=='BF'){                        #balsam fir
-        th1  =  5.3693
-        th2  =  0.0171
-        a1    =  1.4212
-        a2    =  0.3003
-        gm1  =  0.0890
-        gm2  =  0.6485
-        phi  =  0.1916
-        lmd  =  1.8873
-        bet1  =  0.4764
-        bet2  =  2.6383
-    }
-    else if(SPP=='RS' | SPP=='BS' | SPP=='WS'){           #spruces
-        th1  =  6.8745
-        th2  =  0.0110
-        a1    =  1.1241
-        a2    =  0.4107
-        gm1  =  0.1376
-        gm2  =  0.4842
-        phi  =  0.2038
-        lmd  =  1.2598
-        bet1  =  0.4986
-        bet2  =  2.7865
-    }
-    else if(SPP=='WP'){ #white pine
-        th1  =  7.1438
-        th2  =  0.0123
-        a1    =  0.8978
-        a2    =  0.7872
-        gm1  =  0.0989
-        gm2  =  0.4985
-        phi  =  0.2049
-        lmd  =  0.9247
-        bet1  =  0.5715
-        bet2  =  2.0482
-    }
-    else if(SPP=='TA' || SPP=='NS' || SPP=='JP'){ #larch, Norway spruce, jack pine
-        th1  =  5.2913
-        th2  =  0.0411
-        a1    =  1.1291
-        a2    =  0.6831
-        gm1  =  0.0745
-        gm2  =  0.5798
-        phi  =  0.1896
-        lmd  =  1.5776
-        bet1  =  0.6616
-        bet2  =  6.0645
-    }
-    else if(SPP=='WC'){ #northern white cedar
-        th1  =  5.400
-        th2  =  0.0256
-        a1    =  1.9295
-        a2    =  0.8142
-        gm1  =  0.0943
-        gm2  =  0.9642
-        phi  =  0.2761
-        lmd  =  1.8605
-        bet1  =  1.3432
-        bet2  =  1.3438
-    }
-    else if(SPP=='RP'){ #red pine
-        th1  =  7.6044
-        th2  =  0.0148
-        a1    =  1.2379
-        a2    =  0.3304
-        gm1  =  0.0759
-        gm2  =  0.6611
-        phi  =  0.3008
-        lmd  =  1.1569
-        bet1  =  0.5462
-        bet2  =  3.0627
-    }
-    else if(SPP=='EH'){ #eastern hemlock
-        th1  =  7.2442
-        th2  =  0.0152
-        a1    =  1.4008
-        a2    =  0.8306
-        gm1  =  0.0856
-        gm2  =  0.4724
-        phi  =  0.2011
-        lmd  =  1.5776
-        bet1  =  0.6616
-        bet2  =  6.0645
-    }
-    else if(SPP=='OH'){
-        th1  =  9.0505
-        th2  =  0.0241
-        a1   =  1.298
-        a2    =  0.7684
-        gm1  =  0.0684
-        gm2  =  0.4555
-        phi  =  0.1769
-        lmd  =  1.6684
-        bet1  =  0.5408
-        bet2  =  4.1821}
-    else if(SPP=='OS'){ #composite of all conifers
-        th1  =  6.418214286
-        th2  =  0.019585714
-        a1    =  1.305771429
-        a2    =  0.593785714
-        gm1  =  0.093685714
-        gm2  =  0.615528571
-        phi  =  0.223985714
-        lmd  =  1.462628571
-        bet1  =  0.685271429
-        bet2  =  2.842342857}  
-    else { #composite of all species
-        th1  =  7.114957895
-        th2  =  0.016836842
-        a1    =  1.148384211
-        a2    =  0.857194737
-        gm1  =  0.101226316
-        gm2  =  0.460905263
-        phi  =  0.195610526
-        lmd  =  1.351415789
-        bet1  =  0.634036842
-        bet2  =  3.302584211
-    }
-    x=dbh/H
-    z=h/H
-    S1=th1/(1+(z/th2)^lmd)
-    S2=(z/bet1)^(bet2*x)/(1+(z/bet1)^(bet2*x))
-    d=sqrt(dbh^2*(1.37/H/gm1)^phi*((1-z)/(1-gm1))^(a1+S1)*((1-z)/(1-gm2))^(a2*S2))
-    return (d)
+#vol=calc_tree_volume(tree, segments = 10)
+
+## Honer volume 
+
+# Honer volume parameters
+honer.vol.spp = dplyr::tribble(
+  ~species, ~a, ~b, ~b2, ~p1.ht, ~p2.ht, ~p3.ht, ~p1.d, ~p2.d, ~p3.d,
+  'WP', 0.691, 363.676, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'RP', 0.710, 355.623, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'JP', 0.897, 348.520, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'TA', 0.897, 348.520, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'LP', 0.694, 343.896, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BS', 1.588, 333.364, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'RS', 1.226, 315.832, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'WS', 1.440, 342.175, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BF', 2.139, 301.634, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'NC', 4.167, 244.906, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'WC', 4.167, 244.906, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'EH', 1.112, 350.092, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'QA', -0.312, 436.683, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BP', 0.420, 394.644, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BT', 0.420, 394.644, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'PB', 2.222, 300.373, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'GB', 2.222, 300.373, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'SB', 2.222, 300.373, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'YB', 1.449, 344.754, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'RM', 1.046, 383.972, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'SM', 1.046, 383.972, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BW', 0.948, 401.456, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'AB', 0.959, 334.829, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'WA', 0.959, 334.829, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'BC', 0.033, 393.336, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'RO', 1.512, 336.509, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736,
+  'OH', 1.512, 336.509, 0.184, 0.0145, 2.1164, -1.1387, 1.0180, -0.2323, -0.7736)
+
+# Columns p1.ht through p3.d are not used in volume calculations
+
+
+#' Calculate Honer volume
+#' 
+#' @param sp Character: Species code (FVS alpha)
+#' @param ht Numeric: Total tree height (m)
+#' @param dbh Numeric: Diameter at breast height (cm)
+#' @param honer.vol.spp Dataframe: Honer volume parameters
+#' @return Numeric: Tree volume  (cubic meters)
+#'
+calc_honer_vol = function(sp, ht, dbh, honer.vol.spp) {
+  
+  # Get parameters for species
+  idx = match(sp, honer.vol.spp$species, 
+              nomatch = match('OH', honer.vol.spp$species))
+  parms = honer.vol.spp[idx, ]
+  
+  # Unit conversions
+  dbh.inch = dbh / 2.54
+  ht.feet = ht / 0.3048
+  
+  # Calculate volume in cubic feet, convert to cubic meters
+  vtcf = dbh.inch^2 / (parms$a + (parms$b / ht.feet))
+  vtm3 = vtcf * 0.02831685
+  
+  vtm3
 }
 
-Vol.WestFall <- function (SPP,HT,DBHO,stump=NA,topHT=NA,topD=NA)
-{
-    ## stump, and top are two points, we integrate between them
-    ### numerical integration using integrate function in R
-    #fdiameter<-function(x) (KozakExp02(x, HT, DBHO, a0, a1, a2, b1, b2, b3, b4, b5, b6))^2
-    #volInteg<-0.25*0.0001*pi*integrate(fdiameter, stump, top)$value
-    
-    ### smalian's volume
-    sgmts = 100   # divide into 100 sections, the more sections, the closer to the numerical integration result
-    stump=ifelse(is.na(stump),as.numeric(0.0),stump)
-    topHT=ifelse(is.na(topHT),as.numeric(HT),topHT)
-    topHT=ifelse(topHT>HT,as.numeric(HT),topHT)
-    topD=(ifelse(is.na(topD),as.numeric(0.001),topD))
-    L  = (topHT-stump) / sgmts
-    i = 0
-    treeVolume = 0
-    while(i<sgmts)
-    {
-        H1  = L * i+stump
-        H2  = L * (i+1)+stump
-        
-        if (HT-H1<0.0001) dob1=0 # the diameter for the tip of the tree should be 0 instead of an estimated value
-        else
-        {
-            #if (H1==0) H1=0.001   # when x1==0, the estimate will give werid number, optional, see reasons below
-            dob1=WestfallScott(SPP,H1,HT,DBHO)
-            
-        }
-        if (HT-H2<0.0001) dob2=0 # the diameter for the tip of the tree should be 0 instead of an estimated value
-        else
-        {
-            #if (H2==0) H2=0.001   # when x2==0, the estimate will give werid number, optional, see reasons below
-            dob2=WestfallScott(SPP,H2,HT,DBHO)
-            
-        }
-        treeVolume <-treeVolume+smalians(dob1,dob2,L*100)
-        i <- i+1
-    }
-    treeVolume<-round(treeVolume/1E6,6)
-    #vol.pred<-list(numInteg=volInteg, smalians=treeVolume)
-    return(treeVolume)
-}
+# # Calculate Honer volumes
+# tree = tree %>%
+#   mutate(volume_honer = calc_honer_vol(sp = sp, ht = ht, dbh = dbh))
 
 
-Honer.Vol=function(SPP,HT,DBHO,topD=NA,topHT=NA)
-{
-    if(SPP=='WP'){
-        a=0.691
-        b=363.676
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='RP'){
-        a=0.710
-        b=355.623
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='JP' | SPP=='TA'){
-        a=0.897
-        b=348.520
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='LP'){
-        a=0.694
-        b=343.896
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='BS'){
-        a=1.588
-        b=333.364
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='RS'){
-        a=1.226
-        b=315.832
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='WS'){
-        a=1.440
-        b=342.175
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='BF'){
-        a=2.139
-        b=301.634
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='NC' | SPP=='WC'){
-        a=4.167
-        b=244.906
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736}
-    else if(SPP=='EH'){
-        a=1.112
-        b=350.092
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='QA'){
-        a=-0.312
-        b=436.683
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='BP' | SPP=='BT'){
-        a=0.420
-        b=394.644
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='PB' | SPP=='GB' | SPP=='SB'  ){
-        a=2.222
-        b=300.373
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='YB'){
-        a=1.449
-        b=344.754
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='RM' | SPP=='SM'){
-        a=1.046
-        b=383.972
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='BW'){
-        a=0.948
-        b=401.456
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='AB' | SPP=='WA'){                                      
-        a=0.959
-        b=334.829
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='BC'){
-        a=0.033
-        b=393.336
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='RO'){
-        a=1.512
-        b=336.509
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    else if(SPP=='OH'){
-        a=1.512
-        b=336.509
-        b2=0.184
-        p1.ht=0.0145
-        p2.ht=2.1164
-        p3.ht=-1.1387
-        p1.d=1.0180
-        p2.d=-0.2323
-        p3.d=-0.7736
-    }
-    DBHin=DBHO/2.54
-    HTft=HT/.3048
-    Vtcf=DBHin^2/(a+(b/HTft))
-    Vtm3=Vtcf* 0.02831685
-    MR.ht=topHT/HT
-    MR.dib=(topD^2/DBHO^2)*(1-0.04365*b2)^-2
-    return(Vtm3)
-}  
-
-#sawlog proportion
-hw.saw.prop=function(SPP,DBH,Form,Risk){
+### hardwood sawlog proportion####
+hw.saw.prop=function(sp,dbh,form,risk){
     
     #Convert NHRI form classes
-    if(Form == 'F1'){new.Form = 'GF'}
-    else if(Form == 'F2' | Form == 'F6' | Form == 'F5' | Form == 'F8'){new.Form = 'AF'}
-    else{new.Form = 'PF'} #We could have catch for other form types but may not be needed
+    if(form == 'F1'){new.form = 'GF'}
+    else if(form == 'F2' | form == 'F6' | form == 'F5' | form == 'F8'){new.form = 'AF'}
+    else{new.form = 'PF'} #We could have catch for other form types but may not be needed
     
     #Convert NHRI risk classes
-    if(Risk == 'R1' | Risk == 'R2'){new.Risk = 'LR'}
-    else{new.Risk = 'HR'} #We could have catch for other risk types but probably not needed.
+    if(risk == 'R1' | risk == 'R2'){new.risk = 'LR'}
+    else{new.risk = 'HR'} #We could have catch for other risk types but probably not needed.
     
-    if(SPP=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-    else if(SPP=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0}
-    else if(SPP=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0}
-    else if(SPP=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0}
+    if(sp=='RO'){SPP.RO=1; SPP.SM=0; SPP.YB=0; SPP.RM=0}
+    else if(sp=='SM'){SPP.SM=1; SPP.RO=0; SPP.YB=0; SPP.RM=0}
+    else if(sp=='YB'){SPP.YB=1; SPP.RO=0; SPP.SM=0; SPP.RM=0}
+    else if(sp=='RM'){SPP.RM=1; SPP.RO=0; SPP.SM=0; SPP.YB=0}
     else{SPP.RO=0; SPP.SM=0; SPP.YB=0; SPP.RM=0}
-    if(new.Form=='GF'){GF=1; PF=0}
-    else if(new.Form=='PF'){GF=0; PF=1}
+    if(new.form=='GF'){GF=1; PF=0}
+    else if(new.form=='PF'){GF=0; PF=1}
     else{GF = 0; PF = 0}
-    if(new.Risk=='HR'){HR=1; LR=0}
+    if(new.risk=='HR'){HR=1; LR=0}
     else{HR=0; LR=1}
-    saw=exp(-33.2222 -0.2249*DBH + 11.3953*log(DBH)+ 0.7994*SPP.RM-0.4849*SPP.RO+0.9174*SPP.SM+1.2707*SPP.YB+
-                0.3393*GF-0.6922*PF+0.9062*LR-0.0441*(DBH*SPP.RM) +0.0015*(DBH*SPP.RO)-0.0412*(DBH*SPP.SM)-0.0548*(DBH*SPP.YB))/
-        (1+exp(-33.2222 -0.2249*DBH + 11.3953*log(DBH)+ 0.7994*SPP.RM-0.4849*SPP.RO+0.9174*SPP.SM+1.2707*SPP.YB+
-                   0.3393*GF-0.6922*PF+0.9062*LR-0.0441*(DBH*SPP.RM) +0.0015*(DBH*SPP.RO)-0.0412*(DBH*SPP.SM)-0.0548*(DBH*SPP.YB)))
-    saw=ifelse(SPP=='RO' | SPP=='SM' | SPP=='YB' | SPP=='RM' | SPP == 'PB',saw,1)
+    saw=exp(-33.2222 -0.2249*dbh + 11.3953*log(dbh)+ 0.7994*SPP.RM-0.4849*SPP.RO+0.9174*SPP.SM+1.2707*SPP.YB+
+                0.3393*GF-0.6922*PF+0.9062*LR-0.0441*(dbh*SPP.RM) +0.0015*(dbh*SPP.RO)-0.0412*(dbh*SPP.SM)-0.0548*(dbh*SPP.YB))/
+        (1+exp(-33.2222 -0.2249*dbh + 11.3953*log(dbh)+ 0.7994*SPP.RM-0.4849*SPP.RO+0.9174*SPP.SM+1.2707*SPP.YB+
+                   0.3393*GF-0.6922*PF+0.9062*LR-0.0441*(dbh*SPP.RM) +0.0015*(dbh*SPP.RO)-0.0412*(dbh*SPP.SM)-0.0548*(dbh*SPP.YB)))
+    saw=ifelse(sp %in% c('RO', 'SM', 'YB', 'RM','PB'), saw, 1)
     return(saw=saw)}
 
 #hw.saw.prop('RM',20,'LSW','LR')
@@ -3884,85 +3903,87 @@ hw.saw.prop=function(SPP,DBH,Form,Risk){
 #### Summary ####
 Summary.GY=function(tree){
     #library(nlme)
-    tree$SPtype=as.vector(mapply(SPP.func,tree$SP)[1,])
-    tree$shade=as.numeric(as.character(as.vector(mapply(SPP.func,tree$SP)[2,])))
-    tree$SG=as.numeric(as.character(as.vector(mapply(SPP.func,tree$SP)[3,])))
+  
+  # species functional attributes
+  tree=tree %>% 
+    dplyr::left_join(sp.attr, 
+                     by=c('sp'='species'))
     #aa=sapply(tree$SP,SPP.func)
     #tree$SPtype=t(aa)[,1]
     #tree$shade=as.numeric(t(aa)[,2])
-    #tree$SG=as.numeric(t(aa)[,3])
-    tree$ba<-round((tree$DBH^2*0.00007854)*tree$EXPF,2)
-    tree$sdi=(tree$DBH/25.4)^1.605*tree$EXPF
-    tree$SG.wt=tree$SG*tree$EXPF
-    tree$ba.WP=ifelse(tree$SP=='WP',tree$ba,0)
-    tree$ba.BF=ifelse(tree$SP=='BF',tree$ba,0)
-    tree$ba.RM=ifelse(tree$SP=='RM',tree$ba,0)
-    tree$ba.RS=ifelse(tree$SP=='RS',tree$ba,0)
-    tree$ba.BS=ifelse(tree$SP=='BS',tree$ba,0)
-    tree$ba.WS=ifelse(tree$SP=='WS',tree$ba,0)
-    tree$ba.PB=ifelse(tree$SP=='PB',tree$ba,0)
-    tree$ba.YB=ifelse(tree$SP=='YB',tree$ba,0)
-    tree$ba.GB=ifelse(tree$SP=='GB',tree$ba,0)
+    #tree$sg=as.numeric(t(aa)[,3])
+    tree$ba<-round((tree$dbh^2*0.00007854)*tree$expf,2)
+    tree$sdi=(tree$dbh/25.4)^1.605*tree$expf
+    tree$sg.wt=tree$sg*tree$expf
+    tree$ba.WP=ifelse(tree$sp=='WP',tree$ba,0)
+    tree$ba.BF=ifelse(tree$sp=='BF',tree$ba,0)
+    tree$ba.RM=ifelse(tree$sp=='RM',tree$ba,0)
+    tree$ba.RS=ifelse(tree$sp=='RS',tree$ba,0)
+    tree$ba.BS=ifelse(tree$sp=='BS',tree$ba,0)
+    tree$ba.WS=ifelse(tree$sp=='WS',tree$ba,0)
+    tree$ba.PB=ifelse(tree$sp=='PB',tree$ba,0)
+    tree$ba.YB=ifelse(tree$sp=='YB',tree$ba,0)
+    tree$ba.GB=ifelse(tree$sp=='GB',tree$ba,0)
     
     # Add AB, QA, SM, WC
-    tree$ba.AB=ifelse(tree$SP=='AB',tree$ba,0)
-    tree$ba.QA=ifelse(tree$SP=='QA',tree$ba,0)
-    tree$ba.SM=ifelse(tree$SP=='SM',tree$ba,0)
-    tree$ba.WC=ifelse(tree$SP=='WC',tree$ba,0)
+    tree$ba.AB=ifelse(tree$sp=='AB',tree$ba,0)
+    tree$ba.QA=ifelse(tree$sp=='QA',tree$ba,0)
+    tree$ba.SM=ifelse(tree$sp=='SM',tree$ba,0)
+    tree$ba.WC=ifelse(tree$sp=='WC',tree$ba,0)
     
-    tree$ba.HW=ifelse(tree$SPtype=='HW',tree$ba,0)
-    tree$ba.SW=ifelse(tree$SPtype!='HW',tree$ba,0)
-    tree$CR=((tree$HT-tree$HCB)/tree$HT)*tree$EXPF
-    tree$HT=tree$HT*tree$EXPF
-    temp <- subset(tree,select=c("YEAR","STAND","PLOT",'TREE','DBH','HT','CR',
-                                 'EXPF',"ba",'ba.WP','ba.BF','ba.RM','ba.RS','ba.BS','ba.PB','ba.YB',
+    tree$ba.HW=ifelse(tree$sp.type=='HW',tree$ba,0)
+    tree$ba.SW=ifelse(tree$sp.type!='HW',tree$ba,0)
+    tree$cr=((tree$ht-tree$hcb)/tree$ht)*tree$expf
+    tree$ht=tree$ht*tree$expf
+    temp <- subset(tree,select=c("year","stand","plot",'tree','dbh','ht','cr',
+                                 'expf',"ba",'ba.WP','ba.BF','ba.RM','ba.RS','ba.BS','ba.PB','ba.YB',
                                  'ba.AB','ba.QA','ba.SM','ba.WC',                                       # Add AB, QA, SM, WC
-                                 'ba.GB','ba.WS','sdi','ba.HW','ba.SW','SG.wt'))
-    # temp<-groupedData(ba~ba|STAND/PLOT/YEAR,data=temp)
+                                 'ba.GB','ba.WS','sdi','ba.HW','ba.SW','sg.wt'))
+    # temp<-groupedData(ba~ba|stand/plot/YEAR,data=temp)
     # temp <- gsummary(temp,sum,na.rm=TRUE)
     
     temp=temp %>% 
-      dplyr::group_by(STAND,
-                      PLOT,
-                      YEAR) %>% 
-      dplyr::summarise(BAPH=sum(ba),
-                tph=sum(EXPF),
-                Avg.SG=sum(SG.wt)/sum(ba),
+      dplyr::group_by(stand,
+                      plot,
+                      year) %>% 
+      dplyr::summarise(ba.plot=sum(ba),
+                tph=sum(expf),
+                Avg.sg=sum(sg.wt)/sum(ba),
                 SDI=sum(sdi,na.rm=T),
-                avgDBH=mean(DBH,na.rm=T),
-                sdDBH=sd(DBH,na.rm=T),
-                minDBH=min(DBH,na.rm=T),
-                maxDBH=max(DBH,na.rm=T), #  
-                DBH.RANGE.all=max(DBH,na.rm=T)-min(DBH,na.rm=T),
+                avgDBH=mean(dbh,na.rm=T),
+                sdDBH=sd(dbh,na.rm=T),
+                minDBH=min(dbh,na.rm=T),
+                maxDBH=max(dbh,na.rm=T), #  
+                dbh.RANGE.all=max(dbh,na.rm=T)-min(dbh,na.rm=T),
                 
-                pHW.ba=sum(ba.HW)/BAPH,
-                pSW.ba=sum(ba.SW)/BAPH,
-                pWP.ba=sum(ba.WP)/BAPH,
-                pBF.ba=sum(ba.BF)/BAPH,
-                pRM.ba=sum(ba.RM)/BAPH,
-                pRS.ba=sum(ba.RS)/BAPH,
-                pBS.ba=sum(ba.BS)/BAPH,
-                pWS.ba=sum(ba.WS)/BAPH,
-                pPB.ba=sum(ba.PB)/BAPH,
-                pYB.ba=sum(ba.YB)/BAPH,
-                pGB.ba=sum(ba.GB)/BAPH,
+                pHW.ba=sum(ba.HW)/ba.plot,
+                pSW.ba=sum(ba.SW)/ba.plot,
+                pWP.ba=sum(ba.WP)/ba.plot,
+                ba.perc.bf=sum(ba.BF)/ba.plot,
+                pRM.ba=sum(ba.RM)/ba.plot,
+                pRS.ba=sum(ba.RS)/ba.plot,
+                pBS.ba=sum(ba.BS)/ba.plot,
+                pWS.ba=sum(ba.WS)/ba.plot,
+                pPB.ba=sum(ba.PB)/ba.plot,
+                pYB.ba=sum(ba.YB)/ba.plot,
+                pGB.ba=sum(ba.GB)/ba.plot,
                 # Add AB, QA, SM, WC
-                pAB.ba=sum(ba.AB)/BAPH,
-                pQA.ba=sum(ba.QA)/BAPH,
-                pSM.ba=sum(ba.SM)/BAPH,
-                pWC.ba=sum(ba.WC)/BAPH,
+                pAB.ba=sum(ba.AB)/ba.plot,
+                pQA.ba=sum(ba.QA)/ba.plot,
+                pSM.ba=sum(ba.SM)/ba.plot,
+                pWC.ba=sum(ba.WC)/ba.plot,
                 
-                Avg.HT= sum(HT)/tph,
-                Avg.LCR= sum(CR)/tph ,
+                Avg.HT= sum(ht)/tph,
+                Avg.LCR= sum(cr)/tph ,
                 .groups='keep') %>% 
-      mutate(qmd=sqrt(BAPH/(0.00007854*tph)),
-             Avg.SG=ifelse(Avg.SG>.68,.68,Avg.SG),
-             SDImax=-6017.3*Avg.SG+4156.3,
-             RD=SDI/SDImax)
+      mutate(qmd=sqrt(ba.plot/(0.00007854*tph)),
+             Avg.sg=ifelse(Avg.sg>.68,.68,Avg.sg),
+             SDImax=-6017.3*Avg.sg+4156.3,
+             rd=SDI/SDImax)
     
-    temp=subset(temp,select=c("YEAR","STAND","PLOT",'BAPH','tph',
-                              'qmd','SDI','Avg.HT','Avg.LCR','pWP.ba','pBF.ba','pRM.ba',
-                              'pRS.ba','pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba','RD',
+    temp=subset(temp,select=c("year","stand","plot",'ba.plot','tph',
+                              'qmd','SDI','Avg.HT','Avg.LCR','pWP.ba','ba.perc.bf','pRM.ba',
+                              'pRS.ba','pBS.ba','pWS.ba','pPB.ba','pYB.ba','pGB.ba','rd',
                               'pAB.ba','pQA.ba','pSM.ba','pWC.ba','pHW.ba','pSW.ba'))
     temp
 }        

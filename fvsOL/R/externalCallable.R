@@ -61,26 +61,27 @@ extnMakeRun <- function (prjDir=getwd(),title=NULL,standIDs=NULL,
   {
     sidid = "StandPlot_ID" 
     needFs = c("StandPlot_ID","StandPlot_CN") 
-  } else {  
+  } else {
     sidid = "Stand_ID"
     needFs = c("Stand_ID","Stand_CN")
   }
-  allNeed = c("Groups","Inv_Year","AddFiles","FVSKeywords","Sam_Wt",needFs)
-  fields = intersect(toupper(fields),toupper(allNeed))
-  
-  dbExecute(dbcon,'drop table if exists temp.Stds')
-  qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
-    ' where lower(variant) like "%',tolower(variant),'%"')
-  dbWriteTable(dbcon,DBI::SQL("temp.Stds"),data.frame(SelStds = standIDs))
-  qry = paste0(qry," and ",sidid," in (select SelStds from temp.Stds)")
-  
-  fvsInit = try(dbGetQuery(dbcon,qry))
+  allNeed <- c("Groups", "Inv_Year", "AddFiles", "FVSKeywords", "Sam_Wt", needFs) # nolint: line_length_linter.
+  fields <- intersect(toupper(fields), toupper(allNeed))
 
-  if (class(fvsInit) == "try-error") stop(paste0("query failed, qry=",qry))                                                          
+  dbExecute(dbcon, "drop table if exists tmp_stds")
+  qry <- paste0("select ", paste(fields, collapse = ","), " from ", stdInit,
+                ' where lower(variant) like "%', tolower(variant), '%"')
+  dbWriteTable(dbcon, "tmp_stds", data.frame(SelStds = standIDs),
+               temporary = TRUE, overwrite = TRUE)
+  qry <- paste0(qry, " and ", sidid, " in (select SelStds from tmp_stds)")
+
+  fvsInit <- try(dbGetQuery(dbcon, qry))
+
+  if (inherits(fvsInit,"try-error")) stop(paste0("query failed, qry=",qry))                                                          
   if (nrow(fvsInit) == 0) stop(paste0("query returned no data, qry=",qry))   
  
   FVS_GroupAddFilesAndKeywords = try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
-  if (class(FVS_GroupAddFilesAndKeywords) == "try-error") 
+  if (inherits(FVS_GroupAddFilesAndKeywords,"try-error")) 
             FVS_GroupAddFilesAndKeywords = NULL
   names(FVS_GroupAddFilesAndKeywords)=toupper(names(FVS_GroupAddFilesAndKeywords))
   
@@ -506,7 +507,7 @@ extnSetRunOptions <- function(prjDir=getwd(),runUUID,autoOut=NULL,svsOut=NULL,
 #' @param prjDir is the path name to the project directory, if null the 
 #'   current directory is the project directory.
 #' @param runUUID a character vector of the run uuid that is processed
-#' @param returnType requested where [see extnAddComponentKwds]: 
+#' @param returnType requested where see {extnAddComponentKwds()}: 
 #'   * "fvsCmp" the components are returned as copies of original fvsCmp objects,
 #'   * "raw" the components are returned a compressed raw data vectors suitable for storing
 #'   in a database (see [[extnToRaw] and [extnFromRaw]).
@@ -825,7 +826,7 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
   if (attr(class(fvsRun),"package") != "fvsOL") stop("Don't recognize the loaded run object")
   dbcon <- dbConnect(dbDriver("SQLite"),dbfile)            
   on.exit({
-    try(dbExecute(dbcon,'drop table if exists temp.Stds'))
+    try(dbExecute(dbcon,'drop table if exists tmp_stds'))
     suppressWarnings(dbDisconnect(dbcon))           
     suppressWarnings(dbDisconnect(db))
   })
@@ -847,18 +848,18 @@ extnAddStands <- function(prjDir=getwd(),runUUID,stands,
             unlist(lapply(fvsRun$stands,function(x) x$sid))))
   if (nrow(getStds) == 0) return(nadd)
     
-  dbWriteTable(dbcon,name=DBI::SQL("temp.getStds"),value=getStds,overwrite=TRUE)
+  dbWriteTable(dbcon, name = "tmp_get_stds", value = getStds, temporary = TRUE, overwrite = TRUE)
   variant = substring(fvsRun$FVSpgm,4)
-  dbExecute(dbcon,'drop table if exists temp.Stds')
+  dbExecute(dbcon,'drop table if exists tmp_stds')
   qry = paste0("select ",paste(fields,collapse=",")," from ",stdInit, 
     ' where lower(variant) like "%',tolower(variant),'%" and "',sidid,
-    '" in (select getStds from temp.getStds);')
-  fvsInit = try(dbGetQuery(dbcon,qry))
-  if (class(fvsInit)=="try-error") stop("stdinit query error")
+    '" in (select getStds from tmp_get_stds);')
+  fvsInit <- try(dbGetQuery(dbcon, qry))
+  if (inherits(fvsInit, "try-error")) stop("stdinit query error")
   if (nrow(fvsInit) == 0) return(nadd)
   names(fvsInit) = toupper(names(fvsInit))
   grpAddKey=try(dbReadTable(dbcon,"FVS_GroupAddFilesAndKeywords"))
-  if (class(grpAddKey)=="try-error" || nrow(grpAddKey)==0) grpAddKey=NULL else
+  if (inherits(grpAddKey,"try-error") || nrow(grpAddKey)==0) grpAddKey=NULL else
     names(grpAddKey) = toupper(names(grpAddKey)) 
   for (row in 1:nrow(fvsInit))  # the selectInput list               
   {                                                      

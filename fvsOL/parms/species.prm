@@ -1387,3 +1387,54 @@ OS{42}:{other softwood}
 
 //end  species_ws
 
+
+//start species_hi
+
+! Hawaii variant species list — all PN species plus six endemic Hawaiian species.
+
+YC{8}:{Alaska cedar}
+BM{21}:{bigleaf maple}
+CH{36}:{bitter cherry}
+CW{27}:{black cottonwood}
+RF{5}:{California red fir}
+DF{16}:{Douglas-fir}
+ES{10}:{Engelmann spruce}
+GC{25}:{giant chinquapin}
+GF{3}:{grand fir}
+HT{35}:{hawthorn}
+IC{9}:{incense cedar}
+JP{12}:{Jeffrey pine}
+KP{32}:{knobcone pine}
+LP{11}:{lodgepole pine}
+MH{20}:{mountain hemlock}
+NF{7}:{noble fir}
+WO{28}:{Oregon white oak}
+DG{34}:{Pacific dogwood}
+SF{1}:{Pacific silver fir}
+PY{33}:{Pacific yew}
+PB{24}:{paper birch}
+PP{15}:{ponderosa pine}
+AS{26}:{quaking aspen}
+RA{22}:{red alder}
+RW{17}:{redwood}
+SS{6}:{Sitka spruce}
+AF{4}:{subalpine fir}
+LL{30}:{subalpine larch}
+SP{13}:{sugar pine}
+WH{19}:{western hemlock}
+WJ{29}:{western juniper}
+RC{18}:{western redcedar}
+WP{14}:{western white pine}
+WA{23}:{white alder}
+WF{2}:{white fir}
+WB{31}:{whitebark pine}
+WI{37}:{willow}
+OT{39}:{other}
+AK{301}:{koa}
+LE{671}:{ohia}
+IF{515}:{forest sandalwood}
+IM{516}:{mountain sandalwood}
+IH{517}:{Haleakala sandalwood}
+IK{518}:{Kauai sandalwood}
+
+//end  species_hi

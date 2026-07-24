@@ -1161,7 +1161,7 @@ database connection (DSNIN).}
 
 SQLOut {dbs}:
 {Requests that an SQL statement be run on the output 
-database connection (DSNIN).}
+database connection (DSNOUT).}
 
 StrClsDB {dbs}:
 {Requests the FVS_StrClass table be created and populated.}

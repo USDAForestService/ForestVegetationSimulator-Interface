@@ -87,8 +87,7 @@ description:
 {Users may set EcoRegion and stand origin for FIAVBC computation as well as the merchantability limits for FIA merchantable volume, biomass, and carbon
 attributes. The national FIA merchantability limits or regional NFS merchantability limits can be
 globally set for all species in the variant. Custom merchantability limits for select species
-in the variant can be specified. Lastly, users can alter the merchantable volume,
-biomass, and carbon calculation method for all species.
+in the variant can be specified.
 
 More information about this keyword can be found in the FVS keyword guide and users should refer to the variant overview for the default NFS regional merchantability limits.  
 
@@ -96,8 +95,8 @@ NOTE: FIA computational methods cannot be scheduled and will be applied to the e
 Users cannot modify cubic foot volume calculations with the DEFECT, MCDEFECT, MCFDLN, 
 VOLEQNUM, and VOLUME keywords when this modifier is in effect
 
-NOTE: Any value entered in fields 6 – 11 will override the merchantability limit initially 
-defined by the default global merchantability limits option (FIA or regional NFS) from field 3.}
+NOTE: Any value user defined species merchantability specifications will override the merchantability limit initially 
+defined by the default global merchantability specifications option (FIA or regional NFS).}
 
 f1:{textEdit Ecoregion}
 f1v:{}
@@ -107,40 +106,41 @@ f2v:{\
 >0 = Natural
 1 = Plantation}
 
-f3:{longListButton Default global merchantability limits}
+f3:{longListButton Default global merchantability specifications}
 f3v:{\
 >0 = FIA merchantable specifications
 1 = Regional NFS merchantable specifications}
 
-f4:{longListButton Cruise Type}
-f4v:{\
->0 = FIA
-1 = FVS}
+f4:{noInput Cruise Type is no longer used}
+f4v:{}
 
-f5:{speciesSelection Species whose limits are to be changed}
+f5:{noInput ------------------ Custom Species Settings ------------------}
+f5v:{}
 
-f6:{numberBox Minimum DBH}
-f6v:{blank}
+f6:{speciesSelection Species whose limits are to be changed}
 
-f7:{numberBox Minimum top diameter}
+f7:{numberBox Minimum DBH}
 f7v:{blank}
 
-f8:{numberBox Stump height (feet)}
+f8:{numberBox Minimum top diameter}
 f8v:{blank}
 
-f9:{numberBox Cubic sawlog minimum DBH}
+f9:{numberBox Stump height (feet)}
 f9v:{blank}
 
-f10:{numberBox Cubic sawlog minimum top diameter}
+f10:{numberBox Cubic sawlog minimum DBH}
 f10v:{blank}
 
-f11:{numberBox Cubic sawlog stump height}
+f11:{numberBox Cubic sawlog minimum top diameter}
 f11v:{blank}
+
+f12:{numberBox Cubic sawlog stump height}
+f12v:{blank}
 
 
 answerForm:{\
 STDINFO   !1,80!!2,10,numbers!
-FIAVBC    !3,10,numbers!!4,10,numbers!!5,10!!6,10!!7,10!!8,10!!9,10!!10,10!!11,10!}
+FIAVBC    !3,10,numbers!!6,20!!7,10!!8,10!!9,10!!10,10!!11,10!!12,10!}
 numbers:{0 1}
 
 //end fia_method
