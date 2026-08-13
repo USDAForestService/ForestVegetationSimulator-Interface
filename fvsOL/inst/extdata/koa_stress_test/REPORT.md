@@ -4,6 +4,8 @@
 **By:** Aaron Weiskittel, with Cowork assist
 **Date:** 2026-06-05  **Branch:** `koa-stress-test`
 
+> **Note, 12 August 2026:** the harness scripts and raw results referenced below (`fidelity_check.R`, `koa_equations.py`, `koa_projector.py`, `run_benchmarks.py`, `run_cfi.py`, `run_stress_comprehensive.py`, `build_report_docx.js`, `PUSH_TO_HOLOROS.sh`, `discrepancies.md`, the stress-test docx, and `results/`) have moved to `dev/validation/koa_stress_test/`, outside the package's shipped tree (`fvsOL/inst/`). This was one-time validation and fidelity-check work, not living package infrastructure (the scripts hardcoded a since-gone Cowork sandbox session and koa-specific coefficients rather than a parameterized variant). Only this report stays in `inst/extdata/` as a traceable pointer to the finding.
+
 ---
 
 ## 0. Which equations are current (resolved)
@@ -94,7 +96,7 @@ survival fix in section 3 matters.
 
 ## 6. Reproduce
 ```bash
-cd fvsOL/inst/extdata/koa_stress_test
+cd dev/validation/koa_stress_test
 Rscript fidelity_check.R     # port-fidelity (base R)
 python3 run_benchmarks.py    # cohorts + Bakuzis
 python3 run_cfi.py           # CFI first->last validation + survival dial-in
