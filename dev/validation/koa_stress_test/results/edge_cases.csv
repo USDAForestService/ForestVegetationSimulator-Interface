@@ -1,0 +1,7 @@
+case,HT,dDBH,dHT,SURV
+tiny tree DBH1 HT1.4,1.37,1.653,1.248,0.049
+huge tree DBH110,18.61,0.257,0.342,0.915
+zero BAL dominant,18.74,1.053,0.583,0.989
+max density,6.65,0.013,0.297,0.999
+BYI=0 base path,11.64,0.068,0.081,1.0
+BYI=600 cap,12.01,1.236,1.295,1.0
