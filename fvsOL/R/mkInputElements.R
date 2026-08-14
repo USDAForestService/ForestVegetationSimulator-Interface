@@ -148,8 +148,10 @@ cat("in mkSelectInput type=", type, " fpvs=", fpvs, " sel=", sel, "\n")
   }
 
   # A hacky solution to select the correct forest type in a MODTYPE keyword edit
-  if (label[1] == "Forest type:" && !is.null(fpvs) && !is.na(fpvs)) {
-    sel <- match(as.character(sel), mklist)
+  if (!is.null(label[1])) {
+    if (label[1] == "Forest type:" && !is.null(fpvs) && !is.na(fpvs)) {
+      sel <- match(as.character(sel), mklist)
+    }
   }
 
   if (!length(sel) && edt == 0) sel = "0"
@@ -167,9 +169,11 @@ cat("in mkSelectInput type=", type, " fpvs=", fpvs, " sel=", sel, "\n")
   }
 
   # A hacky solution to select the correct forest type in a CLIMDATA keyword edit # nolint: line_length_linter.
-  if (label[1] == "Pick a GCM/Scenario to use" &&
-        !is.null(fpvs) && !is.na(fpvs)) {
-    sel <- mklist[as.numeric(sel)]
+  if (!is.null(label[1])) {
+    if (label[1] == "Pick a GCM/Scenario to use" &&
+          !is.null(fpvs) && !is.na(fpvs)) {
+      sel <- mklist[as.numeric(sel)]
+    }
   }
 
   switch(type,
@@ -755,4 +759,5 @@ mkFreeformEltList <- function (globals,input,prms,title,kwds)
   } 
   eltList
 }
+
 
