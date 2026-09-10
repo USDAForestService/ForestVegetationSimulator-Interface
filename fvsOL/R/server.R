@@ -186,8 +186,30 @@ cat ("ServerDate=",serverDate,"\n")
   {
     if (file.exists("FVSOnline.log")) 
     {
-      unlink("FVSOnline.older.log")                       
-      file.rename("FVSOnline.log","FVSOnline.older.log")
+      unlink("FVSOnline.older.log") 
+      result <- tryCatch({ 
+        file.rename("FVSOnline.log","FVSOnline.older.log")
+      },
+      warning = function(w) {
+        cat("Warning: ", w$message, "\n")
+      },
+      error = function(e) {
+        cat("Error: ", e$message, "\n")
+          showModal(shiny::modalDialog(
+          title = e$message,
+          tagList(p(
+          "Please check installation directory permissions and ensure 
+          write access is permitted to the user running the application 
+          at the installation directory."),
+          p("Alternatively, please reinstall the application to a 
+          directory where write access is permitted.")),
+          easyClose = F,
+          footer = tagList(actionButton("close", "Close Window & Stop App", 
+               class = "btn-danger",
+               onclick = "setTimeout(function(){window.close();}, 500);"))))
+        stopApp()
+        return(FALSE)
+      })
     }     
     #make sure the sink stack is empty
     while (sink.number()) sink()         
@@ -419,8 +441,23 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   })
   
   if (isLocal()) {
-    volumes <-c(getVolumes2()())
-    shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
+    volumeResult <- tryCatch({
+      volumes <-c(getVolumes2()())
+      shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
+      output$VDINote <- renderUI({
+      HTML(paste0("<b>VDI Users should change to an accessible network directory with persistent memory</b>"))
+      })
+      }, warning = function(w) {
+        cat("Warning: ", w$message, "\n")
+      }, error = function(e) {
+        cat("Error: ", e$message, "\n")
+        # Disable the Change_wd button if an error occurs while trying to access the directory structure
+        session$sendCustomMessage(type="jsCode",
+                          list(code= "$('#Change_wd').prop('disabled',true)"))
+        output$VDINote <- renderUI({
+        HTML(paste0("<b>An error occurred while trying to access directory structure.  This option has been disabled.</b>"))
+       })
+    })
   }
 
   ## clearLock
@@ -3047,7 +3084,6 @@ cat ("autoOut changed, input$autoSVS=",input$autoSVS,"\n")
     cat("In inAdd\n")
     cat("input$inAdd=", input$inAdd, "\n")
     cat("number of stands to add=", length(input$inStds), "\n")
-    
     if(length(input$inStds))
     {
       addStandsToRun(session,input,output,selType="inAdd",globals,dbGlb)
@@ -6611,21 +6647,21 @@ cat ("tabDescSel2, tab=",tab,"\n")
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
   })
   ## Upload new database
-  observe({
-    if (is.null(input$uploadNewDB)) return()
+  observeEvent(input$uploadNewDB, {
+    req(input$uploadNewDB)
     validdb = FALSE
     output$step1ActionMsg <- NULL
     output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
     cat ("fext=",fext,"\n")
-    session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#installNewDB').prop('disabled',true)"))
-    session$sendCustomMessage(type="jsCode",
-                          list(code= "$('#addNewDB').prop('disabled',true)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installTrainDB').prop('disabled',true)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installEmptyDB').prop('disabled',true)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                       list(code= "$('#installNewDB').prop('disabled',true)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                       list(code= "$('#addNewDB').prop('disabled',true)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                           list(code= "$('#installTrainDB').prop('disabled',true)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                           list(code= "$('#installEmptyDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) {
       output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
@@ -6888,6 +6924,56 @@ cat ("cmd done.\n")
       }
     }
     tabs = myListTables(dbo)
+    browser()
+    # Check existing runs in simulation to see if tables used in simulation contents
+    #   are compatible with the requested upload database.
+    tableCompatibility = NULL
+    if (length(input$simCont) && !(input$inTabs %in% tabs)) {
+      tableCompatibility = FALSE
+    } else if (length(input$simCont) && input$inTabs %in% tabs) {
+      tableCompatibility = TRUE
+    }
+
+    for (r in seq_along(globals$FVS_Runs)) {
+      checkRun = loadFVSRun(dbGlb$prjDB,globals$FVS_Runs[[r]])
+      if (length(checkRun$selsim)) {
+        if (!(checkRun$refreshDB %in% tabs)) {
+          tableCompatibility = FALSE
+        }
+        if (checkRun$refreshDB %in% tabs && is.null(tableCompatibility)) {
+          tableCompatibility = TRUE
+        }
+      }
+    }
+
+    # Insert Modal logic
+    # If tableCompatibility is not NULL then there are existing runs in the simulation
+    #  that contain simulation contents.  Notify the user of the potential issues and 
+    # set flags for allowable installation actions accordingly.
+    allowInstall = TRUE
+    if (!is.null(tableCompatibility)) {
+      if (tableCompatibility) {
+        showModal(shiny::modalDialog(
+          title = "Warning: Project contains runs with existing simulation contents",
+          HTML("<h4>Please use caution.  Installing the uploaded database will overwrite the exisng input database, 
+                while the option to append data is available if you need to append additional data to the existing database.</h4>"),
+          easyClose = F,
+          footer = modalButton("OK")
+        ))
+      } else {
+        showModal(shiny::modalDialog(
+          title = "Warning: Project contains runs with existing simulation contents",
+          HTML("<h4>Selected database is not compatible with existing simulation contents of one or more runs.  
+                Only the option to append data will be available.
+                If this is not the desired behavior, please create a new project before uploading.</h4>"),
+          easyClose = F,
+          footer = modalButton("OK")
+        ))
+        # Set flags to prevent installation of the selected database, only allow database append
+        allowInstall = FALSE
+      }
+    }
+
     fiaData = "FVS_STANDINIT_COND" %in% toupper(tabs) && 
               "FVS_STANDINIT_PLOT" %in% toupper(tabs)
     if (fiaData) 
@@ -7084,18 +7170,23 @@ cat ("calling fixFVSKeywords\n")
     dbDisconnect(dbo)
     if (validdb) {
       file.copy(from="FVS_Data.db",to=dbGlb$newFVSData,overwrite=TRUE)
-      session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-      session$sendCustomMessage(type="jsCode",
-                                list(code= "$('#installNewDB').prop('disabled',false)"))
+      session$sendCustomMessage(type = "resetFileInput","uploadNewDB")
+      if (allowInstall) {
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installNewDB').prop('disabled',false)"))
+      } else {
+        session$sendCustomMessage(type="jsCode",
+                                  list(code= "$('#installNewDB').prop('disabled',true)"))
+      }
       session$sendCustomMessage(type="jsCode",
                                 list(code= "$('#addNewDB').prop('disabled',false)"))
     }
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installTrainDB').prop('disabled',false)"))
-    session$sendCustomMessage(type="jsCode",
-                              list(code= "$('#installEmptyDB').prop('disabled',false)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                           list(code= "$('#installTrainDB').prop('disabled',false)"))
+    # session$sendCustomMessage(type="jsCode",
+    #                           list(code= "$('#installEmptyDB').prop('disabled',false)"))
     setwd(curDir)
-    progress$close()    
+    progress$close()  
   })
   ## installNewDB
   observe({
@@ -7337,8 +7428,8 @@ cat("qry=",qry,"\n")
         if (inherits(rtn,"try-error")) cat ("removing duplicated Stand_IDs failed.")
       }          
       if (tolower(tab) == "fvs_groupaddfilesandkeywords") 
-        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where 'Groups' in ",
-                    " (select 'Groups' from addnew.",tab,")"))
+        dbExecute(dbGlb$dbIcon,paste0("delete from ",tab," where Groups in ",
+                    " (select Groups from addnew.",tab,")"))
       # homogenize table structure and then do the insert from ...
       newTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma addnew.table_info(",tab,")"))
       trgTdef = dbGetQuery(dbGlb$dbIcon,paste0("pragma        table_info(",tab,")"))
@@ -8864,6 +8955,66 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
         }
         else if (input$toolsPan == "Import input data") 
         {
+
+          session$sendCustomMessage(type="jsCode",
+              list(code= "$('#installTrainDB').prop('disabled',false)"))
+          session$sendCustomMessage(type="jsCode",
+                list(code= "$('#installEmptyDB').prop('disabled',false)"))
+
+        # Implement logic to control use of the training database and blank database installation based on existing runs
+        FIA_Runs_Found = FALSE
+        Existing_Runs_Found = FALSE
+        FIATables <- c("FVS_STANDINIT_PLOT","FVS_PLOTINIT_PLOT","FVS_STANDINIT_COND")
+        # Check for unsaved run contents
+        if (is.null(input$inTabs)) {
+          showModal(shiny::modalDialog(
+            title = "Stand list updating",
+            "Please return to the 'Simulate' tab and allow stands list to update before returning to the 'Manage Projects' tab.",
+            easyClose = TRUE
+          ))
+
+        } else {
+          if (length(input$simCont) && toupper(input$inTabs) %in% FIATables) {
+          FIA_Runs_Found = TRUE
+          }
+
+          if (length(input$simCont)) {
+            Existing_Runs_Found = TRUE
+          }
+          
+          # If flags are still FALSE, check for existing runs in the project database
+          if (!FIA_Runs_Found || !Existing_Runs_Found) {
+            for (r in seq_along(globals$FVS_Runs)) {
+              checkRun = loadFVSRun(dbGlb$prjDB,globals$FVS_Runs[[r]])
+              if (length(checkRun$selsim)) {
+                Existing_Runs_Found = TRUE
+                if ((toupper(checkRun$refreshDB) %in% FIATables)) {
+                  FIA_Runs_Found = TRUE
+                }
+              }
+            }
+          }
+
+          if (FIA_Runs_Found) {
+            output$TrainingDBMsg <- renderUI({
+              HTML(paste0("<b>A run containing FIA data was found.  
+                Please delete any runs containing FIA data before installing the training database.  
+                This option has been disabled.</b>"))
+            })
+            session$sendCustomMessage(type="jsCode",
+              list(code= "$('#installTrainDB').prop('disabled',true)"))
+
+          } 
+          if (Existing_Runs_Found) {
+              output$EmptyDBMsg <- renderUI({
+              HTML(paste0("<b>Runs containing data were found.  
+                Installation of the blank database has been disabled.</b>"))
+            })
+              session$sendCustomMessage(type="jsCode",
+                list(code= "$('#installEmptyDB').prop('disabled',true)"))
+          }
+        }
+
           if (input$inputDBPan == "Upload inventory database") {
             session$sendCustomMessage("changeTitle", "FVS: Upload Inventory Database")
           }

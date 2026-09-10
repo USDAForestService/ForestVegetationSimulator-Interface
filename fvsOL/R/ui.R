@@ -1,4 +1,12 @@
 FVSOnlineUI <- fixedPage(
+    tags$script(HTML("
+    Shiny.addCustomMessageHandler('resetFileInput', function(elementId) {
+      $('#' + elementId).val('');
+      $('#' + elementId + '_progress').attr('style', 'width: 0%;');
+      $('#' + elementId).next().val('No file selected');
+      Shiny.onInputChange(elementId, null);
+    });
+  ")),
   tags$title(id="mainTitle", "Forest Vegetation Simulator"),
   tags$script(HTML('Shiny.addCustomMessageHandler("changeTitle", function(x) {document.title=x});')),
   tags$head(tags$style(HTML(
@@ -668,7 +676,7 @@ document.addEventListener("copy", (event) => {
               h4("Start another project"), 
               if (isLocal()){
                 div(id="VDINoteDiv",
-                  p("VDI Users should change to an accessible network directory with persistent memory"),
+                  uiOutput("VDINote"),
                   shinyFiles::shinyDirButton("Change_wd", "Change Working Directory", "Select Project Folder"),
                   )},
               selectInput("PrjSelect", "Select project", multiple=FALSE,
@@ -758,6 +766,8 @@ document.addEventListener("copy", (event) => {
               uiOutput("step2ActionMsg")),
               hr(),
               h4("Other options"),
+              uiOutput("TrainingDBMsg"),
+              uiOutput("EmptyDBMsg"),
               actionButton("installTrainDB","Install training data (inventory and map data)"),
               actionButton("installEmptyDB","Install blank database")
             ),
