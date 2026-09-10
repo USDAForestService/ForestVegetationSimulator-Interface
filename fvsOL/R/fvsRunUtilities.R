@@ -11,12 +11,13 @@ loadStandTableData <- function (globals, dbIcon)
   if (length(have) && !is.null(have)) globals$selStandTableList = globals$selStandTableList[sort(have)]
 } 
 
-loadVarData <- function(globals,input,dbIcon)
-isolate({
-cat ("in loadVarData, input$inTabs=",input$inTabs," globals$activeVariants=",globals$activeVariants,"\n")
-  dbtabs = dbGetQuery(dbIcon,"select name from sqlite_master where type='table';")[,1]
-  dbtabsU = toupper(dbtabs)
-  intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
+loadVarData <- function(globals, input, dbIcon)
+  isolate({
+    cat("in loadVarData, input$inTabs=", input$inTabs,
+     " globals$activeVariants=", globals$activeVariants, "\n")
+    dbtabs = dbGetQuery(dbIcon, "select name from sqlite_master where type='table';")[, 1]
+    dbtabsU = toupper(dbtabs)
+    intab = if (is.null(input$inTabs)) toupper("FVS_StandInit") else toupper(input$inTabs)
   if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit")
   if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit_Cond")
   if (! intab %in% dbtabsU) intab = toupper("FVS_StandInit_Plot")
