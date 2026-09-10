@@ -98,6 +98,9 @@ change_project_dir <- function(new_proj_dir) {
 getVolumes2 <- function(exclude) {
   if (missing(exclude)) exclude <- NULL
 
+  ## A force test error to test error handling in server.R
+  # stop(shiny::safeError("Forced test error: Problem in getVolumes2()"))
+  
   function() {
     osSystem <- Sys.info()["sysname"]
     if (osSystem == "Darwin") {
