@@ -151,6 +151,8 @@ cat("in mkSelectInput type=", type, " fpvs=", fpvs, " sel=", sel, "\n")
   if (!is.null(label[1])) {
     if (label[1] == "Forest type:" && !is.null(fpvs) && !is.na(fpvs)) {
       sel <- match(as.character(sel), mklist)
+    } else if (label[1] == "Model type" && !is.null(fpvs) && !is.na(fpvs)) {
+      sel <- match(as.character(sel), mklist)
     }
   }
 
