@@ -99,7 +99,7 @@ mkGlobals <- setRefClass("globals",
     currentCndPkey = "character", winBuildFunction = "character",GenGrp="list", 
     existingCmps = "list",currentQuickPlot = "character", 
     currentEditCmp = "fvsCmp", NULLfvsCmp = "fvsCmp", saveOnExit= "logical",
-    customQueries = "list", fvsRun = "fvsRun", foundStand="integer", 
+    fvsRun = "fvsRun", foundStand="integer", 
     reloadAppIsSet = "numeric", hostname= "character", toggleind="character",
     selStandTableList = "list",kcpAppendConts = "list",opencond="numeric",
     condKeyCntr="numeric",prevDBname="list",changeind="numeric",
@@ -246,7 +246,7 @@ cat ("Project is locked.\n")
     } else cat (file="projectIsLocked.txt",date(),"\n") 
     setProgress(message = "Start up",value = 2)
     
-    # Apparent start of loading project specific data a.o. 5/20/25 DW
+    # Start of loading project specific data
     nruns = mkFVSProjectDB()
     dbGlb$prjDB = connectFVSProjectDB()
 
@@ -320,6 +320,7 @@ cat ("tstring=",tstring,"\n")
     resetGlobals(globals,TRUE)
     selChoices = globals$FVS_Runs
 cat ("Setting initial selections, length(selChoices)=",length(selChoices),"\n")
+    
     runUUID = if (!is.null(runUUID) && runUUID %in% selChoices) runUUID else selChoices[[1]]
     updateSelectInput(session=session, inputId="runSel", 
         choices=selChoices,selected=runUUID)
@@ -1119,207 +1120,8 @@ cat ("input$selectdbvars=",input$selectdbvars,"\n")
     }
   })
     
-  ## Custom Query
-  observe({  
-    if (input$leftPan == "Custom Query")
-    {
-cat("Custom Query\n")
-      initTableGraphTools(globals,session,output,fvsOutData)
-      if (length(globals$customQueries) == 0) 
-      {
-        loadObject(dbGlb$prjDB,"customQueries")
-        if (exists("customQueries")) globals$customQueries=customQueries
-      }
-      if (length(globals$customQueries) == 0) 
-      {
-        updateSelectInput(session=session, inputId="sqlSel", 
-                          choices=list(),selected=0)
-      } else {
-        sels = as.list(as.character(1:length(globals$customQueries)))
-        names(sels) = names(globals$customQueries)
-        updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
-           selected = 0)
-      }
-      updateTextInput(session=session, inputId="sqlTitle", value="")
-      updateTextInput(session=session, inputId="sqlQuery", value="")
-      updateTextInput(session=session, inputId="sqlOutput", value="")
-      output$table <- renderTable(NULL)
-    }
-  })
+  ## Custom Query Functionality removed (DW 10/2026)
 
-  ## sqlRunQuery
-  observe({ 
-    if (input$sqlRunQuery > 0)                          
-    {
-cat ("sqlRunQuery\n")                                                              
-      isolate({
-        msgtxt = character(0)
-        qrys = trim(gsub("\n"," ",removeComment(input$sqlQuery)))
-        qrys = scan(text=qrys,sep=";",what="",quote="",quiet=TRUE)
-        qrys = qrys[nchar(qrys)>0]
-        output$table <- renderTable(NULL)        
-        iq = 0
-        dfrtn = NULL
-        # attempt to attach the input database is attached as "input"
-        attInput = if (!dbGlb$dbIcon@dbname %in% dbGetQuery(dbGlb$dbOcon,"PRAGMA database_list")$file) 
-          try(dbExecute(dbGlb$dbOcon,paste0("attach database '",dbGlb$dbIcon@dbname,
-                    "' as input"))) else NULL    
-        if (length(qrys) == 0){
-          msgtxt = "No query entered"
-          updateTextInput(session=session, inputId="sqlOutput", label="", 
-                value=msgtxt)
-        }   
-        for (qry in qrys)                  
-        {                                  
-          iq = iq+1
-cat ("sqlRunQuery, qry=",qry,"\n")
-          res = try (dbGetQuery(dbGlb$dbOcon,qry))
-          msgtxt = if (class(res) == "data.frame" && ncol(res) && nrow(res)) 
-            paste0(msgtxt,"query ",iq," returned a data frame with ",nrow(res),
-                  " rows and ",ncol(res)," cols\n") else  
-            if (inherits(res,"try-error")) paste0(msgtxt,"query ",iq,
-              " returned\n",attr(res,"condition"),"\n") else
-              paste0(msgtxt,"query ",iq," ran\n")         
-          updateTextInput(session=session, inputId="sqlOutput", label="", 
-                          value=msgtxt) 
-          if (inherits(res,"try-error")) break
-          if (class(res) == "data.frame" && ncol(res) && nrow(res))
-          {
-            for (col in 1:ncol(res)) if (class(res[[col]]) == "character") 
-              res[[col]] = factor(res[[col]],unique(res[[col]]))
-            if (!is.null(res$Year)) res$Year = as.factor(res$Year)
-            fvsOutData$dbData = res
-            fvsOutData$render = res
-            fvsOutData$runs = character(0)
-            fvsOutData$dbVars = colnames(res)
-            fvsOutData$browseVars = colnames(res)
-            fvsOutData$dbSelVars = character(0)
-            fvsOutData$browseSelVars = colnames(res)
-            choices = as.list(c("None",
-              colnames(res)[unlist(lapply(res, is.factor))]))
-            updateSelectInput(session,"pivVar",choices=choices,selected="None")              
-            updateSelectInput(session,"hfacet",choices=choices,selected="None") 
-            updateSelectInput(session,"vfacet",choices=choices,selected="None") 
-            updateSelectInput(session,"pltby", choices=choices,selected="None") 
-            globals$settingChoices[["pivVar"]] = choices
-            globals$settingChoices[["hfacet"]] = choices
-            globals$settingChoices[["vfacet"]] = choices
-            globals$settingChoices[["pltby"]] = choices
-            choices = as.list(c("None",
-              colnames(res)[!unlist(lapply(res, is.factor))])) 
-            globals$settingChoices[["dispVar"]] = choices
-            updateSelectInput(session,"dispVar",choices=choices,selected="None")
-            choices = as.list(colnames(res))              
-            globals$settingChoices[["xaxis"]] = choices
-            globals$settingChoices[["yaxis"]] = choices
-            updateSelectInput(session,"xaxis",choices=choices,selected=colnames(res)[1]) 
-            updateSelectInput(session,"yaxis",choices=choices,selected=colnames(res)[1]) 
-            if (input$outputRightPan != "Tables")
-              updateSelectInput(session,"outputRightPan",selected="Tables")
-            tableDisplayLimit = 5000
-            if (nrow(res) > tableDisplayLimit) 
-            {
-              msg=paste0("Table display limit exceeded. ",
-                tableDisplayLimit," of ",nrow(res)," displayed. Use Download table",
-                " to download all rows.")
-              output$tableLimitMsg<-renderText(msg)
-              res = res[1:tableDisplayLimit,,drop=FALSE] 
-            } else output$tableLimitMsg<-NULL
-            output$table <- renderTable(res)
-            break
-          }        
-        }       
-        if (!is.null(attInput)) try(dbExecute(dbGlb$dbOcon,"detach database 'input'"))     
-      })
-    }
-  })
-
-## sqlSave             
-  observe({ 
-    if (input$sqlSave > 0)
-    {
-cat ("sqlSave\n")      
-      isolate({
-        if (is.null(input$sqlTitle) || input$sqlTitle == "")
-        {
-          newTit = paste0("Query ",length(globals$customQueries)+1) 
-          updateTextInput(session=session, inputId="sqlTitle", value=newTit)
-        } else newTit = input$sqlTitle  
-        globals$customQueries[[newTit]] = input$sqlQuery
-        customQueries = globals$customQueries
-        storeOrUpdateObject(dbGlb$prjDB,customQueries)
-        if (length(globals$customQueries) == 0) 
-        {
-          updateSelectInput(session=session, inputId="sqlSel", 
-                            choices=list(),selected=0)
-        } else {
-          sels = as.list(as.character(1:length(globals$customQueries)))
-          names(sels) = names(globals$customQueries)
-          updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
-             selected = match(newTit,names(globals$customQueries)))
-        }
-      })
-    }
-  })
-   
-  ## sqlSel
-  observe({
-cat ("sqlSel input$sqlSel=",input$sqlSel," isnull=",
- is.null(input$sqlSel),"\n")
-    updateTextInput(session=session, inputId="sqlTitle", value="") 
-    updateTextInput(session=session, inputId="sqlOutput", value="")
-    updateTextInput(session=session, inputId="sqlQuery", value="")
-    output$table <- renderTable(NULL)
-    if (!is.null(input$sqlSel))
-    {
-      sel = as.numeric(input$sqlSel)
-      if(is.na(sel)) sel = as.numeric(match(input$sqlSel,names(globals$customQueries)))
-cat ("sqlSel sel=",sel,"\n")
-      if (length(globals$customQueries) >= sel || !is.null(sel)) 
-      {
-        updateTextInput(session=session, inputId="sqlTitle", 
-          value=names(globals$customQueries)[sel])
-        updateTextInput(session=session, inputId="sqlQuery",
-          value=globals$customQueries[[sel]])
-      }
-    }
-  })
-
-  ## sqlDelete
-  observe({  
-    if (input$sqlDelete > 0)
-    {
-      isolate ({
-cat ("sqlDelete is.null(input$sqlTitle)=",is.null(input$sqlTitle),"\n")
-        if (is.null(input$sqlTitle)) return()
-        globals$customQueries[[input$sqlTitle]] = NULL
-        customQueries = globals$customQueries
-        storeOrUpdateObject(dbGlb$prjDB,customQueries)
-        if (length(customQueries) > 0)
-        {
-          sels = as.list(as.character(1:length(globals$customQueries)))
-          names(sels) = names(globals$customQueries)
-        } else sels=list()
-        updateSelectInput(session=session, inputId="sqlSel", choices=sels, 
-           selected = 0)
-        updateTextInput(session=session, inputId="sqlTitle", value="")
-        updateTextInput(session=session, inputId="sqlQuery", value="")
-        updateTextInput(session=session, inputId="sqlOutput", value="")
-      })
-    }
-  })
-
-  ## sqlNew
-  observe({  
-    if (input$sqlNew > 0)
-    {
-cat ("sqlNew\n")
-        updateSelectInput(session=session, inputId="sqlSel", selected = 0)
-        updateTextInput(session=session, inputId="sqlQuery", value="")
-        updateTextInput(session=session, inputId="sqlOutput", value="")
-    }
-  })
-  
   ## Explore
   observe({
     if (input$leftPan == "Explore")
@@ -2006,8 +1808,7 @@ cat ("renderPlot\n")
     hf = if (input$hfacet == "None") NULL else input$hfacet
     pb = if (input$pltby  == "None") NULL else input$pltby
     needVars = unique(c(vf,hf,pb,input$xaxis,input$yaxis))
-    dat = if (input$leftPan == "Custom Query") fvsOutData$dbData else         
-      droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
+    dat = droplevels(fvsOutData$dbData[filterRows(fvsOutData$dbData, input$stdtitle, 
           input$stdgroups, input$stdid, input$mgmid, input$year, input$species, 
           input$dbhclass),])
     if (nrow(dat)==0) return(nullPlot("No observations using these selections"))
@@ -2166,20 +1967,9 @@ cat("sumOnSpecies=",sumOnSpecies," sumOnDBHClass=",sumOnDBHClass,"\n")
            facet_wrap(~vfacet,ncol=ceiling(sqrt(nlevels(nd$vfacet))),strip.position="right") else fg
     }
     if (pltp %in% c("bar","box")) nd$Y[nd$Y==0] = NA
-    mkgraphlab <- function (str)
-    {
-      str=trim(str)
-      if(nchar(str)<10) return(str)
-      if(substr(str,1,10)=="expression")
-      {
-        rtn = try(eval(parse(text=str)))
-        if (class(rtn)=="expression") return(rtn)
-      } 
-      str
-    }
-    xxlab=if (nchar(input$xlabel)) mkgraphlab(input$xlabel) else input$xaxis
-    yylab=if (nchar(input$ylabel)) mkgraphlab(input$ylabel) else input$yaxis
-    grtit=if (nchar(input$ptitle)) mkgraphlab(input$ptitle) else input$ptitle
+    xxlab=if (nchar(input$xlabel)) input$xlabel else input$xaxis
+    yylab=if (nchar(input$ylabel)) input$ylabel else input$yaxis
+    grtit=if (nchar(input$ptitle)) input$ptitle else input$ptitle
     p = ggplot(data=nd) + fg + labs(x=xxlab,y=yylab,title=grtit) +
             theme(text = element_text(size=9),
               panel.background = element_rect(fill="gray95"),
@@ -4249,8 +4039,10 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
           }
         }
 
-        # prevent duplicate SpGroup names due to editing & saving non-name changes
+        # Clean and sanitize user input
         grlist[1] <- gsub(" ","", grlist[1])
+        grlist[1] <- gsub("[^a-zA-Z0-9_%]","_", htmltools::htmlEscape(grlist[1]))
+        # prevent duplicate SpGroup names due to editing & saving non-name changes
         # Check for matching existing name
         tmpk <- match(grlist[1], globals$GenGrp)
 
@@ -4261,9 +4053,6 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
 
         # If requested name does not exist in globals, BUT request IS associated with
         # editing of existing component, remove existing name and replace with new name
-        # EDIT THIS SECTION NEEDS WORK, CURRENTLY REMOVE LAST GROUP NAME, NOT EDITED NAME
-        # WHICH SHOULD BE IN GLOBALS$CURRENTEDITCMP --EDIT: SECTION SHOULD BE WORKING NOW, 
-        # NEEDS MORE TESTING (DW 2/6/24)
         else if (is.na(tmpk) && length(globals$currentEditCmp$kwds)){
           EditGrpName <- strsplit(globals$currentEditCmp$kwds, split = '[[:space:]]+')[[1]][2]
           removeGrpIdx <- match(EditGrpName, globals$GenGrp)
@@ -4802,9 +4591,18 @@ cat ("in buildKeywords, oReopn=",oReopn," kwPname=",kwPname,"\n")
     isolate ({
       if (!is.null(input$bkgRuns))
       {
-        uuid=sub(".pidStatus","",input$bkgRuns)
-        killIfRunning(uuid)
-        removeFVSRunFiles(uuid)
+        fn = fs::path_sanitize(input$bkgRuns)
+        if (file.exists(fn)) {
+          uuid=sub(".pidStatus","",input$bkgRuns)
+          uuid = fs::path_sanitize(uuid)
+          killIfRunning(uuid)
+          removeFVSRunFiles(uuid)
+        } else {
+          showModal(shiny::modalDialog(title = "Unable to process request", 
+          "Background run file does not exist. It may have been deleted or moved.",  
+          "Please try your run again."))
+          return()
+        }
       }
       updateSelectInput(session=session, inputId="bkgRuns", 
                       choices=getBkgRunList(),selected=0)
@@ -4893,16 +4691,27 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
          }
          if (length(out)) write.xlsx(file=tf,out)
        }, contentType=NULL)
+  
   ## dlPrjBackup
     output$dlPrjBackup <- downloadHandler(filename=function ()
       isolate({
-        bckupPick <- input$pickBackup
-        if (file.exists(bckupPick)) bckupPick else "NoBackup.txt"
+        validBackups <- lapply(dir(pattern = ".zip"), function(f){
+          if("projectId.txt" %in% utils::unzip(f, list = TRUE)$Name && "FVS_Data.db" %in% utils::unzip(f, list = TRUE)$Name) return(f)
+        })
+        validBackups <- unlist(validBackups[!sapply(validBackups, is.null)])
+        requestedBkUp <- fs::path_sanitize(input$pickBackup)
+        
+        if (requestedBkUp %in% validBackups && file.exists(requestedBkUp)) requestedBkUp else "NoBackup.txt"
       }),  
       content=function (tf = tempfile())
       {
-        sfile = input$pickBackup
-        if (file.exists(sfile)) file.copy(sfile,tf) else
+        validBackups <- lapply(dir(pattern = ".zip"), function(f){
+          if("projectId.txt" %in% utils::unzip(f, list = TRUE)$Name && "FVS_Data.db" %in% utils::unzip(f, list = TRUE)$Name) return(f)
+        })
+        validBackups <- unlist(validBackups[!sapply(validBackups, is.null)])
+        sfile <- fs::path_sanitize(input$pickBackup)
+
+        if (sfile %in% validBackups && file.exists(sfile)) file.copy(sfile,tf) else
           cat (file=tf,"Backup does not exist.\n")
       }, contentType="zip")
     
@@ -4938,9 +4747,10 @@ cat ("qry=",qry," class(dat)=",class(dat),"\n")
            if (dir.exists(tempDir)) lapply(paste0(tempDir,"/",dir(tempDir)),unlink) else
                dir.create(tempDir)
            spatdat = "SpatialData.RData" 
+           srcRunUuid = globals$fvsRun$uuid
            for (ele in input$dlZipSet)
            {
-cat ("building download, ele=",ele,"\n")
+             cat ("building download, ele=",ele,"\n")
              switch (ele,
                outdb = {
                  from="FVSOut.db"
@@ -4949,17 +4759,17 @@ cat ("building download, ele=",ele,"\n")
                    cat (file=to,"Output database does not exist.\n")
                },
                key   = {
-                 from=paste0(input$runSel,".key")
+                 from=paste0(srcRunUuid,".key")
                  to=file.path(tempDir,paste0(globals$fvsRun$title,"_FVSkeywords.txt")) 
                  if (file.exists(from)) file.copy(from=from,to=to)                   
                },
                out   = {
-                 from=paste0(input$runSel,".out")
+                 from=paste0(srcRunUuid,".out")
                  to=paste0(tempDir,"/",globals$fvsRun$title,"_FVSoutput.txt")
                  if (file.exists(from)) file.copy(from=from,to=to) 
                },
                subdir= {
-                 from=input$runSel
+                 from=srcRunUuid
                  if (dir.exists(from)) 
                  {
                    to = file.path(tempDir,paste0(globals$fvsRun$title,"_SVS"))
@@ -4967,7 +4777,7 @@ cat ("building download, ele=",ele,"\n")
                    file.copy(from=from,to=to,recursive = TRUE)
                    file.copy(from=paste0(from,"_index.svs"),to=to)
                  } 
-               },              
+               },
                FVS_Data = file.copy(from="FVS_Data.db" ,
                                     to=file.path(tempDir,"FVS_Data.db")),
                fvsProjdb = {
@@ -4978,8 +4788,7 @@ cat ("building download, ele=",ele,"\n")
                  spatdat = "SpatialData.RData" 
                if (file.exists(spatdat)) file.copy(from=spatdat,
                                      to=file.path(tempDir,spatdat))
-               }
-                                   
+               }                        
            )}
            curdir = getwd()
            setwd(tempDir)
@@ -6107,9 +5916,14 @@ cat ("delete all runs and outputs\n")
   observe({
     if(input$delZipBackup > 0)
     {
-      fl = isolate(input$pickBackup)
+      validBackups <- lapply(dir(pattern = ".zip"), function(f)
+      {
+        if("projectId.txt" %in% utils::unzip(f, list = TRUE)$Name && "FVS_Data.db" %in% utils::unzip(f, list = TRUE)$Name) return(f)
+        })
+      validBackups <- unlist(validBackups[!sapply(validBackups, is.null)])
+      fl = isolate(fs::path_sanitize(input$pickBackup))
       if (is.null(fl)) return()
-      if (file.exists(fl))
+      if (fl %in% validBackups && file.exists(fl))
       {
         unlink(fl)
         backups = dir (pattern="ProjectBackup")
@@ -6120,6 +5934,11 @@ cat ("delete all runs and outputs\n")
         } else backups=list()
         updateSelectInput(session=session, inputId="pickBackup", 
           choices = backups, selected=NULL)
+      } else {
+        showModal(shiny::modalDialog(title = "Delete Project Backup",
+          paste0("Project backup ",fl," is not a valid project backup zip file"),
+          easyClose = TRUE, footer = NULL))
+          return()
       }
     }
   })    
@@ -6210,6 +6029,8 @@ cat ("prjBackupUpload=",prjBackupUpload,"\n")
       progress$close()
       return()
     }
+
+
     fdir = dirname(input$upZipBackup$datapath)
     progress$set(message = "Copying project backup to current project directory",value = 4)
     file.copy(input$upZipBackup$datapath,prjBackupUpload)
@@ -6289,7 +6110,7 @@ cat ("restorePrjBackupDlgBtB fvsWorkBackup=",fvsWorkBackup,"\n")
           if (ocon) dbDisconnect(dbGlb$dbOcon)
           if (icon) dbDisconnect(dbGlb$dbIcon)
           td <- tempdir()
-          rtn = try(unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
+          rtn = try(utils::unzip (paste0(getwd(),"/",fvsWorkBackup),exdir=td,
                     overwrite=TRUE,junkpaths=FALSE))
           if (inherits(rtn,"try-error")) return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
@@ -6341,7 +6162,7 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
           suppressWarnings(dir.create(td))
           setwd(td)
           lapply(dir(),function(x) unlink(x,recursive=TRUE,force=TRUE))
-          rtn = try(unzip (paste0(curdir,"/",fvsWorkBackup),exdir=td,
+          rtn = try(utils::unzip (paste0(curdir,"/",fvsWorkBackup),exdir=td,
                     overwrite=TRUE,junkpaths=FALSE))
           if (inherits(rtn,"try-error")) return()
           zipConts <- dir(td,include.dirs=TRUE,recursive=TRUE)
@@ -6396,7 +6217,6 @@ cat ("restorePrjBackupDlgBtnA fvsWorkBackup=",fvsWorkBackup,"\n")
      updateSelectInput(session=session, inputId="pickBackup", selected=NULL)
   )
 
-
   ## PrjDelete 
   observe({
     if(input$PrjDelete > 0)
@@ -6431,7 +6251,14 @@ cat("delete project button.")
         {
           output$delPrjActionMsg <- renderUI(HTML("No project selected."))
         } else {
-          delPrj=paste0("../",input$PrjDelSelect)  
+          target <-fs::path_sanitize(input$PrjDelSelect)
+          prjList=getProjectList()
+          if (! target %in% names(prjList))
+          {
+            output$delPrjActionMsg <- renderUI(HTML("<b>Project directory not found.</b>"))
+            return()
+          }
+          delPrj=paste0("../",target)  
           if (file.exists(paste0(delPrj,"/projectIsLocked.txt")))             
           {
             output$delPrjActionMsg <- renderUI(HTML("Cannot delete a locked project."))
@@ -6537,12 +6364,14 @@ cat("delete project button.")
     }
     HTML(html)
   }
+
   ## tabDescSel
   observe({
     tab = input$tabDescSel
 cat ("tabDescSel, tab=",tab,"\n")
     output$tabDesc <- renderUI(mkTableDescription(tab))
   })
+
   ## tabDescSel2
   observe({
     tab = input$tabDescSel2
@@ -6573,6 +6402,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
       output$step2ActionMsg <- NULL
     }
   })
+
   observe({
     if(input$inputDBPan == "Upload inventory database") 
     {
@@ -6623,6 +6453,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     loadVarData(globals,input,dbGlb$dbIcon)                                              
     updateVarSelection(globals,session,input)
   }
+
   ## installTrainDB
   observe({  
     if (input$installTrainDB == 0) return()
@@ -6631,6 +6462,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     output$step2ActionMsg <- output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
   })
+
   ## installTrainDB2
   observe({  
     if (input$installTrainDB2 == 0) return()
@@ -6638,6 +6470,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     output$mapActionMsg <- renderText(HTML(paste0("<b>Training database installed",
          " (the inventory data and the related spatial data).</b>")))
   })
+
   ## installEmptyDB
   observe({
     if (input$installEmptyDB == 0) return()
@@ -6646,6 +6479,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     output$step2ActionMsg <- renderText(HTML("<b>Empty database installed and spatial data deleted.</b>"))
     dbGlb$dbIcon <- dbConnect(dbDrv,"FVS_Data.db")
   })
+
   ## Upload new database
   observeEvent(input$uploadNewDB, {
     req(input$uploadNewDB)
@@ -6654,14 +6488,6 @@ cat ("tabDescSel2, tab=",tab,"\n")
     output$step2ActionMsg <- NULL
     fext = tools::file_ext(basename(input$uploadNewDB$name))
     cat ("fext=",fext,"\n")
-    # session$sendCustomMessage(type="jsCode",
-    #                       list(code= "$('#installNewDB').prop('disabled',true)"))
-    # session$sendCustomMessage(type="jsCode",
-    #                       list(code= "$('#addNewDB').prop('disabled',true)"))
-    # session$sendCustomMessage(type="jsCode",
-    #                           list(code= "$('#installTrainDB').prop('disabled',true)"))
-    # session$sendCustomMessage(type="jsCode",
-    #                           list(code= "$('#installEmptyDB').prop('disabled',true)"))
     if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx","zip"))) {
       output$step1ActionMsg  = renderText("Uploaded file is not suitable database types described in Step 1.")
       unlink(input$uploadNewDB$datapath)
@@ -6676,7 +6502,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
     if (fext == "zip") 
     {
       progress$set(message = "Unzip data", value = 1)
-      unzip(input$uploadNewDB$datapath, junkpaths = TRUE, exdir = fdir)
+      utils::unzip(input$uploadNewDB$datapath, junkpaths = TRUE, exdir = fdir)
       unlink(input$uploadNewDB$datapath)
       fname = dir(dirname(input$uploadNewDB$datapath))
       if (length(fname)>1) 
@@ -6745,22 +6571,30 @@ cat ("cmd=",cmd,"\n")
       tbln=unlist(lapply(schema[tbls],function(x) if (length(grep("]",x,fixed=TRUE)))
         scan(text=x,what="character",sep="]",quiet=TRUE)[2] else
         scan(text=x,what="character",quiet=TRUE)[3]))
-      schema = gsub(" Long Integer"," Integer",schema,ignore.case=TRUE)
-      schema = gsub(" Int"," Integer",schema,ignore.case=TRUE)
-      schema = gsub(" Integereger"," Integer",schema,ignore.case=TRUE)
-      schema = gsub(" Memo.*)"," Text",schema,ignore.case=TRUE)
-      schema = gsub(" Memo"," Text",schema,ignore.case=TRUE)
-      schema = gsub(" Text.*)"," Text",schema,ignore.case=TRUE)
-      schema = gsub(" Double"," Real",schema,ignore.case=TRUE)
-      schema = gsub(" SHORT_DATE_TIME,"," Text,",schema,ignore.case=TRUE)
-      schema = gsub(" FLOAT,"," Real,",schema,ignore.case=TRUE)
-      schema = gsub(" NOT NULL"," ",schema,,ignore.case=TRUE)
-      schema = gsub(" Single"," Real",schema)                    
-      schema = gsub("]",'"',schema,fixed=TRUE) 
-      cat ("begin;\n",file="sqlite3.import")
-      cat (paste0(schema,"\n"),file="sqlite3.import",append=TRUE)
-      cat ("commit;\n",file="sqlite3.import",append=TRUE)
-      progress$set(message = "Extract data", value = 3)  
+      
+      for (tab in tbln)
+      {
+        invalidTabName = grepl("[^a-zA-Z0-9_ ]",tab)
+
+        if (invalidTabName)
+        {
+          showModal(shiny::modalDialog(
+            title = "Upload Failure: Invalid table name",
+            HTML("<h4>Table names must only contain alphanumeric characters and underscores.</h4>"),
+            easyClose = F,
+            footer = modalButton("OK")
+            )
+          )
+          setwd(curDir)
+          progress$close()  
+          session$sendCustomMessage(type="jsCode",
+            list(code= "$('#installNewDB').prop('disabled',true)"))
+          session$sendCustomMessage(type="jsCode",
+            list(code= "$('#addNewDB').prop('disabled',true)"))
+          return()
+        }
+      }
+
       if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
                         FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b",
                         tbln, ignore.case = TRUE))) {
@@ -6780,23 +6614,23 @@ cat ("cmd=",cmd,"\n")
       }
       pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export") else "mdb-export"
       if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe")
+
+      tempCon <- dbConnect(SQLite(), ":memory:")
+      dbo = dbConnect(dbDrv,"FVS_Data.db")
       for (tab in tbln) 
       {
-        progress$set(message = paste0("Export table ",tab), value = 3)
-        cat ("begin;\n",file="sqlite3.import",append=TRUE)
-        cmd = paste0 (pgm," -I sqlite ",fname," ",tab," >> sqlite3.import")
-        cat ("cmd=",cmd,"\n")
-        result = if (.Platform$OS.type == "windows") shell(cmd,intern=TRUE) else system(cmd,intern=TRUE)
-        cat ("commit;\n",file="sqlite3.import",append=TRUE)
+        progress$set(message = paste0("Processing table ",tab), value = 3)
+        csv_raw <-system2(command = pgm, 
+                          args = c(shQuote(fname), shQuote(tab)), 
+                          stdout = TRUE)
+        csv_string <- paste(csv_raw, collapse = "\n")
+        df_datafrm <- readr::read_csv(csv_string, show_col_types = FALSE)
+        dbWriteTable(tempCon, tab, df_datafrm, overwrite = TRUE)
       }
-      cat (".quit\n",file="sqlite3.import",append=TRUE)
-      progress$set(message = "Import data to Sqlite3", value = 4) 
-      pgm = if (exists("sqlite3exe")) sqlite3exe else "sqlite3"
-      cmd = paste0(pgm," FVS_Data.db < sqlite3.import")
-cat ("cmd=",cmd,"\n")
-      if (.Platform$OS.type == "windows") shell(cmd) else system(cmd)
-cat ("cmd done.\n")
-      dbo = dbConnect(dbDrv,"FVS_Data.db")
+
+      sqliteCopyDatabase(tempCon, dbo)
+      dbDisconnect(tempCon)
+      
     } else if (fext == "xlsx") 
     {
       progress$set(message = "Get data sheets", value = 3)
@@ -6924,7 +6758,6 @@ cat ("cmd done.\n")
       }
     }
     tabs = myListTables(dbo)
-    browser()
     # Check existing runs in simulation to see if tables used in simulation contents
     #   are compatible with the requested upload database.
     tableCompatibility = NULL
@@ -8267,6 +8100,7 @@ cat ("Map data hit.\n")
       output$mapActionMsg = renderText(" ")
     }
    })
+
    ## mapUpload
    observe({
     if(is.null(input$mapUpload)) return()
@@ -8292,7 +8126,7 @@ cat ("mapUpload, filename=",input$mapUpload$datapath," ending=",fileEnding,"\n")
         progress$set(message = "Unzipping",value = 1)
         curdir = getwd()
         setwd(mapDir)
-        unzip(zipName)
+        utils::unzip(zipName, junkpaths = TRUE)
         unlink(zipName)
         if (length(dir(mapDir)) > 1) mapDir = dirname(mapDir)
         progress$set(message = "Getting layers",value = 2)
@@ -8322,6 +8156,7 @@ cat ("mapUpload, class(lyrs)=",class(lyrs),"\n")
       }
     }
    })
+
    ## mapUpLayers
    observe({
       if (is.null(input$mapUpLayers)) return()
@@ -8454,7 +8289,6 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
        updateSelectInput(session=session, inputId="impRuns",choices=list())
        updateSelectInput(session=session, inputId="impCustomCmps",choices=list())
        updateSelectInput(session=session, inputId="impGraphSettings",choices=list())
-       updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
        updateSelectInput(session=session, inputId="impFVSData",choices=list())
        updateSelectInput(session=session, inputId="impSpatialData",choices=list())
      }  
@@ -8465,7 +8299,7 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
     msg = paste0("File contains ",nruns," runs")
     tbs=dbListTables(db)
     itms=listTableNames(db)
-    itms=intersect(itms,c("GraphSettings","customCmps","customQueries"))
+    itms=intersect(itms,c("GraphSettings","customCmps"))
     if (file.exists("SpatialData.RData")) itms=c(itms,"SpatialData")
     if (file.exists("FVS_Data.db")) itms=c(itms,"FVS_Data")
     if (length(itms)>0) msg=paste0(msg," plus: ",paste0(itms,collapse=", "))
@@ -8489,21 +8323,15 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
         loadObject(db,"customCmps")      
         updateSelectInput(session=session, inputId="impCustomCmps",
           choices=as.list(names(customCmps)))
-      },    
-      "customQueries" = {
-        loadObject(db,"customQueries")
-        updateSelectInput(session=session, inputId="impCustomQueries",
-          choices=as.list(names(customQueries)))
       })
     }
-    zout = setdiff(c("Runs","GraphSettings","customCmps","customQueries"),itms)
+    zout = setdiff(c("Runs","GraphSettings","customCmps"),itms)
     for (itm in zout) 
     { 
       switch(itm,
       "Runs" = updateSelectInput(session=session, inputId="impRuns",choices=list()),
       "GraphSettings" = updateSelectInput(session=session, inputId="impGraphSettings",choices=list()),
       "customCmps" = updateSelectInput(session=session, inputId="impCustomCmps",choices=list()),    
-      "customQueries" = updateSelectInput(session=session, inputId="impCustomQueries",choices=list())
       )
     }
     rtn
@@ -8529,28 +8357,23 @@ cat ("input$mapUpLayers, number of layers (choices)=",length(choices)," selected
         dir.create(tmpPrj)
         tmpPrj = file.path(getwd(),tmpPrj)
         setwd(tmpPrj)
-        uz = try(unzip(input$uploadRunsRdat$datapath))
-        if (inherits(uz,"try-error")) 
-        {
-cat("uploaded zip failed\n")
-          output$uploadRunsRdatMsg <- renderText("Uploaded file could not be unzipped.")
-          unlink(input$uploadRunsRdat$datapath)
-          unlink(tmpPrj,recursive=TRUE)
-        } else {
-          updateSelectInput(session=session, inputId="impPrjSource",selected=0)
-          nruns=mkFVSProjectDB()
-          db=connectFVSProjectDB()
-          ml = mkSrcMsgAndList(db,nruns)
-          dbDisconnect(db)
-          output$uploadRunsRdatMsg <- renderUI(HTML(ml[[2]]))
-          attr(ml,"temp") = TRUE # this directory can be deleted
-          output$selectedSourceMsg <- renderText(
-            paste0('<p style="font-size:17px;color:darkred"><b>Source: ',
-                   ml[[2]]))
-          globals$importItems = ml
-cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
-        }   
-      setwd(curdir)
+        file.copy(from=input$uploadRunsRdat$datapath,to=tmpPrj)
+        zipName = basename(input$uploadRunsRdat$datapath)
+        unlink(input$uploadRunsRdat$datapath)
+        utils::unzip(zipName, junkpaths = TRUE)
+        unlink(zipName)
+        updateSelectInput(session=session, inputId="impPrjSource",selected=0)
+        nruns=mkFVSProjectDB()
+        db=connectFVSProjectDB()
+        ml = mkSrcMsgAndList(db,nruns)
+        dbDisconnect(db)
+        output$uploadRunsRdatMsg <- renderUI(HTML(ml[[2]]))
+        attr(ml,"temp") = TRUE # this directory can be deleted
+        output$selectedSourceMsg <- renderText(
+          paste0('<p style="font-size:17px;color:darkred"><b>Source: ',
+                  ml[[2]]))
+        globals$importItems = ml
+        setwd(curdir)
       })
     }
     session$sendCustomMessage(type = "resetFileInputHandler","uploadRunsRdat")          
@@ -8661,32 +8484,7 @@ cat("unload zip had ",length(uz),"items. ml[[2]]=",ml[[2]],"\n")
     })}
   })
 
-  ## doImpCustomQueries
-  observe({
-    if (input$doImpCustomQueries > 0) 
-    {isolate({
-      if (is.null(input$impCustomQueries)) return()
-      prjDir=attr(globals$importItems,"dir")
-      pDB=connectFVSProjectDB(prjDir)
-      on.exit(dbDisconnect(pDB))
-      loadObject(pDB,"customQueries",asName="source")
-      loadObject(dbGlb$prjDB,"customQueries")
-      curTitle = input$impCustomQueries
-      if(exists("customQueries")){
-        newtitle = mkNameUnique(curTitle,names(customQueries))
-        } else{
-        customQueries = list()
-        newtitle = mkNameUnique(curTitle,customQueries)
-        }
-      globals$customQueries[newtitle]= source[curTitle]
-      customQueries[newtitle] = source[curTitle]
-      storeOrUpdateObject(dbGlb$prjDB,customQueries)
-      output$impCustomQueriesMsg = renderText(paste0('Query "',curTitle,'" imported and ',
-       ' is named "',newtitle,'" in your current project.'))   
-      updateSelectInput(session=session,inputId="sqlSel",choices=as.list(names(customQueries)), 
-      selected="") 
-    })}
-  })
+  ## doImpCustomQueries REMOVED (DW 10/2026)
   
   ## impFVS_Data 
   observe({
@@ -8933,11 +8731,6 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
         session$sendCustomMessage("changeTitle", "FVS: View Outputs -> Explore")
       }
 
-      else if (input$topPan == "View Outputs" && input$leftPan == "Custom Query") 
-      {
-        session$sendCustomMessage("changeTitle", "FVS: View Outputs -> Custom Query")
-      }
-
       else if (input$topPan == "Visualize") 
       {
         session$sendCustomMessage("changeTitle", "FVS: Visualize")
@@ -9097,7 +8890,7 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
   saveRun <- function(input,session) 
   {
     isolate({
-      runName = trim(input$title)
+      runName <- gsub("[^a-zA-Z0-9 ]", "", input$title)
       if (nchar(input$title) == 0) runName <- nextRunName(names(globals$FVS_Runs))
       me=match(globals$fvsRun$uuid,globals$FVS_Runs)
 cat ("saveRun, length(me)=",length(me)," uuid=",globals$fvsRun$uuid," class(globals$fvsRun)=",class(globals$fvsRun),"\n")

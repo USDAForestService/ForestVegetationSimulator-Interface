@@ -1,76 +1,86 @@
-mkeltList <- function (pkeys,prms,globals,input,output,
-                       cndflag=FALSE,funcflag=FALSE,comptitle=NULL)
-{
+mkeltList <- function(pkeys, prms, globals, input, output,
+                      cndflag = FALSE, funcflag = FALSE, comptitle = NULL) {
   waitYears <- NULL
-  eltList <- if (cndflag) 
-  {
-    waityrs <- getPstring(pkeys,"waitYears",globals$activeVariants[1])
+  eltList <- if (cndflag) {
+    waityrs <- getPstring(pkeys, "waitYears", globals$activeVariants[1])
     if (is.null(waitYears)) waitYears <- "999"
-    fpvs <- if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) NULL else
-            globals$currentEditCmp$reopn["waitYears"]    
+    fpvs <- if (identical(globals$currentEditCmp, globals$NULLfvsCmp)) NULL else
+      globals$currentEditCmp$reopn["waitYears"]
     list(
-      h5("Settings for the condition:"),    
-      mkTextInput ("waitYears", "Years before condition can become true again:",
-                   waityrs, fpvs))
-  } else list()
-  f = 0
-  repeat
-  {
-    f = f+1
-    pkey = paste0("f",f)
-    fps = getPstring(pkeys,pkey,globals$activeVariants[1])                
+         h5("Settings for the condition:"),
+         mkTextInput("waitYears",
+                     "Years before condition can become true again:",
+                     waityrs, fpvs))
+  } else {
+    list()
+  }
+  f <- 0
+  repeat {
+    f <- f + 1
+    pkey <- paste0("f", f)
+    fps <- getPstring(pkeys, pkey, globals$activeVariants[1])
     if (is.null(fps)) break
-    elt = unlist(strsplit(fps," "))
-    if (length(elt) > 1)
-    {
+    elt <- unlist(strsplit(fps, " "))
+    if (length(elt) > 1) {
       elt = elt[1]
-      pmt = sub(paste0(elt," "),"",fps)
-    } else
-    {
+      pmt = sub(paste0(elt, " "), "", fps)
+    } else {
       elt = fps
       pmt = NULL
     }
-    title = getPstring(pkeys,paste0(pkey,"title"),globals$activeVariants[1]) 
-    if (!is.null(title)) eltList <- append(eltList,
-        list(HTML(paste0("<p><b>",gsub("\n","<br/>",title),"<b/><p/>"))))
+
+    title <- getPstring(pkeys, paste0(pkey, "title"), globals$activeVariants[1]) # nolint: line_length_linter.
+    if (!is.null(title)) {
+      eltList <- append(eltList,
+                        list(HTML(paste0("<p><b>",
+                                         gsub("\n", "<br/>", title), "<b/><p/>")))) # nolint: line_length_linter.
+    }
+
     fpvs <- if (identical(globals$currentEditCmp,globals$NULLfvsCmp)) NULL else
-            globals$currentEditCmp$reopn[f] 
-    if (!is.null(fpvs) && is.na(fpvs)) fpvs = NULL
-    choices <- getPstring(pkeys,paste0(pkey,"v"),globals$activeVariants[1]) 
-    if (cndflag) pkey = paste0("cnd.",pkey)
-    else if (funcflag) pkey = paste0("func.",pkey)
-cat ("mkeltList title=",title,"\nf=",f," elt=",elt," pkey=",pkey," pmt=",pmt,
- "\nglobals$activeVariants[1]=",globals$activeVariants[1]," fpvs=",fpvs,"\n")
-    elt = switch(elt,
-      listButton     = mkSelectInput (pkey, pmt, choices, fpvs),
-      longListButton = mkSelectInput (pkey, pmt, choices, fpvs),
-      longListButtonString = mkSelectInput (pkey, pmt, choices, fpvs, valpair=TRUE),
-      listButtonString = mkSelectInput (pkey, pmt, choices, fpvs, valpair=TRUE),
-      checkBox       = mkCheckBox (pkey, pmt, choices, fpvs),
-      radioGroup     = mkSelectInput (pkey, pmt, choices, fpvs, type="radiogroup"),
-      sliderBox      = mkTextInput (pkey, pmt, choices, fpvs),  
-      numberBox      = mkTextInput (pkey, pmt, choices, fpvs), 
-      intNumberBox   = mkTextInput (pkey, pmt, choices, fpvs), 
-      textEdit       = mkTextInput (pkey, pmt, choices, fpvs), 
-      longTextEdit   = mkTextInput (pkey, pmt, choices, fpvs),
-      mkVarList      = myInlineListButton (pkey, pmt, mkVarList(globals), selected=fpvs, deltll=2),
-      forestSelection = mkSelForest(pkey,prms,pmt,fpvs,choices,globals),
-      habPaSelection = mkSelhabPa(pkey,prms,pmt,fpvs,choices,globals),
+      globals$currentEditCmp$reopn[f]
+    if (!is.null(fpvs) && is.na(fpvs)) fpvs <- NULL
+    choices <- getPstring(pkeys, paste0(pkey, "v"), globals$activeVariants[1])
+    if (cndflag) pkey <- paste0("cnd.", pkey)
+    else if (funcflag) pkey <- paste0("func.", pkey)
+
+    # CONSOLE DEBUGGING
+    cat ("mkeltList title=",
+         title, "\nf=", f, " elt=",elt, " pkey=", pkey, " pmt=", pmt,
+         "\nglobals$activeVariants[1]=", globals$activeVariants[1],
+         " fpvs=", fpvs, "\n")
+    elt <- switch(elt,
+      listButton     = mkSelectInput(pkey, pmt, choices, fpvs),
+      longListButton = mkSelectInput(pkey, pmt, choices, fpvs),
+      longListButtonString = mkSelectInput(pkey, pmt, choices, fpvs, valpair = TRUE), # nolint: line_length_linter.
+      listButtonString = mkSelectInput(pkey, pmt, choices, fpvs, valpair = TRUE), # nolint: line_length_linter.
+      checkBox       = mkCheckBox(pkey, pmt, choices, fpvs),
+      radioGroup     = mkSelectInput(pkey, pmt, choices, fpvs, type = "radiogroup"), # nolint: line_length_linter.
+      sliderBox      = mkTextInput(pkey, pmt, choices, fpvs),
+      numberBox      = mkTextInput(pkey, pmt, choices, fpvs),
+      intNumberBox   = mkTextInput(pkey, pmt, choices, fpvs),
+      textEdit       = mkTextInput(pkey, pmt, choices, fpvs),
+      longTextEdit   = mkTextInput(pkey, pmt, choices, fpvs),
+      mkVarList      = myInlineListButton(pkey, pmt, mkVarList(globals), selected = fpvs, deltll = 2), # nolint: line_length_linter.
+      forestSelection = mkSelForest(pkey, prms, pmt, fpvs, choices, globals),
+      habPaSelection = mkSelhabPa(pkey, prms, pmt, fpvs, choices, globals),
       fileBrowse     = {
-              choices = gsub("xls$","db",choices)
-              mkTextInput (pkey, pmt, choices, fpvs) }, 
-      speciesSelection = mkSelSpecies(pkey,prms,pmt,fpvs,choices,globals),
-      scheduleBox = mkScheduleBox(pkey,prms,pmt,globals,input,output),
-      noInput = list(div(id=pkey,HTML(paste0("<p><b>",gsub("\n","<br/>",pmt),"<b/><p/>")))),
+                    choices = gsub("xls$", "db", choices)
+                    mkTextInput(pkey, pmt, choices, fpvs)
+                  },
+      speciesSelection = mkSelSpecies(pkey, prms, pmt, fpvs, choices, globals),
+      scheduleBox = mkScheduleBox(pkey, prms, pmt, globals, input, output),
+      noInput = list(div(id = pkey, HTML(paste0("<p><b>", gsub("\n", "<br/>", pmt), "<b/><p/>")))), # nolint: line_length_linter.
       NULL)
-    if (!is.null(elt)) eltList <- append(eltList,list(elt))
+    if (!is.null(elt)) eltList <- append(eltList, list(elt))
   }
-  if (cndflag) 
-  {
-    if (length(eltList) == 1) eltList <- append(eltList, 
-      list(h6("No settings for this condition.")))
+  # End Repeat
+  if (cndflag) {
+    if (length(eltList) == 1) {
+      eltList <- append(eltList,
+                        list(h6("No settings for this condition.")))
+    }
   }
-  if( !is.null(comptitle)) mkTitle(globals,comptitle,output)
+  if(!is.null(comptitle)) mkTitle(globals, comptitle, output)
   eltList
 }
 
@@ -206,7 +216,6 @@ mkSelForest <- function (pkey,prms,pmt,fpvs,choices,globals)
   myInlineListButton (pkey, pmt, fors, selected =  if (is.null(fpvs)) choices else fpvs, NULL)
 }
 
-
 mkSelSpecies <- function(pkey,prms,pmt,fpvs,choices,globals)
 {
   variant <- globals$activeVariants[1]
@@ -237,6 +246,8 @@ mkSelSpecies <- function(pkey,prms,pmt,fpvs,choices,globals)
       sptitles<-list ()
       for(spt in 1:length(globals$GrpNum))
       {
+        globals$GenGrp[spt] <- gsub(" ","",globals$GenGrp[spt])
+        globals$GenGrp[spt] <- gsub("[^a-zA-Z0-9_%]","_",htmltools::htmlEscape(globals$GenGrp[spt]))
         sptitles[spt] <- paste0("SpGroup:",globals$GenGrp[spt])
       }
       sps <- append(sps,sptitles)
@@ -285,7 +296,7 @@ cat ("mkScheduleBox schedBoxPkey is set to:",pkey,"\n")
   output$condBuild <- renderUI(rtn)
   NULL
 }
-      
+
 
 mkExistingCndsList <- function (fvsRun)
 {
@@ -403,7 +414,6 @@ myRadioGroup <- function (inputId, label, mklist, selected=NULL,labelstyle=NULL)
   #   '<label for="',inputId,'" ',labelstyle,'>',label,'&nbsp;&nbsp;</label>'), 
   #   paste0(inputs,collapse=""),"</div>")
 }
-
 
 myInlineListButton <- function (inputId, label, mklist, selected=NULL, deltll)
 {
