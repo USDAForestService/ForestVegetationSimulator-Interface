@@ -139,11 +139,10 @@ cat ("kill cmd =",cmd,"\n")
     unlink(fn)
   }
 }
-    
-   
+
 removeFVSRunFiles = function (uuid,all=FALSE)
 {
-  if (file.exists(uuid)) 
+  if (file.exists(uuid))
   {
     unlink(paste0(uuid,"/",dir(uuid)), recursive = TRUE, force = TRUE)
     unlink(uuid)
@@ -536,50 +535,19 @@ cat ("in updateVarSelection selected=",selected," globals$lastRunVar=",globals$l
 
 uuidgen <- function (n=1)
 {
-# generate a version 4 uuid using R's random number generator and a
-# special seed/status.
+# generate a version 4 uuid using a cryptographically secure random number generator (openssl::rand_num)
 # example: "36d3054f-553b-4f52-ac3f-b1a028f3dfa8"
 
-# designed to make it very difficult to cause this generator
-# to generate a duplicate...even when the user first calls set.seed
-# and does not have package digest.
-
-  ss <- if (exists(".Random.seed",envir=.GlobalEnv,inherit=FALSE)) 
-        get(".Random.seed",envir=.GlobalEnv) else NULL
-  cp <- Sys.getpid()
-  if (exists(".uuid.seedpid",envir=.GlobalEnv,inherit=FALSE) &&
-         get(".uuid.seedpid",envir=.GlobalEnv) == cp &&
-      exists(".uuid.seed",   envir=.GlobalEnv,inherit=FALSE))
-    .Random.seed <<- get(".uuid.seed",envir=.GlobalEnv) else 
-  {
-    .uuid.seedpid <<- cp
-    if (file.exists("/dev/random")) {
-      rn <- file ("/dev/random",open="rb",raw=TRUE)
-      set.seed(readBin(rn,"integer"))
-      close(rn)
-    } else 
-    {
-      if (require (digest,quietly=TRUE)) { 
-        i <- as.integer(runif(1,min=1,max=32-7))
-        dig <- paste0("0x",substring(digest(Sys.getenv()),i,i+6))
-        dig <- strtoi(dig) * if (strtoi(substring(dig,1,3)) %% 2) 1 else -1
-      } else dig <- 1
-      set.seed(as.integer(Sys.time())+cp+as.integer(runif(1)*1000)+dig)
-    }
-  }   
   uuid <- vector("character",n)
   for (i in 1:n) {
-    rnum = runif(4)
+    # Create 4 ramdom octets for the UUID.
+    rnum = openssl::rand_num(4)
     rstr <- substring(sprintf("%.8a",rnum),5,12)
     uuid[i] <- sprintf("%s-%s-4%s%s%s-%s%s",rstr[1],substring(rstr[2],1,4),
                substring(rstr[2],5,7),
                c("-8","-9","-a","-b","-8")[as.integer(rnum[1]*4)+1],
                substring(rstr[3],1,3),substring(rstr[3],4,7),rstr[4])
   }  
-  .uuid.seed <<- .Random.seed
-  #if the seed did not exist upon function call, then remove it, otherwise
-  #restore the seed to the original value.
-  if (is.null(ss)) rm(.Random.seed,envir=.GlobalEnv) else .Random.seed <<- ss
   uuid
 }
 
@@ -1801,13 +1769,7 @@ mkFVSProjectDB <- function (prjDir=getwd())
     }
   }
   ### process some of the other odd .RData files.
-  if (file.exists("customQueries.RData"))
-  {
-    load("customQueries.RData")
-    storeOrUpdateObject(db,customQueries)
-    rm (customQueries)
-    unlink("customQueries.RData")
-  }
+
   if (file.exists("FVS_kcps.RData"))
   {
     load("FVS_kcps.RData")
@@ -1847,8 +1809,22 @@ getFVSRuns <- function(db,asList=TRUE)
   } else return(NULL) 
   if (asList) 
   {  
+    # check for invalid UUIDs in the database and show a modal dialog if any are found
+    if (!all(sapply(df$uuid, function(x) {uuid::UUIDvalidate(x)}))) {
+      showModal(shiny::modalDialog(
+        title = "Invalid UUIDs Found",
+        "One or more runs in the database have invalid UUIDs. Please check the database for data integrity.  FVS will now terminate.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      # TODO Come back and figure out a more graceful way to handle this.  For now, just sleep for a few seconds and then stop the app.
+      Sys.sleep(3)
+      stopApp()
+    }
     rl = df$uuid
-    names(rl) = df$name
+
+    # Sannitize the names to remove any characters that are not letters, numbers, spaces, or underscores
+    names(rl) <- gsub("[^a-zA-Z0-9_ ]", "", df$name)
     return(as.list(rl))
   }
   return(df)

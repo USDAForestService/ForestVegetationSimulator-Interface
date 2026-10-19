@@ -383,32 +383,7 @@ document.addEventListener("copy", (event) => {
                      htmlOutput("tbSel", inline = TRUE))),
               checkboxGroupInput("browsevars", "Select variables",
                   choices = list("None"), selected = NULL, inline = TRUE)
-            ),
-
-            tabPanel("Custom Query",
-              selectInput("sqlSel", "SQL queries (run on FVSOut.db (SQLite3))",
-              NULL, NULL, multiple = FALSE, selectize = FALSE, width = "100%"),
-              textInput("sqlTitle", "Query name: ", value = "", width = "100%"),
-              tags$style(type = "text/css",
-                "#sqlQuery{font-family:monospace;font-size:90%;width:100%;}"),
-              tags$label(`for` = "sqlQuery", "Input SQL Query"),
-              
-              tags$textarea(id = "sqlQuery", rows = 15, ""),
-              actionButton("sqlRunQuery", "Run query"),
-              actionButton("sqlSave", "Save"),
-              actionButton("sqlNew", "New"),
-              actionButton("sqlDelete", "Delete"),
-             # h6("Output from query"),
-             tags$label(`for` = "sqlOutput", "Output from Query"),
-              tags$style(type = "text/css",
-                "#sqlOutput{font-family:monospace;font-size:90%;width:100%;}"),
-              tags$textarea(id = "sqlOutput", label = "Output from Query", rows = 5, ""),
-              tags$p(id = "sqlInstructions",
-                  HTML(paste0('Use "<b>;</b>" to separate SQL statements.<br>',
-                    'The last statement that results in a table being returned ',
-                    'defines the end of the sequence. That table is ',
-                    'used in <b>Tables</b> and <b>Graphs</b>')))
-        ) ) ), #END of outputleft pan
+            )) ), #END of outputleft pan
 
         column(width = 8,offset = .2,
         conditionalPanel("input.leftPan != 'Load'", 
@@ -940,12 +915,6 @@ document.addEventListener("copy", (event) => {
                     column(width = 1, offset = 0,
                       actionButton(inputId = "doImpGraphSettings", label = "Import")),    
                     column(width = 7, offset = 0, uiOutput("impGraphSettingsMsg"))), 
-            fixedRow(column(width = 4, offset = 0,
-              selectInput(inputId = "impCustomQueries", label = "Select a custom query", 
-                    choices = list(), multiple = FALSE, selectize = FALSE)),
-                    column(width = 1, offset = 0,
-                      actionButton(inputId = "doImpCustomQueries", label = "Import")),    
-                    column(width = 7, offset = 0, uiOutput("impCustomQueriesMsg"))), 
             fixedRow(column(width = 5, offset = 0,list(
               modalTriggerButton("impFVS_Data", "#impFVS_DataDlg", 
                 "Import FVS_Data.db"),

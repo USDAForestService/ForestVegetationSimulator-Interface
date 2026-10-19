@@ -1,11 +1,42 @@
 library(shiny)
+library(shinyValidate)
 
 options(shiny.trace = F)  # change to T for trace
 
 
 shinyServer(function(input, output, session) {
+  # Initialize the input validator and add rules for email validation
+  iv <- InputValidator$new()
+  iv$add_rule("emailnew", sv_email())
+  iv$add_rule("emaildup", sv_email())
+  iv$add_rule("emailexist", sv_email())
+  iv$enable()
 
   trim <- function (x) if (is.null(x)) "" else gsub("^\\s+|\\s+$","",x)
+
+  mask_email <- function(email) {
+  # Split username and domain
+  parts <- strsplit(email, "@")[[1]]
+  username <- parts[1]
+  domain <- parts[2]
+  
+  len <- nchar(username)
+  
+  if (len <= 2) {
+    # Keep short usernames as-is or use simple masking
+    masked_username <- username 
+  } else {
+    # Keep 1st and last character, replace the middle with asterisks
+    first_char <- substr(username, 1, 1)
+    last_char <- substr(username, len, len)
+    asterisks <- paste(rep("*", len - 2), collapse = "")
+    
+    masked_username <- paste0(first_char, asterisks, last_char)
+  }
+  
+  return(paste0(masked_username, "@", domain))
+}
+
 # pop the sink stack
   while(sink.number()) sink()
   try(sink("FVSPrjBldr.log"))
@@ -13,6 +44,14 @@ shinyServer(function(input, output, session) {
   cat ("cur dir=",getwd(),"\n")
   source("prjListEmail.R")
   source("uuidgen.R")
+
+  # Control the email submit button based on the email validation rules
+  observe({
+    valid <- iv$is_valid()
+    shinyjs::toggleState("submitnew", condition = valid)
+    shinyjs::toggleState("submitexist", condition = valid)
+  })
+
   observe({
     if (input$submitnew == 0) return()
     isolate({
@@ -26,15 +65,19 @@ shinyServer(function(input, output, session) {
         return()
       }
       uuid = uuidgen()
+      logUUID <- gsub("[A-Za-z0-9](?=.{6})", "*", uuid, perl = TRUE)
+      logEmail <- mask_email(emailnew)
+
       workDir = paste0("/home/shiny/FVSwork/",uuid)
-      cat("workDir=",workDir,"\n")
+      logWorkDir <- paste0("/home/shiny/FVSwork/",logUUID)
+      cat("workDir=",logWorkDir,"\n")
       dir.create(workDir)
 #      if (input$version == "production") 
         cat ('library(fvsOL)\nfvsOL(fvsBin="/home/shiny/FVS/bin")\n',file=paste0(workDir,"/app.R"))
 #      if (input$version == "development") 
 #        cat ('library(fvsOLdev)\nfvsOL(fvsBin="/home/shiny/FVSdev/bin")\n',file=paste0(workDir,"/app.R"))
       # projectId file...
-cat("email=",emailnew,"\ntitle=",input$title,"\n")
+      cat("email=",logEmail,"\ntitle=",input$title,"\n")
       cat(file=paste0(workDir,"/projectId.txt"),
           "email=",emailnew,"\ntitle=",input$title,"\n")
       rptFile = tempfile()
@@ -75,6 +118,3 @@ cat("email=",emailnew,"\ntitle=",input$title,"\n")
   })
 
 })
-
-
-

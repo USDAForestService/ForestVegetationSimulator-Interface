@@ -24,6 +24,8 @@ mkdbhCase = function (stpdbh=5,lgdbh=100)
   stpdbh=if (is.na(stpdbh) || as.numeric(stpdbh)==0 || 
              as.character(stpdbh)=="") 5 else ceiling(stpdbh)
   if (is.na(lgdbh ) || as.numeric(lgdbh )==0 || as.character(lgdbh )=="") lgdbh =100
+  # limit to upper bound to 1000cm" based on largest know dbh tree (Montezuma cypress) Oaxaca, Mexico
+  if (lgdbh > 1000) lgdbh <- 1000
   if (stpdbh<1)       stpdbh=1
   if (lgdbh<stpdbh*5) lgdbh=stpdbh*5
   lb = seq(stpdbh-(stpdbh/2),lgdbh+stpdbh,stpdbh)

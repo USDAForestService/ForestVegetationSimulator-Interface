@@ -11,12 +11,8 @@ build_fvsOL.R
 fvsOL/data/fvsOnlineHelpRender.RData
 fvsOL/data/prms.RData
 fvsOL/launch.R
-fvsOL/NAMESPACE
-rFVS/NAMESPACE
 rFVS/rFVSmadeTag
 fvsOL/fvsOLmadeTag
-fvsOL/man/*
-rFVS/man/*
 *.gz
 .Rproj.user
 

@@ -1,6 +1,8 @@
 library(shiny)
+library(shinyjs)
 
 shinyUI(fluidPage(
+  useShinyjs(),
   tags$style(HTML(paste0(
     ".nav>li>a {padding:6px;}",
     ".btn {padding:4px 6px;color:darkred; background-color:#eef8ff;}",
