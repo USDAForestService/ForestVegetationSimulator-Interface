@@ -277,20 +277,6 @@ created when you select a <i>Plot by</i> variable.
 </p>
 <p>The <b>axis labels</b> are automatically set to the variable name unless you specify 
 a new label. And the <b>title</b> is blank unless you type in a title. 
-Axis and title labels can optionally contain <b>mathematical expressions</b>. 
-Adding an expression to a label or title is done by entering an
-<code>expression()</code> following the rules outlined in 
-<a href="https://stat.ethz.ch/R-manual/R-devel/library/grDevices/html/plotmath.html" target="_blank">
-Mathematical Annotation in R</a>, or <a href="https://rpubs.com/kylewbrown/math-expressions" target="_blank">
-Understanding R: Mathematical Expressions</a>. 
-For example, if you would like to display basal area 
-on the y-axis, you can simply select the variable <b>BA</b> and the y-axis label will be <b>BA</b> as that
-is the name of the variable. You can type in the label <b>Basal area per acre</b> 
-and that will be the label. An alternative that shows the units in mathematical 
-notation would be <code>expression(paste("Basal area ", (ft^2/a)))</code> 
-and for merchantable volume you could code <code>expression(paste("Merchantable ", (ft^3/a)))</code>. 
-Note that the label shown is exactly what you type until the expression is coded correctly. Once
-you get it right, it will display correctly.
 </p>
 <p>Finished graphs can be copied to your computer clipboard to be inserted into 
 a document. If you want high resolution graphs, or otherwise 
@@ -304,66 +290,6 @@ customizations. For example, lets say you have some specific labels, line
 colors, graph type, variable selections, and axis scales you have 
 selected for a graph. You can give those settings a name and save them. In
 another run, they can be recalled and used on new data.
-</p>
-<p><b>Custom Query</b> provides the ability to build and run SQL queries that run
-on the output <a href="https://www.sqlite.org/" target="_blank">SQLite3</a>
-database. The tabular output from those queries is displayed as 
-a table and data in that table can be graphed or downloaded.</p>
-<p>
-However, building custom database queries requires some knowledge of 
-SQL, the structure of the output database, and the mechanisms used by FVSOnline to create 
-and manipulate the database. Note that the entire the database structure is defined 
-in the <a href="#outputTables">Output Table Descriptions.</a></p>
-<p>
-The first table you need to understand is the FVS_Cases table which contains one row 
-for each simulation of each stand or replication of a stand over all the runs you have
-made in the project. When each run is made, FVSOnline first creates a fresh database where 
-all the output tables are sent for the run. After each run is finished, FVSOnline
-deletes all the output that may already exist for the same run in the permanent database  
-then the outputs in the fresh database are inserted into the permanent 
-database.</p>
-<p> 
-The FVS_Cases table is key to this process. This table contains several columns 
-including the keyword file name that FVSOnline insures is unique to the run even if two
-or more run names are identical. The result of a query of the FVS_Cases table 
-that selects all the cases that have a given keyword file name will contain one row 
-for each case where the CaseID column has a unique identifier for each case. 
-Here is a select statement that will result in just the cases for a given run:</p>
-<p>
-<code>select CaseID from FVS_Cases where KeywordFile = 'name';</code></p>
-<p>
-A similar select statement is used by FVSOnline to build a temporary table that 
-contains a list of all the CaseID values associated with one or more KeywordFile values. 
-This table, called, tmp_cases, is automatically built or rebuilt every time the you 
-change the selections in <b>"Runs to consider"</b>. In turn, when you desire to explore one of the 
-other FVS output tables, FVSOnline uses this table to limit the rows to include just the rows
-related to runs that are loaded for exploration. For example, to select just the rows in the 
-FVS_Summary2 table that are related to the selected runs, FVSOnline uses this query:
-<p>
-<code>select * from FVS_Summary2 where CaseID in (select CaseID from tmp_cases);</code></p>
-<p>
-The <b>Custom Query</b> tab allows you to build and save your custom output 
-database queries. Queries like those show above can be used to select just the data 
-for a specific run or runs. Note that the FVS_Cases table also contains the RunTitle. 
-If you insure run titles are unique, they can be used in place of the KeywordFile 
-name to limit the cases to those of a give run or collection of runs. Here, for example, 
-is a complete query that selects all of the tree records from the FVS_TreeList_East 
-table associated with two runs names <i>Run 1</i> and <i>Run 2</i>.
-<p>
-<code>select * from FVS_TreeList_East where CaseID in<br> 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(select CaseID from FVS_Cases where RunTitle in ('Run 1', 'Run 2'));</code></p>
-<p>
-Note that SQLite3 allows the attachment other databases and tables from those
-databases can be include in queries. 
-As a convenience, FVSOnline automatically attaches the FVS input database (FVS_Data.db) 
-to the output database when the Custom Query tab is used. This attached database is given 
-the alias <i>input</i> so that tables from the input can be joined to the output. 
-For example, the stand identification code from the input database might be 
-<code>input.FVS_standInit.Stand_ID</code>.
-<p>
-A <i>query</i> can actually be several queries each separated by a semicolon. They can
-be stored and recovered for later use. Lastly, comments can be included in 
-the query by surrounding it with /*  */ character sequences.
 </p>
 <p><a href="#contents">Back to contents</a> 
 </p>
