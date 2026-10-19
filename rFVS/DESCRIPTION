@@ -6,7 +6,7 @@ Authors@R: person("Nicholas", "Crookston", email = "ncrookston.fs@gmail.com",
 Description: Provides a set of R functions that interface with the 
  Forest Vegetation Simulator when it is run as a shared libray.
 Depends: R (>= 4.0.0)
-License: MIT
+License: CC0
 Roxygen: list(markdown = TRUE)
 StagedInstall: no
 Encoding: UTF-8

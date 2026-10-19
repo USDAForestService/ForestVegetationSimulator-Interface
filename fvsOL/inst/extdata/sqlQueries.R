@@ -19,6 +19,8 @@ mkdbhCase <- function(stpdbh = 4, lgdbh = 40) {
                  as.character(stpdbh) == "") 4 else ceiling(stpdbh)
   if (is.na(lgdbh) || as.numeric(lgdbh )==0 || 
         as.character(lgdbh) == "") lgdbh <- 40
+  # limit to upper bound to 400" based on largest know dbh tree (Montezuma cypress) Oaxaca, Mexico
+  if (lgdbh > 400) lgdbh <- 400
   if (stpdbh < 1)       stpdbh <- 1
   if (lgdbh < stpdbh * 4) lgdbh <- stpdbh * 4
   lb <- seq(stpdbh - (stpdbh / 2), lgdbh + stpdbh, stpdbh)
