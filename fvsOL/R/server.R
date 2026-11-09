@@ -645,6 +645,7 @@ cat ("tb=",tb," cnt=",cnt,"\n")
           setProgress(value = NULL)
           return()
         }
+        tbs = c(tbs,"CmpMetaData")
         dbhclassexp <- mkdbhCase(input$sdskwdbh,input$sdskldbh)
         if (!isMetric)
         {
@@ -6524,7 +6525,7 @@ cat ("tabDescSel2, tab=",tab,"\n")
                                   list(code= "$('#installEmptyDB').prop('disabled',false)"))
         return()
       } 
-      fext = tools::file_ext(fname)
+      fext = tolower(tools::file_ext(fname))
       if (! (fext %in% c("accdb","mdb","db","sqlite","xlsx"))) 
       {
         output$step1ActionMsg = renderText(".zip did not contain one of the suitable file types described in Step 1.")
@@ -6540,97 +6541,90 @@ cat ("tabDescSel2, tab=",tab,"\n")
 cat ("fext=",fext," fname=",fname," fdir=",fdir,"\n")
     curDir=getwd()
     setwd(fdir)
-    if (fext %in% c("accdb","mdb"))
-    {
-      progress$set(message = "Process schema", value = 2)
-cat("curDir=",curDir," input dir=",getwd(),"\n")
-      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-schema") else "mdb-schema"
-      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe") 
-      cmd = paste0(pgm," ",fname)
-cat ("cmd=",cmd,"\n")
-      schema = if (.Platform$OS.type == "windows") try(shell(cmd,intern=TRUE)) else
-                                                   try(system(cmd,intern=TRUE))
-      if (inherits(schema,"try-error") || !exists("schema") || length(schema) < 2 || schema[1] =="Unknown Jet version.") 
-      {
-        setwd(curDir) 
-        progress$close()  
-        if (schema[1] =="Unknown Jet version.") output$step1ActionMsg = renderText("Unknown Jet version. Possible corrupt database.") else
-        output$step1ActionMsg = renderText("Error when attempting to extract data from Access database.")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        session$sendCustomMessage(type="jsCode",
-                                  list(code= "$('#installTrainDB').prop('disabled',false)"))
-        session$sendCustomMessage(type="jsCode",
-                                  list(code= "$('#installEmptyDB').prop('disabled',false)"))
-        return()
-      }
-      tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
-      schema = schema[tbls[1]:length(schema)]
-      schema = gsub("\t"," ",schema,fixed=TRUE)   
-      schema = gsub("[","]",schema,fixed=TRUE) 
-      tbls = grep ("CREATE TABLE",schema,ignore.case=TRUE)
-      tbln=unlist(lapply(schema[tbls],function(x) if (length(grep("]",x,fixed=TRUE)))
-        scan(text=x,what="character",sep="]",quiet=TRUE)[2] else
-        scan(text=x,what="character",quiet=TRUE)[3]))
-      
-      for (tab in tbln)
-      {
-        invalidTabName = grepl("[^a-zA-Z0-9_ ]",tab)
 
-        if (invalidTabName)
-        {
-          showModal(shiny::modalDialog(
-            title = "Upload Failure: Invalid table name",
-            HTML("<h4>Table names must only contain alphanumeric characters and underscores.</h4>"),
-            easyClose = F,
-            footer = modalButton("OK")
-            )
-          )
-          setwd(curDir)
-          progress$close()  
-          session$sendCustomMessage(type="jsCode",
-            list(code= "$('#installNewDB').prop('disabled',true)"))
-          session$sendCustomMessage(type="jsCode",
-            list(code= "$('#addNewDB').prop('disabled',true)"))
-          return()
+     if (fext %in% c("accdb","mdb")) {
+       library(mdbr)
+
+       progress$set(message = "Process schema", value = 2)
+       cat("curDir=",curDir," input dir=",getwd(),"\n")
+
+       sqlite_pgm <- if (exists("sqlite3exe", inherits = TRUE)) {
+         sqlite3exe
+       } else {
+         "sqlite3"
+       }
+
+       tbls <- mdbr::mdb_tables(fname)
+
+        invalid <- !grepl("^[A-Za-z_][A-Za-z0-9_]*$", tbls)
+        if (any(invalid)) {
+          stop(sprintf(
+            "Invalid table names found: %s",
+            paste(tbls[invalid], collapse = ", ")
+          ), call. = FALSE)
         }
-      }
 
-      if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
+        if (anyDuplicated(tolower(tbls))) {
+          stop("Duplicate table names are not supported.", call. = FALSE)
+        }
+
+        # Check for required input tables in the uploaded database
+        if(!length(grep("\\b(FVS_StandInit|FVS_PlotInit|FVS_StandInit_Plot|
                         FVS_PlotInit_Plot|FVS_StandInit_Cond)\\b",
-                        tbln, ignore.case = TRUE))) {
-        setwd(curDir) 
-        progress$close()     
-        output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
+                        tbls, ignore.case = TRUE))) {
+          setwd(curDir) 
+          progress$close()     
+          output$step1ActionMsg = renderText("<h4>Required input table(s) is missing from your input data.<br>  
                                            Please review input database requirements in 
                                            <a href='https://www.fs.usda.gov/fmsc/ftp/fvs/docs/gtr/DBSUserGuide.pdf' 
                                            target='_blank' rel='noopener noreferrer'>
                                            Chapter 3 of the Database Users Guide</a></h4>")
-        session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
-        session$sendCustomMessage(type="jsCode",
+          session$sendCustomMessage(type = "resetFileInputHandler","uploadNewDB")
+          session$sendCustomMessage(type="jsCode",
                                   list(code= "$('#installTrainDB').prop('disabled',false)"))
-        session$sendCustomMessage(type="jsCode",
+          session$sendCustomMessage(type="jsCode",
                                   list(code= "$('#installEmptyDB').prop('disabled',false)"))
-        return()
-      }
-      pgm = if (exists("mdbToolsDir")) file.path(normalizePath(mdbToolsDir),"mdb-export") else "mdb-export"
-      if (.Platform$OS.type == "windows") pgm=paste0(pgm,".exe")
-
-      tempCon <- dbConnect(SQLite(), ":memory:")
-      dbo = dbConnect(dbDrv,"FVS_Data.db")
-      for (tab in tbln) 
-      {
-        progress$set(message = paste0("Processing table ",tab), value = 3)
-        csv_raw <-system2(command = pgm, 
-                          args = c(shQuote(fname), shQuote(tab)), 
-                          stdout = TRUE)
-        csv_string <- paste(csv_raw, collapse = "\n")
-        df_datafrm <- readr::read_csv(csv_string, show_col_types = FALSE)
-        dbWriteTable(tempCon, tab, df_datafrm, overwrite = TRUE)
-      }
-
-      sqliteCopyDatabase(tempCon, dbo)
-      dbDisconnect(tempCon)
+          return()
+        }
       
+        progress$set(message = "Extract data", value = 3)  
+
+        temp_db <- tempfile(fileext = ".db")
+        on.exit(unlink(temp_db), add = TRUE)
+
+        sqlite <- DBI::dbConnect(RSQLite::SQLite(), temp_db)
+        on.exit(DBI::dbDisconnect(sqlite), add = TRUE)
+
+        for (tab in tbls) {
+          progress$set(message = paste0("Export table ",tab), value = 3)
+          read_seconds <- system.time({
+            data <- mdbr::read_mdb(fname, tab)
+          })[["elapsed"]]
+
+          write_seconds <- system.time({
+            DBI::dbWriteTable(
+              sqlite,
+              name = tab,
+              value = data,
+              overwrite = TRUE
+            )
+          })[["elapsed"]]
+      }
+
+      dbo = dbConnect(dbDrv,"FVS_Data.db")
+      copy_time <- system.time({
+        sqliteCopyDatabase(sqlite, dbo)
+      })[["elapsed"]]
+      DBI::dbDisconnect(sqlite)
+
+      message(sprintf(
+        "Time to read tables: %.2f seconds\nTime to write tables: %.2f seconds\nTime to copy database: %.2f seconds",
+        read_seconds, write_seconds, copy_time
+      ))
+
+      ## End of MDB/ACCDB processing
+
+      ## Begin of Excel processing
     } else if (fext == "xlsx") 
     {
       progress$set(message = "Get data sheets", value = 3)
@@ -6907,7 +6901,7 @@ cat ("qry=",qry,"\nrtn=",rtn,"\n")
         qry="update FVS_TreeInit set Stand_CN = (select Stand_ID from FVS_TreeInit) where Stand_CN is null;"
         rtn=try(dbExecute(dbo,qry))
 cat ("qry=",qry,"\nrtn=",rtn,"\n")
-      }     
+      } 
 cat ("checking duplicate stand or standplot ids\n")
       progress$set(message = "Checking for duplicate StandID values", value = 5)
       # loop over tables and omit duplicate stand or standplot id's from being uploaded
@@ -9094,4 +9088,3 @@ cat ("leaving saveRun, globals$lastRunVar=",globals$lastRunVar,"\n")
     }
   }
 }
-
