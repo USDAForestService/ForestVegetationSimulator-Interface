@@ -167,6 +167,8 @@ customRunElements = list(
 FVSOnlineServer <- function(input, output, session) 
 {  
 cat ("FVSOnline/OnLocal interface server start\n")
+  # Project switches setwd() before this session ends; onSessionEnded uses it.
+  sessionPrjDir <- getwd()
   if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
 
@@ -406,6 +408,9 @@ cat ("sending closeWindow\n")
   
   session$onSessionEnded(function ()
   { 
+    # Clean up this session's project, not the one a switch moved to.
+    owd <- setwd(sessionPrjDir)
+    on.exit(setwd(owd))
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
@@ -8663,7 +8668,6 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
       { 
         if (isLocal()) 
         {
-        file.remove('./ProjectIsLocked.txt')
         setwd(newPrj)
         globals$reloadAppIsSet=1
         session$reload()    
@@ -8855,7 +8859,6 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
               return()
             }
 
-            file.remove('./ProjectIsLocked.txt')
             setwd(dirPath)
             globals$reloadAppIsSet=1
             session$reload()
