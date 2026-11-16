@@ -443,7 +443,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   
   if (isLocal()) {
     volumeResult <- tryCatch({
-      volumes <-c(getVolumes2()())
+      volumes <- shinyFiles::getVolumes()()
       shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
       output$VDINote <- renderUI({
       HTML(paste0("<b>VDI Users should change to an accessible network directory with persistent memory</b>"))
