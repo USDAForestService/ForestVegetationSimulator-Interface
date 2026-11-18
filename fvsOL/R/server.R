@@ -5745,9 +5745,6 @@ cat ("rows to keep=",length(keep),"\n")
       }
       progress <- shiny::Progress$new(session,min=1,max=length(uidsFound))
       labs = list()
-      url = paste0(session$clientData$url_protocol,"//",
-                   session$clientData$url_hostname,
-                   session$clientData$url_pathname)
       for (sid in uidsFound)
       {
         tab = subset(dispData,StandID == sid)[,-1]
@@ -5773,11 +5770,6 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
-            url = paste0(session$clientData$url_protocol,"//",
-                         session$clientData$url_hostname,
-                         session$clientData$url_pathname)
-            pfile=if (isLocal()) paste0("/www/s",sid,".png") else
-                                 paste0(url,"www/s",sid,".png")
             HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
                         '" alt="',sid,'" style="width:229px;height:170px;">'))
           }
