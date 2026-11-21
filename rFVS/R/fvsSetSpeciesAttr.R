@@ -24,7 +24,7 @@
 #'    mortdia2   \tab upper diameter limit to apply the multiplier for each species \cr
 #'    regdmult   \tab multiplier for diameter growth of regeneration for each species \cr
 #'    reghmult   \tab multiplier for height growth of regeneration for each species}
-#' @return scalar integer 0 signals OK and 1 signals an error.
+#' @return scalar integer 0 signals OK other values signal an error.
 #' @examples
 #'    #edit fvsLoad to reflect where FVSbin is stored on your system. 
 #'    fvsLoad(bin="FVSbin",fvsProgram="FVSie")

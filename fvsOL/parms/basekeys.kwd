@@ -155,8 +155,7 @@ BFFDLN    !1,10!!2,10!!3,10!}
 description{ls ne cs sn}:
 {This keyword pertains to merchantability limits for board foot volume.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 }
@@ -164,8 +163,7 @@ See the variant overview for default specifications.
 description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
 {Change the merchantability limits for board foot volume equations.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 }
@@ -173,8 +171,7 @@ See the variant overview for default specifications.
 description{bm ec so wc pn ca op oc nc}:
 {Change the merchantability limits for board foot volume equations.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 
@@ -182,10 +179,7 @@ If you change to a different log length equation (with the VOLEQNUM keyword),
 you will need to modify form class in this window.
 }
 
-f1title:
-{Enter 0 (zero) in the 'Schedule by Year/Cycle' input box to modify
-volumes for the inventory year and following cycles.}
-f1:{scheduleBox}
+f1:{noInput These limits apply for the whole run and can't be scheduled.}
 f2:{speciesSelection Species whose limits are to be changed}
 
 f3:{numberBox Minimum merchantable DBH}
@@ -236,8 +230,7 @@ description{ls ne cs sn}:
 {This keyword pertains to cubic foot merchantability limits, 
 independent of board foot merchantability limits.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 }
@@ -245,8 +238,7 @@ See the variant overview for default specifications.
 description{ni ie kt em ci tt ut cr sw sp bp sf lp ws nc ca ak}:
 {Change the merchantability limits for cubic foot volume.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 }
@@ -254,8 +246,7 @@ See the variant overview for default specifications.
 description{bm ec so wc pn ca op oc nc}:
 {Change the merchantability limits for cubic foot volume.
 
-Once the limits are in effect, they remain in effect until
-replaced by subsequent limits.
+These limits apply for the whole run.
 
 See the variant overview for default specifications.
 
@@ -264,10 +255,7 @@ you will need to modify form class in this window.
 }
 
 
-f1title:
-{Enter 0 (zero) in the 'Schedule by Year/Cycle' input box to modify
-volumes for the inventory year and following cycles.}
-f1:{scheduleBox}
+f1:{noInput These limits apply for the whole run and can't be scheduled.}
 f2:{speciesSelection Species whose limits are to be changed}
 
 f3:{numberBox Minimum DBH}
