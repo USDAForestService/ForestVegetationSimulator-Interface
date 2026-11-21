@@ -167,6 +167,8 @@ customRunElements = list(
 FVSOnlineServer <- function(input, output, session) 
 {  
 cat ("FVSOnline/OnLocal interface server start\n")
+  # Project switches setwd() before this session ends; onSessionEnded uses it.
+  sessionPrjDir <- getwd()
   if (!dir.exists ("www")) dir.create("www")
   addResourcePath("www",file.path(".","www"))
 
@@ -406,6 +408,9 @@ cat ("sending closeWindow\n")
   
   session$onSessionEnded(function ()
   { 
+    # Clean up this session's project, not the one a switch moved to.
+    owd <- setwd(sessionPrjDir)
+    on.exit(setwd(owd))
 cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
      " interactive()=",interactive(),"\n",
      "globals$reloadAppIsSet=",globals$reloadAppIsSet,
@@ -443,7 +448,7 @@ cat ("onSessionEnded, globals$saveOnExit=",globals$saveOnExit,
   
   if (isLocal()) {
     volumeResult <- tryCatch({
-      volumes <-c(getVolumes2()())
+      volumes <- shinyFiles::getVolumes()()
       shinyFiles::shinyDirChoose(input, "Change_wd", roots= volumes, session= session, restrictions = system.file(package = "base"))
       output$VDINote <- renderUI({
       HTML(paste0("<b>VDI Users should change to an accessible network directory with persistent memory</b>"))
@@ -5745,9 +5750,6 @@ cat ("rows to keep=",length(keep),"\n")
       }
       progress <- shiny::Progress$new(session,min=1,max=length(uidsFound))
       labs = list()
-      url = paste0(session$clientData$url_protocol,"//",
-                   session$clientData$url_hostname,
-                   session$clientData$url_pathname)
       for (sid in uidsFound)
       {
         tab = subset(dispData,StandID == sid)[,-1]
@@ -5773,11 +5775,6 @@ cat ("pfile=",pfile," nrow=",nrow(tab)," sid=",sid,"\n")
             if (!is.factor(tab$Year)) p = p+geom_line()
             print(p)
             dev.off()
-            url = paste0(session$clientData$url_protocol,"//",
-                         session$clientData$url_hostname,
-                         session$clientData$url_pathname)
-            pfile=if (isLocal()) paste0("/www/s",sid,".png") else
-                                 paste0(url,"www/s",sid,".png")
             HTML(paste0('<img src="',pfile,'?',as.character(as.numeric(Sys.time())),
                         '" alt="',sid,'" style="width:229px;height:170px;">'))
           }
@@ -8663,7 +8660,6 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
       { 
         if (isLocal()) 
         {
-        file.remove('./ProjectIsLocked.txt')
         setwd(newPrj)
         globals$reloadAppIsSet=1
         session$reload()    
@@ -8855,7 +8851,6 @@ cat("PrjOpen to=",newPrj," dir.exists(newPrj)=",dir.exists(newPrj),
               return()
             }
 
-            file.remove('./ProjectIsLocked.txt')
             setwd(dirPath)
             globals$reloadAppIsSet=1
             session$reload()

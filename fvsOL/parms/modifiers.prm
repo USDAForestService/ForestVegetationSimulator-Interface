@@ -5,9 +5,7 @@ description:
 
 See the variant overview for default specifications.}
 
-f1title:
-{Year/Cycle must be "0" for changes to effect inventory year}
-f1:{scheduleBox}
+f1:{noInput These limits apply for the whole run and can't be scheduled.}
 f2:{speciesSelection Species}
 
 f3title:
