@@ -1,7 +1,8 @@
 #' Make an FVS keyword file suitable for running FVS using fvsLoad, fvsSetCmdLine and fvsRun
 #'
 #' Pass basic parameters needed to create an FVS input keyword file and this function will
-#' generate the file.
+#' generate the file. Note that this function is not designed to work with package fvsOL or any
+#' of the files or objects it crated using that package.
 #' 
 #' @param keyFileName the keyword file name, if not specified unique name is created and used as the 
 #'        file name (the file name is returned).
